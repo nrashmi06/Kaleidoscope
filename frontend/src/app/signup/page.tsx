@@ -1,4 +1,4 @@
-import SigninForm from "@/components/authorization/signin-form-demo";
+import SignupForm from "@/components/authorization/signup-form-demo";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import Image from "next/image";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
@@ -16,7 +16,7 @@ function Page() {
               <div className="space-y-4">
               <div className="text-12xl md:text-14xl lg:text-16xl font-extrabold tracking-tight leading-tight text-center">
                   <Image
-                    src="/team_1.png"
+                    src="/team.png"
                     alt="img"
                     width={500}
                     height={500}
@@ -24,8 +24,8 @@ function Page() {
                   />
                   <span className="text-transparent bg-clip-text">
                     <TextGenerateEffect
-                      words="Sign in to explore the other side!"
-                      className="text-sm font-semibold text-transparent bg-clip-text text-gray-400"
+                      words="Sign-Up to explore the other side !"
+                      className="text-transparent bg-clip-text text-sm text-slate-400"
                     />
                   </span>
                 </div>
@@ -38,7 +38,7 @@ function Page() {
       {/* Right side: Fullscreen Signup Form */}
       <div className="w-full md:w-1/2 flex items-center justify-center h-full p-6 md:p-12 bg-white">
         <div className="w-full max-w-md shadow-input md:shadow-none md:rounded-2xl">
-          <SigninForm />
+          <SignupForm />
         </div>
       </div>
     </div>
