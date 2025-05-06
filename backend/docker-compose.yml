@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:${POSTGRES_VERSION:-17.4}
+    container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
+    restart: always
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-kaleidoscope}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
