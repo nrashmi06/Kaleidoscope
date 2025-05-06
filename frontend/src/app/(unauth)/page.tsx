@@ -1,7 +1,7 @@
 import React from 'react'
 import HeroSectionOne from '@/components/hero-section-demo-1';
 
-function page() {
+function Home() {
   return (
     <div>
         <HeroSectionOne/>
@@ -9,4 +9,4 @@ function page() {
   )
 }
 
-export default page
+export default Home

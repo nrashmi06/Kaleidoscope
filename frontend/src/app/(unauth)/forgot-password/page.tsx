@@ -14,7 +14,7 @@ function ForgotPasswordPage() {
               <div className="space-y-4">
                 <div className="text-12xl md:text-14xl lg:text-16xl font-extrabold tracking-tight leading-tight text-center">
                   <Image
-                    src="/team_1.png"
+                    src="/team_2.png"
                     alt="Forgot password image"
                     width={500}
                     height={500}
