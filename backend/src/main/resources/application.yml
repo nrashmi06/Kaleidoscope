@@ -1,7 +1,7 @@
 # Application Configuration
 spring:
   application:
-    name: ${APP_NAME}
+    name: ${APP_NAME:kaleidoscope}
   app:
     base-url: ${APP_BASE_URL:http://localhost:8080}
 
@@ -41,10 +41,10 @@ spring:
 
   # Email Configuration
   mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:test@example.com}
+    password: ${MAIL_PASSWORD:password123}
     properties:
       mail:
         smtp:
@@ -62,13 +62,13 @@ allowed:
   origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:kaleidoscope-jwt-secret-key-for-testing-purposes-only}
   expiration: 86400000
   cookie-max-age-days: 7
 
 # External Services Configuration
 cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}
-  url: ${CLOUDINARY_URL}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:test-cloud}
+  api-key: ${CLOUDINARY_API_KEY:test-api-key}
+  api-secret: ${CLOUDINARY_API_SECRET:test-api-secret}
+  url: ${CLOUDINARY_URL:cloudinary://test-api-key:test-api-secret@test-cloud}
