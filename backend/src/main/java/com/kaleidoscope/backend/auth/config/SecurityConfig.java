@@ -1,6 +1,6 @@
 package com.kaleidoscope.backend.auth.config;
 
-import com.kaleidoscope.backend.auth.routes.UserRoutes;
+import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.CustomAccessDeniedHandler;
 import com.kaleidoscope.backend.auth.security.jwt.AuthEntryPointJwt;
 import com.kaleidoscope.backend.auth.security.jwt.AuthTokenFilter;
@@ -47,11 +47,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(
-                                UserRoutes.FORGOT_PASSWORD,
-                                UserRoutes.RESET_PASSWORD,
-                                UserRoutes.REGISTER,
-                                UserRoutes.LOGIN,
-                                UserRoutes.RENEW_TOKEN,
+                                AuthRoutes.FORGOT_PASSWORD,
+                                AuthRoutes.RESET_PASSWORD,
+                                AuthRoutes.REGISTER,
+                                AuthRoutes.LOGIN,
+                                AuthRoutes.RENEW_TOKEN,
                                 "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

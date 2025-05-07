@@ -1,5 +1,5 @@
 package com.kaleidoscope.backend.auth.dto.response;
-import com.kaleidoscope.backend.auth.enums.Role;
+import com.kaleidoscope.backend.shared.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,4 +14,7 @@ public class UserRegistrationResponseDTO {
     private String email;
     private String username;
     private Role role;
+    private String designation;
+    private String summary;
+    private String profilePictureUrl;
 }

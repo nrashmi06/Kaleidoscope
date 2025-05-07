@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.auth.exception.user;
+package com.kaleidoscope.backend.users.exception.user;
 
 public class UserNotActiveException extends RuntimeException {
     public UserNotActiveException(String message) {

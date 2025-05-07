@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.auth.controller;
 
-import com.kaleidoscope.backend.auth.routes.UserRoutes;
-import com.kaleidoscope.backend.auth.service.UserService;
+import com.kaleidoscope.backend.auth.routes.AuthRoutes;
+import com.kaleidoscope.backend.users.service.UserService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +18,7 @@ public class AuthViewController {
     }
 
 
-    @GetMapping(UserRoutes.VERIFY_EMAIL)
+    @GetMapping(AuthRoutes.VERIFY_EMAIL)
     @PreAuthorize("permitAll()")
     public String verifyEmail(@RequestParam String token, Model model) {
         try {

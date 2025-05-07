@@ -1,9 +1,9 @@
-package com.kaleidoscope.backend.auth.service;
+package com.kaleidoscope.backend.users.service;
 
 import com.kaleidoscope.backend.auth.dto.request.UserLoginRequestDTO;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
-import com.kaleidoscope.backend.auth.model.User;
+import com.kaleidoscope.backend.users.model.User;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

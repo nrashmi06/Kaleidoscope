@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.auth.exception.user;
+package com.kaleidoscope.backend.users.exception.user;
 
 public class InvalidUsernameException extends RuntimeException {
     public InvalidUsernameException(String message) {

@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.auth.dto.response;
+package com.kaleidoscope.backend.users.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,12 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class UserLoginResponseDTO {
+public class UserDetailsSummaryResponseDTO {
     private Long userId;
     private String email;
     private String username;
-    private String role;
+    private String accountStatus;
 }

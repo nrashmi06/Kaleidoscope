@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.auth.security.jwt;
 
 import com.kaleidoscope.backend.auth.exception.token.JwtTokenExpiredException;
-import com.kaleidoscope.backend.auth.repository.UserRepository;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.auth.config.JwtProperties;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;

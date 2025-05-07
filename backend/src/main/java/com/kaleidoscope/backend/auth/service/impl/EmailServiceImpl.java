@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
-import com.kaleidoscope.backend.auth.repository.UserRepository;
-import com.kaleidoscope.backend.auth.routes.UserRoutes;
+import com.kaleidoscope.backend.auth.routes.AuthRoutes;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.shared.config.ApplicationProperties;
 import jakarta.mail.MessagingException;
@@ -66,7 +66,7 @@ public class EmailServiceImpl implements EmailService {
         String subject = "Verify your email address";
         String baseUrl = applicationProperties.getBaseUrl();
         String contextPath = applicationProperties.getContextPath();
-        String verificationUrl = baseUrl + contextPath + UserRoutes.VERIFY_EMAIL + "?token=" + code;
+        String verificationUrl = baseUrl + contextPath + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
         Context context = new Context();
         context.setVariable("verificationUrl", verificationUrl);
         String body = templateEngine.process("verificationEmailTemplate", context);

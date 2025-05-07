@@ -3,13 +3,16 @@ package com.kaleidoscope.backend.auth.controller;
 import com.kaleidoscope.backend.auth.dto.request.*;
 import com.kaleidoscope.backend.auth.dto.response.*;
 import com.kaleidoscope.backend.auth.exception.token.MissingRequestCookieException;
-import com.kaleidoscope.backend.auth.exception.user.UserNotFoundException;
-import com.kaleidoscope.backend.auth.mapper.UserMapper;
-import com.kaleidoscope.backend.auth.model.User;
-import com.kaleidoscope.backend.auth.routes.UserRoutes;
+import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileStatusRequestDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
+import com.kaleidoscope.backend.users.mapper.UserMapper;
+import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
-import com.kaleidoscope.backend.auth.service.UserService;
+import com.kaleidoscope.backend.users.service.UserService;
 import com.kaleidoscope.backend.auth.service.impl.RefreshTokenServiceImpl;
+import com.kaleidoscope.backend.users.routes.UserRoutes;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,10 +20,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -42,13 +47,20 @@ public class AuthController {
         this.jwtUtils = jwtUtils;
     }
 
-    @PostMapping(UserRoutes.REGISTER)
-    public ResponseEntity<UserRegistrationResponseDTO> registerUser(@RequestBody UserRegistrationRequestDTO userRegistrationDTO) {
+    @PostMapping(value = AuthRoutes.REGISTER, consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+    public ResponseEntity<UserRegistrationResponseDTO> registerUser(
+            @RequestPart("userData") UserRegistrationRequestDTO userRegistrationDTO,
+            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture) {
+
+        // Set profile picture in the DTO
+        userRegistrationDTO.setProfilePicture(profilePicture);
+
+        // Call service method
         UserRegistrationResponseDTO userDTO = userService.registerUser(userRegistrationDTO);
         return ResponseEntity.ok(userDTO);
     }
 
-    @PostMapping(UserRoutes.LOGIN)
+    @PostMapping(AuthRoutes.LOGIN)
     public ResponseEntity<?> authenticateUser(
             @RequestBody UserLoginRequestDTO loginRequest,
             HttpServletResponse response) {
@@ -73,7 +85,7 @@ public class AuthController {
                 .body(userDTO);
     }
 
-    @PostMapping(UserRoutes.LOGOUT)
+    @PostMapping(AuthRoutes.LOGOUT)
     public ResponseEntity<String> logoutUser(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -92,19 +104,19 @@ public class AuthController {
         return ResponseEntity.ok("User logged out successfully.");
     }
 
-    @PostMapping(UserRoutes.FORGOT_PASSWORD)
+    @PostMapping(AuthRoutes.FORGOT_PASSWORD)
     public ResponseEntity<VerifyEmailResponseDTO> forgotPassword(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         userService.forgotPassword(verifyEmailRequestDTO.getEmail());
         return ResponseEntity.ok(new VerifyEmailResponseDTO("Password reset email sent successfully."));
     }
 
-    @PostMapping(UserRoutes.RESET_PASSWORD)
+    @PostMapping(AuthRoutes.RESET_PASSWORD)
     public ResponseEntity<ResetPasswordResponseDTO> resetPassword(@RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
         userService.resetPassword(resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
         return ResponseEntity.ok(new ResetPasswordResponseDTO("Password has been reset successfully."));
     }
 
-    @PutMapping(UserRoutes.CHANGE_PASSWORD)
+    @PutMapping(AuthRoutes.CHANGE_PASSWORD)
     public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
         Long userId = Long.valueOf(jwtUtils.getUserIdFromContext());
 
@@ -118,7 +130,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping(UserRoutes.RENEW_TOKEN)
+    @PostMapping(AuthRoutes.RENEW_TOKEN)
     public ResponseEntity<?> renewToken(@CookieValue("refreshToken") String refreshToken,
                                         HttpServletResponse response) {
         if (refreshToken == null) {
@@ -167,14 +179,14 @@ public class AuthController {
         }
     }
 
-    @PostMapping(UserRoutes.VERIFY_EMAIL)
+    @PostMapping(AuthRoutes.VERIFY_EMAIL)
     @PreAuthorize("permitAll()")
     public ResponseEntity<VerifyEmailResponseDTO> sendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         userService.sendVerificationEmail(verifyEmailRequestDTO.getEmail());
         return ResponseEntity.ok(new VerifyEmailResponseDTO("Verification email sent successfully."));
     }
 
-    @PostMapping(UserRoutes.RESEND_VERIFICATION_EMAIL)
+    @PostMapping(AuthRoutes.RESEND_VERIFICATION_EMAIL)
     @PreAuthorize("permitAll()")
     public ResponseEntity<VerifyEmailResponseDTO> resendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         userService.resendVerificationEmail(verifyEmailRequestDTO.getEmail());

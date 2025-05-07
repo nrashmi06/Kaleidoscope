@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.auth.exception.user;
+package com.kaleidoscope.backend.auth.exception.auth;
 
 public class InvalidUserCredentialsException extends RuntimeException {
     public InvalidUserCredentialsException(String message) {

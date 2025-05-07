@@ -1,7 +1,7 @@
-package com.kaleidoscope.backend.auth.model;
+package com.kaleidoscope.backend.users.model;
 
-import com.kaleidoscope.backend.auth.enums.AccountStatus;
-import com.kaleidoscope.backend.auth.enums.Role;
+import com.kaleidoscope.backend.shared.enums.AccountStatus;
+import com.kaleidoscope.backend.shared.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -56,7 +56,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "account_status", nullable = false)
-    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+    private AccountStatus accountStatus = AccountStatus.DEACTIVATED;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

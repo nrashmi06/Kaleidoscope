@@ -1,15 +1,22 @@
 package com.kaleidoscope.backend.auth.exception;
 
+import com.kaleidoscope.backend.auth.exception.auth.InvalidUserCredentialsException;
+import com.kaleidoscope.backend.auth.exception.auth.UnauthorizedAccessException;
+import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyInUseException;
+import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyVerifiedException;
+import com.kaleidoscope.backend.auth.exception.email.InvalidEmailException;
 import com.kaleidoscope.backend.auth.exception.token.JwtTokenExpiredException;
 import com.kaleidoscope.backend.auth.exception.token.RefreshTokenException;
-import com.kaleidoscope.backend.auth.exception.user.*;
+import com.kaleidoscope.backend.users.exception.user.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
+@Component("authExceptionHandler") // Specify a unique name
 public class CustomExceptionHandler {
 
     @ExceptionHandler(UnauthorizedAccessException.class)
@@ -38,6 +45,10 @@ public class CustomExceptionHandler {
         return createErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(EmailAlreadyVerifiedException.class)
+    public ResponseEntity<String> handleEmailAlreadyVerifiedException(EmailAlreadyVerifiedException ex) {
+        return createErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
     @ExceptionHandler(EmailAlreadyInUseException.class)
     public ResponseEntity<String> handleEmailAlreadyInUseException(EmailAlreadyInUseException ex) {
         return createErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);

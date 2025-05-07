@@ -1,20 +1,26 @@
-package com.kaleidoscope.backend.auth.service.impl;
+package com.kaleidoscope.backend.users.service.impl;
 import com.kaleidoscope.backend.auth.dto.request.UserLoginRequestDTO;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
-import com.kaleidoscope.backend.auth.enums.AccountStatus;
-import com.kaleidoscope.backend.auth.enums.Role;
-import com.kaleidoscope.backend.auth.exception.user.*;
-import com.kaleidoscope.backend.auth.mapper.UserMapper;
+import com.kaleidoscope.backend.auth.exception.auth.InvalidUserCredentialsException;
+import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyInUseException;
+import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyVerifiedException;
+import com.kaleidoscope.backend.auth.exception.email.InvalidEmailException;
+import com.kaleidoscope.backend.shared.enums.AccountStatus;
+import com.kaleidoscope.backend.shared.enums.Role;
+import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
+import com.kaleidoscope.backend.shared.service.ImageStorageService;
+import com.kaleidoscope.backend.users.exception.user.*;
+import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.auth.model.EmailVerification;
-import com.kaleidoscope.backend.auth.model.User;
+import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
-import com.kaleidoscope.backend.auth.repository.UserRepository;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.auth.service.RefreshTokenService;
-import com.kaleidoscope.backend.auth.service.UserService;
+import com.kaleidoscope.backend.users.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -52,6 +58,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final EmailService emailService;
     private final UserMapper userMapper;
+    private final ImageStorageService imageStorageService;
 
     public UserServiceImpl(JwtUtils jwtUtils,
                            @Lazy AuthenticationManager authenticationManager,
@@ -60,7 +67,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                            PasswordEncoder passwordEncoder,
                            EmailVerificationRepository emailVerificationRepository,
                            EmailService emailService,
-                           UserMapper userMapper) {
+                           UserMapper userMapper,
+                           ImageStorageService imageStorageService) {
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
@@ -69,6 +77,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         this.emailVerificationRepository = emailVerificationRepository;
         this.emailService = emailService;
         this.userMapper = userMapper;
+        this.imageStorageService = imageStorageService;
     }
 
     @Transactional
@@ -129,9 +138,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 username.matches("^[a-zA-Z0-9 ._-]{3,}$");
     }
 
-    @Override
     @Transactional
     public UserRegistrationResponseDTO registerUser(UserRegistrationRequestDTO userRegistrationDTO) {
+        // Validate email
         if (!isValidEmail(userRegistrationDTO.getEmail())) {
             throw new InvalidEmailException("Invalid email format: " + userRegistrationDTO.getEmail());
         }
@@ -150,8 +159,23 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         }
 
         try {
-            // Use the injected userMapper instance instead of the static method
-            User user = userMapper.toEntity(userRegistrationDTO, passwordEncoder.encode(userRegistrationDTO.getPassword()));
+            // Handle profile picture upload
+            String profilePictureUrl = null;
+            if (userRegistrationDTO.getProfilePicture() != null && !userRegistrationDTO.getProfilePicture().isEmpty()) {
+                try {
+                    profilePictureUrl = imageStorageService.uploadImage(userRegistrationDTO.getProfilePicture()).get();
+                } catch (Exception e) {
+                    log.error("Failed to upload profile picture", e);
+                    throw new ImageStorageException("Failed to upload profile picture");
+                }
+            }
+
+            // Create and save the user
+            User user = userMapper.toEntity(
+                    userRegistrationDTO,
+                    passwordEncoder.encode(userRegistrationDTO.getPassword()),
+                    profilePictureUrl
+            );
             user.setUsername(trimmedUserName);
             userRepository.save(user);
             return UserMapper.toRegistrationResponseDTO(user);
@@ -348,5 +372,26 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         emailVerificationRepository.save(emailVerification);
 
         emailService.sendVerificationEmail(user.getEmail(), token);
+    }
+    public void resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UserNotFoundException("User not found with email: " + email);
+        }
+        if (user.getAccountStatus().equals(AccountStatus.ACTIVE)) {
+            throw new EmailAlreadyVerifiedException("User is already verified");
+        }
+        EmailVerification emailVerification = emailVerificationRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("No verification code found for user"));
+
+        if (emailVerification.getExpiryTime().isBefore(LocalDateTime.now())) {
+            emailVerification.setVerificationCode(UUID.randomUUID().toString().substring(0, 10));
+            emailVerification.setExpiryTime(LocalDateTime.now().plusHours(24));
+            emailVerification.setStatus("pending");
+            emailVerification.setCreatedAt(LocalDateTime.now());
+            emailVerificationRepository.save(emailVerification);
+        }
+
+        emailService.sendVerificationEmail(user.getEmail(), emailVerification.getVerificationCode());
     }
 }
