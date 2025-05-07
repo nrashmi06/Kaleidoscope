@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
+import com.kaleidoscope.backend.shared.config.ServletProperties;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.shared.config.ApplicationProperties;
@@ -23,16 +24,19 @@ public class EmailServiceImpl implements EmailService {
     private final TemplateEngine templateEngine;
     private final UserRepository userRepository;
     private final ApplicationProperties applicationProperties;
+    private final ServletProperties servletProperties;
 
     @Autowired
     public EmailServiceImpl(JavaMailSender javaMailSender,
                             TemplateEngine templateEngine,
                             UserRepository userRepository,
-                            ApplicationProperties applicationProperties) {
+                            ApplicationProperties applicationProperties,
+                            ServletProperties servletProperties) {
         this.javaMailSender = javaMailSender;
         this.templateEngine = templateEngine;
         this.userRepository = userRepository;
         this.applicationProperties = applicationProperties;
+        this.servletProperties = servletProperties;
     }
 
     @Override
@@ -65,7 +69,7 @@ public class EmailServiceImpl implements EmailService {
         logger.info("Starting to send verification email to: {}", email);
         String subject = "Verify your email address";
         String baseUrl = applicationProperties.getBaseUrl();
-        String contextPath = applicationProperties.getContextPath();
+        String contextPath = servletProperties.getContextPath();
         String verificationUrl = baseUrl + contextPath + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
         Context context = new Context();
         context.setVariable("verificationUrl", verificationUrl);

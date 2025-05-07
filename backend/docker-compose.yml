@@ -2,15 +2,62 @@ services:
   db:
     image: postgres:${POSTGRES_VERSION:-17.4}
     container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
-    restart: always
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      - POSTGRES_USER=${DB_USERNAME:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-kaleidoscope}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-kaleidoscope}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_REGISTRY:-rajay04}/kaleidoscope:${APP_VERSION:-latest}
+    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      DB_NAME: ${DB_NAME:-kaleidoscope}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      JWT_SECRET: ${JWT_SECRET:-kaleidoscope-jwt-secret-key-for-testing-purposes-only}
+      MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-test@example.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-password123}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-test-cloud}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-test-api-key}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-test-api-secret}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-cloudinary://test-api-key:test-api-secret@test-cloud}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-10MB}
+      MAX_REQUEST_SIZE: ${MAX_REQUEST_SIZE:-20MB}
+      FILE_SIZE_THRESHOLD: ${FILE_SIZE_THRESHOLD:-2KB}
+      CONTEXT_PATH: ${CONTEXT_PATH:-/kaleidoscope}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    networks:
+      - app-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

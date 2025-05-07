@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+        .content img {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #4CAF50;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .footer {
+            background-color: #f4f4f9;
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #777;
+        }
+        .terms {
+            font-size: 12px;
+            color: #555;
+            margin-top: 20px;
+            text-align: left;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Welcome to SerenitySphere!</h1>
+    </div>
+    <div class="content">
+        <p>Thank you for joining our platform! We're thrilled to have you on board.</p>
+        <img src="https://img.freepik.com/premium-vector/businessman-reading-contract-flat-vector-isometric-illustration-terms-conditions-agreement-checking-signing_103044-1746.jpg?semt=ais_hybrid" alt="Welcome Banner">
+        <p>Please read our terms and conditions thoroughly before you proceed:</p>
+        <a href="https://example.com/terms-and-conditions" class="btn">View Terms and Conditions</a>
+        <div class="terms">
+            <p>By signing up, you agree to abide by our community rules and guidelines. For more information on what we do, please visit our <a href="https://example.com/help">About Page</a>.</p>
+        </div>
+        <a th:href="${verificationUrl}" class="btn">I Agree to Terms and Conditions</a>
+        <p>If you didn't request this, you can safely ignore this email.</p>
+    </div>
+    <div class="footer">
+        <p>&copy; 2024 SerenitySphere. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

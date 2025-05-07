@@ -47,10 +47,10 @@ public class AuthController {
         this.jwtUtils = jwtUtils;
     }
 
-    @PostMapping(value = AuthRoutes.REGISTER, consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+    @PostMapping(value = AuthRoutes.REGISTER, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserRegistrationResponseDTO> registerUser(
-            @RequestPart("userData") UserRegistrationRequestDTO userRegistrationDTO,
-            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture) {
+            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
+            @RequestPart("userData") UserRegistrationRequestDTO userRegistrationDTO) {
 
         // Set profile picture in the DTO
         userRegistrationDTO.setProfilePicture(profilePicture);
