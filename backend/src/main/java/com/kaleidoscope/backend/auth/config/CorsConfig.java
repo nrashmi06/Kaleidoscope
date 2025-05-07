@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.config;
+package com.kaleidoscope.backend.auth.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.config;
+package com.kaleidoscope.backend.shared.config;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,5 +11,5 @@ import org.springframework.stereotype.Component;
 @Setter
 public class ApplicationProperties {
     private String baseUrl;
-    private int cookieMaxAgeDays = 7; // Default: 7 days
+    private String contextPath;
 }

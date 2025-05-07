@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.config;
+package com.kaleidoscope.backend.auth.config;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,4 +12,5 @@ import org.springframework.stereotype.Component;
 public class JwtProperties {
     private String secret;
     private int expiration; // in milliseconds
+    private int cookieMaxAgeDays; // in days
 }

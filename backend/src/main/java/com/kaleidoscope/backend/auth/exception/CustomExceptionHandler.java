@@ -42,7 +42,10 @@ public class CustomExceptionHandler {
     public ResponseEntity<String> handleEmailAlreadyInUseException(EmailAlreadyInUseException ex) {
         return createErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
-
+    @ExceptionHandler(UserAccountSuspendedException.class)
+    public ResponseEntity<String> handleUserAccountSuspendedException(UserAccountSuspendedException ex) {
+        return createErrorResponse(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
     @ExceptionHandler(InvalidEmailException.class)
     public ResponseEntity<String> handleInvalidEmailException(InvalidEmailException ex) {
         return createErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);

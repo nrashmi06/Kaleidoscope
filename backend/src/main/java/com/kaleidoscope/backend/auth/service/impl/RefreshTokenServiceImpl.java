@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
+import com.kaleidoscope.backend.auth.config.JwtProperties;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.exception.token.RefreshTokenException;
 import com.kaleidoscope.backend.auth.exception.user.UserNotFoundException;
@@ -11,7 +12,7 @@ import com.kaleidoscope.backend.auth.repository.UserRepository;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.auth.service.RefreshTokenService;
 import com.kaleidoscope.backend.auth.service.UserService;
-import com.kaleidoscope.backend.config.ApplicationProperties;
+import com.kaleidoscope.backend.shared.config.ApplicationProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
+    private final JwtProperties jwtProperties;
 
     @Autowired
     public RefreshTokenServiceImpl(
@@ -43,13 +45,14 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             UserRepository userRepository,
             JwtUtils jwtUtils,
             @Lazy UserService userService,
-            ApplicationProperties applicationProperties
-    ) {
+            ApplicationProperties applicationProperties,
+            JwtProperties jwtProperties) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.userRepository = userRepository;
         this.jwtUtils = jwtUtils;
         this.userService = userService;
         this.applicationProperties = applicationProperties;
+        this.jwtProperties = jwtProperties;
     }
 
     @Transactional
@@ -155,7 +158,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         boolean isSecure = !baseUrl.contains("localhost");
         String sameSite = isSecure ? "None" : "Strict";
 
-        int maxAgeDays = applicationProperties.getCookieMaxAgeDays();
+        int maxAgeDays = jwtProperties.getCookieMaxAgeDays();
         int maxAge = maxAgeDays * 24 * 60 * 60; // Convert days to seconds
 
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);

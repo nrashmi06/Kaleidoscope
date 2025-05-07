@@ -1,7 +1,7 @@
 spring:
   app:
     base-url: ${APP_BASE_URL:http://localhost:8080}
-    cookie-max-age-days: 7
+    context-path: ${CONTEXT_PATH:/kaleidoscope}
   servlet:
     multipart:
       enabled: true
@@ -42,3 +42,10 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
+  cookie-max-age-days: 7
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+  url: ${CLOUDINARY_URL}

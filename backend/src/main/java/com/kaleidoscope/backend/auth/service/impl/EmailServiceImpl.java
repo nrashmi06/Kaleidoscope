@@ -1,13 +1,14 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
 import com.kaleidoscope.backend.auth.repository.UserRepository;
+import com.kaleidoscope.backend.auth.routes.UserRoutes;
 import com.kaleidoscope.backend.auth.service.EmailService;
+import com.kaleidoscope.backend.shared.config.ApplicationProperties;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -21,15 +22,19 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender javaMailSender;
     private final TemplateEngine templateEngine;
     private final UserRepository userRepository;
-    private final String baseUrl;
+    private final ApplicationProperties applicationProperties;
 
     @Autowired
-    public EmailServiceImpl(JavaMailSender javaMailSender, TemplateEngine templateEngine, UserRepository userRepository, @Value("${spring.app.base-url}") String baseUrl) {
+    public EmailServiceImpl(JavaMailSender javaMailSender,
+                            TemplateEngine templateEngine,
+                            UserRepository userRepository,
+                            ApplicationProperties applicationProperties) {
         this.javaMailSender = javaMailSender;
         this.templateEngine = templateEngine;
         this.userRepository = userRepository;
-        this.baseUrl = baseUrl;
+        this.applicationProperties = applicationProperties;
     }
+
     @Override
     public void sendPasswordResetEmail(String email, String code) {
         logger.info("Starting to send password reset email to: {}", email);
@@ -55,4 +60,17 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    public void sendVerificationEmail(String email, String code) {
+        logger.info("Starting to send verification email to: {}", email);
+        String subject = "Verify your email address";
+        String baseUrl = applicationProperties.getBaseUrl();
+        String contextPath = applicationProperties.getContextPath();
+        String verificationUrl = baseUrl + contextPath + UserRoutes.VERIFY_EMAIL + "?token=" + code;
+        Context context = new Context();
+        context.setVariable("verificationUrl", verificationUrl);
+        String body = templateEngine.process("verificationEmailTemplate", context);
+        sendHtmlEmail(email, subject, body);
+        logger.info("Verification email sent to: {}", email);
+    }
 }

@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.config;
+package com.kaleidoscope.backend.auth.config;
 
 import com.kaleidoscope.backend.auth.routes.UserRoutes;
 import com.kaleidoscope.backend.auth.security.CustomAccessDeniedHandler;

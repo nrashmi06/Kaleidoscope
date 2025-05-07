@@ -308,4 +308,45 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         user.setAccountStatus(newAccountStatus);
         userRepository.save(user);
     }
+
+    public void verifyUser(String verificationCode) {
+        EmailVerification emailVerification = emailVerificationRepository.findByVerificationCode(verificationCode)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid verification code"));
+
+        if (emailVerification.getExpiryTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Verification code has expired");
+        }
+
+        emailVerification.setStatus("verified");
+        emailVerificationRepository.save(emailVerification);
+
+        User user = userRepository.findById(emailVerification.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if(user.getAccountStatus().equals(AccountStatus.SUSPENDED)){
+            throw new UserAccountSuspendedException("User Account Suspended");
+        }
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        userRepository.save(user);
+    }
+    public void sendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UserNotFoundException("User not found with email: " + email);
+        }
+        // Check if user is already verified
+        if (user.getAccountStatus().equals(AccountStatus.ACTIVE)) {
+            throw new EmailAlreadyVerifiedException("User is already verified");
+        }
+        String token = UUID.randomUUID().toString().substring(0, 10);
+        EmailVerification emailVerification = new EmailVerification();
+        emailVerification.setUserId(user.getUserId());
+        emailVerification.setVerificationCode(token);
+        emailVerification.setEmail(email);
+        emailVerification.setExpiryTime(LocalDateTime.now().plusHours(24));
+        emailVerification.setStatus("pending");
+        emailVerification.setCreatedAt(LocalDateTime.now());
+        emailVerificationRepository.save(emailVerification);
+
+        emailService.sendVerificationEmail(user.getEmail(), token);
+    }
 }

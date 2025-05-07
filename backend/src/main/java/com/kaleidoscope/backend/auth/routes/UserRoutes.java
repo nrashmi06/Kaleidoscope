@@ -17,6 +17,8 @@ public final class UserRoutes {
     public static final String LOGIN = BASE_API + "/login";                 // User login
     public static final String LOGOUT = BASE_API + "/logout";               // User logout
     public static final String RENEW_TOKEN = BASE_API + "/renew-token";     // Refresh JWT token
+    public static final String VERIFY_EMAIL = BASE_API + "/verify-email"; // Verify user email
+    public static final String RESEND_VERIFICATION_EMAIL = BASE_API + "/resend-verification-email";
 
     // Password management
     public static final String FORGOT_PASSWORD = BASE_API + "/forgot-password"; // Trigger reset link (via email)

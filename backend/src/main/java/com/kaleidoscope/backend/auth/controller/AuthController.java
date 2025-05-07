@@ -1,6 +1,5 @@
 package com.kaleidoscope.backend.auth.controller;
 
-
 import com.kaleidoscope.backend.auth.dto.request.*;
 import com.kaleidoscope.backend.auth.dto.response.*;
 import com.kaleidoscope.backend.auth.exception.token.MissingRequestCookieException;
@@ -11,13 +10,6 @@ import com.kaleidoscope.backend.auth.routes.UserRoutes;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.auth.service.UserService;
 import com.kaleidoscope.backend.auth.service.impl.RefreshTokenServiceImpl;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +26,6 @@ import java.util.Map;
 
 @RestController
 @Slf4j
-@Tag(name = "Authentication and User Management", description = "Endpoints for user authentication, registration, and profile management")
 public class AuthController {
 
     private final String baseUrl;
@@ -52,28 +43,12 @@ public class AuthController {
     }
 
     @PostMapping(UserRoutes.REGISTER)
-    @Operation(
-            summary = "Register a new user",
-            description = "Registers a new user with the provided details."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User successfully registered", content = @Content(schema = @Schema(implementation = UserRegistrationResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid input data")
-    })
     public ResponseEntity<UserRegistrationResponseDTO> registerUser(@RequestBody UserRegistrationRequestDTO userRegistrationDTO) {
         UserRegistrationResponseDTO userDTO = userService.registerUser(userRegistrationDTO);
         return ResponseEntity.ok(userDTO);
     }
 
     @PostMapping(UserRoutes.LOGIN)
-    @Operation(
-            summary = "Authenticate a user",
-            description = "Authenticates a user and returns access and refresh tokens."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User successfully authenticated", content = @Content(schema = @Schema(implementation = UserLoginResponseDTO.class))),
-            @ApiResponse(responseCode = "401", description = "Invalid credentials")
-    })
     public ResponseEntity<?> authenticateUser(
             @RequestBody UserLoginRequestDTO loginRequest,
             HttpServletResponse response) {
@@ -99,14 +74,6 @@ public class AuthController {
     }
 
     @PostMapping(UserRoutes.LOGOUT)
-    @Operation(
-            summary = "Logout a user",
-            description = "Logs out the user by clearing the security context and deleting the refresh token."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User successfully logged out"),
-            @ApiResponse(responseCode = "400", description = "Invalid request")
-    })
     public ResponseEntity<String> logoutUser(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -126,43 +93,18 @@ public class AuthController {
     }
 
     @PostMapping(UserRoutes.FORGOT_PASSWORD)
-    @Operation(
-            summary = "Forgot password",
-            description = "Sends a password reset email to the user."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Password reset email sent successfully"),
-            @ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<VerifyEmailResponseDTO> forgotPassword(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         userService.forgotPassword(verifyEmailRequestDTO.getEmail());
         return ResponseEntity.ok(new VerifyEmailResponseDTO("Password reset email sent successfully."));
     }
 
     @PostMapping(UserRoutes.RESET_PASSWORD)
-    @Operation(
-            summary = "Reset password",
-            description = "Resets the user's password using a valid reset token."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Password reset successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid or expired reset token")
-    })
     public ResponseEntity<ResetPasswordResponseDTO> resetPassword(@RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
         userService.resetPassword(resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
         return ResponseEntity.ok(new ResetPasswordResponseDTO("Password has been reset successfully."));
     }
 
     @PutMapping(UserRoutes.CHANGE_PASSWORD)
-    @Operation(
-            summary = "Change password",
-            description = "Allows a logged-in user to change their password."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Password changed successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data"),
-            @ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
         Long userId = Long.valueOf(jwtUtils.getUserIdFromContext());
 
@@ -177,14 +119,6 @@ public class AuthController {
     }
 
     @PostMapping(UserRoutes.RENEW_TOKEN)
-    @Operation(
-            summary = "Renew access token",
-            description = "Renews the access token using a valid refresh token."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Access token renewed successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid or missing refresh token")
-    })
     public ResponseEntity<?> renewToken(@CookieValue("refreshToken") String refreshToken,
                                         HttpServletResponse response) {
         if (refreshToken == null) {
@@ -197,11 +131,9 @@ public class AuthController {
         String newRefreshToken = (String) renewResponse.get("refreshToken");
         UserLoginResponseDTO responseDTO = (UserLoginResponseDTO) renewResponse.get("user");
 
-        // Set new refresh token as HttpOnly cookie
         refreshTokenService.setSecureRefreshTokenCookie(response, newRefreshToken);
         String bearerToken = "Bearer " + newAccessToken;
 
-        // Return new access token in Authorization header and user data in body
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
                 .body(responseDTO);
@@ -209,18 +141,8 @@ public class AuthController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping(UserRoutes.GET_ALL_USERS_BY_PROFILE_STATUS)
-    @Operation(
-            summary = "Get all users by account status",
-            description = "Retrieves a paginated list of users filtered by account status and search criteria."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
-            @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
     public ResponseEntity<Page<UserDetailsSummaryResponseDTO>> getAllUsers(
-            @Parameter(description = "Filter by profile status (e.g., ACTIVE, INACTIVE)")
             @RequestParam(required = false) String status,
-            @Parameter(description = "Search query for user details")
             @RequestParam(required = false) String search,
             Pageable pageable) {
 
@@ -236,14 +158,6 @@ public class AuthController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping(UserRoutes.UPDATE_USER_PROFILE_STATUS)
-    @Operation(
-            summary = "Update user profile status",
-            description = "Updates the profile status of a user."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User profile status updated successfully"),
-            @ApiResponse(responseCode = "404", description = "User not found")
-    })
     public ResponseEntity<String> updateUserProfileStatus(@RequestBody UpdateUserProfileStatusRequestDTO updateUserProfileStatusRequestDTO) {
         try {
             userService.updateUserProfileStatus(updateUserProfileStatusRequestDTO.getUserId(), updateUserProfileStatusRequestDTO.getProfileStatus());
@@ -251,5 +165,19 @@ public class AuthController {
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + updateUserProfileStatusRequestDTO.getUserId());
         }
+    }
+
+    @PostMapping(UserRoutes.VERIFY_EMAIL)
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<VerifyEmailResponseDTO> sendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
+        userService.sendVerificationEmail(verifyEmailRequestDTO.getEmail());
+        return ResponseEntity.ok(new VerifyEmailResponseDTO("Verification email sent successfully."));
+    }
+
+    @PostMapping(UserRoutes.RESEND_VERIFICATION_EMAIL)
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<VerifyEmailResponseDTO> resendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
+        userService.resendVerificationEmail(verifyEmailRequestDTO.getEmail());
+        return ResponseEntity.ok(new VerifyEmailResponseDTO("Verification email sent successfully."));
     }
 }
