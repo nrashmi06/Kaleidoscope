@@ -32,7 +32,7 @@ export default function FeedList() {
 
   return (
     <div className="w-full h-full overflow-y-auto">
-      <div className="space-y-6 p-4">
+      <div>
         {feeds.map((feed) => (
           <FeedCard
             key={feed.id}

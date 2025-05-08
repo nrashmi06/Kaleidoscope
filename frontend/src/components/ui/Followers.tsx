@@ -119,7 +119,7 @@ export default function Followers({
   const formattedCount = new Intl.NumberFormat('en-US').format(followerCount);
   
   return (
-    <div className={`bg-white rounded-xl shadow-sm p-6 ${className}`}>
+    <div className={`bg-white p-6 ${className}`}>
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">

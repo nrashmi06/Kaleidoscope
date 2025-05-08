@@ -42,7 +42,7 @@ export default function UnauthLayout({ children }: { children: ReactNode }) {
       <Navbar className="fixed top-0 left-0 right-0 z-50">
         <NavBody>
           <NavbarLogo />
-            <NavItems items={navItems} className="hidden md:flex" />
+          <NavItems items={navItems} className="hidden md:flex" />
           <div className="relative z-20 ml-auto flex items-center">
             <NavbarButton href="/login" variant="secondary" className="mr-2">
               Login
@@ -60,25 +60,34 @@ export default function UnauthLayout({ children }: { children: ReactNode }) {
             <MobileNavToggle isOpen={isMenuOpen} onClick={toggleMenu} />
           </MobileNavHeader>
 
-          <MobileNavMenu isOpen={isMenuOpen} onClose={closeMenu}>
-              <NavItems items={navItems} className="flex flex-col" />
-            <div className="mt-4 flex w-full flex-col gap-2">
-              <NavbarButton href="/login" variant="secondary" className="w-full">
-                Login
-              </NavbarButton>
-              <NavbarButton href="/signup" variant="primary" className="w-full">
-                Sign Up
-              </NavbarButton>
-            </div>
-          </MobileNavMenu>
+          <MobileNavMenu
+  isOpen={isMenuOpen}
+  onClose={closeMenu}
+  className="flex flex-col items-center p-4 space-y-4"
+>
+  {/* NavItems - Home link with reduced padding */}
+  <div className="flex flex-col items-center mt-2">
+    <NavItems items={navItems} className="flex justify-center w-full" />
+  </div>
+
+  {/* Clear separation between nav items and buttons */}
+  <div className="flex flex-col items-center gap-4 mt-6">
+    <NavbarButton href="/login" variant="secondary" className="w-full">
+      Login
+    </NavbarButton>
+    <NavbarButton href="/signup" variant="primary" className="w-full">
+      Sign Up
+    </NavbarButton>
+  </div>
+</MobileNavMenu>
+
         </MobileNav>
       </Navbar>
 
       {/* Add padding to prevent content from hiding under fixed navbar */}
-      <div className="pt-28 md:pt-0">
-  <main>{children}</main>
-</div>
-
+      <div >
+        <main>{children}</main>
+      </div>
     </>
   );
 }

@@ -3,70 +3,120 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
+import { useState } from "react";
+import { registerUserWithProfile } from "@/services/auth/register";
 
 export default function SignupForm() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [formState, setFormState] = useState({
+    email: "",
+    password: "",
+    username: "",
+    designation: "",
+    summary: "",
+    confirmPassword: "",
+    profilePicture: null as File | null,
+  });
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted");
+    setError("");
+    setSuccess("");
+
+    if (formState.password !== formState.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (!formState.profilePicture) {
+      setError("Please upload a profile picture.");
+      return;
+    }
+
+    const userData = {
+      email: formState.email,
+      password: formState.password,
+      username: formState.username || "DefaultUser",
+      designation: formState.designation || "Member",
+      summary: formState.summary || "",
+    };
+
+    const result = await registerUserWithProfile(userData, formState.profilePicture);
+    if (result.success) {
+      setSuccess(result.message);
+    } else {
+      setError(result.message);
+    }
   };
+
   return (
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
-      <h2 className="text-xl text-center font-bold text-neutral-800 dark:text-neutral-200">
+      <h2 className="text-xl text-center font-bold pt-20 text-neutral-800 dark:text-neutral-200">
         Welcome to KelideoScope
       </h2>
-      <p className="mt-2 text-center max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
-        Login to aceternity if you can because we don&apos;t have a login flow
-        yet
-      </p>
-
       <form className="my-8" onSubmit={handleSubmit}>
-        <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
-          <LabelInputContainer>
-            <Label htmlFor="firstname">First name</Label>
-            <Input id="firstname" placeholder="Tyler" type="text" />
-          </LabelInputContainer>
-          <LabelInputContainer>
-            <Label htmlFor="lastname">Last name</Label>
-            <Input id="lastname" placeholder="Durden" type="text" />
-          </LabelInputContainer>
-        </div>
-        <LabelInputContainer className="mb-4">
-          <Label htmlFor="email">Email Address</Label>
-          <Input id="email" placeholder="projectmayhem@fc.com" type="email" />
-        </LabelInputContainer>
-        <LabelInputContainer className="mb-4">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" placeholder="••••••••" type="password" />
-        </LabelInputContainer>
-        <LabelInputContainer className="mb-8">
-          <Label htmlFor="twitterpassword">Confirm password</Label>
+        <LabelInputContainer>
+          <Label>Email Address</Label>
           <Input
-            id="twitterpassword"
-            placeholder="••••••••"
-            type="twitterpassword"
+            type="email"
+            value={formState.email}
+            onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+          />
+        </LabelInputContainer>
+
+        <LabelInputContainer>
+          <Label>Username</Label>
+          <Input
+            type="username"
+            value={formState.username}
+            onChange={(e) => setFormState({ ...formState, username: e.target.value })}
+          />
+        </LabelInputContainer>
+
+        <LabelInputContainer>
+          <Label>Password</Label>
+          <Input
+            type="password"
+            value={formState.password}
+            onChange={(e) => setFormState({ ...formState, password: e.target.value })}
+          />
+        </LabelInputContainer>
+
+        <LabelInputContainer>
+          <Label>Confirm Password</Label>
+          <Input
+            type="password"
+            value={formState.confirmPassword}
+            onChange={(e) => setFormState({ ...formState, confirmPassword: e.target.value })}
+          />
+        </LabelInputContainer>
+
+        <LabelInputContainer>
+          <Label>Profile Picture</Label>
+          <Input
+            type="file"
+            onChange={(e) =>
+              setFormState({ ...formState, profilePicture: e.target.files?.[0] || null })
+            }
           />
         </LabelInputContainer>
 
         <button
-          className="group/btn relative block h-10 w-full rounded-md bg-black text-white dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset]"
+          className="group/btn relative mt-4 block h-10 w-full rounded-md bg-black text-white"
           type="submit"
         >
           Sign up &rarr;
           <BottomGradient />
         </button>
-        <div className="my-2 h-[1px] w-full bg-gradient-to-r from-transparent via-neutral-300 to-transparent dark:via-neutral-700" />
-        <div>
-          <p className="text-center text-sm text-neutral-600 dark:text-neutral-300">
-            Already have an account?{" "}
-            <a
-              href="/login"
-              className="font-semibold text-black underline dark:text-white"
-            >
-              Login
-            </a>
-          </p>
-        </div>
+
+        {error && (
+          <p className="mt-4 text-center text-sm text-red-500">{error}</p>
+        )}
+        {success && (
+          <p className="mt-4 text-center text-sm text-green-500">{success}</p>
+        )}
       </form>
     </div>
   );
