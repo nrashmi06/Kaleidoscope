@@ -6,6 +6,7 @@ interface AuthState {
   username: string;
   role: string;
   accessToken: string;
+  refreshToken: string;
 }
 // Example to ensure only serializable data is stored in Redux state
 const initialState: AuthState = {
@@ -14,6 +15,7 @@ const initialState: AuthState = {
     username: "",
     role: "",
     accessToken: "",
+    refreshToken : "",
   };
   
   const authSlice = createSlice({
@@ -26,6 +28,7 @@ const initialState: AuthState = {
         state.username = action.payload.username;
         state.role = action.payload.role;
         state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
       },
       clearUser(state) {
         state.userId = "";
@@ -33,6 +36,7 @@ const initialState: AuthState = {
         state.username = "";
         state.role = "";
         state.accessToken = "";
+        state.refreshToken = "";
       },
     },
   });
