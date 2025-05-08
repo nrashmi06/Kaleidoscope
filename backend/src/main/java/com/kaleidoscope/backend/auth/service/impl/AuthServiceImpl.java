@@ -25,6 +25,7 @@ import com.kaleidoscope.backend.users.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
@@ -48,6 +49,9 @@ import java.util.*;
 @Service
 @Slf4j
 public class AuthServiceImpl implements AuthService, UserDetailsService {
+
+    @Value("${spring.app.defaults.cover-photo-url}")
+    private String defaultCoverPhotoUrl;
 
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
@@ -141,22 +145,25 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     @Override
     @Transactional
     public UserRegistrationResponseDTO registerUser(UserRegistrationRequestDTO userRegistrationDTO) {
-        // Validate email
+        // Validate email format
         if (!isValidEmail(userRegistrationDTO.getEmail())) {
             throw new InvalidEmailException("Invalid email format: " + userRegistrationDTO.getEmail());
         }
 
+        // Check if email already exists
         if (userRepository.existsByEmail(userRegistrationDTO.getEmail())) {
             throw new EmailAlreadyInUseException("Email is already in use: " + userRegistrationDTO.getEmail());
         }
 
+        // Validate username
         String trimmedUserName = userRegistrationDTO.getUsername().replaceAll("\\s+", "");
         if (!isValidUsername(trimmedUserName)) {
             throw new InvalidUsernameException("Invalid username: " + trimmedUserName + ". Please try another.");
         }
 
+        // Check if username already exists
         if (userRepository.existsByUsername(trimmedUserName)) {
-            throw new UsernameAlreadyInUseException("username is already in use: " + trimmedUserName);
+            throw new UsernameAlreadyInUseException("Username is already in use: " + trimmedUserName);
         }
 
         try {
@@ -171,6 +178,9 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 }
             }
 
+            // Use default cover photo URL from application properties
+            String coverPhotoUrl = defaultCoverPhotoUrl;
+
             // Create and save the user
             User user = userMapper.toEntity(
                     userRegistrationDTO,
@@ -178,6 +188,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                     profilePictureUrl
             );
             user.setUsername(trimmedUserName);
+            user.setCoverPhotoUrl(coverPhotoUrl);
+
             userRepository.save(user);
 
             // Send verification email for new registration
@@ -185,9 +197,11 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
 
             return UserMapper.toRegistrationResponseDTO(user);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while registering the user", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "An error occurred while registering the user", e);
         }
     }
+
 
     @Override
     public void forgotPassword(String email) {

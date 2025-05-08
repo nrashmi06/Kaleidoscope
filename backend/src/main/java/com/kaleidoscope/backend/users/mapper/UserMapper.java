@@ -63,6 +63,7 @@ public class UserMapper {
                 .role(user.getRole())
                 .designation(user.getDesignation())
                 .summary(user.getSummary())
+                .coverPhotoUrl(user.getCoverPhotoUrl())
                 .profilePictureUrl(user.getProfilePictureUrl())
                 .build();
     }

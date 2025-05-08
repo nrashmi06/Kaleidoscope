@@ -16,5 +16,6 @@ public class UserRegistrationResponseDTO {
     private Role role;
     private String designation;
     private String summary;
+    private String coverPhotoUrl;
     private String profilePictureUrl;
 }
