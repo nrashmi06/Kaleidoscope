@@ -1,0 +1,24 @@
+meta {
+  name: register
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/kaleidoscope/api/auth/register
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  profilePicture: @file(C:\Users\ajayp\Downloads\AJAY_PROFILE_PIC.jpg)
+  userData: '''
+    {
+      "email": "your_email@example.com",
+      "password": "your_password",
+      "username": "your_username",
+      "designation": "Your Job Title",
+      "summary": "Brief description about yourself"
+    }
+  ''' @contentType(application/json)
+}

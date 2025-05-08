@@ -1,0 +1,17 @@
+meta {
+  name: verify-email
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/kaleidoscope/api/auth/verify-email
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email":"nnm22ad041@nmamit.in"
+  }
+}

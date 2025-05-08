@@ -1,37 +1,26 @@
+# Application Configuration
 spring:
-  servlet:
-    multipart:
-      enabled: true
-      max-file-size: ${MAX_FILE_SIZE}
-      max-request-size: ${MAX_REQUEST_SIZE}
-      file-size-threshold: ${FILE_SIZE_THRESHOLD}
-
-  mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-
   application:
-    name: ${APP_NAME}
-
+    name: ${APP_NAME:kaleidoscope}
   app:
-    base-url: ${BASE_URL}
-    jwtSecret: ${JWT_SECRET}
+    base-url: ${APP_BASE_URL:http://localhost:8080}
 
+  # Database Configuration
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kaleidoscope}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
-      max-lifetime: ${DB_MAX_LIFETIME}
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: ${DB_MAX_LIFETIME:1800000}
+      connection-timeout: 30000
+      pool-name: KaleidoscopeHikariCP
+      auto-commit: true
+
+  # JPA Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -40,3 +29,46 @@ spring:
       hibernate:
         show_sql: true
         format_sql: true
+
+  # File Upload Configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:20MB}
+      file-size-threshold: ${FILE_SIZE_THRESHOLD:2KB}
+      resolve-lazily: true
+
+  # Email Configuration
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:test@example.com}
+    password: ${MAIL_PASSWORD:password123}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Server Configuration
+server:
+  servlet:
+    context-path: ${CONTEXT_PATH:/kaleidoscope}
+
+# Security Configuration
+allowed:
+  origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+
+jwt:
+  secret: ${JWT_SECRET:kaleidoscope-jwt-secret-key-for-testing-purposes-only}
+  expiration: 86400000
+  cookie-max-age-days: 7
+
+# External Services Configuration
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:test-cloud}
+  api-key: ${CLOUDINARY_API_KEY:test-api-key}
+  api-secret: ${CLOUDINARY_API_SECRET:test-api-secret}
+  url: ${CLOUDINARY_URL:cloudinary://test-api-key:test-api-secret@test-cloud}

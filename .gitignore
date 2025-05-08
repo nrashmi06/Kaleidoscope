@@ -1,0 +1,11 @@
+# IDE files
+.idea/
+.vscode/
+
+# Environment variables
+.env
+
+# Other common files to ignore
+node_modules/
+*.log
+.DS_Store
