@@ -25,13 +25,12 @@ type Contact = {
 };
 
 const contacts: Contact[] = [
-  { name: "Julie Mendez", location: "Memphis, TN, US", avatar: "/nature2.jpg" },
-  { name: "Marian Montgomery", location: "Newark, NJ, US", avatar: "/nature2.jpg" },
-  { name: "Joyce Reid", location: "Fort Worth, TX, US", avatar: "/nature2.jpg" },
-  { name: "Alice Franklin", location: "Springfield, MA, US", avatar: "/nature2.jpg" },
-  { name: "Domingo Flores", location: "Houston, TX, US", avatar: "/nature2.jpg" },
+  { name: "Julie Mendez", location: "Mumbai, Maharashtra, IN", avatar: "/nature2.jpg" },
+  { name: "Marian Montgomery", location: "Bangalore, Karnataka, IN", avatar: "/nature2.jpg" },
+  { name: "Joyce Reid", location: "Hyderabad, Telangana, IN", avatar: "/nature2.jpg" },
+  { name: "Alice Franklin", location: "Chennai, Tamil Nadu, IN", avatar: "/nature2.jpg" },
+  { name: "Domingo Flores", location: "Delhi, Delhi, IN", avatar: "/nature2.jpg" },
 ];
-
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(true);

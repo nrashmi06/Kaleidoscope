@@ -68,3 +68,11 @@ export interface ResetPasswordResponse {
   message: string;
   success: boolean;
 };
+
+export interface RefreshResponseData {
+  accessToken: string;
+  userId: string;
+  email: string;
+  username: string;
+  role: string;
+}

@@ -43,18 +43,22 @@ export default function Requests({
                 className="h-full w-full object-cover bg-gray-200"
               />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm font-medium truncate">{person.name}</p>
-              <p className="text-[10px] md:text-xs text-gray-500 truncate">{person.location}</p>
-              <div className="mt-1 md:mt-2 flex gap-2">
-                <button className="rounded bg-blue-50 hover:bg-blue-100 px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium text-blue-600 transition-colors">
-                  Accept
-                </button>
-                <button className="rounded bg-red-50 hover:bg-red-100 px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium text-red-600 transition-colors">
-                  Decline
-                </button>
-              </div>
-            </div>
+            <div className="flex flex-wrap items-start justify-between gap-2 w-full">
+  <div className="flex-1 min-w-0">
+    <p className="text-xs md:text-sm font-medium truncate">{person.name}</p>
+    <p className="text-[10px] md:text-xs text-gray-500 truncate">{person.location}</p>
+  </div>
+
+  <div className="flex flex-shrink-0 gap-2 mt-1 sm:mt-0 w-full sm:w-auto justify-end">
+    <button className="rounded bg-blue-50 hover:bg-blue-100 px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium text-blue-600 transition-colors">
+      Accept
+    </button>
+    <button className="rounded bg-red-50 hover:bg-red-100 px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium text-red-600 transition-colors">
+      Decline
+    </button>
+  </div>
+</div>
+
           </div>
         ))}
       </div>

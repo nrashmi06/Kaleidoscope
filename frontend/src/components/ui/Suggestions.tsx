@@ -91,11 +91,11 @@ export default function Suggestions({
 }
 
 const defaultSuggestions: SuggestionItem[] = [
-  { name: "Chantal Shelburne", location: "Miami, FL, US", imagePath: "/person8.jpg" },
-  { name: "Marci Senter", location: "New York, NY, US", imagePath: "/person2.jpg" },
-  { name: "Janetta Rotolo", location: "San Diego, CA, US", imagePath: "/person3.jpg" },
-  { name: "Tyra Dhillon", location: "Springfield, MA, US", imagePath: "/person4.jpg" },
-  { name: "Mariella Wigington", location: "Orlando, FL, US", imagePath: "/person5.jpg" },
-  { name: "Alexei Braun", location: "Austin, TX, US", imagePath: "/person6.jpg" },
-  { name: "Lara Park", location: "Chicago, IL, US", imagePath: "/person7.jpg" },
+  { name: "Chantal Shelburne", location: "Mumbai, Maharashtra, IN", imagePath: "/person8.jpg" },
+  { name: "Marci Senter", location: "Delhi, Delhi, IN", imagePath: "/person2.jpg" },
+  { name: "Janetta Rotolo", location: "Bangalore, Karnataka, IN", imagePath: "/person3.jpg" },
+  { name: "Tyra Dhillon", location: "Hyderabad, Telangana, IN", imagePath: "/person4.jpg" },
+  { name: "Mariella Wigington", location: "Chennai, Tamil Nadu, IN", imagePath: "/person5.jpg" },
+  { name: "Alexei Braun", location: "Pune, Maharashtra, IN", imagePath: "/person6.jpg" },
+  { name: "Lara Park", location: "Kolkata, West Bengal, IN", imagePath: "/person7.jpg" },
 ];

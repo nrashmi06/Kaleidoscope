@@ -37,7 +37,7 @@ export default function SigninForm() {
   return (
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-xl text-center font-bold text-neutral-800 dark:text-neutral-200">
-        Welcome to KelideoScope
+        Welcome to KaleidoScope
       </h2>
       <p className="mt-2 text-center max-w-sm text-sm text-neutral-600 dark:text-neutral-300">
         Please log in to continue

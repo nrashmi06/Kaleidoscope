@@ -1,11 +1,16 @@
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
+import axiosInstance from "@/hooks/axios";
 import { AuthMapper } from "@/mapper/authMapper";
+import { isAxiosError } from "@/hooks/axios"
+
+
+
 
 export const logoutUser = async (
   accessToken: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await axios.post(
+    const response = await axiosInstance.post(
       AuthMapper.logout,
       {}, 
       {
@@ -20,7 +25,7 @@ export const logoutUser = async (
       message: response.data.message,
     };
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       const axiosError = error as AxiosError<{ message: string }>;
       const errData = axiosError.response?.data || { message: axiosError.message };
       return {
