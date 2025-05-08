@@ -1,3 +1,4 @@
+
 // User registration data structure
 export interface RegisterUserData {
   email: string;
@@ -6,6 +7,13 @@ export interface RegisterUserData {
   designation: string;
   summary: string;
 }
+
+// Interface for the form state, including the file for profile picture
+export interface RegisterFormState extends RegisterUserData {
+  confirmPassword: string;
+  profilePicture: File | null;
+}
+
 
 // Expected success response from backend (customize if needed)
 export interface RegisterUserResponse {
@@ -20,3 +28,28 @@ export interface ErrorResponse {
   message: string;
   status?: number;
 }
+
+
+export interface VerifyEmailRequest {
+  email: string;
+}
+
+export interface VerifyEmailResponse {
+  message: string;
+}
+
+// /lib/types/auth.ts
+
+export interface LoginUserData {
+  email: string;
+  password: string;
+}
+
+export interface LoginUserResponse {
+  accessToken: string;
+  userId: string;
+  username: string;
+  email: string;
+  role: string;
+}
+

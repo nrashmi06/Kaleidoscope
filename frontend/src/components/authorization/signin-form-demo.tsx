@@ -1,13 +1,33 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { loginUser } from "@/services/auth/login"; 
+import { useAppDispatch } from "@/hooks/appDispatch";
 
 export default function SigninForm() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const dispatch  = useAppDispatch(); 
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted");
+    setError(""); // Reset error message on each submit attempt
+    setSuccess(""); // Reset success message on each submit attempt
+
+    const credentials = { email, password };
+
+    // Call the login API
+    const result = await loginUser(credentials , dispatch);
+
+    if (result.success) {
+      setSuccess(result.message); // Set success message if login is successful
+    } else {
+      setError(result.message); // Set error message if login fails
+    }
   };
 
   return (
@@ -22,11 +42,23 @@ export default function SigninForm() {
       <form className="my-8" onSubmit={handleSubmit}>
         <LabelInputContainer className="mb-4">
           <Label htmlFor="email">Email Address</Label>
-          <Input id="email" placeholder="you@example.com" type="email" />
+          <Input
+            id="email"
+            placeholder="you@example.com"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </LabelInputContainer>
         <LabelInputContainer className="mb-6">
           <Label htmlFor="password">Password</Label>
-          <Input id="password" placeholder="••••••••" type="password" />
+          <Input
+            id="password"
+            placeholder="••••••••"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </LabelInputContainer>
 
         <button
@@ -59,6 +91,10 @@ export default function SigninForm() {
           </p>
         </div>
       </form>
+
+      {/* Display success or error messages */}
+      {error && <p className="mt-4 text-center text-sm text-red-500">{error}</p>}
+      {success && <p className="mt-4 text-center text-sm text-green-500">{success}</p>}
     </div>
   );
 }
