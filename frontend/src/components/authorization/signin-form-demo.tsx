@@ -3,15 +3,17 @@ import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { loginUser } from "@/services/auth/login"; 
+import { loginUser } from "@/services/auth/login";
 import { useAppDispatch } from "@/hooks/appDispatch";
+import { useRouter } from "next/navigation";  // Import the useRouter hook
 
 export default function SigninForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const dispatch  = useAppDispatch(); 
+  const dispatch = useAppDispatch();
+  const router = useRouter();  // Initialize the router
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,10 +23,12 @@ export default function SigninForm() {
     const credentials = { email, password };
 
     // Call the login API
-    const result = await loginUser(credentials , dispatch);
+    const result = await loginUser(credentials, dispatch);
 
     if (result.success) {
       setSuccess(result.message); // Set success message if login is successful
+      // Redirect to the blog page after successful login
+      router.push("/blog");  // Redirecting to the blog page
     } else {
       setError(result.message); // Set error message if login fails
     }

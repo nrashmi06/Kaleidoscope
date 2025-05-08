@@ -1,5 +1,9 @@
+// DashboardLayout.tsx
 "use client";
 import React, { useState, useEffect, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store"; // Assuming you have a RootState type for your store
 import {
   IconHome,
   IconSearch,
@@ -89,6 +93,8 @@ function ContactsSection({ contacts }: { contacts: Contact[] }) {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(true);
+  const router = useRouter();
+  const token = useSelector((state: RootState) => state.auth.accessToken); // Access token from Redux store
 
   useEffect(() => {
     const handleResize = () => {
@@ -99,11 +105,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    // Redirect to login if the token is not available
+    if (!token) {
+      router.push("/login"); // Redirect to login page if no token is found
+    }
+  }, [token, router]);
+
+  if (!token) {
+    // Show loading or spinner until the redirect happens
+    return <div>Loading...</div>;
+  }
+
   return (
     <Sidebar open={open} setOpen={setOpen}>
       <div className="flex h-screen flex-col md:flex-row">
-
-        {/* Single Sidebar - The built-in sidebar component handles mobile/desktop views */}
+        {/* Sidebar - The built-in sidebar component handles mobile/desktop views */}
         <SidebarBody className="overflow-y-auto hide-scrollbar bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex-shrink-0">
           <ProfileSection />
           <div className="w-full h-0.5 bg-slate-100"></div>
