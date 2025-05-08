@@ -1,34 +1,38 @@
 import axios, { AxiosError } from 'axios';
-import { RegisterUserData, RegisterUserResponse, ErrorResponse } from '@/lib/types/auth';
+import {
+  RegisterUserData,
+  RegisterUserResponse,
+  ErrorResponse
+} from '@/lib/types/auth';
 import { AuthMapper } from '@/mapper/authMapper';
 
 export const registerUserWithProfile = async (
   userData: RegisterUserData,
-  profilePicture: File | null
+  profilePicture: File
 ): Promise<{ success: boolean; message: string }> => {
   const formData = new FormData();
-  
-  // Append the user data first
-  formData.append('userData', new Blob([JSON.stringify(userData)], {
+
+  // Append the image (profile picture)
+  formData.append('profilePicture', profilePicture);
+
+  // Convert userData to a Blob with application/json content type
+  const userDataBlob = new Blob([JSON.stringify(userData)], {
     type: 'application/json'
-  }));
-  
-  // Then append the profile picture if it exists
-  if (profilePicture) {
-    formData.append('profilePicture', profilePicture);
-  }
-  
+  });
+
+  // Append the Blob to the form with a name and filename
+  formData.append('userData', userDataBlob, 'userData.json');
+
   try {
     await axios.post<RegisterUserResponse>(
       AuthMapper.register,
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'multipart/form-data'
         }
       }
     );
-    
     return {
       success: true,
       message: 'Registration successful!'
@@ -39,10 +43,10 @@ export const registerUserWithProfile = async (
       const errData = axiosError.response?.data || { message: axiosError.message };
       return {
         success: false,
-        message: typeof errData.message === 'string' ? errData.message : 'Server error'
+        message: typeof errData.message === 'string' ? errData.message : 'Registration failed'
       };
     }
-    
+
     return {
       success: false,
       message: 'Unknown error occurred during registration.'
