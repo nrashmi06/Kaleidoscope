@@ -84,13 +84,13 @@ public class JwtUtils {
                 .get("role", String.class);
     }
 
-    public Integer getUserIdFromJwtToken(String token) {
+    public Long getUserIdFromJwtToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
-                .get("userId", Integer.class);
+                .get("userId", Long.class);
     }
 
     public Long getHouseIdFromJwtToken(String token) {
@@ -135,7 +135,7 @@ public class JwtUtils {
         }
     }
 
-    public Integer getUserIdFromContext() {
+    public Long getUserIdFromContext() {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String jwt = getJwtFromHeader(request);
         return getUserIdFromJwtToken(jwt);

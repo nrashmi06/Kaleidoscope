@@ -3,6 +3,8 @@ package com.kaleidoscope.backend.users.mapper;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
+import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
+import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
@@ -62,6 +64,30 @@ public class UserMapper {
                 .designation(user.getDesignation())
                 .summary(user.getSummary())
                 .profilePictureUrl(user.getProfilePictureUrl())
+                .build();
+    }
+    public static User updateUserFromDTO(User user, UpdateUserProfileRequestDTO dto) {
+        if (dto.getUsername() != null && !dto.getUsername().isEmpty()) {
+            user.setUsername(dto.getUsername());
+        }
+        if (dto.getDesignation() != null) {
+            user.setDesignation(dto.getDesignation());
+        }
+        if (dto.getSummary() != null) {
+            user.setSummary(dto.getSummary());
+        }
+        return user;
+    }
+
+    public static UpdateUserProfileResponseDTO toUpdateUserProfileResponseDTO(User user) {
+        return UpdateUserProfileResponseDTO.builder()
+                .userId(user.getUserId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .designation(user.getDesignation())
+                .summary(user.getSummary())
+                .profilePictureUrl(user.getProfilePictureUrl())
+                .coverPhotoUrl(user.getCoverPhotoUrl())
                 .build();
     }
 }
