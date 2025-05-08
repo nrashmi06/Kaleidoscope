@@ -3,7 +3,7 @@ import Image from "next/image";
 interface RequestItem {
   name: string;
   location: string;
-  imageUrl?: string; // New prop for custom image URLs
+  imageUrl?: string;
 }
 
 interface RequestsProps {
@@ -11,57 +11,48 @@ interface RequestsProps {
   className?: string;
 }
 
-export default function Requests({ 
-  requests = defaultRequests, 
-  className = "" 
+export default function Requests({
+  requests = defaultRequests,
+  className = "",
 }: RequestsProps) {
   return (
-    <div className={`mb-8 ${className}`}>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center text-xl font-semibold"> {/* Larger text */}
+    <div className={`mb-4 md:mb-6 ${className}`}>
+      <div className="mb-2 md:mb-3 flex items-center justify-between">
+        <h2 className="flex items-center text-sm md:text-base font-semibold">
           Requests
           {requests.length > 0 && (
-            <span className="ml-2 rounded-full bg-blue-500 px-3 py-1 text-sm text-white"> {/* Larger badge */}
+            <span className="ml-1.5 md:ml-2 rounded-full bg-blue-500 px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs text-white">
               {requests.length}
             </span>
           )}
         </h2>
       </div>
-
-      <div className="space-y-5"> {/* Increased spacing */}
+      
+      <div className="space-y-3 md:space-y-4">
         {requests.map((person, index) => (
-          <div key={index} className="flex items-start justify-between">
-            <div className="flex items-start">
-              <div className="h-12 w-12 overflow-hidden rounded-full"> {/* Larger avatar */}
-                {person.imageUrl ? (
-                  <Image
-                    src={person.imageUrl}
-                    alt={person.name}
-                    width={48}
-                    height={48}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <Image
-                    src={`/placeholder.svg?height=48&width=48&text=${person.name.charAt(0)}`}
-                    alt={person.name}
-                    width={48}
-                    height={48}
-                    className="h-full w-full object-cover bg-gray-200"
-                  />
-                )}
-              </div>
-              <div className="ml-4"> {/* Increased margin */}
-                <p className="text-base font-medium">{person.name}</p> {/* Larger text */}
-                <p className="text-sm text-gray-500 mt-1">{person.location}</p> {/* Larger text */}
-                <div className="mt-2 flex space-x-3"> {/* Increased spacing */}
-                  <button className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 transition-colors">
-                    Accept
-                  </button>
-                  <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                    Decline
-                  </button>
-                </div>
+          <div
+            key={index}
+            className="flex items-start space-x-2 md:space-x-3 rounded-lg px-2 py-1.5 hover:bg-gray-50"
+          >
+            <div className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0 overflow-hidden rounded-full">
+              <Image
+                src={person.imageUrl || `/placeholder.svg?height=40&width=40&text=${person.name.charAt(0)}`}
+                alt={person.name}
+                width={40}
+                height={40}
+                className="h-full w-full object-cover bg-gray-200"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs md:text-sm font-medium truncate">{person.name}</p>
+              <p className="text-[10px] md:text-xs text-gray-500 truncate">{person.location}</p>
+              <div className="mt-1 md:mt-2 flex gap-2">
+                <button className="rounded bg-blue-50 hover:bg-blue-100 px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium text-blue-600 transition-colors">
+                  Accept
+                </button>
+                <button className="rounded bg-red-50 hover:bg-red-100 px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium text-red-600 transition-colors">
+                  Decline
+                </button>
               </div>
             </div>
           </div>
@@ -71,16 +62,15 @@ export default function Requests({
   );
 }
 
-// Default requests data with image examples
 const defaultRequests: RequestItem[] = [
-  { 
-    name: "Lauraine Quintero", 
+  {
+    name: "Lauraine Quintero",
     location: "Oslo, Norway",
-    imageUrl: "/janeshoots.jpg" // Example custom image
+    imageUrl: "/janeshoots.jpg",
   },
-  { 
-    name: "Belinda Londema", 
+  {
+    name: "Belinda Londema",
     location: "Paris, France",
-    imageUrl: "/person2.jpg" // Example custom image
+    imageUrl: "/person2.jpg",
   },
 ];

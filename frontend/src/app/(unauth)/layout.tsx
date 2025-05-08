@@ -85,7 +85,7 @@ export default function UnauthLayout({ children }: { children: ReactNode }) {
       </Navbar>
 
       {/* Add padding to prevent content from hiding under fixed navbar */}
-      <div className="pt-16 md:pt-24">
+      <div >
         <main>{children}</main>
       </div>
     </>
