@@ -11,6 +11,8 @@ import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
+import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
+import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.exception.user.*;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.auth.model.EmailVerification;
@@ -393,5 +395,39 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         }
 
         emailService.sendVerificationEmail(user.getEmail(), emailVerification.getVerificationCode());
+    }
+
+    @Transactional
+    public UpdateUserProfileResponseDTO updateUserProfile(Long userId, UpdateUserProfileRequestDTO updateRequest) throws Exception {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        // Update basic user information
+        UserMapper.updateUserFromDTO(user, updateRequest);
+
+        // Handle profile picture update
+        if (updateRequest.getProfilePicture() != null && !updateRequest.getProfilePicture().isEmpty()) {
+            // Delete existing profile picture if exists
+            if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) {
+                imageStorageService.deleteImage(user.getProfilePictureUrl()).join();
+            }
+            // Upload new profile picture
+            String profilePictureUrl = imageStorageService.uploadImage(updateRequest.getProfilePicture()).join();
+            user.setProfilePictureUrl(profilePictureUrl);
+        }
+
+        // Handle cover photo update
+        if (updateRequest.getCoverPhoto() != null && !updateRequest.getCoverPhoto().isEmpty()) {
+            // Delete existing cover photo if exists
+            if (user.getCoverPhotoUrl() != null && !user.getCoverPhotoUrl().isEmpty()) {
+                imageStorageService.deleteImage(user.getCoverPhotoUrl()).join();
+            }
+            // Upload new cover photo
+            String coverPhotoUrl = imageStorageService.uploadImage(updateRequest.getCoverPhoto()).join();
+            user.setCoverPhotoUrl(coverPhotoUrl);
+        }
+
+        User updatedUser = userRepository.save(user);
+        return UserMapper.toUpdateUserProfileResponseDTO(updatedUser);
     }
 }

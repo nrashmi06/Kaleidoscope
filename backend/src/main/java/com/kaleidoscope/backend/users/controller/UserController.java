@@ -1,0 +1,53 @@
+package com.kaleidoscope.backend.users.controller;
+
+import com.kaleidoscope.backend.auth.security.jwt.JwtUtils; // Corrected import path
+import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
+import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
+import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.users.routes.UserRoutes;
+import com.kaleidoscope.backend.users.service.UserService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+@RestController
+@Slf4j
+@RequestMapping
+@RequiredArgsConstructor
+public class UserController {
+
+    private final UserService userService;
+    private final JwtUtils jwtUtils;
+
+    @PutMapping(value = UserRoutes.UPDATE_USER_PROFILE, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ROLE_USER')")
+    public ResponseEntity<?> updateUserProfile(
+            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
+            @RequestPart(value = "coverPhoto", required = false) MultipartFile coverPhoto,
+            @RequestPart("userData") UpdateUserProfileRequestDTO userProfileData) {
+
+        try {
+            Long userId = jwtUtils.getUserIdFromContext();
+            log.info("Updating profile for user ID: {}", userId);
+
+            // Set the files in the DTO
+            userProfileData.setProfilePicture(profilePicture);
+            userProfileData.setCoverPhoto(coverPhoto);
+
+            UpdateUserProfileResponseDTO updatedUser = userService.updateUserProfile(userId, userProfileData);
+            return ResponseEntity.ok(updatedUser);
+        } catch (UserNotFoundException e) {
+            log.error("User not found during profile update", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating user profile", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error updating profile: " + e.getMessage());
+        }
+    }
+}

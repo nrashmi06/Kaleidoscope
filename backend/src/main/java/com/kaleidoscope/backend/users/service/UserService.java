@@ -3,6 +3,8 @@ package com.kaleidoscope.backend.users.service;
 import com.kaleidoscope.backend.auth.dto.request.UserLoginRequestDTO;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
+import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
+import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
@@ -24,5 +26,5 @@ public interface UserService {
     void verifyUser(String verificationCode);
     void sendVerificationEmail(String email);
     void resendVerificationEmail(String email);
-
+    UpdateUserProfileResponseDTO updateUserProfile(Long userId, UpdateUserProfileRequestDTO updateRequest) throws Exception;
 }
