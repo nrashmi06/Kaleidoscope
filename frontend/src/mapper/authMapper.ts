@@ -8,4 +8,5 @@ export const AuthMapper = {
   verifyEmail: `${BASE_URL}/auth/resend-verification-email`, 
   forgotPassword: `${BASE_URL}/auth/forgot-password`,
   resetPassword: `${BASE_URL}/auth/reset-password`,
+  logout: `${BASE_URL}/auth/logout`,
 };

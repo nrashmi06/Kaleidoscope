@@ -1,9 +1,8 @@
-// DashboardLayout.tsx
 "use client";
 import React, { useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
-import { RootState } from "@/store"; // Assuming you have a RootState type for your store
+import { RootState } from "@/store";
 import {
   IconHome,
   IconSearch,
@@ -13,6 +12,8 @@ import {
   IconLogout,
 } from "@tabler/icons-react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import useClearStore from "@/hooks/clearStore";
+import { logoutUser } from "@/services/auth/logout";
 
 type Contact = {
   name: string;
@@ -26,15 +27,6 @@ const contacts: Contact[] = [
   { name: "Joyce Reid", location: "Fort Worth, TX, US", avatar: "/nature2.jpg" },
   { name: "Alice Franklin", location: "Springfield, MA, US", avatar: "/nature2.jpg" },
   { name: "Domingo Flores", location: "Houston, TX, US", avatar: "/nature2.jpg" },
-];
-
-const navigationLinks = [
-  { label: "Feed", href: "#", icon: <IconHome className="h-5 w-5" /> },
-  { label: "Explore", href: "#", icon: <IconSearch className="h-5 w-5" /> },
-  { label: "My favorites", href: "#", icon: <IconHeart className="h-5 w-5" /> },
-  { label: "Direct", href: "#", icon: <IconMessageCircle className="h-5 w-5" /> },
-  { label: "Settings", href: "#", icon: <IconSettings className="h-5 w-5" /> },
-  { label: "Logout", href: "/login", icon: <IconLogout className="h-5 w-5" /> },
 ];
 
 function ProfileSection() {
@@ -96,8 +88,19 @@ function ContactsSection({ contacts }: { contacts: Contact[] }) {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(true);
   const router = useRouter();
-  const token = useSelector((state: RootState) => state.auth.accessToken); 
+  const clearStore = useClearStore();
+  const token = useSelector((state: RootState) => state.auth.accessToken);
 
+  const handleLogout = async () => {
+    try {
+      await logoutUser(token);
+
+      clearStore();
+      router.push("/login"); 
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -109,29 +112,43 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Redirect to login if the token is not available
     if (!token) {
-      router.push("/login"); // Redirect to login page if no token is found
+      router.push("/login");
     }
   }, [token, router]);
 
   if (!token) {
-    // Show loading or spinner until the redirect happens
     return <div>Loading...</div>;
   }
+
+  const navigationLinks = [
+    { label: "Feed", href: "#", icon: <IconHome className="h-5 w-5" /> },
+    { label: "Explore", href: "#", icon: <IconSearch className="h-5 w-5" /> },
+    { label: "My favorites", href: "#", icon: <IconHeart className="h-5 w-5" /> },
+    { label: "Direct", href: "#", icon: <IconMessageCircle className="h-5 w-5" /> },
+    { label: "Settings", href: "#", icon: <IconSettings className="h-5 w-5" /> },
+    {
+      label: "Logout",
+      href: "#",
+      icon: <IconLogout className="h-5 w-5" />,
+      onClick: handleLogout,
+    },
+  ];
 
   return (
     <Sidebar open={open} setOpen={setOpen}>
       <div className="flex h-screen flex-col md:flex-row">
-        {/* Sidebar - The built-in sidebar component handles mobile/desktop views */}
         <SidebarBody className="overflow-y-auto hide-scrollbar bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex-shrink-0">
           <ProfileSection />
           <div className="w-full h-0.5 bg-slate-100"></div>
 
-          {/* Navigation Links */}
           <div className="flex flex-col space-y-1">
             {navigationLinks.map((link, idx) => (
-              <SidebarLink key={idx} link={link} />
+              <SidebarLink
+                key={idx}
+                link={link}
+                onClick={link.onClick ? link.onClick : undefined}
+              />
             ))}
           </div>
 
@@ -139,7 +156,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <ContactsSection contacts={contacts} />
         </SidebarBody>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-slate-100 dark:bg-neutral-900 p-4">
           {children}
         </main>

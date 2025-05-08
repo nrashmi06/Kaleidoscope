@@ -9,7 +9,11 @@ interface Links {
   href: string;
   icon: React.JSX.Element | React.ReactNode;
 }
-
+export interface SidebarLinkProps {
+  link: Links;
+  className?: string;
+  onClick?: () => void;
+}
 interface SidebarContextProps {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -167,26 +171,19 @@ export const MobileSidebar = ({
   );
 };
 
+
+
 export const SidebarLink = ({
   link,
   className,
+  onClick,
   ...props
-}: {
-  link: Links;
-  className?: string;
-}) => {
+}: SidebarLinkProps) => {
   const { open, animate } = useSidebar();
-  return (
-    <a
-      href={link.href}
-      className={cn(
-        "flex items-center justify-start gap-2  group/sidebar py-2",
-        className
-      )}
-      {...props}
-    >
-      {link.icon}
 
+  const content = (
+    <>
+      {link.icon}
       <motion.span
         animate={{
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
@@ -196,6 +193,31 @@ export const SidebarLink = ({
       >
         {link.label}
       </motion.span>
+    </>
+  );
+
+  return onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex items-center justify-start gap-2 group/sidebar py-2 text-left w-full hover:bg-gray-100 dark:hover:bg-neutral-800",
+        className
+      )}
+      {...props}
+    >
+      {content}
+    </button>
+  ) : (
+    <a
+      href={link.href || "#"}
+      className={cn(
+        "flex items-center justify-start gap-2 group/sidebar py-2 text-left w-full hover:bg-gray-100 dark:hover:bg-neutral-800",
+        className
+      )}
+      {...props}
+    >
+      {content}
     </a>
   );
 };
