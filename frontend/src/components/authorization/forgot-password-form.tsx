@@ -3,37 +3,68 @@ import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { forgotPassword } from "@/services/auth/forgot-password";
+import { resetPassword } from "@/services/auth/reset-password"; // ✅ Import the API
 
 export default function ForgotPasswordForm() {
   const [stage, setStage] = useState<1 | 2>(1);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(Array(6).fill(""));
-  const [password, setPassword] = useState("");
+  const [newpassword, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.includes("@")) {
-      // Simulate sending OTP
+    setMessage("");
+    setError("");
+
+    if (!email.includes("@")) {
+      setError("Please enter a valid email.");
+      return;
+    }
+
+    const result = await forgotPassword({ email });
+
+    if (result.success) {
+      setMessage(result.message || "Check your email for the OTP.");
       setStage(2);
     } else {
-      alert("Please enter a valid email.");
+      setError(result.message || "Something went wrong.");
     }
   };
 
-  const handleResetSubmit = (e: React.FormEvent) => {
+  const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage("");
+    setError("");
+
     if (!otp.every((digit) => digit.trim().length === 1)) {
-      alert("Enter complete 6-digit OTP.");
-      return;
-    }
-    if (password.length < 6 || password !== confirmPassword) {
-      alert("Passwords must match and be at least 6 characters.");
+      setError("Enter complete 6-digit OTP.");
       return;
     }
 
-    // Final submission
-    console.log("Resetting password with:", { email, otp, password });
+    if (newpassword.length < 6 || newpassword !== confirmPassword) {
+      setError("Passwords must match and be at least 6 characters.");
+      return;
+    }
+
+    const result = await resetPassword({
+      token: otp.join(""),
+      newpassword,
+    });
+
+    if (result.success) {
+      setMessage(result.message || "Password reset successfully.");
+      setStage(1); // Optionally go back to stage 1 or redirect to login
+      setEmail("");
+      setOtp(Array(6).fill(""));
+      setPassword("");
+      setConfirmPassword("");
+    } else {
+      setError(result.message || "Failed to reset password.");
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -42,7 +73,6 @@ export default function ForgotPasswordForm() {
       updated[index] = value;
       setOtp(updated);
 
-      // Automatically move focus to next input when current input is filled
       if (value && index < otp.length - 1) {
         const nextInput = document.getElementById(`otp-${index + 1}`) as HTMLInputElement;
         nextInput?.focus();
@@ -96,7 +126,7 @@ export default function ForgotPasswordForm() {
                     value={digit}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     className="w-10 h-10 text-center text-lg"
-                    autoFocus={i === 0} // Focus on the first input initially
+                    autoFocus={i === 0}
                   />
                 ))}
               </div>
@@ -108,7 +138,7 @@ export default function ForgotPasswordForm() {
                 id="new-password"
                 type="password"
                 placeholder="New password"
-                value={password}
+                value={newpassword}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </LabelInputContainer>
@@ -127,12 +157,19 @@ export default function ForgotPasswordForm() {
             <button
               type="submit"
               className="block w-full h-10 rounded-md bg-black text-white"
+              onClick={(e) => {
+                e.preventDefault();
+                handleResetSubmit(e);
+              }}
             >
               Reset Password
             </button>
           </>
         )}
       </form>
+
+      {message && <p className="text-green-600 text-sm text-center">{message}</p>}
+      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
     </div>
   );
 }

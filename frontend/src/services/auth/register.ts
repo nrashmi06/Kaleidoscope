@@ -42,13 +42,13 @@ export const registerUserWithProfile = async (
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error('Error response:', axiosError.response?.data);
 
-      const errData = axiosError.response?.data || { message: axiosError.message };
+      const errData = axiosError.response?.data  || { message: axiosError.message };
 
       // Better error handling with more specific messages
       if (axiosError.response?.status === 400) {
         return {
           success: false,
-          message: typeof errData.message === 'string' ? errData.message : 'Invalid registration data'
+          message: typeof errData === 'string' ? errData : 'Invalid registration data'
         };
       } else if (axiosError.response?.status === 409) {
         return {

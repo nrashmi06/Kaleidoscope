@@ -1,8 +1,8 @@
 // src/store.ts
 import { configureStore } from "@reduxjs/toolkit";
 import { persistReducer, persistStore } from "redux-persist";
-import storage from "redux-persist/lib/storage"; // Using localStorage
-import authReducer from "@/store/authSlice"; // Adjust the path to your authSlice
+import storage from "redux-persist/lib/storage"; 
+import authReducer from "@/store/authSlice"; 
 
 // Define  reducers
 const authPersistConfig = {
@@ -16,7 +16,7 @@ const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 // Create the Redux store
 const store = configureStore({
     reducer: {
-      auth: persistedAuthReducer, // Use the persisted auth reducer
+      auth: persistedAuthReducer, 
   },
   devTools: process.env.NODE_ENV !== "production",
   middleware: (getDefaultMiddleware) =>

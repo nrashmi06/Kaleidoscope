@@ -1,4 +1,3 @@
-
 // User registration data structure
 export interface RegisterUserData {
   email: string;
@@ -29,7 +28,6 @@ export interface ErrorResponse {
   status?: number;
 }
 
-
 export interface VerifyEmailRequest {
   email: string;
 }
@@ -53,3 +51,20 @@ export interface LoginUserResponse {
   role: string;
 }
 
+export interface ForgotPasswordData{
+  email: string;
+}
+export interface ForgotPasswordResponse {
+  message: string;
+  success: boolean;
+}
+
+export interface ResetPasswordData {
+  token : string;
+  newpassword: string;
+};
+
+export interface ResetPasswordResponse {
+  message: string;
+  success: boolean;
+};

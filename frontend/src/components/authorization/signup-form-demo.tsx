@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { registerUserWithProfile } from "@/services/auth/register";
 import { RegisterFormState } from "@/lib/types/auth";
-import { verifyEmail } from "@/services/auth/verifyEmail";
+import { verifyEmail } from "@/services/auth/verifyEmailResend";
 
 export default function SignupForm() {
   const [formState, setFormState] = useState<RegisterFormState>({

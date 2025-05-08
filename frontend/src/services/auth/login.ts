@@ -35,7 +35,7 @@ export const loginUser = async (
         const errData = axiosError.response?.data || { message: axiosError.message };
         return {
           success: false,
-          message: typeof errData.message === 'string' ? errData.message : 'Registration failed'
+          message: typeof errData === 'string' ? errData : 'Registration failed'
         };
     }
 
