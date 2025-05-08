@@ -1,0 +1,39 @@
+meta {
+  name: update user profile
+  type: http
+  seq: 8
+}
+
+put {
+  url: http://localhost:8080/kaleidoscope/api/users/profile
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  profilePicture: @file(C:\Users\ajayp\Downloads\apache-kafka.svg)
+  coverPhoto: @file(C:\Users\ajayp\Downloads\Signature.jpg)
+  userData: '''
+    {
+    "summary" :"xyz"
+    }
+  ''' @contentType(application/json)
+}
+
+docs {
+  response
+  
+  {
+    "userId": 1,
+    "email": "nnm22ad041@nmamit.in",
+    "username": "admin",
+    "designation": "The supreme leader",
+    "summary": "xyz",
+    "profilePictureUrl": "http://res.cloudinary.com/dkadqnp9j/image/upload/v1746711823/aknd4fsryi1nvn5nznfc.jpg",
+    "coverPhotoUrl": "http://res.cloudinary.com/dkadqnp9j/image/upload/v1746711826/nygrujrkmbtzh33urzzv.jpg"
+  }
+}
