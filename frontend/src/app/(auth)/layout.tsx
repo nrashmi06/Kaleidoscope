@@ -10,6 +10,7 @@ import {
   IconHeart,
   IconMessageCircle,
   IconSettings,
+  IconLogout,
 } from "@tabler/icons-react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 
@@ -33,6 +34,7 @@ const navigationLinks = [
   { label: "My favorites", href: "#", icon: <IconHeart className="h-5 w-5" /> },
   { label: "Direct", href: "#", icon: <IconMessageCircle className="h-5 w-5" /> },
   { label: "Settings", href: "#", icon: <IconSettings className="h-5 w-5" /> },
+  { label: "Logout", href: "/login", icon: <IconLogout className="h-5 w-5" /> },
 ];
 
 function ProfileSection() {
@@ -94,7 +96,8 @@ function ContactsSection({ contacts }: { contacts: Contact[] }) {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(true);
   const router = useRouter();
-  const token = useSelector((state: RootState) => state.auth.accessToken); // Access token from Redux store
+  const token = useSelector((state: RootState) => state.auth.accessToken); 
+
 
   useEffect(() => {
     const handleResize = () => {

@@ -1,9 +1,9 @@
-// app/StoreProvider.tsx
-'use client'
+// StoreProvider.tsx
+'use client';
 
-import { Provider } from 'react-redux'
-import { PersistGate } from 'redux-persist/integration/react'
-import { store, persistor } from '@/store'
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from '@/store';
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -12,5 +12,5 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         {children}
       </PersistGate>
     </Provider>
-  )
+  );
 }

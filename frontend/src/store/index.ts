@@ -4,21 +4,34 @@ import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage"; // Using localStorage
 import authReducer from "@/store/authSlice"; // Adjust the path to your authSlice
 
-// Define the persistence configuration for the auth slice
+// Define  reducers
 const authPersistConfig = {
-  key: "auth",
-  storage, // Using sessionStorage
-};
-
-// Persist the auth reducer
+    key: "auth",
+    storage,
+  };
+  
+// Persist reducers 
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 
 // Create the Redux store
 const store = configureStore({
-  reducer: {
-    auth: persistedAuthReducer, // Use the persisted auth reducer
+    reducer: {
+      auth: persistedAuthReducer, // Use the persisted auth reducer
   },
-  devTools: process.env.NODE_ENV !== "production", // Enable Redux DevTools in development mode only
+  devTools: process.env.NODE_ENV !== "production",
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [
+          "persist/PERSIST",
+          "persist/REHYDRATE",
+          "persist/REGISTER",
+          "persist/FLUSH",
+          "persist/PAUSE",
+          "persist/PURGE",
+        ],
+      },
+    }),
 });
 
 // Create the persistor
