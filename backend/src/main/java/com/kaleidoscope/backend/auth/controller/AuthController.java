@@ -3,6 +3,7 @@ package com.kaleidoscope.backend.auth.controller;
 import com.kaleidoscope.backend.auth.dto.request.*;
 import com.kaleidoscope.backend.auth.dto.response.*;
 import com.kaleidoscope.backend.auth.exception.token.MissingRequestCookieException;
+import com.kaleidoscope.backend.auth.service.AuthService;
 import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileStatusRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
@@ -37,14 +38,16 @@ public class AuthController {
     private final UserService userService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final JwtUtils jwtUtils;
+    private final AuthService authService;
 
     public AuthController(UserService userService,
                           RefreshTokenServiceImpl refreshTokenService,
-                          @Value("${spring.app.base-url}") String baseUrl, JwtUtils jwtUtils) {
+                          @Value("${spring.app.base-url}") String baseUrl, JwtUtils jwtUtils, AuthService authService) {
         this.userService = userService;
         this.refreshTokenService = refreshTokenService;
         this.baseUrl = baseUrl;
         this.jwtUtils = jwtUtils;
+        this.authService = authService;
     }
 
     @PostMapping(value = AuthRoutes.REGISTER, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -56,7 +59,7 @@ public class AuthController {
         userRegistrationDTO.setProfilePicture(profilePicture);
 
         // Call service method
-        UserRegistrationResponseDTO userDTO = userService.registerUser(userRegistrationDTO);
+        UserRegistrationResponseDTO userDTO = authService.registerUser(userRegistrationDTO);
         return ResponseEntity.ok(userDTO);
     }
 
@@ -65,7 +68,7 @@ public class AuthController {
             @RequestBody UserLoginRequestDTO loginRequest,
             HttpServletResponse response) {
         log.debug("Processing login request for email: {}", loginRequest.getEmail());
-        Map<String, Object> loginResponse = userService.loginUser(loginRequest);
+        Map<String, Object> loginResponse = authService.loginUser(loginRequest);
         String accessToken = (String) loginResponse.get("accessToken");
         String refreshToken = (String) loginResponse.get("refreshToken");
         UserLoginResponseDTO userDTO = (UserLoginResponseDTO) loginResponse.get("user");
@@ -100,19 +103,19 @@ public class AuthController {
         }
 
         SecurityContextHolder.clearContext();
-        userService.clearCookies(response, baseUrl);
+        authService.clearCookies(response, baseUrl);
         return ResponseEntity.ok("User logged out successfully.");
     }
 
     @PostMapping(AuthRoutes.FORGOT_PASSWORD)
     public ResponseEntity<VerifyEmailResponseDTO> forgotPassword(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        userService.forgotPassword(verifyEmailRequestDTO.getEmail());
+        authService.forgotPassword(verifyEmailRequestDTO.getEmail());
         return ResponseEntity.ok(new VerifyEmailResponseDTO("Password reset email sent successfully."));
     }
 
     @PostMapping(AuthRoutes.RESET_PASSWORD)
     public ResponseEntity<ResetPasswordResponseDTO> resetPassword(@RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
-        userService.resetPassword(resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
+        authService.resetPassword(resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
         return ResponseEntity.ok(new ResetPasswordResponseDTO("Password has been reset successfully."));
     }
 
@@ -121,7 +124,7 @@ public class AuthController {
         Long userId = Long.valueOf(jwtUtils.getUserIdFromContext());
 
         try {
-            userService.changePasswordById(userId, changePasswordRequestDTO.getOldPassword(), changePasswordRequestDTO.getNewPassword());
+            authService.changePasswordById(userId, changePasswordRequestDTO.getOldPassword(), changePasswordRequestDTO.getNewPassword());
             return ResponseEntity.ok("Password changed successfully.");
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + userId);
@@ -151,45 +154,17 @@ public class AuthController {
                 .body(responseDTO);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @GetMapping(UserRoutes.GET_ALL_USERS_BY_PROFILE_STATUS)
-    public ResponseEntity<Page<UserDetailsSummaryResponseDTO>> getAllUsers(
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search,
-            Pageable pageable) {
-
-        try {
-            Page<User> users = userService.getUsersByFilters(status, search, pageable);
-            Page<UserDetailsSummaryResponseDTO> response = users.map(UserMapper::toUserDetailsSummaryResponseDTO);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error retrieving users", e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping(UserRoutes.UPDATE_USER_PROFILE_STATUS)
-    public ResponseEntity<String> updateUserProfileStatus(@RequestBody UpdateUserProfileStatusRequestDTO updateUserProfileStatusRequestDTO) {
-        try {
-            userService.updateUserProfileStatus(updateUserProfileStatusRequestDTO.getUserId(), updateUserProfileStatusRequestDTO.getProfileStatus());
-            return ResponseEntity.ok("User profile status updated successfully.");
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + updateUserProfileStatusRequestDTO.getUserId());
-        }
-    }
-
     @PostMapping(AuthRoutes.VERIFY_EMAIL)
     @PreAuthorize("permitAll()")
     public ResponseEntity<VerifyEmailResponseDTO> sendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        userService.sendVerificationEmail(verifyEmailRequestDTO.getEmail());
+        authService.sendVerificationEmail(verifyEmailRequestDTO.getEmail());
         return ResponseEntity.ok(new VerifyEmailResponseDTO("Verification email sent successfully."));
     }
 
     @PostMapping(AuthRoutes.RESEND_VERIFICATION_EMAIL)
     @PreAuthorize("permitAll()")
     public ResponseEntity<VerifyEmailResponseDTO> resendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        userService.resendVerificationEmail(verifyEmailRequestDTO.getEmail());
+        authService.resendVerificationEmail(verifyEmailRequestDTO.getEmail());
         return ResponseEntity.ok(new VerifyEmailResponseDTO("Verification email sent successfully."));
     }
 }
