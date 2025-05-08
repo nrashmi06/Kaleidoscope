@@ -49,7 +49,7 @@ public class AuthController {
 
     @PostMapping(value = AuthRoutes.REGISTER, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserRegistrationResponseDTO> registerUser(
-            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
+            @RequestPart("profilePicture") MultipartFile profilePicture,
             @RequestPart("userData") UserRegistrationRequestDTO userRegistrationDTO) {
 
         // Set profile picture in the DTO
