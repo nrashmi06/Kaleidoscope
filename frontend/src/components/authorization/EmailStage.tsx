@@ -40,7 +40,8 @@ export default function EmailStage({
   return (
     <form className="my-8 space-y-6" onSubmit={handleEmailSubmit}>
       <div className={cn("flex w-full flex-col space-y-2")}>
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email"
+        className="text-sm font-medium text-indigo-900 dark:text-neutral-300">Email</Label>
         <Input
           id="email"
           type="email"
@@ -50,7 +51,8 @@ export default function EmailStage({
         />
         <button
           type="submit"
-          className="mt-4 block w-full h-10 rounded-md bg-black text-white"
+          className="group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-indigo-700 via-indigo-800 to-indigo-900 text-white shadow-lg transition-all hover:brightness-110 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!email || !email.includes("@")}
         >
           Send OTP
         </button>

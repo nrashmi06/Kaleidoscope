@@ -3,9 +3,6 @@ import axiosInstance from "@/hooks/axios";
 import { AuthMapper } from "@/mapper/authMapper";
 import { isAxiosError } from "@/hooks/axios"
 
-
-
-
 export const logoutUser = async (
   accessToken: string
 ): Promise<{ success: boolean; message: string }> => {

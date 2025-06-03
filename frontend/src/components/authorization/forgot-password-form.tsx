@@ -14,10 +14,10 @@ export default function ForgotPasswordForm() {
 
   return (
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
-      <h2 className="text-xl text-center font-bold text-neutral-800 dark:text-neutral-200">
+      <h2 className="text-xl text-center font-bold text-indigo-900 dark:text-neutral-200">
         Forgot Password
       </h2>
-      <p className="mt-2 text-center text-sm text-neutral-600 dark:text-neutral-300">
+      <p className="mt-2 text-center text-sm text-indigo-800 dark:text-neutral-300">
         {stage === 1
           ? "Enter your email to receive a reset code."
           : "Enter the OTP and set a new password."}

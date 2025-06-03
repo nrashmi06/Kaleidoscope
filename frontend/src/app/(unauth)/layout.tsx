@@ -4,7 +4,6 @@ import {
   Navbar,
   NavBody,
   NavbarLogo,
-  NavItems,
   NavbarButton,
   MobileNav,
   MobileNavHeader,
@@ -12,9 +11,6 @@ import {
   MobileNavToggle,
 } from "@/components/ui/resizable-navbar";
 
-const navItems = [
-  { name: "Home", link: "/" },
-];
 
 export default function UnauthLayout({ children }: { children: ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -42,8 +38,10 @@ export default function UnauthLayout({ children }: { children: ReactNode }) {
       <Navbar className="fixed top-0 left-0 right-0 z-50">
         <NavBody>
           <NavbarLogo />
-          <NavItems items={navItems} className="hidden md:flex" />
           <div className="relative z-20 ml-auto flex items-center">
+            <NavbarButton href="/" variant="secondary" className="mr-2">
+              Home
+            </NavbarButton>
             <NavbarButton href="/login" variant="secondary" className="mr-2">
               Login
             </NavbarButton>
@@ -63,15 +61,13 @@ export default function UnauthLayout({ children }: { children: ReactNode }) {
           <MobileNavMenu
   isOpen={isMenuOpen}
   onClose={closeMenu}
-  className="flex flex-col items-center p-4 space-y-4"
+  className="flex flex-col items-center p-4 "
 >
-  {/* NavItems - Home link with reduced padding */}
-  <div className="flex flex-col items-center mt-2">
-    <NavItems items={navItems} className="flex justify-center w-full" />
-  </div>
-
   {/* Clear separation between nav items and buttons */}
   <div className="flex flex-col items-center gap-4 mt-6">
+    <NavbarButton href="/" variant="secondary" className="mr-2">
+              Home
+    </NavbarButton>
     <NavbarButton href="/login" variant="secondary" className="w-full">
       Login
     </NavbarButton>

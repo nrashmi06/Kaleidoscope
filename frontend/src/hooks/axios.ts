@@ -12,39 +12,31 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config; 
-
-    // Check if the error is a 401 (Unauthorized) and if we haven't already retried the request
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true; // Prevent infinite retry
+      originalRequest._retry = true; 
 
       try {
-        // Dispatch refreshToken action to refresh the access token
-        const result = await store.dispatch(refreshToken()); // Dispatch the refresh token action
+        const result = await store.dispatch(refreshToken());
 
         if (result.success) {
-          // If token refresh is successful, retrieve the new access token from the store
-          const state = store.getState(); // Access the current state from the store
-          const accessToken = state.auth.accessToken; // Get the updated access token
+          const state = store.getState();
+          const accessToken = state.auth.accessToken;
 
           if (accessToken) {
-            // Retry the original request with the new access token
             originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
-            return axiosInstance(originalRequest); // Retry the original request with the new access token
+            return axiosInstance(originalRequest);
           } else {
-            // If no new access token is found, reject the request
             return Promise.reject(new Error("No access token found after refresh"));
           }
         } else {
-          // If token refresh fails, reject the request
           return Promise.reject(new Error("Token refresh failed"));
         }
       } catch (refreshError) {
         console.error("Token refresh failed:", refreshError);
-        return Promise.reject(refreshError); // Reject the request if refresh fails
+        return Promise.reject(refreshError); 
       }
     }
 
-    // Reject the request if it's not a 401 error or if we failed to refresh the token
     return Promise.reject(error);
   }
 );
