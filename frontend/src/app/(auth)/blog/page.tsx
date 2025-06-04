@@ -10,11 +10,12 @@ export default function Home() {
   const [selected, setSelected] = useState("popular");
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full rounded-md">
-      {/* Middle Column - Main Content (100% on mobile, 75% on md+) */}
-      <div className="w-full md:w-3/4 h-screen overflow-y-auto overflow-x-hidden hide-scrollbar">
-        {/* Sticky Search and Create Post */}
-        <div className="sticky top-0 z-20 px-4 md:px-6">
+    <div className="flex flex-col md:flex-row h-screen w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
+      
+      {/* Left/Main Content - Scrollable */}
+      <div className="w-full md:w-3/4 h-screen overflow-y-auto hide-scrollbar">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-20 px-4 md:px-6 bg-white dark:bg-neutral-950">
           <SearchAndCreate />
         </div>
 
@@ -27,7 +28,7 @@ export default function Home() {
                 className={`px-4 py-2 rounded-sm text-sm transition-colors ${
                   selected === "popular"
                     ? "bg-gradient-to-r from-sky-900 to-blue-700 text-white"
-                    : "bg-gray-200 text-gray-600"
+                    : "bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-300"
                 }`}
                 onClick={() => setSelected("popular")}
               >
@@ -37,7 +38,7 @@ export default function Home() {
                 className={`px-4 py-2 rounded-sm text-sm transition-colors ${
                   selected === "latest"
                     ? "bg-gradient-to-r from-sky-900 to-blue-700 text-white"
-                    : "bg-gray-200 text-gray-600"
+                    : "bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-300"
                 }`}
                 onClick={() => setSelected("latest")}
               >
@@ -47,24 +48,24 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Feed Section */}
+        {/* Feed List */}
         <div className="px-3 md:px-3">
           <FeedList />
         </div>
       </div>
 
-      {/* Suggestions Column (hidden on small screens) */}
-      <div className="hidden md:block md:w-[35%] p-4 md:p-3 sticky top-0 h-screen overflow-y-auto bg-white dark:bg-neutral-900 rounded-md shadow-sm hide-scrollbar">
+      {/* Right Sidebar - Scrollable */}
+      <div className="hidden md:flex md:flex-col md:w-[35%] md:mr-5 h-screen overflow-y-auto bg-white dark:bg-neutral-900 px-4 py-6 rounded-md shadow-sm hide-scrollbar">
         <div className="space-y-6">
-          <div className="bg-white ">
+          <div className="bg-white dark:bg-neutral-900">
             <Requests />
           </div>
-          <div className="w-full h-0.5 bg-slate-100"></div>
-          <div className="bg-white ">
+          <div className="w-full h-0.5 bg-slate-100 dark:bg-neutral-700"></div>
+          <div className="bg-white dark:bg-neutral-900">
             <Suggestions />
           </div>
-          <div className="w-full h-0.5 bg-slate-100"></div>
-          <div className="bg-white">
+          <div className="w-full h-0.5 bg-slate-100 dark:bg-neutral-700"></div>
+          <div className="bg-white dark:bg-neutral-900">
             <Followers />
           </div>
         </div>

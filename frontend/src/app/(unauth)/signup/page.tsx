@@ -5,14 +5,14 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 
 function Page() {
   return (
-    <div className="flex h-screen w-full overflow-hidden">
-      {/* Left side: Aurora visual background (fixed for all viewports >= md) */}
+    <div className="flex h-screen w-full overflow-hidden bg-white dark:bg-neutral-900">
+      {/* Left side: Aurora visual background */}
       <div className="hidden md:block w-1/2 h-screen sticky top-0">
         <AuroraBackground className="absolute inset-0 w-full h-full">
           <div className="absolute inset-0 w-full h-full bg-transparent">
             <div className="absolute top-1/2 transform -translate-y-1/2 text-center w-full px-6">
               <div className="space-y-4">
-                <div className="text-12xl md:text-14xl lg:text-16xl font-extrabold tracking-tight leading-tight text-center">
+                <div className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-center text-gray-900 dark:text-gray-100">
                   <Image
                     src="/team.png"
                     alt="img"
@@ -20,10 +20,10 @@ function Page() {
                     height={500}
                     className="mx-auto"
                   />
-                  <span className="text-transparent bg-clip-text">
+                  <span>
                     <TextGenerateEffect
                       words="Sign-Up to explore the other side !"
-                      className="text-transparent bg-clip-text text-sm text-slate-400"
+                      className="text-sm text-slate-600 dark:text-slate-300"
                     />
                   </span>
                 </div>
@@ -33,9 +33,9 @@ function Page() {
         </AuroraBackground>
       </div>
 
-      {/* Right side: Scrollable Signup Form */}
-      <div className="w-full md:w-1/2 h-screen overflow-y-auto bg-white flex justify-center">
-        <div className="w-full max-w-md">
+      {/* Right side: Signup Form */}
+      <div className="w-full md:w-1/2 h-screen overflow-y-auto bg-white dark:bg-neutral-900 flex justify-center items-center">
+        <div className="w-full max-w-md px-4">
           <SignupForm />
         </div>
       </div>

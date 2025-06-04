@@ -34,7 +34,7 @@ function ForgotPasswordPage() {
       </div>
 
       {/* Right side: Forgot Password Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center h-full p-6 md:p-12 bg-white">
+      <div className="w-full md:w-1/2 flex items-center justify-center h-full p-6 md:p-12 ">
         <div className="w-full max-w-md shadow-input md:shadow-none md:rounded-2xl">
           <ForgotPasswordForm />
         </div>

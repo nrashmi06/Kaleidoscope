@@ -18,13 +18,20 @@ import useClearStore from "@/hooks/clearStore";
 import { logoutUser } from "@/services/auth/logout";
 import ProfileCard from "@/components/layout/ProfileCard";
 import TopNavbar from "@/components/layout/TopNavbar";
+import ContactsSection from "@/components/layout/ContactSelections";
 
 type DashboardLayoutProps = {
   children: ReactNode;
 };
+type Contact = {
+  name: string;
+  location: string;
+  avatar: string;
+};
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [open, setOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   const clearStore = useClearStore();
   const token = useSelector((state: RootState) => state.auth.accessToken);
@@ -40,31 +47,40 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   };
 
-  // Handle sidebar toggle on resize
   useEffect(() => {
     const handleResize = () => {
-      setOpen(window.innerWidth >= 768);
+      const mobile = window.innerWidth < 768;
+      setOpen(!mobile);
+      setIsMobile(mobile);
     };
-    handleResize();
+    handleResize(); // run on mount
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Redirect if no token
-  useEffect(() => {
-    if (!token) {
-      router.push("/login");
-    }
-  }, [token, router]);
+  // // Redirect if no token
+  // useEffect(() => {
+  //   if (!token) {
+  //     router.push("/login");
+  //   }
+  // }, [token, router]);
 
-  // Show spinner while redirecting
-  if (!token) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
-    );
-  }
+  // // Show spinner while redirecting
+  // if (!token) {
+  //   return (
+  //     <div className="flex items-center justify-center h-screen">
+  //       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+  //     </div>
+  //   );
+  // }
+
+  const contacts: Contact[] = [
+  { name: "Julie Mendez", location: "Memphis, TN, US", avatar: "/nature2.jpg" },
+  { name: "Marian Montgomery", location: "Newark, NJ, US", avatar: "/nature2.jpg" },
+  { name: "Joyce Reid", location: "Fort Worth, TX, US", avatar: "/nature2.jpg" },
+  { name: "Alice Franklin", location: "Springfield, MA, US", avatar: "/nature2.jpg" },
+  { name: "Domingo Flores", location: "Houston, TX, US", avatar: "/nature2.jpg" },
+];
 
   const navigationLinks = [
     { label: "Profile", href: "#", icon: <IconUser className="h-5 w-5" /> },
@@ -81,36 +97,48 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     },
   ];
 
-  return (
-    <div className="flex flex-col min-h-screen w-screen">
+   return (
+    <div className="flex flex-col min-h-screen w-full"> {/* changed w-screen to w-full and removed mr-10 here */}
       {/* Top Navbar */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <TopNavbar onLogout={handleLogout} />
       </div>
 
       {/* Main layout below navbar */}
-      {/* Remove top padding on mobile to fix white space */}
-      <div className="flex flex-1 pt-0 md:pt-14 md:flex-row flex-col overflow-hidden w-screen">
+      <div className="flex flex-1 pt-0 md:pt-14 md:flex-row flex-col overflow-hidden w-full"> {/* changed w-screen to w-full */}
         <Sidebar open={open} setOpen={setOpen}>
-          <div className="flex h-full flex-col md:flex-row w-screen">
-            <SidebarBody className="overflow-y-auto hide-scrollbar bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex-shrink-0">
-              {/* Hide ProfileCard on mobile */}
+          <div className="flex flex-col md:flex-row w-full h-full min-h-0"> {/* Added min-h-0 to enable proper flex scroll */}
+            
+            <SidebarBody className="overflow-y-auto hide-scrollbar bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex-shrink-0 p-4 space-y-4 min-h-0 max-h-screen">
+              {/* Profile Card - Desktop only */}
               <div className="hidden md:block">
                 <ProfileCard />
-                <div className="w-full h-px bg-slate-100 my-2" />
+                <div className="w-full h-px bg-slate-200 dark:bg-neutral-800 my-4" />
               </div>
 
-              <div className="flex flex-col space-y-1">
-                {navigationLinks.map((link, idx) => (
-                  <SidebarLink key={idx} link={link} onClick={link.onClick} />
-                ))}
-              </div>
+              {/* Navigation Links */}
+              <nav className="flex flex-col space-y-2">
+                {navigationLinks
+                  .filter((link) => {
+                    const hideOnDesktop = ["Profile", "Logout", "Settings"];
+                    return isMobile || !hideOnDesktop.includes(link.label);
+                  })
+                  .map((link, idx) => (
+                    <SidebarLink
+                      key={idx}
+                      link={link}
+                      onClick={link.onClick}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-all duration-150"
+                    />
+                  ))}
+              </nav>
 
-              <div className="w-full h-px bg-slate-100 mt-2" />
+              <div className="w-full h-px bg-slate-200 dark:bg-neutral-800" />
+              <ContactsSection contacts={contacts} />
             </SidebarBody>
 
-            {/* Main content */}
-            <main className="flex-1 overflow-auto bg-slate-100 dark:bg-neutral-900 p-4 min-w-0">
+            {/* Main content area */}
+            <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 p-4 min-w-0 min-h-0">
               {children}
             </main>
           </div>
