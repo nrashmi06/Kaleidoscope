@@ -4,21 +4,14 @@ import com.kaleidoscope.backend.auth.dto.request.*;
 import com.kaleidoscope.backend.auth.dto.response.*;
 import com.kaleidoscope.backend.auth.exception.token.MissingRequestCookieException;
 import com.kaleidoscope.backend.auth.service.AuthService;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
-import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileStatusRequestDTO;
-import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
-import com.kaleidoscope.backend.users.mapper.UserMapper;
-import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.users.service.UserService;
 import com.kaleidoscope.backend.auth.service.impl.RefreshTokenServiceImpl;
-import com.kaleidoscope.backend.users.routes.UserRoutes;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,45 +44,52 @@ public class AuthController {
     }
 
     @PostMapping(value = AuthRoutes.REGISTER, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UserRegistrationResponseDTO> registerUser(
-            @RequestPart("profilePicture") MultipartFile profilePicture,
+    public ResponseEntity<ApiResponse<UserRegistrationResponseDTO>> registerUser(
+            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
             @RequestPart("userData") UserRegistrationRequestDTO userRegistrationDTO) {
 
-        // Set profile picture in the DTO
         userRegistrationDTO.setProfilePicture(profilePicture);
-
-        // Call service method
         UserRegistrationResponseDTO userDTO = authService.registerUser(userRegistrationDTO);
-        return ResponseEntity.ok(userDTO);
+
+        ApiResponse<UserRegistrationResponseDTO> response = ApiResponse.success(
+                userDTO,
+                "User registered successfully",
+                AuthRoutes.REGISTER
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping(AuthRoutes.LOGIN)
-    public ResponseEntity<?> authenticateUser(
+    public ResponseEntity<ApiResponse<UserLoginResponseDTO>> authenticateUser(
             @RequestBody UserLoginRequestDTO loginRequest,
             HttpServletResponse response) {
+
         log.debug("Processing login request for email: {}", loginRequest.getEmail());
         Map<String, Object> loginResponse = authService.loginUser(loginRequest);
+
         String accessToken = (String) loginResponse.get("accessToken");
         String refreshToken = (String) loginResponse.get("refreshToken");
         UserLoginResponseDTO userDTO = (UserLoginResponseDTO) loginResponse.get("user");
 
-        if (accessToken == null || refreshToken == null || userDTO == null) {
-            log.error("Login response missing required fields");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Authentication failed due to internal error");
-        }
         refreshTokenService.setSecureRefreshTokenCookie(response, refreshToken);
         String bearerToken = "Bearer " + accessToken;
+
+        ApiResponse<UserLoginResponseDTO> apiResponse = ApiResponse.success(
+                userDTO,
+                "Login successful",
+                AuthRoutes.LOGIN
+        );
 
         log.info("User successfully authenticated: {}", userDTO.getEmail());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                .body(userDTO);
+                .body(apiResponse);
     }
 
     @PostMapping(AuthRoutes.LOGOUT)
-    public ResponseEntity<String> logoutUser(
+    public ResponseEntity<ApiResponse<String>> logoutUser(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             HttpServletResponse response) {
@@ -104,38 +104,61 @@ public class AuthController {
 
         SecurityContextHolder.clearContext();
         authService.clearCookies(response, baseUrl);
-        return ResponseEntity.ok("User logged out successfully.");
+
+        ApiResponse<String> apiResponse = ApiResponse.success(
+                "User logged out successfully",
+                "Logout successful",
+                AuthRoutes.LOGOUT
+        );
+
+        return ResponseEntity.ok(apiResponse);
     }
 
     @PostMapping(AuthRoutes.FORGOT_PASSWORD)
-    public ResponseEntity<VerifyEmailResponseDTO> forgotPassword(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         authService.forgotPassword(verifyEmailRequestDTO.getEmail());
-        return ResponseEntity.ok(new VerifyEmailResponseDTO("Password reset email sent successfully."));
+
+        ApiResponse<String> response = ApiResponse.success(
+                "Password reset email sent successfully",
+                "Email sent",
+                AuthRoutes.FORGOT_PASSWORD
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(AuthRoutes.RESET_PASSWORD)
-    public ResponseEntity<ResetPasswordResponseDTO> resetPassword(@RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
+    public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
         authService.resetPassword(resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
-        return ResponseEntity.ok(new ResetPasswordResponseDTO("Password has been reset successfully."));
+
+        ApiResponse<String> response = ApiResponse.success(
+                "Password has been reset successfully",
+                "Password reset",
+                AuthRoutes.RESET_PASSWORD
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(AuthRoutes.CHANGE_PASSWORD)
-    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
+    public ResponseEntity<ApiResponse<String>> changePassword(@RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
         Long userId = Long.valueOf(jwtUtils.getUserIdFromContext());
+        authService.changePasswordById(userId, changePasswordRequestDTO.getOldPassword(), changePasswordRequestDTO.getNewPassword());
 
-        try {
-            authService.changePasswordById(userId, changePasswordRequestDTO.getOldPassword(), changePasswordRequestDTO.getNewPassword());
-            return ResponseEntity.ok("Password changed successfully.");
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + userId);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        ApiResponse<String> response = ApiResponse.success(
+                "Password changed successfully",
+                "Password updated",
+                AuthRoutes.CHANGE_PASSWORD
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(AuthRoutes.RENEW_TOKEN)
-    public ResponseEntity<?> renewToken(@CookieValue("refreshToken") String refreshToken,
-                                        HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<UserLoginResponseDTO>> renewToken(
+            @CookieValue("refreshToken") String refreshToken,
+            HttpServletResponse response) {
+
         if (refreshToken == null) {
             throw new MissingRequestCookieException("Required cookie 'refreshToken' is not present");
         }
@@ -144,27 +167,47 @@ public class AuthController {
 
         String newAccessToken = (String) renewResponse.get("accessToken");
         String newRefreshToken = (String) renewResponse.get("refreshToken");
-        UserLoginResponseDTO responseDTO = (UserLoginResponseDTO) renewResponse.get("user");
+        UserLoginResponseDTO userDTO = (UserLoginResponseDTO) renewResponse.get("user");
 
         refreshTokenService.setSecureRefreshTokenCookie(response, newRefreshToken);
         String bearerToken = "Bearer " + newAccessToken;
 
+        ApiResponse<UserLoginResponseDTO> apiResponse = ApiResponse.success(
+                userDTO,
+                "Token renewed successfully",
+                AuthRoutes.RENEW_TOKEN
+        );
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                .body(responseDTO);
+                .body(apiResponse);
     }
 
     @PostMapping(AuthRoutes.VERIFY_EMAIL)
     @PreAuthorize("permitAll()")
-    public ResponseEntity<VerifyEmailResponseDTO> sendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
+    public ResponseEntity<ApiResponse<String>> sendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         authService.sendVerificationEmail(verifyEmailRequestDTO.getEmail());
-        return ResponseEntity.ok(new VerifyEmailResponseDTO("Verification email sent successfully."));
+
+        ApiResponse<String> response = ApiResponse.success(
+                "Verification email sent successfully",
+                "Email sent",
+                AuthRoutes.VERIFY_EMAIL
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(AuthRoutes.RESEND_VERIFICATION_EMAIL)
     @PreAuthorize("permitAll()")
-    public ResponseEntity<VerifyEmailResponseDTO> resendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
+    public ResponseEntity<ApiResponse<String>> resendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         authService.resendVerificationEmail(verifyEmailRequestDTO.getEmail());
-        return ResponseEntity.ok(new VerifyEmailResponseDTO("Verification email sent successfully."));
+
+        ApiResponse<String> response = ApiResponse.success(
+                "Verification email sent successfully",
+                "Email resent",
+                AuthRoutes.RESEND_VERIFICATION_EMAIL
+        );
+
+        return ResponseEntity.ok(response);
     }
 }
