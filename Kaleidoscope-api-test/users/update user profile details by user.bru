@@ -1,0 +1,23 @@
+meta {
+  name: update user profile details by user
+  type: http
+  seq: 3
+}
+
+put {
+  url: http://localhost:8080/kaleidoscope/api/users/profile
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  profilePicture: @file(C:\Users\ajayp\Downloads\capture-incridea1.png)
+  coverPhoto: @file(C:\Users\ajayp\Downloads\SIHCert_R Ajay Prabhu.jpg)
+  userData: '''
+    {
+      "username": "adminUser",
+      "designation": "Administrator",
+      "summary": "Responsible for managing the system and users."
+    }
+  ''' @contentType(application/json)
+}

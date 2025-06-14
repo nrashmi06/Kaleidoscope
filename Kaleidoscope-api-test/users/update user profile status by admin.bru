@@ -1,0 +1,18 @@
+meta {
+  name: update user profile status by admin
+  type: http
+  seq: 2
+}
+
+put {
+  url: http://localhost:8080/kaleidoscope/api/users/profile-status
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "userId" : "2",
+    "profileStatus" : "ACTIVE"
+  }
+}

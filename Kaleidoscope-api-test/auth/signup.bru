@@ -1,0 +1,23 @@
+meta {
+  name: signup
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:8080/kaleidoscope/api/auth/register
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  userData: '''
+    {
+      "email": "prabhuajay2004@gmail.com",
+      "password": "yourPasswordHere",
+      "username": "yourUsername",
+      "designation": "yourDesignation",
+      "summary": "A short summary about the user"
+    }
+  ''' @contentType(application/json)
+}
