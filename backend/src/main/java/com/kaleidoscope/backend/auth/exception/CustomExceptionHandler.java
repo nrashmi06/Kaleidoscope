@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 @RestControllerAdvice
 @Component("authExceptionHandler")
@@ -78,6 +79,13 @@ public class CustomExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUsernameNotFoundException(UsernameNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(ex.getMessage(), ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(InvalidEmailException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidEmailException(InvalidEmailException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
@@ -95,7 +103,7 @@ public class CustomExceptionHandler {
     @ExceptionHandler(InvalidUserCredentialsException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidUserCredentialsException(InvalidUserCredentialsException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error("Invalid credentials", ex.getMessage(), path);
+        ApiResponse<Object> response = ApiResponse.error(ex.getMessage(), ex.getMessage(), path);
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 

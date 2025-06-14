@@ -88,6 +88,13 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     public Map<String, Object> loginUser(UserLoginRequestDTO loginRequest) {
         log.debug("Processing login for user: {}", loginRequest.getEmail());
 
+        // Check if user exists
+        User user = userRepository.findByEmail(loginRequest.getEmail());
+        if (user == null) {
+            log.warn("Login failed: invalid email {}", loginRequest.getEmail());
+            throw new UsernameNotFoundException("Invalid email");
+        }
+
         // Authenticate user
         Authentication authentication;
         try {
@@ -98,29 +105,22 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                     )
             );
         } catch (AuthenticationException e) {
-            log.warn("Authentication failed for user: {}", loginRequest.getEmail());
-            throw new InvalidUserCredentialsException("Invalid email or password");
+            log.warn("Login failed: invalid password for {}", loginRequest.getEmail());
+            throw new InvalidUserCredentialsException("Invalid password");
         }
 
-        // Get user details after authentication
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername());
-
-        if (user == null) {
-            log.error("User not found after authentication: {}", userDetails.getUsername());
-            throw new UsernameNotFoundException("User not found");
-        } else if(user.getAccountStatus() != AccountStatus.ACTIVE){
-            log.error("User is not active: {}", userDetails.getUsername());
+        if (user.getAccountStatus() != AccountStatus.ACTIVE) {
+            log.error("User is not active: {}", user.getEmail());
             throw new UserNotActiveException("User is not active");
         }
 
         userRepository.save(user);
 
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String accessToken = jwtUtils.generateTokenFromUsername(userDetails, user.getUserId());
         String refreshToken = refreshTokenService.createRefreshToken(user.getEmail()).getToken();
         UserLoginResponseDTO userDTO = UserMapper.toUserLoginResponseDTO(user);
 
-        // Create response
         Map<String, Object> response = new HashMap<>();
         response.put("user", userDTO);
         response.put("accessToken", accessToken);
@@ -341,45 +341,36 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         if (user == null) {
             throw new UserNotFoundException("User not found with email: " + email);
         }
-        // Check if user is already verified
         if (user.getAccountStatus().equals(AccountStatus.ACTIVE)) {
             throw new EmailAlreadyVerifiedException("User is already verified");
         }
+
         String token = UUID.randomUUID().toString().substring(0, 10);
-        EmailVerification emailVerification = new EmailVerification();
-        emailVerification.setUserId(user.getUserId());
-        emailVerification.setVerificationCode(token);
-        emailVerification.setEmail(email);
-        emailVerification.setExpiryTime(LocalDateTime.now().plusHours(24));
-        emailVerification.setStatus("pending");
-        emailVerification.setCreatedAt(LocalDateTime.now());
+        Optional<EmailVerification> existing = emailVerificationRepository.findByEmail(email);
+        EmailVerification emailVerification;
+
+        if (existing.isPresent()) {
+            // Update existing row with new code and expiry
+            emailVerification = existing.get();
+            emailVerification.setVerificationCode(token);
+            emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+            emailVerification.setStatus("pending");
+            emailVerification.setCreatedAt(LocalDateTime.now());
+        } else {
+            // Create new row
+            emailVerification = new EmailVerification();
+            emailVerification.setUserId(user.getUserId());
+            emailVerification.setEmail(email);
+            emailVerification.setVerificationCode(token);
+            emailVerification.setExpiryTime(LocalDateTime.now().plusHours(24));
+            emailVerification.setStatus("pending");
+            emailVerification.setCreatedAt(LocalDateTime.now());
+        }
         emailVerificationRepository.save(emailVerification);
 
         emailService.sendVerificationEmail(user.getEmail(), token);
     }
 
-    @Override
-    public void resendVerificationEmail(String email) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new UserNotFoundException("User not found with email: " + email);
-        }
-        if (user.getAccountStatus().equals(AccountStatus.ACTIVE)) {
-            throw new EmailAlreadyVerifiedException("User is already verified");
-        }
-        EmailVerification emailVerification = emailVerificationRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("No verification code found for user"));
-
-        if (emailVerification.getExpiryTime().isBefore(LocalDateTime.now())) {
-            emailVerification.setVerificationCode(UUID.randomUUID().toString().substring(0, 10));
-            emailVerification.setExpiryTime(LocalDateTime.now().plusHours(24));
-            emailVerification.setStatus("pending");
-            emailVerification.setCreatedAt(LocalDateTime.now());
-            emailVerificationRepository.save(emailVerification);
-        }
-
-        emailService.sendVerificationEmail(user.getEmail(), emailVerification.getVerificationCode());
-    }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
