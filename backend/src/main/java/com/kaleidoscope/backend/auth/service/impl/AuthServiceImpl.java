@@ -113,6 +113,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             log.error("User is not active: {}", user.getEmail());
             throw new UserNotActiveException("User is not active");
         }
+        user.setLastSeen(LocalDateTime.now());
 
         userRepository.save(user);
 
@@ -159,11 +160,6 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         String trimmedUserName = userRegistrationDTO.getUsername().replaceAll("\\s+", "");
         if (!isValidUsername(trimmedUserName)) {
             throw new InvalidUsernameException("Invalid username: " + trimmedUserName + ". Please try another.");
-        }
-
-        // Check if username already exists
-        if (userRepository.existsByUsername(trimmedUserName)) {
-            throw new UsernameAlreadyInUseException("Username is already in use: " + trimmedUserName);
         }
 
         try {
@@ -330,7 +326,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         if(user.getAccountStatus().equals(AccountStatus.SUSPENDED)){
             throw new UserAccountSuspendedException("User Account Suspended");
         }
-
+        user.setIsVerified(true);
+        user.setEmailVerifiedAt(LocalDateTime.now());
         user.setAccountStatus(AccountStatus.ACTIVE);
         userRepository.save(user);
     }
