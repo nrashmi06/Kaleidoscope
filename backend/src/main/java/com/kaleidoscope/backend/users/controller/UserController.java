@@ -33,7 +33,7 @@ public class UserController {
     private final JwtUtils jwtUtils;
 
     @PutMapping(value = UserRoutes.UPDATE_USER_PROFILE, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UpdateUserProfileResponseDTO>> updateUserProfile(
             @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
             @RequestPart(value = "coverPhoto", required = false) MultipartFile coverPhoto,
