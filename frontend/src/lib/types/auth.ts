@@ -66,11 +66,11 @@ export interface ResetPasswordPayload {
   message: string;
 }
 
-export interface VerifyEmailResponsePayload {
-  message: string;
-}
+export type VerifyEmailResponsePayload  = string;
 
+export type LogoutPayload = string; 
 
+export type LogoutResponse = StandardAPIResponse<LogoutPayload>;
 export type ForgotPasswordResponse = StandardAPIResponse<ForgotPasswordPayload>;
 export type LoginUserResponse = StandardAPIResponse<LoginUserPayload>;
 export type RegisterUserResponse = StandardAPIResponse<RegisterUserPayload>;
