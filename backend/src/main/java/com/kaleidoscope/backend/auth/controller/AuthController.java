@@ -196,18 +196,4 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
-
-    @PostMapping(AuthRoutes.RESEND_VERIFICATION_EMAIL)
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<ApiResponse<String>> resendVerificationEmail(@RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        authService.resendVerificationEmail(verifyEmailRequestDTO.getEmail());
-
-        ApiResponse<String> response = ApiResponse.success(
-                "Verification email sent successfully",
-                "Email resent",
-                AuthRoutes.RESEND_VERIFICATION_EMAIL
-        );
-
-        return ResponseEntity.ok(response);
-    }
 }

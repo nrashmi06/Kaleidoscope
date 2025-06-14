@@ -68,12 +68,6 @@ public interface AuthService {
      */
     void sendVerificationEmail(String email);
 
-    /**
-     * Resend email verification
-     *
-     * @param email User's email
-     */
-    void resendVerificationEmail(String email);
 
     /**
      * Verify user's email using verification code
