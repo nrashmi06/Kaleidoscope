@@ -1,42 +1,65 @@
 import axios, { AxiosError } from 'axios';
-import { LoginUserData, LoginUserResponse, ErrorResponse } from '@/lib/types/auth';
+import {
+  LoginUserData,
+  LoginUserPayload,
+  LoginUserResponse
+} from '@/lib/types/auth';
 import { AuthMapper } from '@/mapper/authMapper';
-import { AppDispatch } from "@/store/index";
+import { AppDispatch } from '@/store/index';
 import { setUser } from '@/store/authSlice';
 
 export const loginUser = async (
   credentials: LoginUserData,
   dispatch: AppDispatch
-): Promise<{ success: boolean; data?: LoginUserResponse; message: string }> => {
+): Promise<{ success: boolean; data?: LoginUserPayload; message: string }> => {
   try {
-    const response = await axios.post<LoginUserResponse>(AuthMapper.login, credentials);
-    const accessToken = response.headers["authorization"]?.startsWith(
-        "Bearer "
-      )
-        ? response.headers["authorization"].slice(7)
-        : null;
+    const response = await axios.post<LoginUserResponse>(
+      AuthMapper.login,
+      credentials
+    );
+
+    const apiResponse = response.data;
+
+    if (!apiResponse.success) {
+      return {
+        success: false,
+        message: apiResponse.message || 'Login failed',
+      };
+    }
+
+    const userData = apiResponse.data;
+
+    const accessToken = response.headers['authorization']?.startsWith('Bearer ')
+      ? response.headers['authorization'].slice(7)
+      : userData.accessToken;
+
     dispatch(
-        setUser({
-              userId: response.data.userId,
-              username: response.data.username,
-              email: response.data.email,
-              role: response.data.role,
-              accessToken: accessToken,
-         }));
+      setUser({
+        userId: userData.userId,
+        username: userData.username,
+        email: userData.email,
+        role: userData.role,
+        accessToken,
+      })
+    );
 
     return {
       success: true,
-      data: response.data,
-      message: 'Login successful',
+      data: userData,
+      message: apiResponse.message,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<ErrorResponse>;
-        const errData = axiosError.response?.data || { message: axiosError.message };
-        return {
-          success: false,
-          message: typeof errData === 'string' ? errData : 'Registration failed'
-        };
+      const axiosError = error as AxiosError<LoginUserResponse>;
+      const errorResponse = axiosError.response?.data;
+
+      return {
+        success: false,
+        message:
+          errorResponse?.errors?.[0] ||
+          errorResponse?.message ||
+          'Login failed',
+      };
     }
 
     return {
