@@ -209,16 +209,32 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         if (user == null) {
             throw new UserNotFoundException("User not found with email: " + email);
         }
-        String token = UUID.randomUUID().toString().replaceAll("[^0-9]", "").substring(0, 6);
-        EmailVerification emailVerification = new EmailVerification();
-        emailVerification.setUserId(user.getUserId());
-        emailVerification.setVerificationCode(token);
-        emailVerification.setEmail(email);
-        emailVerification.setStatus("pending");
-        emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
-        emailVerification.setCreatedAt(LocalDateTime.now());
-        emailVerificationRepository.save(emailVerification);
 
+        // Generate a new 6-digit numeric token
+        String token = UUID.randomUUID().toString().replaceAll("[^0-9]", "").substring(0, 6);
+
+        // Check if an entry already exists for this email
+        Optional<EmailVerification> existingVerification = emailVerificationRepository.findByEmail(email);
+        EmailVerification emailVerification;
+
+        if (existingVerification.isPresent()) {
+            // Update existing verification record
+            emailVerification = existingVerification.get();
+            emailVerification.setVerificationCode(token);
+            emailVerification.setStatus("pending");
+            emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+        } else {
+            // Create new verification record
+            emailVerification = new EmailVerification();
+            emailVerification.setUserId(user.getUserId());
+            emailVerification.setVerificationCode(token);
+            emailVerification.setEmail(email);
+            emailVerification.setStatus("pending");
+            emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+            emailVerification.setCreatedAt(LocalDateTime.now());
+        }
+
+        emailVerificationRepository.save(emailVerification);
         emailService.sendPasswordResetEmail(user.getEmail(), token);
     }
 
