@@ -1,0 +1,20 @@
+meta {
+  name: add category for admin
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/kaleidoscope/api/categories
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "AI",
+    "description": "All about AI",
+    "iconName": "AI-icon",
+    "parentId": 1
+  }
+}
