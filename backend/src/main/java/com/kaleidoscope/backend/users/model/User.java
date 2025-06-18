@@ -7,6 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.HashSet;
+import java.util.Set;
+import com.kaleidoscope.backend.users.model.UserInterest;
 
 import java.time.LocalDateTime;
 
@@ -66,6 +69,9 @@ public class User {
 
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserInterest> interests = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {
