@@ -1,0 +1,28 @@
+meta {
+  name: update privacy settings
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{base_url}}/api/user-preferences/privacy
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "showEmail": false,
+    "showPhone": false,
+    "showOnlineStatus": true,
+    "searchDiscoverable": true
+  }
+}

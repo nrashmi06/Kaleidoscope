@@ -15,7 +15,7 @@ import org.springframework.web.context.request.WebRequest;
 
 @RestControllerAdvice
 @Component("sharedExceptionHandler")
-public class CustomExceptionHandler {
+public class SharedExceptionHandler {
 
     @ExceptionHandler(ImageStorageException.class)
     public ResponseEntity<ApiResponse<Object>> handleImageStorageException(ImageStorageException ex, WebRequest request) {

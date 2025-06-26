@@ -1,0 +1,25 @@
+meta {
+  name: update theme
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{base_url}}/api/user-preferences/theme
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "theme": "DARK"
+  }
+}

@@ -1,0 +1,19 @@
+meta {
+  name: get user preferences
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/user-preferences
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

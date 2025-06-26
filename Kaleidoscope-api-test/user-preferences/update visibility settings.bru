@@ -1,0 +1,28 @@
+meta {
+  name: update visibility settings
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{base_url}}/api/user-preferences/visibility
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "profileVisibility": "FRIENDS_ONLY",
+    "allowMessages": "FRIENDS_ONLY",
+    "allowTagging": "NO_ONE",
+    "viewActivity": "NO_ONE"
+  }
+}
