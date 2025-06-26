@@ -1,0 +1,34 @@
+meta {
+  name: update user preferences
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/api/user-preferences
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "theme": "DARK",
+    "language": "en-US",
+    "profileVisibility": "PUBLIC",
+    "allowMessages": "FRIENDS_ONLY",
+    "allowTagging": "PUBLIC",
+    "viewActivity": "FRIENDS_ONLY",
+    "showEmail": false,
+    "showPhone": false,
+    "showOnlineStatus": true,
+    "searchDiscoverable": true
+  }
+}

@@ -18,15 +18,21 @@ import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
-import com.kaleidoscope.backend.users.exception.user.*;
+import com.kaleidoscope.backend.users.enums.Theme;
+import com.kaleidoscope.backend.users.enums.Visibility;
+import com.kaleidoscope.backend.users.exception.user.InvalidUsernameException;
+import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
+import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
+import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.model.UserPreferences;
+import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -56,6 +62,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationRepository emailVerificationRepository;
@@ -63,18 +70,22 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     private final UserMapper userMapper;
     private final ImageStorageService imageStorageService;
 
-    public AuthServiceImpl(JwtUtils jwtUtils,
-                           @Lazy AuthenticationManager authenticationManager,
-                           UserRepository userRepository,
-                           RefreshTokenService refreshTokenService,
-                           PasswordEncoder passwordEncoder,
-                           EmailVerificationRepository emailVerificationRepository,
-                           EmailService emailService,
-                           UserMapper userMapper,
-                           ImageStorageService imageStorageService) {
+    public AuthServiceImpl(
+            JwtUtils jwtUtils,
+            @Lazy AuthenticationManager authenticationManager,
+            UserRepository userRepository,
+            UserPreferencesRepository userPreferencesRepository,
+            RefreshTokenService refreshTokenService,
+            PasswordEncoder passwordEncoder,
+            EmailVerificationRepository emailVerificationRepository,
+            EmailService emailService,
+            UserMapper userMapper,
+            ImageStorageService imageStorageService
+    ) {
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
+        this.userPreferencesRepository = userPreferencesRepository;
         this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationRepository = emailVerificationRepository;
@@ -187,6 +198,24 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             user.setCoverPhotoUrl(coverPhotoUrl);
 
             userRepository.save(user);
+
+            // Create default user preferences for the new user
+            UserPreferences userPreferences = UserPreferences.builder()
+                    .user(user)
+                    .theme(Theme.SYSTEM)
+                    .language("en-US")
+                    .profileVisibility(Visibility.PUBLIC)
+                    .allowMessages(Visibility.FRIENDS_ONLY)
+                    .allowTagging(Visibility.PUBLIC)
+                    .viewActivity(Visibility.FRIENDS_ONLY)
+                    .showEmail(false)
+                    .showPhone(false)
+                    .showOnlineStatus(true)
+                    .searchDiscoverable(true)
+                    .build();
+
+            userPreferencesRepository.save(userPreferences);
+            log.info("Created default user preferences for user ID: {}", user.getUserId());
 
             // Send verification email for new registration
             sendVerificationEmail(user.getEmail());
@@ -386,3 +415,4 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 }
+

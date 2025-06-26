@@ -1,0 +1,25 @@
+meta {
+  name: update language
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{base_url}}/api/user-preferences/language
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "language": "es-ES"
+  }
+}

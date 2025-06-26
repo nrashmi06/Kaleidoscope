@@ -21,7 +21,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 @RestControllerAdvice
 @Component("authExceptionHandler")
-public class CustomExceptionHandler {
+public class AuthExceptionHandler {
 
     @ExceptionHandler(UnauthorizedAccessException.class)
     public ResponseEntity<ApiResponse<Object>> handleUnauthorizedAccessException(UnauthorizedAccessException ex, WebRequest request) {

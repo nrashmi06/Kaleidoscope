@@ -18,14 +18,21 @@ body:json {
 }
 
 script:post-response {
-  bru.setVar("accessToken", res.headers.authorization.split(" ")[1]);
+  // Extract access token from Authorization header
+  const authHeader = res.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const accessToken = authHeader.split(" ")[1];
+    bru.setVar("accessToken", accessToken);
+  }
   
-  // Set refresh token from Set-Cookie header
+  // Extract refresh token from Set-Cookie header
   const setCookie = res.headers["set-cookie"];
-  const refreshToken = setCookie
-    .find(cookie => cookie.startsWith("refreshToken="))
-    .split(";")[0]
-    .split("=")[1];
+  if (Array.isArray(setCookie)) {
+    const refreshCookie = setCookie.find(cookie => cookie.startsWith("refreshToken="));
+    if (refreshCookie) {
+      const refreshToken = refreshCookie.split(";")[0].split("=")[1];
+      bru.setVar("refreshToken", refreshToken);
+    }
+  }
   
-  bru.setVar("refreshToken", refreshToken);
 }

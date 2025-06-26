@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByEmail(String email);
     User findByUsername(String username);
@@ -30,4 +32,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findUsersWithFilters(
             @Param("status") AccountStatus status,
             Pageable pageable);
+
+    // Migration queries for UserPreferences
+    @Query("SELECT u FROM User u WHERE u.userId NOT IN " +
+           "(SELECT up.user.userId FROM UserPreferences up)")
+    List<User> findUsersWithoutPreferences();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.userId NOT IN " +
+           "(SELECT up.user.userId FROM UserPreferences up)")
+    long countUsersWithoutPreferences();
 }
