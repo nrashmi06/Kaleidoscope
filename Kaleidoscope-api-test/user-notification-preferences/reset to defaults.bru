@@ -1,0 +1,44 @@
+meta {
+  name: reset to defaults
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{base_url}}/api/user-notification-preferences/reset
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has success true", function () {
+    expect(res.getBody().success).to.equal(true);
+  });
+  
+  test("All preferences reset to defaults (true)", function () {
+    const data = res.getBody().data;
+    expect(data.likesEmail).to.equal(true);
+    expect(data.likesPush).to.equal(true);
+    expect(data.commentsEmail).to.equal(true);
+    expect(data.commentsPush).to.equal(true);
+    expect(data.followsEmail).to.equal(true);
+    expect(data.followsPush).to.equal(true);
+    expect(data.mentionsEmail).to.equal(true);
+    expect(data.mentionsPush).to.equal(true);
+    expect(data.systemEmail).to.equal(true);
+    expect(data.systemPush).to.equal(true);
+  });
+  
+  test("Message indicates reset success", function () {
+    expect(res.getBody().message).to.include("reset");
+  });
+}

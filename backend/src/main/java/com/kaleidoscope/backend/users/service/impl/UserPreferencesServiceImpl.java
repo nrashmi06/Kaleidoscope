@@ -4,10 +4,13 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.dto.request.*;
 import com.kaleidoscope.backend.users.dto.response.UserPreferencesResponseDTO;
+import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
 import com.kaleidoscope.backend.users.exception.user.UserPreferencesNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserPreferencesMapper;
+import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserPreferences;
 import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.service.UserPreferencesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,14 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserPreferencesServiceImpl implements UserPreferencesService {
 
     private final UserPreferencesRepository userPreferencesRepository;
+    private final UserRepository userRepository;
+    private final UserPreferencesMapper userPreferencesMapper;
     private final JwtUtils jwtUtils;
 
     @Override
     @Transactional(readOnly = true)
     public UserPreferencesResponseDTO getUserPreferences() {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserPreferences userPreferences = getUserPreferencesByUserIdInternal(currentUserId);
-        return UserPreferencesMapper.mapToResponseDTO(userPreferences);
+        UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
+        return userPreferencesMapper.toResponseDTO(userPreferences);
     }
 
     @Override
@@ -46,98 +51,96 @@ public class UserPreferencesServiceImpl implements UserPreferencesService {
         }
 
         UserPreferences userPreferences = getUserPreferencesByUserIdInternal(userId);
-        return UserPreferencesMapper.mapToResponseDTO(userPreferences);
+        return userPreferencesMapper.toResponseDTO(userPreferences);
     }
 
     @Override
     @Transactional
     public UserPreferencesResponseDTO updateUserPreferences(UpdateUserPreferencesRequestDTO requestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserPreferences userPreferences = getUserPreferencesByUserIdInternal(currentUserId);
+        UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
 
-        // Update all fields
-        userPreferences.setTheme(requestDTO.getTheme());
-        userPreferences.setLanguage(requestDTO.getLanguage());
-        userPreferences.setProfileVisibility(requestDTO.getProfileVisibility());
-        userPreferences.setAllowMessages(requestDTO.getAllowMessages());
-        userPreferences.setAllowTagging(requestDTO.getAllowTagging());
-        userPreferences.setViewActivity(requestDTO.getViewActivity());
-        userPreferences.setShowEmail(requestDTO.getShowEmail());
-        userPreferences.setShowPhone(requestDTO.getShowPhone());
-        userPreferences.setShowOnlineStatus(requestDTO.getShowOnlineStatus());
-        userPreferences.setSearchDiscoverable(requestDTO.getSearchDiscoverable());
-
-        UserPreferences savedPreferences = userPreferencesRepository.save(userPreferences);
+        // Use mapper instance method to update all fields
+        UserPreferences updatedPreferences = userPreferencesMapper.updateFromDTO(userPreferences, requestDTO);
+        UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated user preferences for user ID: {}", currentUserId);
 
-        return UserPreferencesMapper.mapToResponseDTO(savedPreferences);
+        return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
 
     @Override
     @Transactional
     public UserPreferencesResponseDTO updateTheme(UpdateThemeRequestDTO requestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserPreferences userPreferences = getUserPreferencesByUserIdInternal(currentUserId);
+        UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
 
-        userPreferences.setTheme(requestDTO.getTheme());
-
-        UserPreferences savedPreferences = userPreferencesRepository.save(userPreferences);
+        // Use mapper instance method to update theme
+        UserPreferences updatedPreferences = userPreferencesMapper.updateTheme(userPreferences, requestDTO.getTheme());
+        UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated theme to {} for user ID: {}", requestDTO.getTheme(), currentUserId);
 
-        return UserPreferencesMapper.mapToResponseDTO(savedPreferences);
+        return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
 
     @Override
     @Transactional
     public UserPreferencesResponseDTO updateLanguage(UpdateLanguageRequestDTO requestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserPreferences userPreferences = getUserPreferencesByUserIdInternal(currentUserId);
+        UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
 
-        userPreferences.setLanguage(requestDTO.getLanguage());
-
-        UserPreferences savedPreferences = userPreferencesRepository.save(userPreferences);
+        // Use mapper instance method to update language
+        UserPreferences updatedPreferences = userPreferencesMapper.updateLanguage(userPreferences, requestDTO.getLanguage());
+        UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated language to {} for user ID: {}", requestDTO.getLanguage(), currentUserId);
 
-        return UserPreferencesMapper.mapToResponseDTO(savedPreferences);
+        return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
 
     @Override
     @Transactional
     public UserPreferencesResponseDTO updatePrivacySettings(UpdatePrivacySettingsRequestDTO requestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserPreferences userPreferences = getUserPreferencesByUserIdInternal(currentUserId);
+        UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
 
-        userPreferences.setShowEmail(requestDTO.getShowEmail());
-        userPreferences.setShowPhone(requestDTO.getShowPhone());
-        userPreferences.setShowOnlineStatus(requestDTO.getShowOnlineStatus());
-        userPreferences.setSearchDiscoverable(requestDTO.getSearchDiscoverable());
-
-        UserPreferences savedPreferences = userPreferencesRepository.save(userPreferences);
+        // Use the DTO-specific mapper instance method
+        UserPreferences updatedPreferences = userPreferencesMapper.updateFromPrivacySettingsDTO(userPreferences, requestDTO);
+        UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated privacy settings for user ID: {}", currentUserId);
 
-        return UserPreferencesMapper.mapToResponseDTO(savedPreferences);
+        return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
 
     @Override
     @Transactional
     public UserPreferencesResponseDTO updateVisibilitySettings(UpdateVisibilitySettingsRequestDTO requestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserPreferences userPreferences = getUserPreferencesByUserIdInternal(currentUserId);
+        UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
 
-        userPreferences.setProfileVisibility(requestDTO.getProfileVisibility());
-        userPreferences.setAllowMessages(requestDTO.getAllowMessages());
-        userPreferences.setAllowTagging(requestDTO.getAllowTagging());
-        userPreferences.setViewActivity(requestDTO.getViewActivity());
-
-        UserPreferences savedPreferences = userPreferencesRepository.save(userPreferences);
+        // Use the DTO-specific mapper instance method
+        UserPreferences updatedPreferences = userPreferencesMapper.updateFromVisibilitySettingsDTO(userPreferences, requestDTO);
+        UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated visibility settings for user ID: {}", currentUserId);
 
-        return UserPreferencesMapper.mapToResponseDTO(savedPreferences);
+        return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
 
     private UserPreferences getUserPreferencesByUserIdInternal(Long userId) {
         return userPreferencesRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new UserPreferencesNotFoundException(
                         "User preferences not found for user ID: " + userId));
+    }
+
+    private UserPreferences getOrCreateUserPreferences(Long userId) {
+        return userPreferencesRepository.findByUser_UserId(userId)
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+
+                    UserPreferences newPreferences = userPreferencesMapper.toEntity(user);
+                    UserPreferences savedPreferences = userPreferencesRepository.save(newPreferences);
+                    log.info("Created default user preferences for user ID: {}", userId);
+
+                    return savedPreferences;
+                });
     }
 }

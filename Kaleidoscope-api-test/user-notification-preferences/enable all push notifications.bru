@@ -1,0 +1,39 @@
+meta {
+  name: enable all push notifications
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{base_url}}/api/user-notification-preferences/push/enable-all
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has success true", function () {
+    expect(res.getBody().success).to.equal(true);
+  });
+  
+  test("All push notifications enabled", function () {
+    const data = res.getBody().data;
+    expect(data.likesPush).to.equal(true);
+    expect(data.commentsPush).to.equal(true);
+    expect(data.followsPush).to.equal(true);
+    expect(data.mentionsPush).to.equal(true);
+    expect(data.systemPush).to.equal(true);
+  });
+  
+  test("Message indicates success", function () {
+    expect(res.getBody().message).to.include("enabled");
+  });
+}

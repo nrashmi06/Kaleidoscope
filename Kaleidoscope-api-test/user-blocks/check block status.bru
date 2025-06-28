@@ -5,17 +5,17 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/user-blocks/status?targetUserId=2
+  url: {{base_url}}/api/user-blocks/status?targetUserId=2
   body: none
   auth: bearer
 }
 
-auth:bearer {
-  token: {{accessToken}}
-}
-
 params:query {
   targetUserId: 2
+}
+
+auth:bearer {
+  token: {{accessToken}}
 }
 
 tests {

@@ -5,13 +5,9 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/user-blocks/admin/all?page=0&size=20
+  url: {{base_url}}/api/user-blocks/admin/all?page=0&size=20
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{adminAccessToken}}
+  auth: inherit
 }
 
 params:query {
@@ -29,7 +25,7 @@ tests {
     expect(res.getBody().data).to.have.property("totalElements");
     expect(res.getBody().data).to.have.property("number");
     expect(res.getBody().data.content).to.be.an("array");
-
+  
     // Check structure of each block in the response
     if (res.getBody().data.content.length > 0) {
       const block = res.getBody().data.content[0];

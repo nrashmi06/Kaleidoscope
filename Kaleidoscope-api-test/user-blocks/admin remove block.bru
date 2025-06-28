@@ -5,17 +5,13 @@ meta {
 }
 
 delete {
-  url: {{baseUrl}}/api/user-blocks/admin/remove?blockId=1
+  url: {{base_url}}/api/user-blocks/admin/remove?blockId=2
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{adminAccessToken}}
+  auth: inherit
 }
 
 params:query {
-  blockId: 1
+  blockId: 2
 }
 
 tests {
