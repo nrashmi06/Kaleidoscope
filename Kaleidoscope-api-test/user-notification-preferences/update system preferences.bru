@@ -1,0 +1,39 @@
+meta {
+  name: update system preferences
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{base_url}}/api/user-notification-preferences/system
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "systemEmail": false,
+    "systemPush": true
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has success true", function () {
+    expect(res.getBody().success).to.equal(true);
+  });
+  
+  test("System preferences updated successfully", function () {
+    const data = res.getBody().data;
+    expect(data.systemEmail).to.equal(false);
+    expect(data.systemPush).to.equal(true);
+  });
+}

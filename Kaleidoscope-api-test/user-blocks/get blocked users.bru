@@ -5,18 +5,18 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/user-blocks/blocked?page=0&size=20
+  url: {{base_url}}/api/user-blocks/blocked?page=0&size=20
   body: none
   auth: bearer
-}
-
-auth:bearer {
-  token: {{accessToken}}
 }
 
 params:query {
   page: 0
   size: 20
+}
+
+auth:bearer {
+  token: {{accessToken}}
 }
 
 tests {

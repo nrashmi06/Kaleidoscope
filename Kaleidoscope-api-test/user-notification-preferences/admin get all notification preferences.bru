@@ -1,0 +1,52 @@
+meta {
+  name: admin get all notification preferences
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{base_url}}/api/user-notification-preferences/admin/all?page=0&size=10&sort=createdAt,desc
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 10
+  sort: createdAt,desc
+}
+
+headers {
+  Authorization: Bearer {{adminToken}}
+  Content-Type: application/json
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has success true", function () {
+    expect(res.getBody().success).to.equal(true);
+  });
+  
+  test("Response contains paginated notification preferences", function () {
+    const data = res.getBody().data;
+    expect(data).to.have.property('content');
+    expect(data).to.have.property('totalElements');
+    expect(data).to.have.property('totalPages');
+    expect(data).to.have.property('size');
+    expect(data).to.have.property('number');
+  });
+  
+  test("Each preference has required fields", function () {
+    const preferences = res.getBody().data.content;
+    if (preferences.length > 0) {
+      const firstPreference = preferences[0];
+      expect(firstPreference).to.have.property('preferenceId');
+      expect(firstPreference).to.have.property('userId');
+      expect(firstPreference).to.have.property('likesEmail');
+      expect(firstPreference).to.have.property('systemPush');
+    }
+  });
+}

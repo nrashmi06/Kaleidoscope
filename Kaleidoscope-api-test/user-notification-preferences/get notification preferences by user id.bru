@@ -1,0 +1,57 @@
+meta {
+  name: get notification preferences by user id
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/user-notification-preferences/{{userId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+}
+
+vars {
+  userId: 1
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response has success true", function () {
+    expect(res.getBody().success).to.equal(true);
+  });
+
+  test("Response contains notification preferences for specific user", function () {
+    const data = res.getBody().data;
+    expect(data).to.have.property('preferenceId');
+    expect(data).to.have.property('userId');
+    expect(data.userId).to.equal(parseInt(bru.getVar('userId')));
+  });
+
+  test("Response contains all notification preference fields", function () {
+    const data = res.getBody().data;
+    expect(data).to.have.property('likesEmail');
+    expect(data).to.have.property('likesPush');
+    expect(data).to.have.property('commentsEmail');
+    expect(data).to.have.property('commentsPush');
+    expect(data).to.have.property('followsEmail');
+    expect(data).to.have.property('followsPush');
+    expect(data).to.have.property('mentionsEmail');
+    expect(data).to.have.property('mentionsPush');
+    expect(data).to.have.property('systemEmail');
+    expect(data).to.have.property('systemPush');
+    expect(data).to.have.property('createdAt');
+    expect(data).to.have.property('updatedAt');
+  });
+
+  test("Message indicates successful retrieval", function () {
+    expect(res.getBody().message).to.include("retrieved successfully");
+  });
+}

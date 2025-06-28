@@ -26,7 +26,9 @@ import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
 import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.model.UserNotificationPreferences;
 import com.kaleidoscope.backend.users.model.UserPreferences;
+import com.kaleidoscope.backend.users.repository.UserNotificationPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -63,6 +65,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final UserPreferencesRepository userPreferencesRepository;
+    private final UserNotificationPreferencesRepository userNotificationPreferencesRepository;
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationRepository emailVerificationRepository;
@@ -75,6 +78,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             @Lazy AuthenticationManager authenticationManager,
             UserRepository userRepository,
             UserPreferencesRepository userPreferencesRepository,
+            UserNotificationPreferencesRepository userNotificationPreferencesRepository,
             RefreshTokenService refreshTokenService,
             PasswordEncoder passwordEncoder,
             EmailVerificationRepository emailVerificationRepository,
@@ -86,6 +90,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.userPreferencesRepository = userPreferencesRepository;
+        this.userNotificationPreferencesRepository = userNotificationPreferencesRepository;
         this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationRepository = emailVerificationRepository;
@@ -216,6 +221,24 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
 
             userPreferencesRepository.save(userPreferences);
             log.info("Created default user preferences for user ID: {}", user.getUserId());
+
+            // Create default notification preferences for the new user
+            UserNotificationPreferences notificationPreferences = UserNotificationPreferences.builder()
+                    .user(user)
+                    .likesEmail(true)
+                    .likesPush(true)
+                    .commentsEmail(true)
+                    .commentsPush(true)
+                    .followsEmail(true)
+                    .followsPush(true)
+                    .mentionsEmail(true)
+                    .mentionsPush(true)
+                    .systemEmail(true)
+                    .systemPush(true)
+                    .build();
+
+            userNotificationPreferencesRepository.save(notificationPreferences);
+            log.info("Created default notification preferences for user ID: {}", user.getUserId());
 
             // Send verification email for new registration
             sendVerificationEmail(user.getEmail());

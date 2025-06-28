@@ -1,0 +1,39 @@
+meta {
+  name: disable all email notifications
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{base_url}}/api/user-notification-preferences/email/disable-all
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has success true", function () {
+    expect(res.getBody().success).to.equal(true);
+  });
+  
+  test("All email notifications disabled", function () {
+    const data = res.getBody().data;
+    expect(data.likesEmail).to.equal(false);
+    expect(data.commentsEmail).to.equal(false);
+    expect(data.followsEmail).to.equal(false);
+    expect(data.mentionsEmail).to.equal(false);
+    expect(data.systemEmail).to.equal(false);
+  });
+  
+  test("Message indicates success", function () {
+    expect(res.getBody().message).to.include("disabled");
+  });
+}
