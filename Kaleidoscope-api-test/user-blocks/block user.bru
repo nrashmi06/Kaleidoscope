@@ -1,0 +1,34 @@
+meta {
+  name: Block User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/user-blocks/block
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "userIdToBlock": 2,
+    "reason": "Inappropriate behavior"
+  }
+}
+
+tests {
+  test("should block user successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("User blocked successfully");
+    expect(res.getBody().data).to.have.property("blockId");
+    expect(res.getBody().data).to.have.property("blocker");
+    expect(res.getBody().data).to.have.property("blocked");
+    expect(res.getBody().data).to.have.property("createdAt");
+  });
+}

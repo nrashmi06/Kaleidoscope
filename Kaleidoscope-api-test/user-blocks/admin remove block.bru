@@ -1,0 +1,28 @@
+meta {
+  name: Admin - Remove Block
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/user-blocks/admin/remove?blockId=1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminAccessToken}}
+}
+
+params:query {
+  blockId: 1
+}
+
+tests {
+  test("should remove block by admin successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Block removed successfully");
+    expect(res.getBody().data).to.equal("Block relationship successfully removed");
+  });
+}

@@ -19,7 +19,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.kaleidoscope.backend.auth")
 @Component("authExceptionHandler")
 public class AuthExceptionHandler {
 

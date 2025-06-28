@@ -2,21 +2,63 @@ package com.kaleidoscope.backend.users.exception;
 
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.users.exception.user.*;
+import com.kaleidoscope.backend.users.exception.userblock.SelfBlockNotAllowedException;
+import com.kaleidoscope.backend.users.exception.userblock.UserAlreadyBlockedException;
+import com.kaleidoscope.backend.users.exception.userblock.UserBlockNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
-@RestControllerAdvice
-@Component("userExceptionHandler")
+@RestControllerAdvice(basePackages = "com.kaleidoscope.backend.users")
+@Slf4j
 public class UserExceptionHandler {
 
+    // UserBlock Exception Handlers - Put these FIRST for highest priority
+    @ExceptionHandler(UserBlockNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUserBlockNotFoundException(UserBlockNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("UserBlockNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "Block relationship not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UserAlreadyBlockedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUserAlreadyBlockedException(UserAlreadyBlockedException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("UserAlreadyBlockedException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "User already blocked",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SelfBlockNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleSelfBlockNotAllowedException(SelfBlockNotAllowedException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("SelfBlockNotAllowedException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "Self-blocking not allowed",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    // User Exception Handlers
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleUserNotFoundException(UserNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.warn("User not found: {}", ex.getMessage());
         ApiResponse<Object> response = ApiResponse.error(
                 "User not found",
                 ex.getMessage(),
@@ -28,6 +70,7 @@ public class UserExceptionHandler {
     @ExceptionHandler(UserPreferencesNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleUserPreferencesNotFoundException(UserPreferencesNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.warn("User preferences not found: {}", ex.getMessage());
         ApiResponse<Object> response = ApiResponse.error(
                 "User preferences not found",
                 ex.getMessage(),
@@ -39,6 +82,7 @@ public class UserExceptionHandler {
     @ExceptionHandler(UserNotActiveException.class)
     public ResponseEntity<ApiResponse<Object>> handleUserNotActiveException(UserNotActiveException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.warn("User account not active: {}", ex.getMessage());
         ApiResponse<Object> response = ApiResponse.error(
                 "User account not active",
                 ex.getMessage(),
@@ -50,6 +94,7 @@ public class UserExceptionHandler {
     @ExceptionHandler(UsernameAlreadyInUseException.class)
     public ResponseEntity<ApiResponse<Object>> handleUsernameAlreadyInUseException(UsernameAlreadyInUseException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.warn("Username already in use: {}", ex.getMessage());
         ApiResponse<Object> response = ApiResponse.error(
                 "Username already in use",
                 ex.getMessage(),
@@ -61,6 +106,7 @@ public class UserExceptionHandler {
     @ExceptionHandler(UserAccountSuspendedException.class)
     public ResponseEntity<ApiResponse<Object>> handleUserAccountSuspendedException(UserAccountSuspendedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.warn("User account suspended: {}", ex.getMessage());
         ApiResponse<Object> response = ApiResponse.error(
                 "User account suspended",
                 ex.getMessage(),
@@ -72,30 +118,12 @@ public class UserExceptionHandler {
     @ExceptionHandler(InvalidUsernameException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidUsernameException(InvalidUsernameException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.warn("Invalid username: {}", ex.getMessage());
         ApiResponse<Object> response = ApiResponse.error(
                 "Invalid username",
                 ex.getMessage(),
                 path
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    // Generic handler for any other RuntimeException in user module
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Object>> handleGenericRuntimeException(RuntimeException ex, WebRequest request) {
-        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-
-        // Only handle if the exception is from the user package
-        if (ex.getClass().getPackage().getName().contains("com.kaleidoscope.backend.users")) {
-            ApiResponse<Object> response = ApiResponse.error(
-                    "User operation failed",
-                    ex.getMessage(),
-                    path
-            );
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        // Re-throw if not from user package to let other handlers deal with it
-        throw ex;
     }
 }

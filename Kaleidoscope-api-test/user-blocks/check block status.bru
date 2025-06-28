@@ -1,0 +1,32 @@
+meta {
+  name: Check Block Status
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/user-blocks/status?targetUserId=2
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  targetUserId: 2
+}
+
+tests {
+  test("should check block status successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Block status retrieved successfully");
+    expect(res.getBody().data).to.have.property("isBlocked");
+    expect(res.getBody().data).to.have.property("isBlockedBy");
+    expect(res.getBody().data).to.have.property("blockId");
+    expect(res.getBody().data.isBlocked).to.be.a("boolean");
+    expect(res.getBody().data.isBlockedBy).to.be.a("boolean");
+  });
+}
