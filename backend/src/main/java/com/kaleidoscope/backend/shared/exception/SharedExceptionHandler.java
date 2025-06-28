@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.kaleidoscope.backend.shared")
 @Component("sharedExceptionHandler")
 public class SharedExceptionHandler {
 

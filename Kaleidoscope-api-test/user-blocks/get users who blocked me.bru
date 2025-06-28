@@ -1,0 +1,33 @@
+meta {
+  name: Get Users Who Blocked Me
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/user-blocks/blocked-by?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+tests {
+  test("should get users who blocked me successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Users who blocked you retrieved successfully");
+    expect(res.getBody().data).to.have.property("blockedUsers");
+    expect(res.getBody().data).to.have.property("currentPage");
+    expect(res.getBody().data).to.have.property("totalPages");
+    expect(res.getBody().data).to.have.property("totalElements");
+    expect(res.getBody().data.blockedUsers).to.be.an("array");
+  });
+}

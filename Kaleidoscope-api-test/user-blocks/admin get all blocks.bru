@@ -1,0 +1,42 @@
+meta {
+  name: Admin - Get All Blocks
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/user-blocks/admin/all?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminAccessToken}}
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+tests {
+  test("should get all blocks for admin successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("All blocks retrieved successfully");
+    expect(res.getBody().data).to.have.property("content");
+    expect(res.getBody().data).to.have.property("totalPages");
+    expect(res.getBody().data).to.have.property("totalElements");
+    expect(res.getBody().data).to.have.property("number");
+    expect(res.getBody().data.content).to.be.an("array");
+
+    // Check structure of each block in the response
+    if (res.getBody().data.content.length > 0) {
+      const block = res.getBody().data.content[0];
+      expect(block).to.have.property("blockId");
+      expect(block).to.have.property("blocker");
+      expect(block).to.have.property("blocked");
+      expect(block).to.have.property("createdAt");
+    }
+  });
+}

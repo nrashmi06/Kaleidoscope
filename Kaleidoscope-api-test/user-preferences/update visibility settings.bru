@@ -7,11 +7,7 @@ meta {
 patch {
   url: {{base_url}}/api/user-preferences/visibility
   body: json
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{access_token}}
+  auth: inherit
 }
 
 headers {
