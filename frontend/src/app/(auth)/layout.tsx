@@ -1,42 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
-import {
-  IconHome,
-  IconSearch,
-  IconHeart,
-  IconMessageCircle,
-  IconSettings,
-  IconLogout,
-  IconUser,
-} from "@tabler/icons-react";
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import useClearStore from "@/hooks/clearStore";
 import { logoutUser } from "@/services/auth/logout";
-import ProfileCard from "@/components/layout/ProfileCard";
 import TopNavbar from "@/components/layout/TopNavbar";
-import ContactsSection from "@/components/layout/ContactSelections";
+import { UserProfileCard } from "@/components/sidebar/UserProfileCard";
+import { UserSidebar } from "@/components/sidebar/UserSidebar";
+import { X, Menu } from "lucide-react";
 
 type DashboardLayoutProps = {
   children: ReactNode;
 };
-type Contact = {
-  name: string;
-  location: string;
-  avatar: string;
-};
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [open, setOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   const clearStore = useClearStore();
   const token = useSelector((state: RootState) => state.auth.accessToken);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Logout handler
   const handleLogout = async () => {
     try {
       await logoutUser(token);
@@ -47,102 +31,67 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   };
 
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setOpen(!mobile);
-      setIsMobile(mobile);
-    };
-    handleResize(); // run on mount
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // // Redirect if no token
-  // useEffect(() => {
-  //   if (!token) {
-  //     router.push("/login");
-  //   }
-  // }, [token, router]);
-
-  // // Show spinner while redirecting
-  // if (!token) {
-  //   return (
-  //     <div className="flex items-center justify-center h-screen">
-  //       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-  //     </div>
-  //   );
-  // }
-
-  const contacts: Contact[] = [
-  { name: "Julie Mendez", location: "Memphis, TN, US", avatar: "/nature2.jpg" },
-  { name: "Marian Montgomery", location: "Newark, NJ, US", avatar: "/nature2.jpg" },
-  { name: "Joyce Reid", location: "Fort Worth, TX, US", avatar: "/nature2.jpg" },
-  { name: "Alice Franklin", location: "Springfield, MA, US", avatar: "/nature2.jpg" },
-  { name: "Domingo Flores", location: "Houston, TX, US", avatar: "/nature2.jpg" },
-];
-
-  const navigationLinks = [
-    { label: "Profile", href: "#", icon: <IconUser className="h-5 w-5" /> },
-    { label: "Feed", href: "#", icon: <IconHome className="h-5 w-5" /> },
-    { label: "Explore", href: "#", icon: <IconSearch className="h-5 w-5" /> },
-    { label: "My favorites", href: "#", icon: <IconHeart className="h-5 w-5" /> },
-    { label: "Direct", href: "#", icon: <IconMessageCircle className="h-5 w-5" /> },
-    { label: "Settings", href: "#", icon: <IconSettings className="h-5 w-5" /> },
-    {
-      label: "Logout",
-      href: "#",
-      icon: <IconLogout className="h-5 w-5" />,
-      onClick: handleLogout,
-    },
-  ];
-
-   return (
-    <div className="flex flex-col min-h-screen w-full"> {/* changed w-screen to w-full and removed mr-10 here */}
+  return (
+    <div className="flex flex-col min-h-screen w-full bg-gray-100/70 dark:bg-neutral-900">
       {/* Top Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <TopNavbar onLogout={handleLogout} />
+      <div className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+        <div className="relative w-full h-full">
+          {/* Hamburger (mobile only) */}
+          <button
+            className="md:hidden absolute left-4 top-1/2 transform -translate-y-1/2"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu className="w-6 h-6 text-gray-800 dark:text-white" />
+          </button>
+          <TopNavbar onLogout={handleLogout} />
+        </div>
       </div>
 
-      {/* Main layout below navbar */}
-      <div className="flex flex-1 pt-0 md:pt-14 md:flex-row flex-col overflow-hidden w-full"> {/* changed w-screen to w-full */}
-        <Sidebar open={open} setOpen={setOpen}>
-          <div className="flex flex-col md:flex-row w-full h-full min-h-0"> {/* Added min-h-0 to enable proper flex scroll */}
-            
-            <SidebarBody className="overflow-y-auto hide-scrollbar bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex-shrink-0 p-4 space-y-4 min-h-0 max-h-screen">
-              {/* Profile Card - Desktop only */}
-              <div className="hidden md:block">
-                <ProfileCard />
-                <div className="w-full h-px bg-slate-200 dark:bg-neutral-800 my-4" />
-              </div>
-
-              {/* Navigation Links */}
-              <nav className="flex flex-col space-y-2">
-                {navigationLinks
-                  .filter((link) => {
-                    const hideOnDesktop = ["Profile", "Logout", "Settings"];
-                    return isMobile || !hideOnDesktop.includes(link.label);
-                  })
-                  .map((link, idx) => (
-                    <SidebarLink
-                      key={idx}
-                      link={link}
-                      onClick={link.onClick}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-all duration-150"
-                    />
-                  ))}
-              </nav>
-
-              <div className="w-full h-px bg-slate-200 dark:bg-neutral-800" />
-              <ContactsSection contacts={contacts} />
-            </SidebarBody>
-
-            {/* Main content area */}
-            <main className="flex-1 overflow-auto bg-white dark:bg-neutral-900 p-4 min-w-0 min-h-0">
-              {children}
-            </main>
+      {/* Main layout */}
+      <div className="flex flex-1 pt-14 md:flex-row flex-col overflow-hidden w-full">
+        {/* Sidebar (desktop) */}
+        <aside className="hidden md:flex md:w-72 flex-shrink-0 h-full ">
+          <div className="flex flex-col w-full h-full">
+            {/* Fixed profile card */}
+            <div className="sticky top-0 z-10 dark:bg-neutral-900 px-3 py-3  ">
+              <UserProfileCard />
+            </div>
+          
+            {/* Scrollable sidebar menu */}
+            <div className="flex-1 overflow-y-auto hide-scrollbar px-3  ">
+              <UserSidebar />
+            </div>
           </div>
-        </Sidebar>
+        </aside>
+
+
+        {/* Slide-in Sidebar (mobile) */}
+        {isSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+            {/* Drawer */}
+            <div className="relative w-64 h-full bg-white dark:bg-neutral-900 shadow-xl z-50 p-4 overflow-y-auto border-r border-gray-200 dark:border-neutral-800">
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="absolute top-4 right-4 text-gray-800 dark:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="mt-10">
+                <UserSidebar />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto pt-3 min-w-0 min-h-0">
+          {children}
+        </main>
       </div>
     </div>
   );
