@@ -115,35 +115,54 @@ public class UserServiceImpl implements UserService {
     public UpdateUserProfileResponseDTO updateUserProfile(Long userId, UpdateUserProfileRequestDTO updateRequest) throws Exception {
         User user = getUserById(userId);
 
-        // Update basic user information
-        UserMapper.updateUserFromDTO(user, updateRequest);
+        // Store old image URLs for rollback if needed
+        String oldProfilePictureUrl = user.getProfilePictureUrl();
+        String oldCoverPhotoUrl = user.getCoverPhotoUrl();
 
-        // Handle profile picture update
-        if (updateRequest.getProfilePicture() != null && !updateRequest.getProfilePicture().isEmpty()) {
-            // Delete existing profile picture if exists
-            if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) {
+        try {
+            // Update basic user information first
+            UserMapper.updateUserFromDTO(user, updateRequest);
+
+            String newProfilePictureUrl = null;
+            String newCoverPhotoUrl = null;
+
+            // Handle profile picture update
+            if (updateRequest.getProfilePicture() != null && !updateRequest.getProfilePicture().isEmpty()) {
+                newProfilePictureUrl = imageStorageService.uploadImage(updateRequest.getProfilePicture()).join();
+                user.setProfilePictureUrl(newProfilePictureUrl);
+            }
+
+            // Handle cover photo update
+            if (updateRequest.getCoverPhoto() != null && !updateRequest.getCoverPhoto().isEmpty()) {
+                newCoverPhotoUrl = imageStorageService.uploadImage(updateRequest.getCoverPhoto()).join();
+                user.setCoverPhotoUrl(newCoverPhotoUrl);
+            }
+
+            // Save user with new image URLs
+            user = userRepository.save(user);
+
+            // Only delete old images after successful save
+            if (newProfilePictureUrl != null && oldProfilePictureUrl != null && !oldProfilePictureUrl.isEmpty()) {
+                imageStorageService.deleteImage(oldProfilePictureUrl).join();
+            }
+            if (newCoverPhotoUrl != null && oldCoverPhotoUrl != null && !oldCoverPhotoUrl.isEmpty()) {
+                imageStorageService.deleteImage(oldCoverPhotoUrl).join();
+            }
+
+            return UserMapper.toUpdateUserProfileResponseDTO(user);
+
+        } catch (Exception e) {
+            // Cleanup any uploaded images if user save failed
+            if (updateRequest.getProfilePicture() != null && user.getProfilePictureUrl() != null
+                && !user.getProfilePictureUrl().equals(oldProfilePictureUrl)) {
                 imageStorageService.deleteImage(user.getProfilePictureUrl()).join();
             }
-            // Upload new profile picture
-            String profilePictureUrl = imageStorageService.uploadImage(updateRequest.getProfilePicture()).join();
-            user.setProfilePictureUrl(profilePictureUrl);
-        }
-
-        // Handle cover photo update
-        if (updateRequest.getCoverPhoto() != null && !updateRequest.getCoverPhoto().isEmpty()) {
-            // Delete existing cover photo if exists
-            if (user.getCoverPhotoUrl() != null && !user.getCoverPhotoUrl().isEmpty()) {
+            if (updateRequest.getCoverPhoto() != null && user.getCoverPhotoUrl() != null
+                && !user.getCoverPhotoUrl().equals(oldCoverPhotoUrl)) {
                 imageStorageService.deleteImage(user.getCoverPhotoUrl()).join();
             }
-            // Upload new cover photo
-            String coverPhotoUrl = imageStorageService.uploadImage(updateRequest.getCoverPhoto()).join();
-            user.setCoverPhotoUrl(coverPhotoUrl);
+            throw e;
         }
-
-        User updatedUser = userRepository.save(user);
-
-        log.info("Updated profile for user ID: {}", userId);
-        return UserMapper.toUpdateUserProfileResponseDTO(updatedUser);
     }
 
     @Override
