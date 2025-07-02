@@ -5,6 +5,9 @@ import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.dto.response.FollowListResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
+import com.kaleidoscope.backend.users.exception.follow.FollowRelationshipNotFoundException;
+import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;
+import com.kaleidoscope.backend.users.exception.follow.UserAlreadyFollowedException;
 import com.kaleidoscope.backend.users.mapper.FollowMapper;
 import com.kaleidoscope.backend.users.model.Follow;
 import com.kaleidoscope.backend.users.model.UserBlock;
@@ -50,12 +53,12 @@ public class FollowServiceImpl implements FollowService {
 
         // Prevent self-following
         if (currentUserId.equals(targetUserId)) {
-            throw new IllegalArgumentException("Users cannot follow themselves");
+            throw new SelfFollowNotAllowedException("Users cannot follow themselves");
         }
 
         // Check if already following
         if (followRepository.findByFollower_UserIdAndFollowing_UserId(currentUserId, targetUserId).isPresent()) {
-            throw new IllegalArgumentException("Already following this user");
+            throw new UserAlreadyFollowedException("Already following this user");
         }
 
         Follow follow = Follow.builder()
@@ -71,7 +74,7 @@ public class FollowServiceImpl implements FollowService {
     public void unfollowUser(Long targetUserId) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         Follow follow = followRepository.findByFollower_UserIdAndFollowing_UserId(currentUserId, targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Follow relationship not found"));
+                .orElseThrow(() -> new FollowRelationshipNotFoundException("Follow relationship not found"));
 
         followRepository.delete(follow);
     }

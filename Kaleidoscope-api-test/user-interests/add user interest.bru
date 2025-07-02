@@ -1,0 +1,30 @@
+meta {
+  name: Add User Interest
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/users/interests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "categoryId": 1
+  }
+}
+
+tests {
+  test("should add user interest successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Interest added successfully");
+    expect(res.getBody().path).to.equal("/api/users/interests");
+  });
+}

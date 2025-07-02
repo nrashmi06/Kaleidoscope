@@ -7,11 +7,7 @@ meta {
 put {
   url: {{base_url}}/api/user-preferences
   body: json
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{access_token}}
+  auth: inherit
 }
 
 headers {

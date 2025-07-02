@@ -2,6 +2,8 @@ package com.kaleidoscope.backend.shared.mapper;
 
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryListResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.CategoryParentListResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.CategoryParentResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.shared.model.Category;
 
@@ -23,6 +25,54 @@ public class CategoryMapper {
                 .parentId(category.getParent() != null ? category.getParent().getCategoryId() : null)
                 .subcategories(new HashSet<>()) // Initialize empty set
                 .build();
+    }
+
+    public static CategoryParentResponseDTO toParentDTO(Category category) {
+        if (category == null) {
+            return null;
+        }
+
+        return CategoryParentResponseDTO.builder()
+                .categoryId(category.getCategoryId())
+                .name(category.getName())
+                .description(category.getDescription())
+                .iconName(category.getIconName())
+                .parentId(category.getParent() != null ? category.getParent().getCategoryId() : null)
+                .build();
+    }
+
+    public static List<CategoryParentResponseDTO> toParentDTOList(List<Category> categories) {
+        return categories.stream()
+                .map(CategoryMapper::toParentDTO)
+                .toList();
+    }
+
+    public static CategoryParentListResponseDTO toParentListDTO(List<Category> parentCategories) {
+        List<CategoryParentResponseDTO> categoryDTOs = toParentDTOList(parentCategories);
+        return CategoryParentListResponseDTO.builder()
+                .categories(categoryDTOs)
+                .build();
+    }
+
+    public static CategoryResponseDTO toDTOWithChildren(Category category, List<Category> allCategories) {
+        if (category == null) {
+            return null;
+        }
+
+        // Build the hierarchical structure
+        Map<Long, CategoryResponseDTO> dtoMap = allCategories.stream()
+                .map(CategoryMapper::toDTO)
+                .collect(Collectors.toMap(CategoryResponseDTO::getCategoryId, dto -> dto));
+
+        // Connect children to parents
+        for (CategoryResponseDTO dto : dtoMap.values()) {
+            if (dto.getParentId() != null && dtoMap.containsKey(dto.getParentId())) {
+                CategoryResponseDTO parent = dtoMap.get(dto.getParentId());
+                parent.getSubcategories().add(dto);
+            }
+        }
+
+        return dtoMap.get(category.getCategoryId());
     }
 
     public static List<CategoryResponseDTO> toDTOList(List<Category> categories) {
