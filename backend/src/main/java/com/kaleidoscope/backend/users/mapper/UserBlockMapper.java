@@ -2,18 +2,14 @@ package com.kaleidoscope.backend.users.mapper;
 
 import com.kaleidoscope.backend.users.dto.response.UserBlockResponseDTO;
 import com.kaleidoscope.backend.users.model.UserBlock;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
-public final class UserBlockMapper {
+@Component
+@RequiredArgsConstructor
+public class UserBlockMapper {
 
-    private UserBlockMapper() {
-        throw new IllegalStateException("Utility class");
-    }
-
-    public static UserBlockResponseDTO toUserBlockResponseDTO(UserBlock userBlock) {
-        if (userBlock == null) {
-            return null;
-        }
-
+    public UserBlockResponseDTO toUserBlockResponseDTO(UserBlock userBlock) {
         return UserBlockResponseDTO.builder()
                 .blockId(userBlock.getBlockId())
                 .blocker(UserMapper.toUserDetailsSummaryResponseDTO(userBlock.getBlocker()))

@@ -1,12 +1,17 @@
 package com.kaleidoscope.backend.users.exception;
 
 import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.users.exception.follow.FollowRelationshipNotFoundException;
+import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;
+import com.kaleidoscope.backend.users.exception.follow.UserAlreadyFollowedException;
 import com.kaleidoscope.backend.users.exception.notification.NotificationPreferencesUpdateException;
 import com.kaleidoscope.backend.users.exception.notification.UserNotificationPreferencesNotFoundException;
 import com.kaleidoscope.backend.users.exception.user.*;
 import com.kaleidoscope.backend.users.exception.userblock.SelfBlockNotAllowedException;
 import com.kaleidoscope.backend.users.exception.userblock.UserAlreadyBlockedException;
 import com.kaleidoscope.backend.users.exception.userblock.UserBlockNotFoundException;
+import com.kaleidoscope.backend.users.exception.userinterest.UserInterestAlreadyExistsException;
+import com.kaleidoscope.backend.users.exception.userinterest.UserInterestNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -210,5 +215,67 @@ public class UserExceptionHandler {
                 path
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    // Follow Exception Handlers
+    @ExceptionHandler(FollowRelationshipNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleFollowRelationshipNotFoundException(FollowRelationshipNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("FollowRelationshipNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "Follow relationship not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UserAlreadyFollowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUserAlreadyFollowedException(UserAlreadyFollowedException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("UserAlreadyFollowedException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "User already followed",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SelfFollowNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleSelfFollowNotAllowedException(SelfFollowNotAllowedException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("SelfFollowNotAllowedException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "Self-following not allowed",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    // UserInterest Exception Handlers
+    @ExceptionHandler(UserInterestNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUserInterestNotFoundException(UserInterestNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("UserInterestNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "User interest not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UserInterestAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUserInterestAlreadyExistsException(UserInterestAlreadyExistsException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("UserInterestAlreadyExistsException caught by UserExceptionHandler: {}", ex.getMessage());
+        ApiResponse<Object> response = ApiResponse.error(
+                "User interest already exists",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 }

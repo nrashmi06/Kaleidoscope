@@ -25,4 +25,12 @@ public interface UserBlockRepository extends JpaRepository<UserBlock, Long> {
 
     @Query("SELECT ub FROM UserBlock ub JOIN FETCH ub.blocker JOIN FETCH ub.blocked")
     Page<UserBlock> findAllWithBlockerAndBlocked(Pageable pageable);
+
+    /**
+     * Find blocks between two users in both directions (optimized single query)
+     */
+    @Query("SELECT ub FROM UserBlock ub JOIN FETCH ub.blocker JOIN FETCH ub.blocked " +
+           "WHERE (ub.blocker.userId = :userId1 AND ub.blocked.userId = :userId2) " +
+           "OR (ub.blocker.userId = :userId2 AND ub.blocked.userId = :userId1)")
+    List<UserBlock> findBlocksBetweenUsers(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
 }

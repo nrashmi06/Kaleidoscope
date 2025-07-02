@@ -1,0 +1,24 @@
+meta {
+  name: Remove User Interest
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{base_url}}/api/users/interests/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("should remove user interest successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Interest removed successfully");
+    expect(res.getBody().path).to.equal("/api/users/interests/{categoryId}");
+  });
+}
