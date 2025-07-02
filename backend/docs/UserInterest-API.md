@@ -1,158 +1,108 @@
-# UserInterest API Endpoints
+# User Interests API Documentation
 
 ## Overview
-Complete implementation of UserInterest management API endpoints following the existing project patterns. This includes advanced features like bulk operations, intelligent redundancy filtering, and comprehensive API testing.
+Manage user category interests to personalize content and recommendations within the Kaleidoscope application. Supports single and bulk operations, intelligent hierarchy filtering, and admin analytics.
 
 ## Created Components
 
 ### 1. Routes (UserInterestRoutes.java)
-- `ADD_USER_INTEREST`: POST `/api/users/interests`
-- `ADD_USER_INTERESTS_BULK`: POST `/api/users/interests/bulk`
-- `REMOVE_USER_INTEREST`: DELETE `/api/users/interests/{categoryId}`
-- `REMOVE_USER_INTERESTS_BULK`: DELETE `/api/users/interests/bulk`
-- `GET_USER_INTERESTS`: GET `/api/users/interests`
-- `GET_USER_INTERESTS_BY_USER_ID`: GET `/api/users/interests/user/{userId}`
-- `ADMIN_GET_ALL_USER_INTERESTS`: GET `/api/users/interests/admin/all`
+- POST   `/api/users/interests`            → Add single interest
+- POST   `/api/users/interests/bulk`       → Add multiple interests
+- DELETE `/api/users/interests/{categoryId}` → Remove single interest
+- DELETE `/api/users/interests/bulk`      → Remove multiple interests
+- GET    `/api/users/interests`            → Get current user's interests
+- GET    `/api/users/interests/user/{userId}` → Get interests by user ID
+- GET    `/api/users/interests/admin/category-analytics` → Admin: category interest analytics
 
 ### 2. DTOs
-- **Request**: `AddUserInterestRequestDTO` - Contains categoryId with enhanced validation (@NotNull, @Positive)
-- **Bulk Request**: `BulkUserInterestRequestDTO` - Contains list of categoryIds with comprehensive validation
-- **Response**: `UserInterestResponseDTO` - Contains interest details with full category hierarchy
-- **List Response**: `UserInterestListResponseDTO` - Paginated response with metadata
+- **Request**
+  - `AddUserInterestRequestDTO`          (categoryId: Long)
+  - `BulkUserInterestRequestDTO`         (categoryIds: List<Long>)
+- **Response**
+  - `UserInterestResponseDTO`            (interestId, userId, category with full hierarchy, createdAt)
+  - `UserInterestListResponseDTO`        (List<UserInterestResponseDTO>, pagination metadata)
+  - `CategoryAnalyticsResponseDTO`       (Map<categoryId, count> with pagination)
 
-### 3. Enhanced Validation
-- `@NotNull` - Ensures categoryId is provided
-- `@Positive` - Ensures categoryId is a positive number
-- `@NotEmpty` - Ensures bulk operations have at least one category
-- List validation for bulk operations with individual item validation
+### 3. Service Layer (UserInterestService)
+Provides methods:
+- `addUserInterest(Long categoryId)`
+- `removeUserInterest(Long categoryId)`
+- `getUserInterests(Pageable pageable)`
+- `addUserInterests(List<Long> categoryIds)`
+- `removeUserInterests(List<Long> categoryIds)`
+- `getUserInterestsByUserId(Long userId, Pageable pageable)`
+- `getCategoryInterestAnalytics(Pageable pageable)` (admin only)
+Implements validation, intelligent redundancy filtering, and batch operations.
 
-### 4. Custom Exceptions
-- `UserInterestNotFoundException` - 404 when interest not found
-- `UserInterestAlreadyExistsException` - 409 when trying to add duplicate interest
+### 4. Controller (UserInterestController.java)
+- Uses `@RestController`, `@RequiredArgsConstructor`, `@Tag(name="User Interest")`
+- Endpoints return `ApiResponse<T>` wrappers
+- Swagger annotations for each operation
+- Security: `@PreAuthorize("isAuthenticated()")` or `hasRole('ROLE_ADMIN')`
 
-### 5. Repository (UserInterestRepository.java)
-- `findByUser_UserIdAndCategory_CategoryId` - Find specific user interest
-- `findByUser_UserId` - Get all interests for a user (paginated)
-- `existsByUser_UserIdAndCategory_CategoryId` - Check if interest exists (optimized)
-- `findByUser_UserIdAndCategory_CategoryIdIn` - Bulk operations support
+### 5. Model and Repository
+- `UserInterest` entity: links `User` and `Category` with timestamp
+- `UserInterestRepository`: methods for exists, bulk fetch, pagination
 
-### 6. Service Layer Enhancements
-- **Interface**: `UserInterestService` with comprehensive documentation including bulk operations
-- **Implementation**: `UserInterestServiceImpl` with:
-  - Proper transaction handling
-  - Performance optimizations (using `exists` instead of `find` for duplicate checking)
-  - Intelligent redundancy filtering
-  - Bulk operation support with batch processing
-  - Efficient duplicate filtering for bulk operations
+### 6. Exceptions
+- `UserInterestNotFoundException` → 404 if interest not found
+- `UserInterestAlreadyExistsException` → 409 if duplicate
+- Validation errors → 400
+- Unauthorized → 401
+- Forbidden (admin-only) → 403
 
-### 7. Controller (UserInterestController.java)
-- Uses `@RequiredArgsConstructor` for dependency injection
-- All endpoints return `ApiResponse<T>` wrapper
-- Comprehensive Swagger documentation for all endpoints including bulk operations
-- Security annotations at method level
-- Admin endpoint requires `ROLE_ADMIN`
-- Bulk operation endpoints with proper validation
-
-### 8. Intelligent Category Hierarchy Management
-- **Full Subcategory Loading**: Categories now include complete subcategory hierarchies
-- **Redundancy Filtering**: Automatically filters out child category interests when parent is already included
-- **Performance Optimization**: Uses CategoryService.getCategoryWithChildren() for proper hierarchy loading
-
-### 9. Exception Handling
-- Updated `UserExceptionHandler` with new exception handlers
-- Proper HTTP status codes (404, 409)
-- Consistent error response format
+### 7. Security
+- All endpoints require valid JWT token
+- Admin role required for analytics endpoint
 
 ## API Endpoints
 
-### Add Single User Interest
+### 1. Add Single Interest
 ```
 POST /api/users/interests
-Authorization: Bearer token required
+Authorization: Bearer <token>
 Content-Type: application/json
-
-Body: 
-{
-  "categoryId": 123
-}
-
-Response: 200 OK
+```
+**Body** (`AddUserInterestRequestDTO`):
+```json
+{ "categoryId": 123 }
+```
+**Response**: `200 OK`
+```json
 {
   "success": true,
   "message": "Interest added successfully",
   "data": null,
   "errors": [],
-  "timestamp": 1751455561337,
+  "timestamp": 1625235000000,
   "path": "/api/users/interests"
 }
 ```
+**Errors**:
+- `400 BAD_REQUEST` if categoryId missing or non-positive
+- `404 NOT_FOUND` if category not found
+- `409 CONFLICT` if interest already exists
 
-### Add Multiple User Interests (Bulk)
-```
-POST /api/users/interests/bulk
-Authorization: Bearer token required
-Content-Type: application/json
-
-Body: 
-{
-  "categoryIds": [1, 2, 3, 4, 5]
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Interests added successfully",
-  "data": null,
-  "errors": [],
-  "timestamp": 1751455561337,
-  "path": "/api/users/interests/bulk"
-}
-```
-
-### Remove Single User Interest
+### 2. Remove Single Interest
 ```
 DELETE /api/users/interests/{categoryId}
-Authorization: Bearer token required
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Interest removed successfully",
-  "data": null,
-  "errors": [],
-  "timestamp": 1751455561337,
-  "path": "/api/users/interests/{categoryId}"
-}
+Authorization: Bearer <token>
 ```
-
-### Remove Multiple User Interests (Bulk)
+**Response**: `200 OK`
+```json
+{ "success": true, "message": "Interest removed successfully", "data": null }
 ```
-DELETE /api/users/interests/bulk
-Authorization: Bearer token required
-Content-Type: application/json
+**Errors**:
+- `404 NOT_FOUND` if interest does not exist
+- `401/403` as above
 
-Body: 
-{
-  "categoryIds": [1, 2, 3]
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Interests removed successfully",
-  "data": null,
-  "errors": [],
-  "timestamp": 1751455561337,
-  "path": "/api/users/interests/bulk"
-}
-```
-
-### Get Current User's Interests (With Intelligent Filtering)
+### 3. Get Current User's Interests
 ```
 GET /api/users/interests?page=0&size=10&sort=createdAt,desc
-Authorization: Bearer token required
-
-Response: 200 OK
+Authorization: Bearer <token>
+```
+**Response**: `200 OK`
+```json
 {
   "success": true,
   "message": "User interests retrieved successfully",
@@ -164,21 +114,11 @@ Response: 200 OK
         "category": {
           "categoryId": 1,
           "name": "Technology",
-          "description": "Tech related content",
-          "iconName": "tech-icon",
+          "description": "Tech content",
           "parentId": null,
-          "subcategories": [
-            {
-              "categoryId": 2,
-              "name": "AI",
-              "description": "Artificial Intelligence",
-              "iconName": "ai-icon",
-              "parentId": 1,
-              "subcategories": []
-            }
-          ]
+          "subcategories": []
         },
-        "createdAt": "2025-07-02T16:55:54.48747"
+        "createdAt": "2025-07-02T16:55:54Z"
       }
     ],
     "currentPage": 0,
@@ -186,119 +126,93 @@ Response: 200 OK
     "totalElements": 1
   },
   "errors": [],
-  "timestamp": 1751455561337,
+  "timestamp": 1625235100000,
   "path": "/api/users/interests"
 }
 ```
 
-### Get User Interests by User ID
+### 4. Add Multiple Interests (Bulk)
 ```
-GET /api/users/interests/user/{userId}?page=0&size=10
-Authorization: Bearer token required
-Response: Paginated list of user interests with full category hierarchy
+POST /api/users/interests/bulk
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+**Body** (`BulkUserInterestRequestDTO`):
+```json
+{ "categoryIds": [1,2,3] }
+```
+**Response**: `200 OK`
+```json
+{ "success": true, "message": "Interests added successfully", "data": null }
+```
+**Errors**:
+- `400 BAD_REQUEST` for empty or invalid lists
+- `404 NOT_FOUND` for missing categories
+
+### 5. Remove Multiple Interests (Bulk)
+```
+DELETE /api/users/interests/bulk
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+**Body**:
+```json
+{ "categoryIds": [1,2,3] }
+```
+**Response**: `200 OK`
+```json
+{ "success": true, "message": "Interests removed successfully", "data": null }
 ```
 
-### Admin: Get All User Interests
+### 6. Get Interests by User ID
 ```
-GET /api/users/interests/admin/all?page=0&size=10
-Authorization: Bearer token required (ADMIN role)
-Response: Paginated list of all user interests (no filtering applied)
+GET /api/users/interests/user/{userId}?page=0&size=10
+Authorization: Bearer <token>
+```
+**Response**: Paginated `UserInterestListResponseDTO` (same format as current user)
+
+### 7. Admin: Category Interest Analytics
+```
+GET /api/users/interests/admin/category-analytics?page=0&size=10&sort=count,desc
+Authorization: Bearer <token> (ADMIN)
+```
+**Response**: `200 OK`
+```json
+{
+  "success": true,
+  "message": "Category analytics retrieved successfully",
+  "data": {
+    "analytics": [ { "categoryId": 1, "count": 250 } ],
+    "currentPage": 0,
+    "totalPages": 5,
+    "totalElements": 50
+  }
+}
 ```
 
 ## Advanced Features
-
-### 1. Intelligent Redundancy Filtering
-- **Problem Solved**: Prevents showing both parent and child categories as separate interests
-- **How it works**: When a user has interests in both "Technology" and "AI" (child of Technology), only "Technology" is shown with "AI" as a subcategory
-- **Benefits**: Cleaner UI, no duplicate information, better user experience
-
-### 2. Bulk Operations
-- **Add Multiple Interests**: Single API call to add multiple categories
-- **Remove Multiple Interests**: Single API call to remove multiple categories
-- **Performance**: Batch database operations for better efficiency
-- **Validation**: Comprehensive validation for each category ID in the list
-
-### 3. Enhanced Category Hierarchy
-- **Full Subcategory Loading**: Each category includes its complete subcategory tree
-- **Optimized Loading**: Uses CategoryService.getCategoryWithChildren() for proper hierarchy building
-- **Consistent Structure**: All endpoints return the same rich category structure
-
-### 4. Performance Optimizations
-- **Efficient Duplicate Checking**: Uses `existsByUser_UserIdAndCategory_CategoryId` instead of fetching full entities
-- **Batch Operations**: saveAll() and deleteAll() for bulk operations
-- **Smart Filtering**: Pre-filters existing interests before bulk operations
+- **Intelligent Redundancy Filtering**: Removes child interests when parent is selected
+- **Full Category Hierarchy**: Subcategories included via `CategoryService.getCategoryWithChildren()`
+- **Batch Operations**: Efficient `saveAll()` / `deleteAll()` for bulk requests
 
 ## Bruno API Test Suite
-
-Complete Bruno API test collection created in `Kaleidoscope-api-test/user-interests/`:
-
-1. **folder.bru** - Collection configuration
-2. **add user interest.bru** - Test single interest addition
-3. **add user interests bulk.bru** - Test bulk interest addition
-4. **remove user interest.bru** - Test single interest removal
-5. **remove user interests bulk.bru** - Test bulk interest removal
-6. **get user interests.bru** - Test user's interests retrieval with pagination
-7. **get user interests by user id.bru** - Test viewing other user's interests
-8. **admin get all user interests.bru** - Test admin endpoint
-
-### Bruno Test Features:
-- Environment variables for base URL and tokens
-- Comprehensive response validation
-- Pagination parameter testing
-- Authentication testing for all endpoints
-- Admin role testing for admin endpoints
+Located under `Kaleidoscope-api-test/user-interests/`:
+- Tests for single add/remove, bulk add/remove, retrieval, and analytics
 
 ## Features Implemented
 ✅ Constructor injection for services  
-✅ ApiResponse<T> wrapper for all endpoints  
-✅ Routes defined as constants  
-✅ Pagination support with Pageable  
-✅ Enhanced mapper with category hierarchy loading  
-✅ Custom exception handling  
-✅ Security annotations at method level  
-✅ Comprehensive Swagger documentation  
-✅ Proper transaction handling  
-✅ Enhanced validation with @Positive and bulk validation  
-✅ **NEW**: Bulk operations for add/remove multiple interests  
-✅ **NEW**: Intelligent redundancy filtering  
-✅ **NEW**: Full category hierarchy with subcategories  
-✅ **NEW**: Performance optimizations  
-✅ **NEW**: Complete Bruno API test suite  
+✅ `ApiResponse<T>` wrapper  
+✅ Defined routes as constants  
+✅ Pagination support  
+✅ Swagger documentation  
+✅ Validation with `@NotNull`, `@Positive`, `@NotEmpty`  
+✅ Intelligent filtering and hierarchy loading  
+✅ Bulk operation support  
+✅ Admin analytics endpoint  
 
 ## Error Scenarios Handled
-- User tries to add duplicate interest → 409 CONFLICT
-- User tries to remove non-existent interest → 404 NOT_FOUND
-- Category not found → 404 NOT_FOUND (from CategoryService)
-- User not found → 404 NOT_FOUND (from UserService)
-- Unauthorized access → 401 UNAUTHORIZED
-- Admin endpoints without proper role → 403 FORBIDDEN
-- **NEW**: Invalid category ID (negative numbers) → 400 BAD_REQUEST
-- **NEW**: Empty bulk operation lists → 400 BAD_REQUEST
-- **NEW**: Null values in bulk operation lists → 400 BAD_REQUEST
-
-## Recent Improvements and Bug Fixes
-
-### 1. Fixed Subcategory Loading Issue
-- **Problem**: Categories were showing empty subcategories arrays
-- **Solution**: Updated UserInterestMapper to use CategoryService.getCategoryWithChildren()
-- **Result**: Categories now show complete subcategory hierarchies
-
-### 2. Implemented Redundancy Filtering
-- **Problem**: Users seeing duplicate categories (parent + children as separate interests)
-- **Solution**: Added intelligent filtering logic in service layer
-- **Result**: Clean, non-redundant interest lists while preserving hierarchy information
-
-### 3. Added Bulk Operations
-- **Enhancement**: Support for adding/removing multiple interests in single API calls
-- **Benefits**: Better performance, improved user experience for onboarding flows
-- **Implementation**: Efficient batch processing with proper validation
-
-### 4. Enhanced Validation
-- **Improvement**: Added @Positive validation for category IDs
-- **Enhancement**: Comprehensive validation for bulk operations
-- **Result**: Better input validation and clearer error messages
-
-### 5. Performance Optimizations
-- **Database**: Using exists() methods instead of find() for duplicate checking
-- **Bulk Operations**: Batch database operations using saveAll()/deleteAll()
-- **Filtering**: Efficient set-based filtering for redundancy removal
+- Duplicate interest → 409 CONFLICT  
+- Missing interest/category → 404 NOT_FOUND  
+- Validation failures → 400 BAD_REQUEST  
+- Unauthorized → 401 UNAUTHORIZED  
+- Forbidden (admin-only) → 403 FORBIDDEN

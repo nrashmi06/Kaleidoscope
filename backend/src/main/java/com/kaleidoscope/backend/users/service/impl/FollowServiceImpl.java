@@ -36,14 +36,26 @@ public class FollowServiceImpl implements FollowService {
     private final FollowMapper followMapper;
     private final UserBlockRepository userBlockRepository;
 
-    private Set<Long> getBlockedUserIds(Long currentUserId) {
+    /**
+     * Get users that the current user has blocked (unidirectional blocking)
+     * Only returns users that currentUser has blocked, not users who blocked currentUser
+     */
+    private Set<Long> getBlockedByCurrentUserIds(Long currentUserId) {
         List<UserBlock> blockedByUser = userBlockRepository.findByBlocker_UserId(currentUserId);
-        List<UserBlock> blockedUser = userBlockRepository.findByBlocked_UserId(currentUserId);
+        return blockedByUser.stream()
+                .map(b -> b.getBlocked().getUserId())
+                .collect(Collectors.toSet());
+    }
 
-        return Stream.concat(
-                blockedByUser.stream().map(b -> b.getBlocked().getUserId()),
-                blockedUser.stream().map(b -> b.getBlocker().getUserId())
-        ).collect(Collectors.toSet());
+    /**
+     * Get users who have blocked the current user
+     * This is separate from users the current user has blocked
+     */
+    private Set<Long> getUsersWhoBlockedCurrentUser(Long currentUserId) {
+        List<UserBlock> blockedUser = userBlockRepository.findByBlocked_UserId(currentUserId);
+        return blockedUser.stream()
+                .map(b -> b.getBlocker().getUserId())
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -54,6 +66,14 @@ public class FollowServiceImpl implements FollowService {
         // Prevent self-following
         if (currentUserId.equals(targetUserId)) {
             throw new SelfFollowNotAllowedException("Users cannot follow themselves");
+        }
+
+        // Check if either user has blocked the other
+        boolean isBlocked = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(currentUserId, targetUserId).isPresent();
+        boolean isBlockedBy = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(targetUserId, currentUserId).isPresent();
+
+        if (isBlocked || isBlockedBy) {
+            throw new IllegalStateException("Cannot follow user due to blocking relationship");
         }
 
         // Check if already following
@@ -95,7 +115,7 @@ public class FollowServiceImpl implements FollowService {
         }
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        Set<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+        Set<Long> blockedUserIds = getBlockedByCurrentUserIds(currentUserId);
 
         List<UserDetailsSummaryResponseDTO> followerDTOs = followers.getContent().stream()
                 .filter(f -> !blockedUserIds.contains(f.getFollower().getUserId()))
@@ -127,7 +147,7 @@ public class FollowServiceImpl implements FollowService {
         }
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        Set<Long> blockedUserIds = getBlockedUserIds(currentUserId);
+        Set<Long> blockedUserIds = getBlockedByCurrentUserIds(currentUserId);
 
         List<UserDetailsSummaryResponseDTO> followingDTOs = following.getContent().stream()
                 .filter(f -> !blockedUserIds.contains(f.getFollowing().getUserId()))

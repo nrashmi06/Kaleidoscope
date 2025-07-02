@@ -13,6 +13,7 @@ import com.kaleidoscope.backend.users.mapper.UserBlockPaginationMapper;
 import com.kaleidoscope.backend.users.mapper.UserBlockStatusMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserBlock;
+import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
 import com.kaleidoscope.backend.users.service.UserBlockService;
 import com.kaleidoscope.backend.users.service.UserService;
@@ -39,6 +40,7 @@ public class UserBlockServiceImpl implements UserBlockService {
     private final UserBlockEntityMapper entityMapper;
     private final UserBlockPaginationMapper paginationMapper;
     private final UserBlockStatusMapper statusMapper;
+    private final FollowRepository followRepository; // Add this dependency
 
     @Override
     public UserBlockResponseDTO blockUser(BlockUserRequestDTO blockUserRequestDTO) {
@@ -54,17 +56,25 @@ public class UserBlockServiceImpl implements UserBlockService {
         User blocker = userService.getUserById(currentUserId);
         User userToBlock = userService.getUserById(userIdToBlock);
 
-        // Check if already blocked using mapper validation
-        Optional<UserBlock> existingBlock = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(currentUserId, userIdToBlock);
-        entityMapper.validateBlockDoesNotExist(existingBlock, currentUserId, userIdToBlock);
+        // Use repository method with unique constraint to prevent race conditions
+        try {
+            // Use mapper to create block entity
+            UserBlock userBlock = entityMapper.buildUserBlock(blocker, userToBlock);
+            UserBlock savedBlock = userBlockRepository.save(userBlock);
 
-        // Use mapper to create block entity
-        UserBlock userBlock = entityMapper.buildUserBlock(blocker, userToBlock);
+            // Auto-unfollow: Remove any existing follow relationships in both directions
+            followRepository.findByFollower_UserIdAndFollowing_UserId(currentUserId, userIdToBlock)
+                    .ifPresent(followRepository::delete);
+            followRepository.findByFollower_UserIdAndFollowing_UserId(userIdToBlock, currentUserId)
+                    .ifPresent(followRepository::delete);
 
-        UserBlock savedBlock = userBlockRepository.save(userBlock);
-        log.info("User {} successfully blocked user {}", currentUserId, userIdToBlock);
+            log.info("User {} successfully blocked user {} and removed follow relationships", currentUserId, userIdToBlock);
+            return userBlockMapper.toUserBlockResponseDTO(savedBlock);
 
-        return userBlockMapper.toUserBlockResponseDTO(savedBlock);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Handle unique constraint violation (race condition)
+            throw new com.kaleidoscope.backend.users.exception.userblock.UserAlreadyBlockedException(currentUserId, userIdToBlock);
+        }
     }
 
     @Override
