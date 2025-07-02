@@ -8,8 +8,6 @@ import {
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import React, { useState, useRef, useEffect } from "react";
-import { useTheme } from "next-themes";
-import { IconSun, IconMoon } from "@tabler/icons-react";
 
 export default function TopNavbar({
   onLogout,
@@ -20,9 +18,7 @@ export default function TopNavbar({
   const [showMenu, setShowMenu] = useState(false);
   const [hasNotification] = useState(true); // ← example state
   const menuRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useTheme();
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -71,13 +67,7 @@ export default function TopNavbar({
     )}
   </button>
 </div>
-<button
-  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-  aria-label="Toggle dark mode"
-  className="text-gray-700 cursor-pointer dark:text-gray-300 hover:text-yellow-500 transition-colors duration-150 focus:outline-none "
->
-  {theme === "dark" ? <IconSun size={24} /> : <IconMoon size={24} />}
-</button>
+
 
 
         {/* Profile avatar */}
