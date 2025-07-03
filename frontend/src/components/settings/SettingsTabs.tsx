@@ -1,9 +1,8 @@
 import { useMemo } from "react";
-import { PrivacySettingsTab } from "./PrivacySettingsTab";
+import  { CategorySettingsTab } from "./CategorySettingsTab";
 import { ThemeSettingsTab } from "./ThemeSettingsTab";
 import { VisibilitySettingsTab } from "./VisibilitySettingsTab";
 import { UserPreferencesTab } from "./UserPreferencesTab";
-
 
 type Props = {
   activeTab: string;
@@ -12,18 +11,19 @@ type Props = {
 
 const tabs = [
   { label: "User Preferences", key: "preferences" },
-  { label: "Privacy", key: "privacy" },
+  { label: "Category", key: "category" },
   { label: "Theme", key: "theme" },
   { label: "Visibility", key: "visibility" },
 ];
 
 export const SettingsTabs = ({ activeTab, onTabChange }: Props) => {
+
   const renderTabContent = useMemo(() => {
     switch (activeTab) {
       case "preferences":
         return <UserPreferencesTab />;
-      case "privacy":
-        return <PrivacySettingsTab />;
+      case "category":
+        return <CategorySettingsTab />;
       case "theme":
         return <ThemeSettingsTab />;
       case "visibility":
