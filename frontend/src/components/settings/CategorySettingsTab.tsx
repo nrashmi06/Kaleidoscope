@@ -33,7 +33,7 @@ export const CategorySettingsTab = () => {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-10">
+    <div className="p-8 max-w-full mx-auto space-y-10">
       <div className="text-center">
         <h1 className="text-4xl font-bold mb-2 text-gray-800 dark:text-white">
           Category Settings

@@ -11,9 +11,9 @@ type Props = {
 
 const tabs = [
   { label: "User Preferences", key: "preferences" },
-  { label: "Category", key: "category" },
-  { label: "Theme", key: "theme" },
-  { label: "Visibility", key: "visibility" },
+  { label: "Category Settings", key: "category" },
+  { label: "Theme Settings", key: "theme" },
+  { label: "Visibility Settings", key: "visibility" },
 ];
 
 export const SettingsTabs = ({ activeTab, onTabChange }: Props) => {
