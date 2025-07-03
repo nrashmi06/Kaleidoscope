@@ -6,13 +6,14 @@ import com.kaleidoscope.backend.users.dto.request.UnblockUserRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.BlockStatusResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.BlockedUsersListResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserBlockResponseDTO;
-import com.kaleidoscope.backend.users.exception.userblock.SelfBlockNotAllowedException;
-import com.kaleidoscope.backend.users.exception.userblock.UserAlreadyBlockedException;
 import com.kaleidoscope.backend.users.exception.userblock.UserBlockNotFoundException;
+import com.kaleidoscope.backend.users.mapper.UserBlockEntityMapper;
 import com.kaleidoscope.backend.users.mapper.UserBlockMapper;
-import com.kaleidoscope.backend.users.mapper.UserMapper;
+import com.kaleidoscope.backend.users.mapper.UserBlockPaginationMapper;
+import com.kaleidoscope.backend.users.mapper.UserBlockStatusMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserBlock;
+import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
 import com.kaleidoscope.backend.users.service.UserBlockService;
 import com.kaleidoscope.backend.users.service.UserService;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -34,6 +36,11 @@ public class UserBlockServiceImpl implements UserBlockService {
     private final UserBlockRepository userBlockRepository;
     private final UserService userService;
     private final JwtUtils jwtUtils;
+    private final UserBlockMapper userBlockMapper;
+    private final UserBlockEntityMapper entityMapper;
+    private final UserBlockPaginationMapper paginationMapper;
+    private final UserBlockStatusMapper statusMapper;
+    private final FollowRepository followRepository; // Add this dependency
 
     @Override
     public UserBlockResponseDTO blockUser(BlockUserRequestDTO blockUserRequestDTO) {
@@ -42,31 +49,32 @@ public class UserBlockServiceImpl implements UserBlockService {
 
         log.info("User {} attempting to block user {}", currentUserId, userIdToBlock);
 
-        // Validate self-block
-        if (currentUserId.equals(userIdToBlock)) {
-            throw new SelfBlockNotAllowedException();
-        }
+        // Use mapper for validation
+        entityMapper.validateNotSelfBlock(currentUserId, userIdToBlock);
 
         // Get users
         User blocker = userService.getUserById(currentUserId);
         User userToBlock = userService.getUserById(userIdToBlock);
 
-        // Check if already blocked
-        Optional<UserBlock> existingBlock = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(currentUserId, userIdToBlock);
-        if (existingBlock.isPresent()) {
-            throw new UserAlreadyBlockedException(currentUserId, userIdToBlock);
+        // Use repository method with unique constraint to prevent race conditions
+        try {
+            // Use mapper to create block entity
+            UserBlock userBlock = entityMapper.buildUserBlock(blocker, userToBlock);
+            UserBlock savedBlock = userBlockRepository.save(userBlock);
+
+            // Auto-unfollow: Remove any existing follow relationships in both directions
+            followRepository.findByFollower_UserIdAndFollowing_UserId(currentUserId, userIdToBlock)
+                    .ifPresent(followRepository::delete);
+            followRepository.findByFollower_UserIdAndFollowing_UserId(userIdToBlock, currentUserId)
+                    .ifPresent(followRepository::delete);
+
+            log.info("User {} successfully blocked user {} and removed follow relationships", currentUserId, userIdToBlock);
+            return userBlockMapper.toUserBlockResponseDTO(savedBlock);
+
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Handle unique constraint violation (race condition)
+            throw new com.kaleidoscope.backend.users.exception.userblock.UserAlreadyBlockedException(currentUserId, userIdToBlock);
         }
-
-        // Create block
-        UserBlock userBlock = UserBlock.builder()
-                .blocker(blocker)
-                .blocked(userToBlock)
-                .build();
-
-        UserBlock savedBlock = userBlockRepository.save(userBlock);
-        log.info("User {} successfully blocked user {}", currentUserId, userIdToBlock);
-
-        return UserBlockMapper.toUserBlockResponseDTO(savedBlock);
     }
 
     @Override
@@ -76,9 +84,9 @@ public class UserBlockServiceImpl implements UserBlockService {
 
         log.info("User {} attempting to unblock user {}", currentUserId, userIdToUnblock);
 
-        // Find existing block
-        UserBlock userBlock = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(currentUserId, userIdToUnblock)
-                .orElseThrow(() -> new UserBlockNotFoundException(currentUserId, userIdToUnblock));
+        // Use mapper to get existing block or throw exception
+        Optional<UserBlock> blockOptional = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(currentUserId, userIdToUnblock);
+        UserBlock userBlock = entityMapper.getExistingBlockOrThrow(blockOptional, currentUserId, userIdToUnblock);
 
         userBlockRepository.delete(userBlock);
         log.info("User {} successfully unblocked user {}", currentUserId, userIdToUnblock);
@@ -94,14 +102,8 @@ public class UserBlockServiceImpl implements UserBlockService {
 
         Page<UserBlock> blockedUsersPage = userBlockRepository.findByBlocker_UserIdWithBlocked(currentUserId, pageable);
 
-        return BlockedUsersListResponseDTO.builder()
-                .blockedUsers(blockedUsersPage.getContent().stream()
-                        .map(userBlock -> UserMapper.toUserDetailsSummaryResponseDTO(userBlock.getBlocked()))
-                        .toList())
-                .currentPage(blockedUsersPage.getNumber())
-                .totalPages(blockedUsersPage.getTotalPages())
-                .totalElements(blockedUsersPage.getTotalElements())
-                .build();
+        // Use pagination mapper to eliminate duplication
+        return paginationMapper.buildBlockedUsersResponse(blockedUsersPage, UserBlockPaginationMapper::extractBlockedUser);
     }
 
     @Override
@@ -112,14 +114,8 @@ public class UserBlockServiceImpl implements UserBlockService {
 
         Page<UserBlock> blockersPage = userBlockRepository.findByBlocked_UserIdWithBlocker(currentUserId, pageable);
 
-        return BlockedUsersListResponseDTO.builder()
-                .blockedUsers(blockersPage.getContent().stream()
-                        .map(userBlock -> UserMapper.toUserDetailsSummaryResponseDTO(userBlock.getBlocker()))
-                        .toList())
-                .currentPage(blockersPage.getNumber())
-                .totalPages(blockersPage.getTotalPages())
-                .totalElements(blockersPage.getTotalElements())
-                .build();
+        // Use pagination mapper to eliminate duplication
+        return paginationMapper.buildBlockedUsersResponse(blockersPage, UserBlockPaginationMapper::extractBlockerUser);
     }
 
     @Override
@@ -128,17 +124,11 @@ public class UserBlockServiceImpl implements UserBlockService {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         log.info("Checking block status between user {} and user {}", currentUserId, targetUserId);
 
-        // Check if current user blocked target user
-        Optional<UserBlock> currentUserBlocksTarget = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(currentUserId, targetUserId);
+        // Single optimized query to check both directions at once
+        List<UserBlock> blocks = userBlockRepository.findBlocksBetweenUsers(currentUserId, targetUserId);
 
-        // Check if target user blocked current user
-        Optional<UserBlock> targetUserBlocksCurrent = userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(targetUserId, currentUserId);
-
-        return BlockStatusResponseDTO.builder()
-                .isBlocked(currentUserBlocksTarget.isPresent())
-                .isBlockedBy(targetUserBlocksCurrent.isPresent())
-                .blockId(currentUserBlocksTarget.map(UserBlock::getBlockId).orElse(null))
-                .build();
+        // Use status mapper to analyze blocks and build response
+        return statusMapper.buildBlockStatusResponse(blocks, currentUserId);
     }
 
     @Override

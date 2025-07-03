@@ -1,0 +1,30 @@
+meta {
+  name: Add User Interests Bulk
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/users/interests/bulk
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "categoryIds": [1, 2, 3, 4, 5]
+  }
+}
+
+tests {
+  test("should add multiple user interests successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Interests added successfully");
+    expect(res.getBody().path).to.equal("/api/users/interests/bulk");
+  });
+}

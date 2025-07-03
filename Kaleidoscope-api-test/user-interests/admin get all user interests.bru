@@ -1,0 +1,54 @@
+meta {
+  name: Admin Get Category Analytics
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/api/users/interests/admin/category-analytics?page=0&size=10&sort=name,asc
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminAccessToken}}
+}
+
+params:query {
+  page: 0
+  size: 10
+  sort: name,asc
+}
+
+tests {
+  test("should get simplified category analytics with pagination successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Category interest analytics retrieved successfully");
+    expect(res.getBody().data).to.have.property("categoryStats");
+    expect(res.getBody().data).to.have.property("totalUsers");
+    expect(res.getBody().data).to.have.property("totalCategories");
+    expect(res.getBody().data).to.have.property("currentPage");
+    expect(res.getBody().data).to.have.property("totalPages");
+    expect(res.getBody().data).to.have.property("totalElements");
+    expect(res.getBody().data.categoryStats).to.be.an("array");
+
+    // Verify simplified category stats structure (no hierarchy)
+    if (res.getBody().data.categoryStats.length > 0) {
+      const firstStat = res.getBody().data.categoryStats[0];
+      expect(firstStat).to.have.property("categoryId");
+      expect(firstStat).to.have.property("categoryName");
+      expect(firstStat).to.have.property("userCount");
+      expect(firstStat).to.have.property("percentage");
+      expect(firstStat.categoryId).to.be.a("number");
+      expect(firstStat.categoryName).to.be.a("string");
+      expect(firstStat.userCount).to.be.a("number");
+      expect(firstStat.percentage).to.be.a("number");
+
+      // Should NOT have category hierarchy details
+      expect(firstStat).to.not.have.property("description");
+      expect(firstStat).to.not.have.property("iconName");
+      expect(firstStat).to.not.have.property("subcategories");
+    }
+  });
+}

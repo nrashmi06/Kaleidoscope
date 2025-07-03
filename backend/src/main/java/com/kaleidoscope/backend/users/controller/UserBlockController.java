@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserBlockController {
 
     private final UserBlockService userBlockService;
+    private final UserBlockMapper userBlockMapper;
 
     @Operation(summary = "Block a user", description = "Allows an authenticated user to block another user.")
     @ApiResponses(value = {
@@ -182,7 +183,7 @@ public class UserBlockController {
 
         log.info("Admin getting all blocks");
         Page<UserBlock> blocksPage = userBlockService.getAllBlocks(pageable);
-        Page<UserBlockResponseDTO> response = blocksPage.map(UserBlockMapper::toUserBlockResponseDTO);
+        Page<UserBlockResponseDTO> response = blocksPage.map(userBlockMapper::toUserBlockResponseDTO);
 
         ApiResponse<Page<UserBlockResponseDTO>> apiResponse = ApiResponse.success(
                 response,
