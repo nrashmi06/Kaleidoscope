@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import  { CategorySettingsTab } from "./CategorySettingsTab";
-import { ThemeSettingsTab } from "./ThemeSettingsTab";
-import { VisibilitySettingsTab } from "./VisibilitySettingsTab";
+// import { ThemeSettingsTab } from "./ThemeSettingsTab";
+// import { VisibilitySettingsTab } from "./VisibilitySettingsTab";
 import { UserPreferencesTab } from "./UserPreferencesTab";
 
 type Props = {
@@ -12,8 +12,8 @@ type Props = {
 const tabs = [
   { label: "User Preferences", key: "preferences" },
   { label: "Category Settings", key: "category" },
-  { label: "Theme Settings", key: "theme" },
-  { label: "Visibility Settings", key: "visibility" },
+  // { label: "Theme Settings", key: "theme" },
+  // { label: "Visibility Settings", key: "visibility" },
 ];
 
 export const SettingsTabs = ({ activeTab, onTabChange }: Props) => {
@@ -24,10 +24,6 @@ export const SettingsTabs = ({ activeTab, onTabChange }: Props) => {
         return <UserPreferencesTab />;
       case "category":
         return <CategorySettingsTab />;
-      case "theme":
-        return <ThemeSettingsTab />;
-      case "visibility":
-        return <VisibilitySettingsTab />;
       default:
         return <div className="text-red-500">Unknown tab</div>;
     }
