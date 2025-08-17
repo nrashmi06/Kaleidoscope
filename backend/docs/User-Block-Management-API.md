@@ -323,19 +323,19 @@ Response: 200 OK
 
 ### 7. Admin: Remove Block
 
-#### Admin Force Remove Block
+#### Admin Remove Specific User Block
 ```
-DELETE /api/user-blocks/admin/remove?blockId=123
+DELETE /api/user-blocks/admin/remove/{blockId}
 Authorization: Bearer token required (ADMIN role)
 
-Query Parameters:
+Path Parameters:
 - blockId (required): The ID of the block to remove
 
 Response: 200 OK
 {
   "success": true,
   "message": "Block removed successfully",
-  "data": "Block removed successfully",
+  "data": "Block with ID 123 removed successfully",
   "errors": [],
   "timestamp": 1751455561337,
   "path": "/api/user-blocks/admin/remove"
@@ -343,9 +343,9 @@ Response: 200 OK
 ```
 
 **Features:**
-- Admin-only access for forced block removal
-- Simple confirmation response
-- Direct block ID removal
+- Admin can remove any user block by ID
+- Requires ROLE_ADMIN authorization
+- Returns confirmation message
 
 **Error Scenarios:**
 - Block not found → 404 NOT_FOUND
