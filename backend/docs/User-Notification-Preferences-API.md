@@ -6,32 +6,26 @@ Notification management system with granular controls for different notification
 ## Created Components
 
 ### 1. Routes (UserNotificationPreferencesRoutes.java)
-- `GET_NOTIFICATION_PREFERENCES`: GET `/api/user-notification-preferences`
+**Implemented Endpoints:**
+- `GET_NOTIFICATION_PREFERENCES`: GET `/api/user-notification-preferences` (and `/{userId}`)
 - `UPDATE_NOTIFICATION_PREFERENCES`: PUT `/api/user-notification-preferences`
 - `UPDATE_LIKES_PREFERENCES`: PATCH `/api/user-notification-preferences/likes`
 - `UPDATE_COMMENTS_PREFERENCES`: PATCH `/api/user-notification-preferences/comments`
 - `UPDATE_FOLLOWS_PREFERENCES`: PATCH `/api/user-notification-preferences/follows`
 - `UPDATE_MENTIONS_PREFERENCES`: PATCH `/api/user-notification-preferences/mentions`
-- `UPDATE_SYSTEM_PREFERENCES`: PATCH `/api/user-notification-preferences/system`
-- `UPDATE_EMAIL_PREFERENCES`: PATCH `/api/user-notification-preferences/email`
-- `UPDATE_PUSH_PREFERENCES`: PATCH `/api/user-notification-preferences/push`
-- `ENABLE_ALL_EMAIL`: POST `/api/user-notification-preferences/email/enable-all`
-- `DISABLE_ALL_EMAIL`: POST `/api/user-notification-preferences/email/disable-all`
-- `ENABLE_ALL_PUSH`: POST `/api/user-notification-preferences/push/enable-all`
-- `DISABLE_ALL_PUSH`: POST `/api/user-notification-preferences/push/disable-all`
-- `RESET_TO_DEFAULTS`: POST `/api/user-notification-preferences/reset`
+- `GET_ALL_PREFERENCES_ADMIN`: GET `/api/user-notification-preferences/admin/all`
 
 ### 2. DTOs
-- **Request**: `UpdateNotificationPreferencesRequestDTO`, `UpdateLikesPreferencesRequestDTO`, `UpdateCommentsPreferencesRequestDTO`, `UpdateFollowsPreferencesRequestDTO`, `UpdateMentionsPreferencesRequestDTO`, `UpdateSystemPreferencesRequestDTO`, `UpdateEmailPreferencesRequestDTO`, `UpdatePushPreferencesRequestDTO`
+- **Request**: `UpdateNotificationPreferencesRequestDTO`, `UpdateLikesPreferencesRequestDTO`, `UpdateCommentsPreferencesRequestDTO`, `UpdateFollowsPreferencesRequestDTO`, `UpdateMentionsPreferencesRequestDTO`
 - **Response**: `UserNotificationPreferencesResponseDTO`
 
 ### 3. Features
-- Simple notification preference management for 5 categories (likes, comments, follows, mentions, system)
+- Complete notification preference management for 5 categories (likes, comments, follows, mentions, system)
 - Dual delivery method support (email and push)
 - Individual category updates via PATCH operations
-- Bulk operations for email/push enable/disable
-- Reset to defaults functionality
-- Admin overview capabilities
+- Bulk preference updates via PUT operation
+- Admin overview capabilities with pagination
+- Current user and specific user ID support
 
 ### 4. Model
 - `UserNotificationPreferences` entity with one-to-one relationship to User
@@ -41,6 +35,7 @@ Notification management system with granular controls for different notification
 ### 5. Security
 - Authentication required for all operations
 - Admin role required for admin overview functionality
+- Users can only access their own preferences unless admin
 
 ## API Endpoints
 

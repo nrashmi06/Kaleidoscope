@@ -19,21 +19,21 @@ Comprehensive authentication and authorization system for the Kaleidoscope appli
 
 ### 2. DTOs
 - **Request**
-  - `RegisterRequestDTO`        (email, password, username, optional profilePictureUrl)
-  - `LoginRequestDTO`           (email, password)
-  - `ForgotPasswordRequestDTO`  (email)
-  - `ResetPasswordRequestDTO`   (token, newPassword)
+  - `UserRegistrationRequestDTO` (email, password, username, designation, summary, profilePicture as MultipartFile)
+  - `UserLoginRequestDTO`       (email, password)
   - `ChangePasswordRequestDTO`  (oldPassword, newPassword)
-  - `LogoutRequestDTO`          (refreshToken)
+  - `ResetPasswordRequestDTO`   (token, newPassword)
+  - `VerifyEmailRequestDTO`     (token)
 - **Response**
-  - `AuthResponseDTO`           (accessToken, refreshToken, tokenType, expiresIn)
-  - `MessageResponseDTO`        (message)
+  - `UserRegistrationResponseDTO` (id, email, username, designation, summary, profilePictureUrl, enabled, createdAt)
+  - `UserLoginResponseDTO`        (accessToken, refreshToken, tokenType, expiresIn, user details)
+  - Standard `ApiResponse<T>` wrapper for all responses
 
 ### 3. Service Layer (AuthService)
 Interface methods:
-- `register(RegisterRequestDTO)`
+- `registerUser(UserRegistrationRequestDTO)`
 - `verifyEmail(String token)`
-- `login(LoginRequestDTO)`
+- `loginUser(UserLoginRequestDTO)`
 - `forgotPassword(ForgotPasswordRequestDTO)`
 - `resetPassword(ResetPasswordRequestDTO)`
 - `changePassword(ChangePasswordRequestDTO)`
@@ -70,25 +70,47 @@ Implementation handles validation, email sending, JWT creation, refresh token pe
 ### 1. Register User
 ```
 POST /api/auth/register
-Content-Type: application/json
+Content-Type: multipart/form-data
 ```
-**Body** (`RegisterRequestDTO`):
+**Body** (Form Data):
+- `userData` (JSON): User registration data
+- `profilePicture` (File, optional): Profile picture file
+
+**userData JSON structure** (`UserRegistrationRequestDTO`):
 ```json
 {
   "email": "jane.doe@example.com",
-  "username": "janedoe",
+  "username": "janedoe", 
   "password": "P@ssw0rd!",
-  "profilePictureUrl": "https://.../avatar.jpg"
+  "designation": "Software Developer",
+  "summary": "Passionate developer with 5 years of experience"
 }
 ```
+
+**cURL Example**:
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -F 'userData={"email":"jane.doe@example.com","username":"janedoe","password":"P@ssw0rd!","designation":"Software Developer","summary":"Passionate developer"}' \
+  -F 'profilePicture=@/path/to/profile.jpg'
+```
+
 **Response**: `201 Created`
 ```json
 {
   "success": true,
-  "message": "Registration successful. Please check your email to verify your account.",
+  "message": "User registered successfully",
   "path": "/api/auth/register",
   "timestamp": "2025-07-02T10:00:00Z",
-  "data": null,
+  "data": {
+    "id": 1,
+    "email": "jane.doe@example.com",
+    "username": "janedoe",
+    "designation": "Software Developer",
+    "summary": "Passionate developer with 5 years of experience",
+    "profilePictureUrl": "https://your-cdn.com/profiles/generated-filename.jpg",
+    "enabled": false,
+    "createdAt": "2025-07-02T10:00:00Z"
+  },
   "errors": []
 }
 ```
