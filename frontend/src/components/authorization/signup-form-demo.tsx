@@ -240,6 +240,7 @@ export default function SignupForm() {
         </LabelInputContainer>
 
         <button
+          
           className="mt-4 group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 text-white shadow-lg transition-all hover:brightness-110"
           type="submit"
         >
