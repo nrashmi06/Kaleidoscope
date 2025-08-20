@@ -1,18 +1,13 @@
 package com.kaleidoscope.backend.users.controller;
 
 import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.users.controller.api.UserInterestApi;
 import com.kaleidoscope.backend.users.dto.request.AddUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.BulkUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserInterestListResponseDTO;
 import com.kaleidoscope.backend.users.routes.UserInterestRoutes;
 import com.kaleidoscope.backend.users.service.UserInterestService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,25 +20,14 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RequestMapping
 @RequiredArgsConstructor
-@Tag(name = "User Interest", description = "APIs for managing user interests")
-public class UserInterestController {
+public class UserInterestController implements UserInterestApi {
 
     private final UserInterestService userInterestService;
 
-    @Operation(summary = "Add user interest", description = "Add a category interest for the authenticated user")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Interest added successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input or interest already exists"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Category not found")
-    })
+    @Override
     @PostMapping(UserInterestRoutes.ADD_USER_INTEREST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> addUserInterest(
-            @Parameter(description = "User interest request", required = true)
-            @Valid @RequestBody AddUserInterestRequestDTO request) {
+    public ResponseEntity<ApiResponse<Object>> addUserInterest(@Valid @RequestBody AddUserInterestRequestDTO request) {
 
         userInterestService.addUserInterest(request.getCategoryId());
 
@@ -55,19 +39,10 @@ public class UserInterestController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Remove user interest", description = "Remove a category interest for the authenticated user")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Interest removed successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Interest not found")
-    })
+    @Override
     @DeleteMapping(UserInterestRoutes.REMOVE_USER_INTEREST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> removeUserInterest(
-            @Parameter(description = "Category ID", required = true)
-            @PathVariable Long categoryId) {
+    public ResponseEntity<ApiResponse<Object>> removeUserInterest(@PathVariable Long categoryId) {
 
         userInterestService.removeUserInterest(categoryId);
 
@@ -79,18 +54,10 @@ public class UserInterestController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get user interests", description = "Get interests for the authenticated user")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User interests retrieved successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
+    @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterests(
-            @Parameter(description = "Pagination parameters")
-            Pageable pageable) {
+    public ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterests(Pageable pageable) {
 
         UserInterestListResponseDTO interests = userInterestService.getUserInterests(pageable);
 
@@ -102,20 +69,10 @@ public class UserInterestController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Add multiple user interests", description = "Add multiple category interests for the authenticated user")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Interests added successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Category not found")
-    })
+    @Override
     @PostMapping(UserInterestRoutes.ADD_USER_INTERESTS_BULK)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> addUserInterestsBulk(
-            @Parameter(description = "Bulk user interests request", required = true)
-            @Valid @RequestBody BulkUserInterestRequestDTO request) {
+    public ResponseEntity<ApiResponse<Object>> addUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
 
         userInterestService.addUserInterests(request.getCategoryIds());
 
@@ -127,19 +84,10 @@ public class UserInterestController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Remove multiple user interests", description = "Remove multiple category interests for the authenticated user")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Interests removed successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
+    @Override
     @DeleteMapping(UserInterestRoutes.REMOVE_USER_INTERESTS_BULK)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> removeUserInterestsBulk(
-            @Parameter(description = "Bulk user interests request", required = true)
-            @Valid @RequestBody BulkUserInterestRequestDTO request) {
+    public ResponseEntity<ApiResponse<Object>> removeUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
 
         userInterestService.removeUserInterests(request.getCategoryIds());
 
@@ -151,20 +99,11 @@ public class UserInterestController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get user interests by user ID", description = "Get interests for a specific user")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User interests retrieved successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
-    })
+    @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterestsByUserId(
-            @Parameter(description = "User ID", required = true)
             @PathVariable Long userId,
-            @Parameter(description = "Pagination parameters")
             Pageable pageable) {
 
         UserInterestListResponseDTO interests = userInterestService.getUserInterestsByUserId(userId, pageable);
@@ -177,17 +116,10 @@ public class UserInterestController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Admin: Get category interest analytics", description = "Get analytics showing how many users are interested in each category with pagination")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Category analytics retrieved successfully"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
-    })
+    @Override
     @GetMapping(UserInterestRoutes.ADMIN_GET_CATEGORY_ANALYTICS)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<CategoryAnalyticsResponseDTO>> getCategoryAnalytics(
-            @Parameter(description = "Pagination parameters")
-            Pageable pageable) {
+    public ResponseEntity<ApiResponse<CategoryAnalyticsResponseDTO>> getCategoryAnalytics(Pageable pageable) {
 
         CategoryAnalyticsResponseDTO analytics = userInterestService.getCategoryInterestAnalytics(pageable);
 
