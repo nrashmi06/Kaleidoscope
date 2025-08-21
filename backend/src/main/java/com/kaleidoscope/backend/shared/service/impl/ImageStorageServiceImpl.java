@@ -2,23 +2,31 @@ package com.kaleidoscope.backend.shared.service.impl;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequest;
+import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponse;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ImageStorageServiceImpl implements ImageStorageService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ImageStorageServiceImpl.class);
     private final Cloudinary cloudinary;
 
     @Autowired
@@ -29,7 +37,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     @Async
     @Override
     public CompletableFuture<String> uploadImage(MultipartFile image, String folderPath) {
-        logger.info("Starting image upload to folder: {}", folderPath);
+        log.info("Starting image upload to folder: {}", folderPath);
         if (image == null || image.isEmpty()) {
             throw new ImageStorageException("Image file must not be null or empty");
         }
@@ -43,10 +51,10 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                     "fetch_format", "auto"
             ));
             String imageUrl = uploadResult.get("secure_url").toString();
-            logger.info("Image upload completed: {}", imageUrl);
+            log.info("Image upload completed: {}", imageUrl);
             return CompletableFuture.completedFuture(imageUrl);
         } catch (IOException e) {
-            logger.error("Failed to upload image to Cloudinary", e);
+            log.error("Failed to upload image to Cloudinary", e);
             throw new ImageStorageException("Failed to upload image to Cloudinary", e);
         }
     }
@@ -69,7 +77,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     @Async
     @Override
     public CompletableFuture<Void> deleteImage(String imageUrl) {
-        logger.info("Starting image deletion for URL: {}", imageUrl);
+        log.info("Starting image deletion for URL: {}", imageUrl);
         if (imageUrl == null || imageUrl.isEmpty()) {
             throw new ImageStorageException("Image URL must not be null or empty");
         }
@@ -77,10 +85,10 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         try {
             String publicId = extractPublicIdFromUrl(imageUrl);
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            logger.info("Image deletion completed for URL: {}", imageUrl);
+            log.info("Image deletion completed for URL: {}", imageUrl);
             return CompletableFuture.completedFuture(null);
         } catch (IOException e) {
-            logger.error("Failed to delete image from Cloudinary", e);
+            log.error("Failed to delete image from Cloudinary", e);
             throw new ImageStorageException("Failed to delete image from Cloudinary", e);
         }
     }
@@ -106,5 +114,75 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         }
 
         return publicId.toString();
+    }
+
+    @Override
+    public UploadSignatureResponse generatePostUploadSignature(GenerateUploadSignatureRequest request) {
+        try {
+            String publicId = "posts/" + System.currentTimeMillis() + "_" + request.getFileName();
+            long timestamp = System.currentTimeMillis() / 1000;
+
+            Map<String, Object> params = new TreeMap<>();
+            params.put("public_id", publicId);
+            params.put("folder", "kaleidoscope/posts");
+            params.put("resource_type", "image");
+            params.put("timestamp", timestamp);
+
+            String signature = generateSignature(params, cloudinary.config.apiSecret);
+
+            return new UploadSignatureResponse(
+                    signature,
+                    timestamp,
+                    publicId,
+                    "kaleidoscope/posts",
+                    cloudinary.config.apiKey,
+                    cloudinary.config.cloudName
+            );
+
+        } catch (Exception e) {
+            log.error("Error generating post upload signature for file: {}", request.getFileName(), e);
+            throw new RuntimeException("Failed to generate upload signature", e);
+        }
+    }
+
+    private String generateSignature(Map<String, Object> params, String apiSecret) throws NoSuchAlgorithmException, InvalidKeyException {
+        String toSign = params.entrySet().stream()
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
+                .collect(Collectors.joining("&"));
+
+        Mac mac = Mac.getInstance("HmacSHA1");
+        SecretKeySpec keySpec = new SecretKeySpec(apiSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA1");
+        mac.init(keySpec);
+        byte[] hash = mac.doFinal(toSign.getBytes(StandardCharsets.UTF_8));
+
+        StringBuilder result = new StringBuilder();
+        for (byte b : hash) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+    }
+
+    @Override
+    public boolean validatePostImageUrl(String imageUrl) {
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                return false;
+            }
+
+            String cloudName = cloudinary.config.cloudName;
+            if (!imageUrl.contains("res.cloudinary.com/" + cloudName)) {
+                return false;
+            }
+
+            if (!imageUrl.contains("/kaleidoscope/posts/")) {
+                return false;
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            log.error("Error validating post image URL: {}", imageUrl, e);
+            return false;
+        }
     }
 }
