@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UploadSignatureResponse {
+public class SignatureDataDTO {
     private String signature;
     private Long timestamp;
     private String publicId;

@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.shared.exception;
 
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
+import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryAlreadyExistsException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
@@ -22,6 +23,17 @@ public class SharedExceptionHandler {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         ApiResponse<Object> response = ApiResponse.error(
                 "Image storage error",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(SignatureGenerationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleSignatureGenerationException(SignatureGenerationException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(
+                "Signature generation error",
                 ex.getMessage(),
                 path
         );

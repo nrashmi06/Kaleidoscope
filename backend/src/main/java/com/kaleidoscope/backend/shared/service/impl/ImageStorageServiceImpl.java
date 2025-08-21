@@ -1,9 +1,10 @@
 package com.kaleidoscope.backend.shared.service.impl;
 
+import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequest;
-import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponse;
+import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
+import com.kaleidoscope.backend.shared.dto.response.SignatureDataDTO;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.util.List;
+import java.util.ArrayList;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
@@ -22,7 +24,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
+import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 @Slf4j
 @Service
 public class ImageStorageServiceImpl implements ImageStorageService {
@@ -117,31 +119,42 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     }
 
     @Override
-    public UploadSignatureResponse generatePostUploadSignature(GenerateUploadSignatureRequest request) {
+    public UploadSignatureResponseDTO generatePostUploadSignatures(GenerateUploadSignatureRequestDTO request) {
         try {
-            String publicId = "posts/" + System.currentTimeMillis() + "_" + request.getFileName();
-            long timestamp = System.currentTimeMillis() / 1000;
+            List<SignatureDataDTO> signatures = new ArrayList<>();
 
-            Map<String, Object> params = new TreeMap<>();
-            params.put("public_id", publicId);
-            params.put("folder", "kaleidoscope/posts");
-            params.put("resource_type", "image");
-            params.put("timestamp", timestamp);
+            for (String fileName : request.getFileNames()) {
+                String publicId = "posts/" + System.currentTimeMillis() + "_" + fileName;
+                long timestamp = System.currentTimeMillis() / 1000;
 
-            String signature = generateSignature(params, cloudinary.config.apiSecret);
+                Map<String, Object> params = new TreeMap<>();
+                params.put("public_id", publicId);
+                params.put("folder", "kaleidoscope/posts");
+                params.put("resource_type", "image");
+                params.put("timestamp", timestamp);
 
-            return new UploadSignatureResponse(
-                    signature,
-                    timestamp,
-                    publicId,
-                    "kaleidoscope/posts",
-                    cloudinary.config.apiKey,
-                    cloudinary.config.cloudName
-            );
+                String signature = generateSignature(params, cloudinary.config.apiSecret);
 
+                SignatureDataDTO signatureData = new SignatureDataDTO(
+                        signature,
+                        timestamp,
+                        publicId,
+                        "kaleidoscope/posts",
+                        cloudinary.config.apiKey,
+                        cloudinary.config.cloudName
+                );
+
+                signatures.add(signatureData);
+            }
+
+            return new UploadSignatureResponseDTO(signatures);
+
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            log.error("Cryptographic error generating signatures for files: {}", request.getFileNames(), e);
+            throw new SignatureGenerationException("Failed to generate upload signatures due to cryptographic error", e);
         } catch (Exception e) {
-            log.error("Error generating post upload signature for file: {}", request.getFileName(), e);
-            throw new RuntimeException("Failed to generate upload signature", e);
+            log.error("Unexpected error generating signatures for files: {}", request.getFileNames(), e);
+            throw new SignatureGenerationException("Failed to generate upload signatures", e);
         }
     }
 

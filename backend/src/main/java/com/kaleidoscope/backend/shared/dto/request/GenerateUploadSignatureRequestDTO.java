@@ -4,9 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class GenerateUploadSignatureRequest {
-    private String fileName;
+public class GenerateUploadSignatureRequestDTO {
+    private List<String> fileNames;
 }
