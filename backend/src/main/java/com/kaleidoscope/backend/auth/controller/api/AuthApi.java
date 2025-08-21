@@ -123,4 +123,13 @@ public interface AuthApi {
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Email verification request", required = true,
                     content = @Content(schema = @Schema(implementation = VerifyEmailRequestDTO.class)))
             @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO);
+
+    @Operation(summary = "Check username availability", description = "Check if a username is available for registration")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Username availability checked successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid username format")
+    })
+    ResponseEntity<ApiResponse<UsernameAvailabilityResponseDTO>> checkUsernameAvailability(
+            @Parameter(description = "Username to check") @RequestParam String username
+    );
 }

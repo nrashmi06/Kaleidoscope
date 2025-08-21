@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -205,6 +206,26 @@ public class AuthController implements AuthApi {
                 "Verification email sent successfully",
                 "Email sent",
                 AuthRoutes.VERIFY_EMAIL
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    @GetMapping(AuthRoutes.CHECK_USERNAME_AVAILABILITY)
+    public ResponseEntity<ApiResponse<UsernameAvailabilityResponseDTO>> checkUsernameAvailability(
+            @RequestParam String username) {
+
+        UsernameAvailabilityResponseDTO availabilityResponse = authService.checkUsernameAvailability(username);
+
+        String message = availabilityResponse.isAvailable()
+                ? "Username is available"
+                : "Username is already taken";
+
+        ApiResponse<UsernameAvailabilityResponseDTO> response = ApiResponse.success(
+                availabilityResponse,
+                message,
+                AuthRoutes.CHECK_USERNAME_AVAILABILITY
         );
 
         return ResponseEntity.ok(response);

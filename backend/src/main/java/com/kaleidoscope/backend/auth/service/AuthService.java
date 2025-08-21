@@ -2,8 +2,8 @@ package com.kaleidoscope.backend.auth.service;
 
 import com.kaleidoscope.backend.auth.dto.request.UserLoginRequestDTO;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
-import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
+import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Map;
@@ -75,4 +75,11 @@ public interface AuthService {
      * @param verificationCode Email verification code
      */
     void verifyUser(String verificationCode);
+    /**
+     * Check if a username is available for registration
+     *
+     * @param username Username to check
+     * @return Response indicating availability status
+     */
+    UsernameAvailabilityResponseDTO checkUsernameAvailability(String username);
 }

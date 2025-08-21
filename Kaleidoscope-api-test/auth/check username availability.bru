@@ -1,0 +1,36 @@
+meta {
+  name: check username availability
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:8080/kaleidoscope/api/auth/check-username?username=testuser123
+  body: none
+  auth: inherit
+}
+
+params:query {
+  username: testuser123
+}
+
+tests {
+  test("should return 200 status", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("should return success response", function() {
+    const data = res.getBody();
+    expect(data.success).to.be.true;
+    expect(data.message).to.be.a('string');
+    expect(data.data).to.be.an('object');
+  });
+
+  test("should return username availability data", function() {
+    const data = res.getBody();
+    expect(data.data).to.have.property('available');
+    expect(data.data).to.have.property('username');
+    expect(data.data.username).to.equal('testuser123');
+    expect(data.data.available).to.be.a('boolean');
+  });
+}

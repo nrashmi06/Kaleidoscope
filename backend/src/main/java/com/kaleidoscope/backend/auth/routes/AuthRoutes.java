@@ -13,6 +13,7 @@ public final class AuthRoutes {
     public static final String LOGOUT = BASE_API + "/logout";
     public static final String RENEW_TOKEN = BASE_API + "/renew-token";
     public static final String VERIFY_EMAIL = BASE_API + "/verify-email";
+    public static final String CHECK_USERNAME_AVAILABILITY = BASE_API + "/check-username";
     public static final String RESEND_VERIFICATION_EMAIL = BASE_API + "/resend-verification-email";
 
     public static final String FORGOT_PASSWORD = BASE_API + "/forgot-password";
