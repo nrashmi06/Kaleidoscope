@@ -63,7 +63,6 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        // Normalize search term
         String normalizedSearch = searchTerm != null ? searchTerm.trim() : null;
         if (normalizedSearch != null && normalizedSearch.isEmpty()) {
             normalizedSearch = null;
@@ -95,6 +94,7 @@ public class UserServiceImpl implements UserService {
 
         log.info("Updated account status for user ID {} to {}", userId, newAccountStatus);
     }
+
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email);
@@ -107,41 +107,42 @@ public class UserServiceImpl implements UserService {
                 createAuthorities(user.getRole())
         );
     }
+
     private static List<GrantedAuthority> createAuthorities(Role role) {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
+
     @Override
     @Transactional
     public UpdateUserProfileResponseDTO updateUserProfile(Long userId, UpdateUserProfileRequestDTO updateRequest) throws Exception {
         User user = getUserById(userId);
 
-        // Store old image URLs for rollback if needed
         String oldProfilePictureUrl = user.getProfilePictureUrl();
         String oldCoverPhotoUrl = user.getCoverPhotoUrl();
 
+        String newProfilePictureUrl = null;
+        String newCoverPhotoUrl = null;
+
         try {
-            // Update basic user information first
             UserMapper.updateUserFromDTO(user, updateRequest);
 
-            String newProfilePictureUrl = null;
-            String newCoverPhotoUrl = null;
-
-            // Handle profile picture update
+            // Handle profile picture update with organized folder structure
             if (updateRequest.getProfilePicture() != null && !updateRequest.getProfilePicture().isEmpty()) {
-                newProfilePictureUrl = imageStorageService.uploadImage(updateRequest.getProfilePicture()).join();
+                newProfilePictureUrl = imageStorageService.uploadUserProfileImage(
+                        updateRequest.getProfilePicture(), userId.toString()).join();
                 user.setProfilePictureUrl(newProfilePictureUrl);
             }
 
-            // Handle cover photo update
+            // Handle cover photo update with organized folder structure
             if (updateRequest.getCoverPhoto() != null && !updateRequest.getCoverPhoto().isEmpty()) {
-                newCoverPhotoUrl = imageStorageService.uploadImage(updateRequest.getCoverPhoto()).join();
+                newCoverPhotoUrl = imageStorageService.uploadUserCoverPhoto(
+                        updateRequest.getCoverPhoto(), userId.toString()).join();
                 user.setCoverPhotoUrl(newCoverPhotoUrl);
             }
 
-            // Save user with new image URLs
             user = userRepository.save(user);
 
-            // Only delete old images after successful save
+            // Delete old images after successful save
             if (newProfilePictureUrl != null && oldProfilePictureUrl != null && !oldProfilePictureUrl.isEmpty()) {
                 imageStorageService.deleteImage(oldProfilePictureUrl).join();
             }
@@ -153,13 +154,11 @@ public class UserServiceImpl implements UserService {
 
         } catch (Exception e) {
             // Cleanup any uploaded images if user save failed
-            if (updateRequest.getProfilePicture() != null && user.getProfilePictureUrl() != null
-                && !user.getProfilePictureUrl().equals(oldProfilePictureUrl)) {
-                imageStorageService.deleteImage(user.getProfilePictureUrl()).join();
+            if (newProfilePictureUrl != null) {
+                imageStorageService.deleteImage(newProfilePictureUrl).join();
             }
-            if (updateRequest.getCoverPhoto() != null && user.getCoverPhotoUrl() != null
-                && !user.getCoverPhotoUrl().equals(oldCoverPhotoUrl)) {
-                imageStorageService.deleteImage(user.getCoverPhotoUrl()).join();
+            if (newCoverPhotoUrl != null) {
+                imageStorageService.deleteImage(newCoverPhotoUrl).join();
             }
             throw e;
         }

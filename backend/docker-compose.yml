@@ -1,36 +1,35 @@
-version: '3.8'
 services:
   db:
-    image: postgres:17.4
-    container_name: kaleidoscope-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: kaleidoscope
+    image: postgres:${POSTGRES_VERSION:-17.4}
+    container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: always
 
   app:
-    image: ajayprabhu2004/kaleidoscope:latest
-    container_name: kaleidoscope-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_REGISTRY:-rajay04}/kaleidoscope:${APP_VERSION:-latest}
+    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
       db:
         condition: service_healthy
-    env_file: .env
-    environment:
-      DB_HOST: db
+    env_file:
+      - .env
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
     networks:
       - app-network
     restart: unless-stopped

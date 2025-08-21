@@ -4,6 +4,7 @@ import com.kaleidoscope.backend.auth.dto.request.UserLoginRequestDTO;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
+import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
 import com.kaleidoscope.backend.auth.exception.auth.InvalidUserCredentialsException;
 import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyInUseException;
 import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyVerifiedException;
@@ -20,10 +21,7 @@ import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.enums.Theme;
 import com.kaleidoscope.backend.users.enums.Visibility;
-import com.kaleidoscope.backend.users.exception.user.InvalidUsernameException;
-import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
-import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.users.exception.user.*;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserNotificationPreferences;
@@ -178,31 +176,39 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             throw new InvalidUsernameException("Invalid username: " + trimmedUserName + ". Please try another.");
         }
 
+        if (userRepository.existsByUsername(trimmedUserName)) {
+            throw new UsernameAlreadyInUseException("Username is already taken: " + trimmedUserName + ". Please try another.");
+        }
         try {
-            // Handle profile picture upload
+            // Create user first to get the userId for folder organization
+            User user = userMapper.toEntity(
+                    userRegistrationDTO,
+                    passwordEncoder.encode(userRegistrationDTO.getPassword()),
+                    null // Set profile picture URL to null initially
+            );
+            user.setUsername(trimmedUserName);
+            user.setCoverPhotoUrl(defaultCoverPhotoUrl);
+
+            // Save user to get the generated userId
+            user = userRepository.save(user);
+
+            // Handle profile picture upload with organized folder structure
             String profilePictureUrl = null;
             if (userRegistrationDTO.getProfilePicture() != null && !userRegistrationDTO.getProfilePicture().isEmpty()) {
                 try {
-                    profilePictureUrl = imageStorageService.uploadImage(userRegistrationDTO.getProfilePicture()).get();
+                    profilePictureUrl = imageStorageService.uploadUserProfileImage(
+                            userRegistrationDTO.getProfilePicture(),
+                            user.getUserId().toString()
+                    ).get();
+
+                    // Update user with profile picture URL
+                    user.setProfilePictureUrl(profilePictureUrl);
+                    user = userRepository.save(user);
                 } catch (Exception e) {
                     log.error("Failed to upload profile picture", e);
                     throw new ImageStorageException("Failed to upload profile picture");
                 }
             }
-
-            // Use default cover photo URL from application properties
-            String coverPhotoUrl = defaultCoverPhotoUrl;
-
-            // Create and save the user
-            User user = userMapper.toEntity(
-                    userRegistrationDTO,
-                    passwordEncoder.encode(userRegistrationDTO.getPassword()),
-                    profilePictureUrl
-            );
-            user.setUsername(trimmedUserName);
-            user.setCoverPhotoUrl(coverPhotoUrl);
-
-            userRepository.save(user);
 
             // Create default user preferences for the new user
             UserPreferences userPreferences = UserPreferences.builder()
@@ -436,6 +442,33 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
 
     private static List<GrantedAuthority> createAuthorities(Role role) {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    @Override
+    public UsernameAvailabilityResponseDTO checkUsernameAvailability(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            return UsernameAvailabilityResponseDTO.builder()
+                    .available(false)
+                    .username("")
+                    .build();
+        }
+
+        String trimmedUsername = username.replaceAll("\\s+", "");
+
+        // Validate username format
+        if (!isValidUsername(trimmedUsername)) {
+            return UsernameAvailabilityResponseDTO.builder()
+                    .available(false)
+                    .username(trimmedUsername)
+                    .build();
+        }
+
+        boolean isAvailable = !userRepository.existsByUsername(trimmedUsername);
+
+        return UsernameAvailabilityResponseDTO.builder()
+                .available(isAvailable)
+                .username(trimmedUsername)
+                .build();
     }
 }
 
