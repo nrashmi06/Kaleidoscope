@@ -128,3 +128,11 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+.map-inner-bg {
+  background-color: #f9fafb; /* light background for light mode */
+}
+
+.dark .map-inner-bg {
+  background-color: #3e4d5f; /* lighter, but still darkish blue for dark mode */
+}

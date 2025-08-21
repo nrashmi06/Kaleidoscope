@@ -80,7 +80,6 @@ export default function UnauthLayout({ children }: { children: ReactNode }) {
         </MobileNav>
       </Navbar>
 
-      {/* Add padding to prevent content from hiding under fixed navbar */}
       <div >
         <main>{children}</main>
       </div>

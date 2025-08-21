@@ -73,30 +73,22 @@ export default function HeroSectionOne() {
 
         {/* World Map Section */}
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 10,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.3,
-            delay: 1.2,
-          }}
-          className="relative z-10 mt-20 rounded-3xl border border-neutral-200 bg-neutral-100 p-4 shadow-md dark:border-neutral-800 dark:bg-neutral-900"
-        >
-          <WorldMap
-            dots={[
-              {
-                start: { lat: 51.5074, lng: -0.1278 },
-                end: { lat: 40.7128, lng: -74.0060 },
-              },
-              {
-                start: { lat: 51.5074, lng: -0.1278 },
-                end: { lat: 30.7128, lng: 70.0060 },
-              },
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3, delay: 1.2 }}
+  className="relative z-10 mt-20 rounded-3xl border border-neutral-200 bg-neutral-100 p-4 shadow-md dark:border-neutral-800 dark:bg-neutral-900"
+>
+  <div className="rounded-2xl bg-neutral-50 dark:bg-neutral-800 p-2">
+    <WorldMap
+      dots={[
+        {
+          start: { lat: 51.5074, lng: -0.1278 },
+          end: { lat: 40.7128, lng: -74.0060 },
+        },
+        {
+          start: { lat: 51.5074, lng: -0.1278 },
+          end: { lat: 30.7128, lng: 70.0060 },
+        },
               {
                 start: { lat: 30.7128, lng: 70.0060 },
                 end: { lat: 0.7128, lng: 80.0060 },
@@ -145,6 +137,7 @@ export default function HeroSectionOne() {
             ]}
             lineColor="#0ea5e9"
           />
+          </div>
         </motion.div>
       </div>
       <section className="w-full px-4 py-12">

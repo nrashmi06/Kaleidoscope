@@ -1,5 +1,5 @@
 import axios, { AxiosError } from "axios";
-import { RefreshResponseData } from "@/lib/types/auth";
+import { RefreshTokenResponse } from "@/lib/types/auth";
 import { AuthMapper } from "@/mapper/authMapper";
 import { AppDispatch } from "@/store/index";
 import { setUser } from "@/store/authSlice";
@@ -7,7 +7,7 @@ import { setUser } from "@/store/authSlice";
 export const refreshToken =
   () => async (dispatch: AppDispatch): Promise<{ success: boolean; message: string }> => {
     try {
-      const response = await axios.post<RefreshResponseData>(
+      const response = await axios.post<RefreshTokenResponse>(
         AuthMapper.renewToken,
         {},
         {
@@ -16,36 +16,37 @@ export const refreshToken =
         }
       );
 
-      const { accessToken, userId, email, username, role } = response.data;
+      const { success, data, message, errors } = response.data;
 
-      if (!accessToken) {
+      if (!success || !data?.accessToken) {
         return {
           success: false,
-          message: "No access token returned from server.",
+          message: errors?.[0] || message || "No access token returned from server.",
         };
       }
 
       dispatch(
         setUser({
-          accessToken,
-          userId,
-          email,
-          username,
-          role,
+          accessToken: data.accessToken,
+          userId: data.userId,
+          email: data.email,
+          username: data.username,
+          role: data.role,
         })
       );
 
       return {
         success: true,
-        message: response.statusText || "Token refreshed successfully",
+        message: message || "Token refreshed successfully",
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<{ message: string }>;
-        const errData = axiosError.response?.data || { message: axiosError.message };
+        const axiosError = error as AxiosError<RefreshTokenResponse>;
+        const errData = axiosError.response?.data;
+
         return {
           success: false,
-          message: typeof errData === "string" ? errData : errData.message || "Failed to refresh token",
+          message: errData?.errors?.[0] || errData?.message || axiosError.message || "Token refresh failed",
         };
       }
 

@@ -25,7 +25,7 @@ export default function SigninForm() {
 
     if (result.success) {
       setSuccess(result.message);
-      router.push("/blog");
+      router.push("/feed");
     } else {
       setError(result.message);
     }
