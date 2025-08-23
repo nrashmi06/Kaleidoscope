@@ -3,7 +3,10 @@ package com.kaleidoscope.backend.auth.security.jwt;
 import com.kaleidoscope.backend.auth.config.JwtProperties;
 import com.kaleidoscope.backend.auth.exception.token.JwtTokenExpiredException;
 import com.kaleidoscope.backend.shared.enums.Role;
+import com.kaleidoscope.backend.users.model.UserPreferences;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.repository.UserInterestRepository;
+import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -27,12 +30,17 @@ public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
     private final JwtProperties jwtProperties;
+    private final UserRepository userRepository;
     private final UserInterestRepository userInterestRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
 
     @Autowired
-    public JwtUtils(JwtProperties jwtProperties, UserInterestRepository userInterestRepository) {
+    public JwtUtils(JwtProperties jwtProperties, UserRepository userRepository,
+                    UserInterestRepository userInterestRepository, UserPreferencesRepository userPreferencesRepository) {
         this.jwtProperties = jwtProperties;
+        this.userRepository = userRepository;
         this.userInterestRepository = userInterestRepository;
+        this.userPreferencesRepository = userPreferencesRepository;
     }
 
     public String getJwtFromHeader(HttpServletRequest request) {
@@ -54,17 +62,25 @@ public class JwtUtils {
         // Check if user has selected any interests
         boolean isUserInterestSelected = userInterestRepository.existsByUser_UserId(userId);
 
+        // Get user preferences for theme and language
+        UserPreferences userPreferences = userPreferencesRepository.findByUser_UserId(userId).orElse(null);
+        String theme = userPreferences != null ? userPreferences.getTheme().toString() : "SYSTEM";
+        String language = userPreferences != null ? userPreferences.getLanguage() : "en-US";
+
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtProperties.getExpiration());
 
         logger.debug("Current time: {}", now);
         logger.debug("Token expiration time: {}", expiryDate);
         logger.debug("User {} has selected interests: {}", userId, isUserInterestSelected);
+        logger.debug("User {} theme: {}, language: {}", userId, theme, language);
 
         return Jwts.builder()
                 .claim("role", role)
                 .claim("userId", userId)
                 .claim("isUserInterestSelected", isUserInterestSelected)
+                .claim("theme", theme)
+                .claim("language", language)
                 .setSubject(username)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
@@ -115,6 +131,24 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody()
                 .get("isUserInterestSelected", Boolean.class);
+    }
+
+    public String getThemeFromJwtToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("theme", String.class);
+    }
+
+    public String getLanguageFromJwtToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("language", String.class);
     }
 
     private Key key() {
@@ -185,3 +219,4 @@ public class JwtUtils {
         return "ROLE_"+ Role.USER; // Default role if none found
     }
 }
+
