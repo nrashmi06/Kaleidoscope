@@ -5,10 +5,7 @@ import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
-import com.kaleidoscope.backend.auth.exception.auth.InvalidUserCredentialsException;
-import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyInUseException;
 import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyVerifiedException;
-import com.kaleidoscope.backend.auth.exception.email.InvalidEmailException;
 import com.kaleidoscope.backend.auth.model.EmailVerification;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
@@ -17,28 +14,20 @@ import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.auth.service.RefreshTokenService;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
-import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
-import com.kaleidoscope.backend.shared.service.ImageStorageService;
-import com.kaleidoscope.backend.users.enums.Theme;
-import com.kaleidoscope.backend.users.enums.Visibility;
-import com.kaleidoscope.backend.users.exception.user.*;
+import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
+import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
+import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
-import com.kaleidoscope.backend.users.model.UserNotificationPreferences;
-import com.kaleidoscope.backend.users.model.UserPreferences;
-import com.kaleidoscope.backend.users.repository.UserNotificationPreferencesRepository;
-import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
+import com.kaleidoscope.backend.auth.service.UserRegistrationService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -47,7 +36,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -56,45 +44,33 @@ import java.util.*;
 @Slf4j
 public class AuthServiceImpl implements AuthService, UserDetailsService {
 
-    @Value("${spring.app.defaults.cover-photo-url}")
-    private String defaultCoverPhotoUrl;
-
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
-    private final UserPreferencesRepository userPreferencesRepository;
-    private final UserNotificationPreferencesRepository userNotificationPreferencesRepository;
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationRepository emailVerificationRepository;
     private final EmailService emailService;
-    private final UserMapper userMapper;
-    private final ImageStorageService imageStorageService;
+    private final UserRegistrationService userRegistrationService;
 
     public AuthServiceImpl(
             JwtUtils jwtUtils,
             @Lazy AuthenticationManager authenticationManager,
             UserRepository userRepository,
-            UserPreferencesRepository userPreferencesRepository,
-            UserNotificationPreferencesRepository userNotificationPreferencesRepository,
             RefreshTokenService refreshTokenService,
             PasswordEncoder passwordEncoder,
             EmailVerificationRepository emailVerificationRepository,
             EmailService emailService,
-            UserMapper userMapper,
-            ImageStorageService imageStorageService
+            UserRegistrationService userRegistrationService
     ) {
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
-        this.userPreferencesRepository = userPreferencesRepository;
-        this.userNotificationPreferencesRepository = userNotificationPreferencesRepository;
         this.refreshTokenService = refreshTokenService;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationRepository = emailVerificationRepository;
         this.emailService = emailService;
-        this.userMapper = userMapper;
-        this.imageStorageService = imageStorageService;
+        this.userRegistrationService = userRegistrationService;
     }
 
     @Override
@@ -109,19 +85,13 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             throw new UsernameNotFoundException("Invalid email");
         }
 
-        // Authenticate user
-        Authentication authentication;
-        try {
-            authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginRequest.getEmail(),
-                            loginRequest.getPassword()
-                    )
-            );
-        } catch (AuthenticationException e) {
-            log.warn("Login failed: invalid password for {}", loginRequest.getEmail());
-            throw new InvalidUserCredentialsException("Invalid password");
-        }
+        // Authenticate user - let global exception handler manage AuthenticationException
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getEmail(),
+                        loginRequest.getPassword()
+                )
+        );
 
         if (user.getAccountStatus() != AccountStatus.ACTIVE) {
             log.error("User is not active: {}", user.getEmail());
@@ -145,120 +115,16 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         return response;
     }
 
-    private boolean isValidEmail(String email) {
-        // Regular expression for validating an email address
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        return email != null && email.matches(emailRegex);
-    }
-
-    private boolean isValidUsername(String username) {
-        return username != null &&
-                !username.trim().isEmpty() &&
-                username.matches("^[a-zA-Z0-9 ._-]{3,}$");
-    }
-
     @Override
     @Transactional
     public UserRegistrationResponseDTO registerUser(UserRegistrationRequestDTO userRegistrationDTO) {
-        // Validate email format
-        if (!isValidEmail(userRegistrationDTO.getEmail())) {
-            throw new InvalidEmailException("Invalid email format: " + userRegistrationDTO.getEmail());
-        }
-
-        // Check if email already exists
-        if (userRepository.existsByEmail(userRegistrationDTO.getEmail())) {
-            throw new EmailAlreadyInUseException("Email is already in use: " + userRegistrationDTO.getEmail());
-        }
-
-        // Validate username
-        String trimmedUserName = userRegistrationDTO.getUsername().replaceAll("\\s+", "");
-        if (!isValidUsername(trimmedUserName)) {
-            throw new InvalidUsernameException("Invalid username: " + trimmedUserName + ". Please try another.");
-        }
-
-        if (userRepository.existsByUsername(trimmedUserName)) {
-            throw new UsernameAlreadyInUseException("Username is already taken: " + trimmedUserName + ". Please try another.");
-        }
-        try {
-            // Create user first to get the userId for folder organization
-            User user = userMapper.toEntity(
-                    userRegistrationDTO,
-                    passwordEncoder.encode(userRegistrationDTO.getPassword()),
-                    null // Set profile picture URL to null initially
-            );
-            user.setUsername(trimmedUserName);
-            user.setCoverPhotoUrl(defaultCoverPhotoUrl);
-
-            // Save user to get the generated userId
-            user = userRepository.save(user);
-
-            // Handle profile picture upload with organized folder structure
-            String profilePictureUrl = null;
-            if (userRegistrationDTO.getProfilePicture() != null && !userRegistrationDTO.getProfilePicture().isEmpty()) {
-                try {
-                    profilePictureUrl = imageStorageService.uploadUserProfileImage(
-                            userRegistrationDTO.getProfilePicture(),
-                            user.getUserId().toString()
-                    ).get();
-
-                    // Update user with profile picture URL
-                    user.setProfilePictureUrl(profilePictureUrl);
-                    user = userRepository.save(user);
-                } catch (Exception e) {
-                    log.error("Failed to upload profile picture", e);
-                    throw new ImageStorageException("Failed to upload profile picture");
-                }
-            }
-
-            // Create default user preferences for the new user
-            UserPreferences userPreferences = UserPreferences.builder()
-                    .user(user)
-                    .theme(Theme.SYSTEM)
-                    .language("en-US")
-                    .profileVisibility(Visibility.PUBLIC)
-                    .allowMessages(Visibility.FRIENDS_ONLY)
-                    .allowTagging(Visibility.PUBLIC)
-                    .viewActivity(Visibility.FRIENDS_ONLY)
-                    .showEmail(false)
-                    .showPhone(false)
-                    .showOnlineStatus(true)
-                    .searchDiscoverable(true)
-                    .build();
-
-            userPreferencesRepository.save(userPreferences);
-            log.info("Created default user preferences for user ID: {}", user.getUserId());
-
-            // Create default notification preferences for the new user
-            UserNotificationPreferences notificationPreferences = UserNotificationPreferences.builder()
-                    .user(user)
-                    .likesEmail(true)
-                    .likesPush(true)
-                    .commentsEmail(true)
-                    .commentsPush(true)
-                    .followsEmail(true)
-                    .followsPush(true)
-                    .mentionsEmail(true)
-                    .mentionsPush(true)
-                    .systemEmail(true)
-                    .systemPush(true)
-                    .build();
-
-            userNotificationPreferencesRepository.save(notificationPreferences);
-            log.info("Created default notification preferences for user ID: {}", user.getUserId());
-
-            // Send verification email for new registration
-            sendVerificationEmail(user.getEmail());
-
-            return UserMapper.toRegistrationResponseDTO(user);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "An error occurred while registering the user", e);
-        }
+        log.info("Delegating user registration to UserRegistrationService for email: {}", userRegistrationDTO.getEmail());
+        return userRegistrationService.registerUser(userRegistrationDTO);
     }
-
 
     @Override
     public void forgotPassword(String email) {
+        // Let global exception handler manage UserNotFoundException
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new UserNotFoundException("User not found with email: " + email);
@@ -267,18 +133,16 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         // Generate a new 6-digit numeric token
         String token = UUID.randomUUID().toString().replaceAll("[^0-9]", "").substring(0, 6);
 
-        // Check if an entry already exists for this email
+        // Create or update email verification record
         Optional<EmailVerification> existingVerification = emailVerificationRepository.findByEmail(email);
         EmailVerification emailVerification;
 
         if (existingVerification.isPresent()) {
-            // Update existing verification record
             emailVerification = existingVerification.get();
             emailVerification.setVerificationCode(token);
             emailVerification.setStatus("pending");
             emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
         } else {
-            // Create new verification record
             emailVerification = new EmailVerification();
             emailVerification.setUserId(user.getUserId());
             emailVerification.setVerificationCode(token);
@@ -455,8 +319,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
 
         String trimmedUsername = username.replaceAll("\\s+", "");
 
-        // Validate username format
-        if (!isValidUsername(trimmedUsername)) {
+        // Basic validation only - detailed validation is in UserRegistrationService
+        if (trimmedUsername.length() < 3 || !trimmedUsername.matches("^[a-zA-Z0-9 ._-]+$")) {
             return UsernameAvailabilityResponseDTO.builder()
                     .available(false)
                     .username(trimmedUsername)
