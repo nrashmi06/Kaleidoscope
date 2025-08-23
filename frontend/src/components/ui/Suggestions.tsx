@@ -33,18 +33,20 @@ export default function Suggestions({
   return (
     <div className={`mb-4 md:mb-8 ${className}`}>
       <div className="mb-2 md:mb-4 flex items-center justify-between">
-        <h2 className="text-base md:text-lg font-semibold">Suggestions</h2>
+        <h2 className="text-base md:text-lg font-semibold text-neutral-800 dark:text-neutral-100">
+          Suggestions
+        </h2>
       </div>
 
       <div className="space-y-3 md:space-y-4">
         {displayedSuggestions.map((person, index) => {
           return (
-            <div 
-              key={index} 
-              className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50"
+            <div
+              key={index}
+              className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
             >
               <div className="flex items-center flex-1 min-w-0">
-                <div className="h-10 w-10 overflow-hidden rounded-full">
+                <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200 dark:bg-neutral-700">
                   <Image
                     src={person.imagePath}
                     alt={person.name}
@@ -54,12 +56,16 @@ export default function Suggestions({
                   />
                 </div>
                 <div className="ml-2 md:ml-3 flex-1 min-w-0">
-                  <p className="text-sm md:text-base font-medium truncate">{person.name}</p>
-                  <p className="text-xs md:text-sm text-gray-500 truncate">{person.location}</p>
+                  <p className="text-sm md:text-base font-medium text-neutral-800 dark:text-neutral-100 truncate">
+                    {person.name}
+                  </p>
+                  <p className="text-xs md:text-sm text-gray-500 dark:text-neutral-400 truncate">
+                    {person.location}
+                  </p>
                 </div>
               </div>
               <button
-                className="ml-2 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors "
+                className="ml-2 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
                 onClick={() => handleAdd(index)}
                 disabled={addedIndices.includes(index)}
                 aria-label={addedIndices.includes(index) ? "Added" : "Add person"}
@@ -81,7 +87,7 @@ export default function Suggestions({
       <div className="mt-3 md:mt-4 text-center">
         <button
           onClick={() => setViewAll(!viewAll)}
-          className="text-xs md:text-sm text-blue-500 hover:underline font-medium"
+          className="text-xs md:text-sm text-blue-500 hover:underline font-medium dark:text-blue-400"
         >
           {viewAll ? "View Less" : "View All"}
         </button>

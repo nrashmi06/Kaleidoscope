@@ -1,24 +1,34 @@
-// /services/auth/verifyEmail.ts
-
 import axios, { AxiosError } from 'axios';
 import { AuthMapper } from '@/mapper/authMapper';
-import { VerifyEmailRequest, VerifyEmailResponse, ErrorResponse } from '@/lib/types/auth';
+import {
+  VerifyEmailRequest,
+  VerifyEmailResponse,
+} from '@/lib/types/auth';
 
 export const verifyEmail = async (
   data: VerifyEmailRequest
 ): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await axios.post<VerifyEmailResponse>(AuthMapper.verifyEmail, data);
-    return { success: true, message: response.data.message };
+
+    return {
+      success: response.data.success,
+      message: response.data.message
+    };
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<ErrorResponse>;
-      const msg = axiosError.response?.data?.message;
+      const axiosError = error as AxiosError<VerifyEmailResponse>;
+      const errData = axiosError.response?.data;
+
       return {
         success: false,
-        message: typeof msg === 'string' ? msg : 'Email verification failed',
+        message: errData?.message || 'Email verification failed'
       };
     }
-    return { success: false, message: 'Unexpected error during email verification' };
+
+    return {
+      success: false,
+      message: 'Unexpected error during email verification'
+    };
   }
 };

@@ -1,4 +1,24 @@
-// User registration data structure
+
+
+export interface StandardAPIResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errors: string[];
+  timestamp: number;
+  path: string;
+}
+
+
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface LoginUserData {
+  email: string;
+  password: string;
+}
+
 export interface RegisterUserData {
   email: string;
   password: string;
@@ -7,72 +27,53 @@ export interface RegisterUserData {
   summary: string;
 }
 
-// Interface for the form state, including the file for profile picture
 export interface RegisterFormState extends RegisterUserData {
-  confirmPassword: string;
+  confirmPassword: string; // Frontend-only
   profilePicture: File | null;
 }
 
-
-// Expected success response from backend (customize if needed)
-export interface RegisterUserResponse {
-  message: string;
-  success: boolean;
-  userId?: string;
-  token?: string;
-}
-
-// Error response format (optional, based on how your backend handles errors)
-export interface ErrorResponse {
-  message: string;
-  status?: number;
+export interface ResetPasswordData {
+  token: string;
+  newPassword: string;
 }
 
 export interface VerifyEmailRequest {
   email: string;
 }
 
-export interface VerifyEmailResponse {
+// =======================
+// ✅ Response Payloads (used in `data` field of StandardAPIResponse)
+// =======================
+
+export interface ForgotPasswordPayload {
   message: string;
 }
 
-// /lib/types/auth.ts
-
-export interface LoginUserData {
-  email: string;
-  password: string;
-}
-
-export interface LoginUserResponse {
+export interface LoginUserPayload {
   accessToken: string;
   userId: string;
   username: string;
   email: string;
-  role: string;
+  role: 'USER' | 'ADMIN'; // Extend roles as needed
 }
 
-export interface ForgotPasswordData{
-  email: string;
-}
-export interface ForgotPasswordResponse {
-  message: string;
-  success: boolean;
-}
-
-export interface ResetPasswordData {
-  token : string;
-  newPassword: string;
-};
-
-export interface ResetPasswordResponse {
-  message: string;
-  success: boolean;
-};
-
-export interface RefreshResponseData {
-  accessToken: string;
+export interface RegisterUserPayload {
   userId: string;
-  email: string;
-  username: string;
-  role: string;
+  token: string;
 }
+
+export interface ResetPasswordPayload {
+  message: string;
+}
+
+export type VerifyEmailResponsePayload  = string;
+
+export type LogoutPayload = string; 
+
+export type LogoutResponse = StandardAPIResponse<LogoutPayload>;
+export type ForgotPasswordResponse = StandardAPIResponse<ForgotPasswordPayload>;
+export type LoginUserResponse = StandardAPIResponse<LoginUserPayload>;
+export type RegisterUserResponse = StandardAPIResponse<RegisterUserPayload>;
+export type ResetPasswordResponse = StandardAPIResponse<ResetPasswordPayload>;
+export type VerifyEmailResponse = StandardAPIResponse<VerifyEmailResponsePayload>;
+export type RefreshTokenResponse = StandardAPIResponse<LoginUserPayload>;

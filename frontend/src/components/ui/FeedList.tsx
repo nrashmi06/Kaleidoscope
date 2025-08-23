@@ -31,8 +31,8 @@ export default function FeedList() {
   ];
 
   return (
-    <div className="w-full h-full overflow-y-auto">
-      <div>
+    <div className="w-full h-full overflow-y-auto bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
+      <div className="space-y-4 px-4 pb-8">
         {feeds.map((feed) => (
           <FeedCard
             key={feed.id}
