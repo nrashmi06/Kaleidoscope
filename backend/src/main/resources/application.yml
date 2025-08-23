@@ -63,7 +63,7 @@ allowed:
   origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
 
 jwt:
-  secret: ${JWT_SECRET:kaleidoscope-jwt-secret-key-for-testing-purposes-only}
+  secret: ${JWT_SECRET}
   expiration: 86400000
   cookie-max-age-days: 7
 

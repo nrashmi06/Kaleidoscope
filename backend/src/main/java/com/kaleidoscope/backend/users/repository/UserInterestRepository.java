@@ -48,4 +48,9 @@ public interface UserInterestRepository extends JpaRepository<UserInterest, Long
      */
     @Query("SELECT COUNT(DISTINCT ui.user.userId) FROM UserInterest ui")
     Long countDistinctByUser();
+
+    /**
+     * Check if a user has any interests
+     */
+    boolean existsByUser_UserId(Long userId);
 }
