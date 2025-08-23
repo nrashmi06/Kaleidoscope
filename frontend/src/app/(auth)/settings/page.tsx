@@ -1,10 +1,19 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
+import { useAppSelector } from "@/hooks/useAppSelector";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("preferences");
+  const role = useAppSelector((state) => state.auth.role);
+
+  // Redirect non-admin users from category tab to preferences
+  useEffect(() => {
+    if (activeTab === "category" && role !== 'ADMIN') {
+      setActiveTab("preferences");
+    }
+  }, [activeTab, role]);
 
   return (
     <div className="max-w-full mx-4 sm:mx-2 md:mx-auto p-3">

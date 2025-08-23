@@ -71,6 +71,7 @@ export const CategorySettingsTab = () => {
       iconName={category.iconName}
       categoryId={category.categoryId}
       onCategorySelect={(cat) => setEditingCategory(cat)}
+      onDeleted={fetchCategories}
     />
 ))}
 

@@ -32,6 +32,7 @@ export const refreshToken =
           email: data.email,
           username: data.username,
           role: data.role,
+          isUserInterestSelected: false, // Will be updated by JWT decoding logic
         })
       );
 

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { ReactNode, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { ReactNode, useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import useClearStore from "@/hooks/clearStore";
@@ -17,13 +17,23 @@ type DashboardLayoutProps = {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const clearStore = useClearStore();
-  const token = useSelector((state: RootState) => state.auth.accessToken);
+  const { accessToken, isUserInterestSelected, role } = useSelector((state: RootState) => state.auth);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Check if user needs to complete interest selection (skip for admins)
+  useEffect(() => {
+    const isAdmin = role === 'ADMIN';
+    if (accessToken && !isUserInterestSelected && !pathname.includes('/onboarding') && !isAdmin) {
+      console.log("Redirecting to onboarding - user hasn't selected interests");
+      router.push('/onboarding/categories');
+    }
+  }, [accessToken, isUserInterestSelected, pathname, router, role]);
 
   const handleLogout = async () => {
     try {
-      await logoutUser(token);
+      await logoutUser(accessToken);
       clearStore();
       router.push("/login");
     } catch (error) {

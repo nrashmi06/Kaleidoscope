@@ -1,0 +1,34 @@
+import axios from "axios";
+import { ParentCategoriesResponse } from "@/lib/types/settings/category";
+import { CategoryMapper } from "@/mapper/categoryMapper";
+
+// Get all parent categories for onboarding
+export const getOnboardingCategories = async (accessToken: string): Promise<ParentCategoriesResponse> => {
+  const response = await axios.get<ParentCategoriesResponse>(
+    CategoryMapper.getAllCategories,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+  return response.data;
+};
+
+// Add user interests in bulk for onboarding
+export const addUserInterestsBulk = async (
+  accessToken: string,
+  categoryIds: number[]
+): Promise<{ success: boolean; message: string }> => {
+  const response = await axios.post(
+    `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/users/interests/bulk`,
+    { categoryIds },
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+};
