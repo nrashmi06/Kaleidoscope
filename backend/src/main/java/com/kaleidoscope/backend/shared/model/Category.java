@@ -1,16 +1,16 @@
 package com.kaleidoscope.backend.shared.model;
 
+import com.kaleidoscope.backend.users.model.UserInterest;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.util.HashSet;
 import java.util.Set;
-import com.kaleidoscope.backend.users.model.UserInterest;
+
 @Entity
 @Table(name = "categories")
-@Data
+@Getter // Use Getter
+@Setter // Use Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -33,10 +33,42 @@ public class Category {
     @JoinColumn(name = "parent_id")
     private Category parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @OneToMany(
+            mappedBy = "parent",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true // Crucial for cascading deletes of children
+    )
     private Set<Category> subcategories = new HashSet<>();
 
-    @OneToMany(mappedBy = "category")
+    @OneToMany(
+            mappedBy = "category",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true // Also needed here to clean up interests
+    )
     private Set<UserInterest> interestedUsers = new HashSet<>();
-}
 
+    // Helper methods to keep both sides of the relationship in sync
+    public void addSubcategory(Category subcategory) {
+        subcategories.add(subcategory);
+        subcategory.setParent(this);
+    }
+
+    public void removeSubcategory(Category subcategory) {
+        subcategories.remove(subcategory);
+        subcategory.setParent(null);
+    }
+
+    // Override equals and hashCode to avoid issues with lazy loading
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Category category = (Category) o;
+        return categoryId != null && categoryId.equals(category.categoryId);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+}
