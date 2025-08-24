@@ -62,6 +62,28 @@ public class SharedExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleLocationNotFoundException(com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(
+                "Location not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(com.kaleidoscope.backend.shared.exception.locationException.LocationAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleLocationAlreadyExistsException(com.kaleidoscope.backend.shared.exception.locationException.LocationAlreadyExistsException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(
+                "Location already exists",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Object>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
