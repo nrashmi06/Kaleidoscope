@@ -1,7 +1,7 @@
 services:
   db:
     image: postgis/postgis:17-3.4
-    container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
+    container_name: ${POSTG-RES_CONTAINER_NAME:-kaleidoscope-postgres}
     env_file:
       - .env
     volumes:
@@ -18,7 +18,8 @@ services:
     restart: always
 
   app:
-    image: ajayprabhu2004/kaleidoscope:${APP_VERSION:-latest}
+    # Corrected to match the CI/CD pipeline's output tag
+    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
       db:
@@ -37,4 +38,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-
