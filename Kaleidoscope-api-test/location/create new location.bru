@@ -1,0 +1,24 @@
+meta {
+  name: create new location
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/kaleidoscope/api/locations
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Golden Gate Bridge",
+    "latitude": 37.8199,
+    "longitude": -122.4783,
+    "country": "United States",
+    "state": "California",
+    "city": "San Francisco",
+    "address": "Golden Gate Bridge, San Francisco, CA, USA",
+    "placeId": "ChIJw____96GhYARCVVwg5cT7c0"
+  }
+}

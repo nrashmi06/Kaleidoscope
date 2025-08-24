@@ -12,7 +12,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "locations")
+@Table(name = "locations", indexes = {
+        @Index(name = "idx_location_name", columnList = "name"),
+        @Index(name = "idx_location_city", columnList = "city"),
+        @Index(name = "idx_location_state", columnList = "state"),
+        @Index(name = "idx_location_country", columnList = "country"),
+        @Index(name = "idx_location_place_id", columnList = "place_id", unique = true),
+        @Index(name = "idx_location_coordinates", columnList = "latitude, longitude")
+})
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
@@ -29,7 +36,6 @@ public class Location {
     @Column(nullable = false, length = 255)
     private String name;
 
-    // Use BigDecimal for precision with geographical coordinates
     @Column(nullable = false, precision = 10, scale = 8)
     private BigDecimal latitude;
 
@@ -48,14 +54,13 @@ public class Location {
     @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Column(name = "place_id", length = 255)
+    @Column(name = "place_id", length = 255, unique = true)
     private String placeId;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // Relationship to Posts (optional, but good for navigation)
     @OneToMany(mappedBy = "location", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Post> posts = new HashSet<>();

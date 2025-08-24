@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:${POSTGRES_VERSION:-17.4}
+    image: postgis/postgis:17-3.4
     container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
     env_file:
       - .env
