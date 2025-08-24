@@ -75,4 +75,14 @@ public class LocationServiceImpl implements LocationService {
                 .orElseThrow(() -> new LocationNotFoundException(locationId));
         return locationMapper.toDTO(location);
     }
+
+    @Override
+    @Transactional
+    public void deleteLocationById(Long locationId) {
+        log.info("Deleting location by ID: {}", locationId);
+        Location location = locationRepository.findById(locationId)
+                .orElseThrow(() -> new LocationNotFoundException(locationId));
+        locationRepository.delete(location);
+        log.info("Location deleted: {}", locationId);
+    }
 }

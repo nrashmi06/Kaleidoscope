@@ -1,0 +1,12 @@
+meta {
+  name: delete location by id (admin only)
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://localhost:8080/kaleidoscope/api/locations/1
+  body: none
+  auth: inherit
+}
+

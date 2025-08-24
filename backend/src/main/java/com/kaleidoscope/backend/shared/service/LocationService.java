@@ -46,4 +46,11 @@ public interface LocationService {
      * @return the location
      */
     LocationResponseDTO getLocationById(Long locationId);
+
+    /**
+     * Delete location by ID (admin only)
+     *
+     * @param locationId the ID of the location to delete
+     */
+    void deleteLocationById(Long locationId);
 }

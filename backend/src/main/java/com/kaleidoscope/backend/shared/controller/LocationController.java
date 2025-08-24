@@ -123,4 +123,22 @@ public class LocationController implements LocationApi {
                         .build()
         );
     }
+
+    @Override
+    @DeleteMapping(LocationRoutes.DELETE_LOCATION)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteLocationById(@PathVariable Long locationId) {
+        log.info("Admin deleting location by ID: {}", locationId);
+        locationService.deleteLocationById(locationId);
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .success(true)
+                        .message("Location deleted successfully")
+                        .data(null)
+                        .errors(Collections.emptyList())
+                        .timestamp(Instant.now().toEpochMilli())
+                        .path(LocationRoutes.DELETE_LOCATION)
+                        .build()
+        );
+    }
 }

@@ -18,4 +18,5 @@ public class LocationRoutes {
     public static final String SEARCH_LOCATIONS = LOCATIONS + "/search";
     public static final String NEARBY_LOCATIONS = LOCATIONS + "/nearby";
     public static final String GET_LOCATION_BY_ID = LOCATIONS + LOCATION_ID;
+    public static final String DELETE_LOCATION = LOCATIONS + LOCATION_ID;
 }

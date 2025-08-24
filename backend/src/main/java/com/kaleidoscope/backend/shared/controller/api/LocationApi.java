@@ -74,4 +74,17 @@ public interface LocationApi {
             @Parameter(description = "Search radius in kilometers", example = "10.0", required = true)
             @RequestParam double radiusKm,
             @Parameter(description = "Pagination parameters") Pageable pageable);
+
+    @Operation(summary = "Delete location by ID", description = "Deletes a location by its ID. Admin only.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Location deleted successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Location not found")
+    })
+    ResponseEntity<ApiResponse<Void>> deleteLocationById(
+            @Parameter(description = "The ID of the location to delete", required = true)
+            @PathVariable Long locationId);
 }
