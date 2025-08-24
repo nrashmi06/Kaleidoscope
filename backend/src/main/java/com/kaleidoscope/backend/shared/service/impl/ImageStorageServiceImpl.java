@@ -2,16 +2,23 @@ package com.kaleidoscope.backend.shared.service.impl;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.SignatureDataDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
+import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
+import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
+import com.kaleidoscope.backend.shared.repository.MediaAssetTrackerRepository;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
+import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -23,10 +30,20 @@ import java.util.concurrent.CompletableFuture;
 public class ImageStorageServiceImpl implements ImageStorageService {
 
     private final Cloudinary cloudinary;
+    private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
+    private final UserRepository userRepository;
+    private final JwtUtils jwtUtils;
 
     @Autowired
-    public ImageStorageServiceImpl(Cloudinary cloudinary) {
+    public ImageStorageServiceImpl(
+            Cloudinary cloudinary,
+            MediaAssetTrackerRepository mediaAssetTrackerRepository,
+            UserRepository userRepository,
+            JwtUtils jwtUtils) {
         this.cloudinary = cloudinary;
+        this.mediaAssetTrackerRepository = mediaAssetTrackerRepository;
+        this.userRepository = userRepository;
+        this.jwtUtils = jwtUtils;
     }
 
     @Async
@@ -36,7 +53,6 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         if (image == null || image.isEmpty()) {
             throw new ImageStorageException("Image file must not be null or empty");
         }
-
         try {
             Map<String, Object> uploadResult = cloudinary.uploader().upload(image.getBytes(), ObjectUtils.asMap(
                     "folder", "kaleidoscope/" + folderPath,
@@ -90,7 +106,6 @@ public class ImageStorageServiceImpl implements ImageStorageService {
 
     @Override
     public String extractPublicIdFromUrl(String imageUrl) {
-        // This implementation is fine and remains unchanged.
         String[] urlParts = imageUrl.split("/");
         StringBuilder publicId = new StringBuilder();
         boolean foundVersion = false;
@@ -112,26 +127,37 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     }
 
     @Override
+    @Transactional // Add transactional to ensure the tracker is saved reliably
     public UploadSignatureResponseDTO generatePostUploadSignatures(GenerateUploadSignatureRequestDTO request) {
         try {
+            // Get the current user who is initiating the upload
+            Long userId = jwtUtils.getUserIdFromContext();
+            User currentUser = userRepository.findByUserId(userId);
+            if(currentUser == null) {
+                throw new IllegalStateException("Authenticated user not found for ID: " + userId);
+            }
+
             List<SignatureDataDTO> signatures = new ArrayList<>();
 
             for (String fileName : request.getFileNames()) {
-                String uniqueId = UUID.randomUUID().toString().substring(0, 8); // A short unique ID
+                String uniqueId = UUID.randomUUID().toString().substring(0, 8);
                 String publicId = "posts/" + System.currentTimeMillis() + "_" + uniqueId;
                 long timestamp = System.currentTimeMillis() / 1000;
 
-                // Use TreeMap to ensure parameters are sorted alphabetically for consistent signing
                 Map<String, Object> params = new TreeMap<>();
                 params.put("public_id", publicId);
                 params.put("folder", "kaleidoscope/posts");
                 params.put("timestamp", timestamp);
 
-                // --- BEST PRACTICE REFACTOR ---
-                // Use the Cloudinary SDK's built-in signer. It's safer and simpler.
-                // The apiSigner handles the SHA algorithm and implementation details correctly.
                 String signature = cloudinary.apiSignRequest(params, cloudinary.config.apiSecret);
-                // -----------------------------
+
+
+                MediaAssetTracker tracker = MediaAssetTracker.builder()
+                        .publicId(publicId)
+                        .user(currentUser)
+                        .status(MediaAssetStatus.PENDING)
+                        .build();
+                mediaAssetTrackerRepository.save(tracker);
 
                 SignatureDataDTO signatureData = new SignatureDataDTO(
                         signature,
@@ -147,13 +173,11 @@ public class ImageStorageServiceImpl implements ImageStorageService {
             return new UploadSignatureResponseDTO(signatures);
 
         } catch (Exception e) {
-            // Catching a broader exception now since apiSigner() doesn't throw checked crypto exceptions.
             log.error("Unexpected error generating signatures for files: {}", request.getFileNames(), e);
             throw new SignatureGenerationException("Failed to generate upload signatures", e);
         }
     }
 
-    // The custom generateSignature() method has been removed as it's no longer needed.
 
     @Override
     public boolean validatePostImageUrl(String imageUrl) {
