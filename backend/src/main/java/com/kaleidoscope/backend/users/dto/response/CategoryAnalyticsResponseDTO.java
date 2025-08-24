@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,12 +22,7 @@ public class CategoryAnalyticsResponseDTO {
         private Double percentage;
     }
 
-    private List<CategoryStats> categoryStats;
+    private org.springframework.data.domain.Page<CategoryStats> categoryStats;
     private Long totalUsers;
     private Long totalCategories;
-
-    // Pagination info
-    private Integer currentPage;
-    private Integer totalPages;
-    private Long totalElements;
 }

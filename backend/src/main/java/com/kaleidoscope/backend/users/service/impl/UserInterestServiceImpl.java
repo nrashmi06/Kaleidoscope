@@ -150,23 +150,16 @@ public class UserInterestServiceImpl implements UserInterestService {
     public CategoryAnalyticsResponseDTO getCategoryInterestAnalytics(Pageable pageable) {
         Page<Category> categoryPage = categoryRepository.findAll(pageable);
         List<Long> categoryIds = bulkOperationsMapper.extractCategoryIds(categoryPage.getContent());
-
         Long totalUsers = userInterestRepository.countDistinctByUser();
-
-        // Get user counts for all categories in a single query
         Map<Long, Long> userCountMap = userInterestRepository.countUsersByCategoryIds(categoryIds)
                 .stream()
                 .collect(Collectors.toMap(
-                    row -> (Long) row[0],  // categoryId
-                    row -> (Long) row[1]   // userCount
+                    row -> (Long) row[0],
+                    row -> (Long) row[1]
                 ));
-
-        // Use analytics mapper to build category stats
-        List<CategoryAnalyticsResponseDTO.CategoryStats> categoryStats =
-                analyticsMapper.buildCategoryStatsList(categoryPage, userCountMap, totalUsers);
-
+        Page<CategoryAnalyticsResponseDTO.CategoryStats> categoryStatsPage =
+                analyticsMapper.buildCategoryStatsPage(categoryPage, userCountMap, totalUsers);
         Long totalCategories = categoryRepository.count();
-
-        return analyticsMapper.toCategoryAnalyticsResponse(categoryStats, totalUsers, totalCategories, categoryPage, pageable);
+        return analyticsMapper.toCategoryAnalyticsResponse(categoryStatsPage, totalUsers, totalCategories);
     }
 }

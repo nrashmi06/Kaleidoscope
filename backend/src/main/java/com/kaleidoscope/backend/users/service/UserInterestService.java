@@ -59,9 +59,8 @@ public interface UserInterestService {
 
     /**
      * Admin: Get category interest analytics with pagination
-     *
      * @param pageable Pagination parameters
-     * @return Category interest analytics with user counts and pagination info
+     * @return Category analytics with user counts and pagination info
      */
     CategoryAnalyticsResponseDTO getCategoryInterestAnalytics(Pageable pageable);
 }

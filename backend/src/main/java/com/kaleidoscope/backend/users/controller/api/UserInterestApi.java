@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.users.controller.api;
 
 import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
 import com.kaleidoscope.backend.users.dto.request.AddUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.BulkUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,7 +53,7 @@ public interface UserInterestApi {
                             schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    ResponseEntity<ApiResponse<Page<UserInterestResponseDTO>>> getUserInterests(
+    ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterests(
             @Parameter(description = "Pagination parameters")
             Pageable pageable);
 
@@ -90,17 +90,18 @@ public interface UserInterestApi {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
     })
-    ResponseEntity<ApiResponse<Page<UserInterestResponseDTO>>> getUserInterestsByUserId(
+    ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterestsByUserId(
             @Parameter(description = "User ID", required = true) @PathVariable Long userId,
             @Parameter(description = "Pagination parameters") Pageable pageable);
 
     @Operation(summary = "Admin: Get category interest analytics", description = "Get analytics showing how many users are interested in each category with pagination")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Category analytics retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Category analytics retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
     })
-    ResponseEntity<ApiResponse<CategoryAnalyticsResponseDTO>> getCategoryAnalytics(
-            @Parameter(description = "Pagination parameters")
-            Pageable pageable);
+    ResponseEntity<ApiResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>>> getCategoryAnalytics(
+            @Parameter(description = "Pagination parameters") Pageable pageable);
 }
