@@ -61,15 +61,7 @@ public class UserInterestController implements UserInterestApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterests(Pageable pageable) {
         Page<UserInterestResponseDTO> interests = userInterestService.getUserInterests(pageable);
-        PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.<UserInterestResponseDTO>builder()
-            .content(interests.getContent())
-            .page(interests.getNumber())
-            .size(interests.getSize())
-            .totalPages(interests.getTotalPages())
-            .totalElements(interests.getTotalElements())
-            .first(interests.isFirst())
-            .last(interests.isLast())
-            .build();
+        PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.fromPage(interests);
         ApiResponse<PaginatedResponse<UserInterestResponseDTO>> response = ApiResponse.success(
             paginated,
             "User interests retrieved successfully",
@@ -113,15 +105,7 @@ public class UserInterestController implements UserInterestApi {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterestsByUserId(@PathVariable Long userId, Pageable pageable) {
         Page<UserInterestResponseDTO> interests = userInterestService.getUserInterestsByUserId(userId, pageable);
-        PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.<UserInterestResponseDTO>builder()
-            .content(interests.getContent())
-            .page(interests.getNumber())
-            .size(interests.getSize())
-            .totalPages(interests.getTotalPages())
-            .totalElements(interests.getTotalElements())
-            .first(interests.isFirst())
-            .last(interests.isLast())
-            .build();
+        PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.fromPage(interests);
         ApiResponse<PaginatedResponse<UserInterestResponseDTO>> response = ApiResponse.success(
             paginated,
             "User interests retrieved successfully",
@@ -136,15 +120,7 @@ public class UserInterestController implements UserInterestApi {
     public ResponseEntity<ApiResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>>> getCategoryAnalytics(Pageable pageable) {
         CategoryAnalyticsResponseDTO analytics = userInterestService.getCategoryInterestAnalytics(pageable);
         Page<CategoryAnalyticsResponseDTO.CategoryStats> statsPage = analytics.getCategoryStats();
-        PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats> paginated = PaginatedResponse.<CategoryAnalyticsResponseDTO.CategoryStats>builder()
-            .content(statsPage.getContent())
-            .page(statsPage.getNumber())
-            .size(statsPage.getSize())
-            .totalPages(statsPage.getTotalPages())
-            .totalElements(statsPage.getTotalElements())
-            .first(statsPage.isFirst())
-            .last(statsPage.isLast())
-            .build();
+        PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats> paginated = PaginatedResponse.fromPage(statsPage);
         ApiResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>> response = ApiResponse.success(
             paginated,
             "Category interest analytics retrieved successfully",

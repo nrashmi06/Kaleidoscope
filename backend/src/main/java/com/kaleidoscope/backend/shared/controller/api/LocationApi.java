@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.shared.controller.api;
 
 import com.kaleidoscope.backend.shared.dto.request.LocationRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,7 +11,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +27,7 @@ public interface LocationApi {
                             schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    ResponseEntity<ApiResponse<Page<LocationResponseDTO>>> searchLocations(
+    ResponseEntity<ApiResponse<PaginatedResponse<LocationResponseDTO>>> searchLocations(
             @Parameter(description = "Search term to find locations (searches across name, city, state, country, address)", example = "San Francisco")
             @RequestParam(required = false) String search,
             @Parameter(description = "Pagination parameters") Pageable pageable);
@@ -66,7 +66,7 @@ public interface LocationApi {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid coordinates or radius"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    ResponseEntity<ApiResponse<Page<LocationResponseDTO>>> findNearbyLocations(
+    ResponseEntity<ApiResponse<PaginatedResponse<LocationResponseDTO>>> findNearbyLocations(
             @Parameter(description = "Latitude of the center point", example = "37.7749", required = true)
             @RequestParam double latitude,
             @Parameter(description = "Longitude of the center point", example = "-122.4194", required = true)

@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.shared.controller.api;
 
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,7 +11,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,7 +26,7 @@ public interface CategoryApi {
                             schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    ResponseEntity<ApiResponse<Page<CategoryResponseDTO>>> getAllParentCategories(
+    ResponseEntity<ApiResponse<PaginatedResponse<CategoryResponseDTO>>> getAllParentCategories(
             @Parameter(description = "Pagination parameters") Pageable pageable);
 
     @Operation(summary = "Create a new category", description = "Creates a new category. Requires admin privileges.")
