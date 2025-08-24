@@ -74,7 +74,7 @@ public class Post {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private PostStatus status = PostStatus.DRAFT;
+    private PostStatus status = PostStatus.ARCHIVED;
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
