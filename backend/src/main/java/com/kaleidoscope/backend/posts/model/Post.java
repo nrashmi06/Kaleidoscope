@@ -171,6 +171,6 @@ public class Post {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return 31;
     }
 }

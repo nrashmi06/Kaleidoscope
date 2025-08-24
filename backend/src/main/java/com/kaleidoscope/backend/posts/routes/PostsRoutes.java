@@ -1,0 +1,26 @@
+package com.kaleidoscope.backend.posts.routes;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class PostsRoutes {
+    private static final String API_VERSION = "/api/v1"; // Using v1 for clarity
+
+    // Base route for posts
+    public static final String POSTS = API_VERSION + "/posts";
+
+    // --- Endpoint for Phase 1 ---
+    /**
+     * POST /api/v1/posts/generate-upload-signatures
+     * Endpoint to request signatures for client-side media uploads.
+     */
+    public static final String GENERATE_UPLOAD_SIGNATURES = POSTS + "/generate-upload-signatures";
+
+    // --- Endpoint for Phase 2 ---
+    /**
+     * POST /api/v1/posts
+     * Endpoint to create the actual post after media has been uploaded.
+     */
+    public static final String CREATE_POST = POSTS; //
+}

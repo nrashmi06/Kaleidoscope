@@ -1,30 +1,23 @@
 package com.kaleidoscope.backend.shared.service.impl;
 
-import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.SignatureDataDTO;
+import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
+import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.List;
-import java.util.ArrayList;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
+
 @Slf4j
 @Service
 public class ImageStorageServiceImpl implements ImageStorageService {
@@ -96,9 +89,9 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     }
 
     private String extractPublicIdFromUrl(String imageUrl) {
+        // This implementation is fine and remains unchanged.
         String[] urlParts = imageUrl.split("/");
         StringBuilder publicId = new StringBuilder();
-
         boolean foundVersion = false;
         for (int i = 0; i < urlParts.length; i++) {
             if (urlParts[i].startsWith("v") && urlParts[i].length() > 1 && Character.isDigit(urlParts[i].charAt(1))) {
@@ -114,7 +107,6 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                 }
             }
         }
-
         return publicId.toString();
     }
 
@@ -124,16 +116,21 @@ public class ImageStorageServiceImpl implements ImageStorageService {
             List<SignatureDataDTO> signatures = new ArrayList<>();
 
             for (String fileName : request.getFileNames()) {
-                String publicId = "posts/" + System.currentTimeMillis() + "_" + fileName;
+                String uniqueId = UUID.randomUUID().toString().substring(0, 8); // A short unique ID
+                String publicId = "posts/" + System.currentTimeMillis() + "_" + uniqueId;
                 long timestamp = System.currentTimeMillis() / 1000;
 
+                // Use TreeMap to ensure parameters are sorted alphabetically for consistent signing
                 Map<String, Object> params = new TreeMap<>();
                 params.put("public_id", publicId);
                 params.put("folder", "kaleidoscope/posts");
-                params.put("resource_type", "image");
                 params.put("timestamp", timestamp);
 
-                String signature = generateSignature(params, cloudinary.config.apiSecret);
+                // --- BEST PRACTICE REFACTOR ---
+                // Use the Cloudinary SDK's built-in signer. It's safer and simpler.
+                // The apiSigner handles the SHA algorithm and implementation details correctly.
+                String signature = cloudinary.apiSignRequest(params, cloudinary.config.apiSecret);
+                // -----------------------------
 
                 SignatureDataDTO signatureData = new SignatureDataDTO(
                         signature,
@@ -143,37 +140,19 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                         cloudinary.config.apiKey,
                         cloudinary.config.cloudName
                 );
-
                 signatures.add(signatureData);
             }
 
             return new UploadSignatureResponseDTO(signatures);
 
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            log.error("Cryptographic error generating signatures for files: {}", request.getFileNames(), e);
-            throw new SignatureGenerationException("Failed to generate upload signatures due to cryptographic error", e);
         } catch (Exception e) {
+            // Catching a broader exception now since apiSigner() doesn't throw checked crypto exceptions.
             log.error("Unexpected error generating signatures for files: {}", request.getFileNames(), e);
             throw new SignatureGenerationException("Failed to generate upload signatures", e);
         }
     }
 
-    private String generateSignature(Map<String, Object> params, String apiSecret) throws NoSuchAlgorithmException, InvalidKeyException {
-        String toSign = params.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining("&"));
-
-        Mac mac = Mac.getInstance("HmacSHA1");
-        SecretKeySpec keySpec = new SecretKeySpec(apiSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA1");
-        mac.init(keySpec);
-        byte[] hash = mac.doFinal(toSign.getBytes(StandardCharsets.UTF_8));
-
-        StringBuilder result = new StringBuilder();
-        for (byte b : hash) {
-            result.append(String.format("%02x", b));
-        }
-        return result.toString();
-    }
+    // The custom generateSignature() method has been removed as it's no longer needed.
 
     @Override
     public boolean validatePostImageUrl(String imageUrl) {
