@@ -12,7 +12,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "comments")
+@Table(name = "comments", indexes = {
+        @Index(name = "idx_comment_post_id", columnList = "post_id"),
+        @Index(name = "idx_comment_user_id", columnList = "user_id"),
+        @Index(name = "idx_comment_parent_comment_id", columnList = "parent_comment_id"),
+        @Index(name = "idx_comment_status", columnList = "status"),
+        @Index(name = "idx_comment_created_at", columnList = "created_at")
+})
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter

@@ -9,7 +9,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "likes")
+@Table(name = "likes", indexes = {
+        @Index(name = "idx_like_post_id", columnList = "post_id"),
+        @Index(name = "idx_like_user_id", columnList = "user_id"),
+        @Index(name = "idx_like_created_at", columnList = "created_at"),
+        @Index(name = "idx_like_user_post", columnList = "user_id, post_id", unique = true)
+})
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter

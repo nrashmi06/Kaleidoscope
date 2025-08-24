@@ -12,7 +12,12 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @Entity
-@Table(name = "post_media")
+@Table(name = "post_media", indexes = {
+        @Index(name = "idx_post_media_post_id", columnList = "post_id"),
+        @Index(name = "idx_post_media_type", columnList = "media_type"),
+        @Index(name = "idx_post_media_position", columnList = "position"),
+        @Index(name = "idx_post_media_created_at", columnList = "created_at")
+})
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter

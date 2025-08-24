@@ -22,7 +22,12 @@ import java.util.Set;
  * Implements soft-delete functionality via @SQLDelete and @Where.
  */
 @Entity
-@Table(name = "posts")
+@Table(name = "posts", indexes = {
+        @Index(name = "idx_post_user_id", columnList = "user_id"),
+        @Index(name = "idx_post_status", columnList = "status"),
+        @Index(name = "idx_post_visibility", columnList = "visibility"),
+        @Index(name = "idx_post_created_at", columnList = "created_at")
+})
 @EntityListeners(AuditingEntityListener.class)
 @SQLDelete(sql = "UPDATE posts SET deleted_at = NOW() WHERE post_id = ?")
 @Where(clause = "deleted_at IS NULL")
@@ -69,7 +74,7 @@ public class Post {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private PostStatus status = PostStatus.PUBLISHED;
+    private PostStatus status = PostStatus.DRAFT;
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
@@ -85,6 +90,22 @@ public class Post {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @PrePersist
+    @PreUpdate
+    private void calculateReadStats() {
+        if (this.body == null || this.body.isBlank()) {
+            this.wordCount = 0;
+            this.readTimeMinutes = 0;
+            return;
+        }
+
+        // A simple way to count words
+        String[] words = this.body.trim().split("\\s+");
+        this.wordCount = words.length;
+
+        // Assuming an average reading speed of 200 words per minute
+        this.readTimeMinutes = (int) Math.ceil((double) this.wordCount / 200);
+    }
     // --- Relationships ---
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -117,8 +138,15 @@ public class Post {
     }
 
     public void removeCategory(Category category) {
-        PostCategory postCategory = new PostCategory(this, category);
-        categories.remove(postCategory);
+        PostCategory toRemove = this.categories.stream()
+                .filter(pc -> pc.getCategory().equals(category) && pc.getPost().equals(this))
+                .findFirst()
+                .orElse(null);
+
+        if (toRemove != null) {
+            this.categories.remove(toRemove);
+            toRemove.setPost(null);
+        }
     }
 
     public void addComment(Comment comment) {
