@@ -3,6 +3,7 @@ package com.kaleidoscope.backend.shared.controller;
 import com.kaleidoscope.backend.shared.controller.api.LocationApi;
 import com.kaleidoscope.backend.shared.dto.request.LocationRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.shared.routes.LocationRoutes;
 import com.kaleidoscope.backend.shared.service.LocationService;
@@ -30,22 +31,20 @@ public class LocationController implements LocationApi {
     @Override
     @GetMapping(LocationRoutes.SEARCH_LOCATIONS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Page<LocationResponseDTO>>> searchLocations(
+    public ResponseEntity<ApiResponse<PaginatedResponse<LocationResponseDTO>>> searchLocations(
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "name") Pageable pageable) {
-        
         log.info("Searching locations with term: '{}' and pagination: page {}, size {}",
                 search, pageable.getPageNumber(), pageable.getPageSize());
-
         Page<LocationResponseDTO> locations = locationService.searchLocations(search, pageable);
-
+        PaginatedResponse<LocationResponseDTO> paginated = PaginatedResponse.fromPage(locations);
         return ResponseEntity.ok(
-                ApiResponse.<Page<LocationResponseDTO>>builder()
+                ApiResponse.<PaginatedResponse<LocationResponseDTO>>builder()
                         .success(true)
                         .message(search != null && !search.trim().isEmpty()
                                 ? "Locations found for search term: '" + search + "'"
                                 : "All locations retrieved successfully")
-                        .data(locations)
+                        .data(paginated)
                         .errors(Collections.emptyList())
                         .timestamp(Instant.now().toEpochMilli())
                         .path(LocationRoutes.SEARCH_LOCATIONS)
@@ -100,7 +99,7 @@ public class LocationController implements LocationApi {
     @Override
     @GetMapping(LocationRoutes.NEARBY_LOCATIONS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Page<LocationResponseDTO>>> findNearbyLocations(
+    public ResponseEntity<ApiResponse<PaginatedResponse<LocationResponseDTO>>> findNearbyLocations(
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam double radiusKm,
@@ -110,13 +109,13 @@ public class LocationController implements LocationApi {
                 latitude, longitude, radiusKm);
 
         Page<LocationResponseDTO> nearbyLocations = locationService.findNearbyLocations(latitude, longitude, radiusKm, pageable);
-
+        PaginatedResponse<LocationResponseDTO> paginated = PaginatedResponse.fromPage(nearbyLocations);
         return ResponseEntity.ok(
-                ApiResponse.<Page<LocationResponseDTO>>builder()
+                ApiResponse.<PaginatedResponse<LocationResponseDTO>>builder()
                         .success(true)
                         .message(String.format("Found nearby locations within %.1f km of coordinates (%.4f, %.4f)",
                                 radiusKm, latitude, longitude))
-                        .data(nearbyLocations)
+                        .data(paginated)
                         .errors(Collections.emptyList())
                         .timestamp(Instant.now().toEpochMilli())
                         .path(LocationRoutes.NEARBY_LOCATIONS)
