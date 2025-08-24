@@ -5,7 +5,7 @@ import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.repository.CategoryRepository;
 import com.kaleidoscope.backend.shared.service.CategoryService;
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
-import com.kaleidoscope.backend.users.dto.response.UserInterestListResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserInterestResponseDTO;
 import com.kaleidoscope.backend.users.exception.userinterest.UserInterestAlreadyExistsException;
 import com.kaleidoscope.backend.users.exception.userinterest.UserInterestNotFoundException;
 import com.kaleidoscope.backend.users.mapper.CategoryAnalyticsMapper;
@@ -128,26 +128,21 @@ public class UserInterestServiceImpl implements UserInterestService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserInterestListResponseDTO getUserInterests(Pageable pageable) {
-        return getUserInterestsByUserIdInternal(jwtUtils.getUserIdFromContext(), pageable);
+    public Page<UserInterestResponseDTO> getUserInterests(Pageable pageable) {
+        Long userId = jwtUtils.getUserIdFromContext();
+        userService.getUserById(userId); // Verify user exists
+        Page<UserInterest> userInterests = userInterestRepository.findByUser_UserId(userId, pageable);
+        // Optionally filter redundant child interests here if needed
+        return userInterestMapper.toResponseDTOPage(userInterests);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserInterestListResponseDTO getUserInterestsByUserId(Long userId, Pageable pageable) {
-        return getUserInterestsByUserIdInternal(userId, pageable);
-    }
-
-    /**
-     * Internal method to eliminate duplication between getUserInterests and getUserInterestsByUserId
-     */
-    private UserInterestListResponseDTO getUserInterestsByUserIdInternal(Long userId, Pageable pageable) {
+    public Page<UserInterestResponseDTO> getUserInterestsByUserId(Long userId, Pageable pageable) {
         userService.getUserById(userId); // Verify user exists
-
         Page<UserInterest> userInterests = userInterestRepository.findByUser_UserId(userId, pageable);
-        List<UserInterest> filteredInterests = filterMapper.filterRedundantChildInterests(userInterests.getContent());
-
-        return userInterestMapper.buildPaginatedResponse(filteredInterests, userInterests, pageable);
+        // Optionally filter redundant child interests here if needed
+        return userInterestMapper.toResponseDTOPage(userInterests);
     }
 
     @Override

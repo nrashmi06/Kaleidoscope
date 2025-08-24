@@ -5,12 +5,13 @@ import com.kaleidoscope.backend.users.controller.api.UserInterestApi;
 import com.kaleidoscope.backend.users.dto.request.AddUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.BulkUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
-import com.kaleidoscope.backend.users.dto.response.UserInterestListResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserInterestResponseDTO;
 import com.kaleidoscope.backend.users.routes.UserInterestRoutes;
 import com.kaleidoscope.backend.users.service.UserInterestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,11 +58,9 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterests(Pageable pageable) {
-
-        UserInterestListResponseDTO interests = userInterestService.getUserInterests(pageable);
-
-        ApiResponse<UserInterestListResponseDTO> response = ApiResponse.success(
+    public ResponseEntity<ApiResponse<Page<UserInterestResponseDTO>>> getUserInterests(Pageable pageable) {
+        Page<UserInterestResponseDTO> interests = userInterestService.getUserInterests(pageable);
+        ApiResponse<Page<UserInterestResponseDTO>> response = ApiResponse.success(
                 interests,
                 "User interests retrieved successfully",
                 UserInterestRoutes.GET_USER_INTERESTS
@@ -101,14 +100,10 @@ public class UserInterestController implements UserInterestApi {
 
     @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID)
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterestsByUserId(
-            @PathVariable Long userId,
-            Pageable pageable) {
-
-        UserInterestListResponseDTO interests = userInterestService.getUserInterestsByUserId(userId, pageable);
-
-        ApiResponse<UserInterestListResponseDTO> response = ApiResponse.success(
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<Page<UserInterestResponseDTO>>> getUserInterestsByUserId(@PathVariable Long userId, Pageable pageable) {
+        Page<UserInterestResponseDTO> interests = userInterestService.getUserInterestsByUserId(userId, pageable);
+        ApiResponse<Page<UserInterestResponseDTO>> response = ApiResponse.success(
                 interests,
                 "User interests retrieved successfully",
                 UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID

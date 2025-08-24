@@ -4,7 +4,7 @@ import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.users.dto.request.AddUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.BulkUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
-import com.kaleidoscope.backend.users.dto.response.UserInterestListResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserInterestResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,7 +53,7 @@ public interface UserInterestApi {
                             schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterests(
+    ResponseEntity<ApiResponse<Page<UserInterestResponseDTO>>> getUserInterests(
             @Parameter(description = "Pagination parameters")
             Pageable pageable);
 
@@ -89,11 +90,9 @@ public interface UserInterestApi {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
     })
-    ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterestsByUserId(
-            @Parameter(description = "User ID", required = true)
-            @PathVariable Long userId,
-            @Parameter(description = "Pagination parameters")
-            Pageable pageable);
+    ResponseEntity<ApiResponse<Page<UserInterestResponseDTO>>> getUserInterestsByUserId(
+            @Parameter(description = "User ID", required = true) @PathVariable Long userId,
+            @Parameter(description = "Pagination parameters") Pageable pageable);
 
     @Operation(summary = "Admin: Get category interest analytics", description = "Get analytics showing how many users are interested in each category with pagination")
     @ApiResponses(value = {
