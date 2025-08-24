@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { registerUserWithProfile } from "@/services/auth/register";
 import { RegisterFormState } from "@/lib/types/auth";
 import { verifyEmail } from "@/services/auth/verifyEmailResend";
+import { RegistrationLoader } from "./RegistrationLoader";
 
 export default function SignupForm() {
   const [formState, setFormState] = useState<RegisterFormState>({
@@ -22,6 +23,7 @@ export default function SignupForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const getPasswordErrors = (password: string) => {
     const errors: string[] = [];
@@ -58,22 +60,31 @@ export default function SignupForm() {
       return;
     }
 
-    const result = await registerUserWithProfile(
-      {
-        email: formState.email,
-        password: formState.password,
-        username: formState.username,
-        designation: formState.designation,
-        summary: formState.summary,
-      },
-      formState.profilePicture
-    );
+    // Start the loading animation
+    setIsRegistering(true);
 
-    if (result.success) {
-      setSuccess(result.message);
-      setEmailSubmitted(true);
-    } else {
-      setError(result.message);
+    try {
+      const result = await registerUserWithProfile(
+        {
+          email: formState.email,
+          password: formState.password,
+          username: formState.username,
+          designation: formState.designation,
+          summary: formState.summary,
+        },
+        formState.profilePicture
+      );
+
+      if (result.success) {
+        setSuccess(result.message);
+        setEmailSubmitted(true);
+      } else {
+        setError(result.message);
+      }
+    } catch (error) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsRegistering(false);
     }
 
     setTimeout(() => {
@@ -98,7 +109,9 @@ export default function SignupForm() {
 
   if (emailSubmitted) {
     return (
-      <div className="mx-auto my-auto w-full max-w-md rounded-md bg-white mt-20 flex-col justify-center text-center dark:bg-black">
+      <>
+        <RegistrationLoader isLoading={isRegistering} />
+        <div className="mx-auto my-auto w-full max-w-md rounded-md bg-white mt-20 flex-col justify-center text-center dark:bg-black">
         <h2 className="text-xl font-semibold text-indigo-900 dark:text-neutral-100">
           Registration Successful
         </h2>
@@ -121,12 +134,15 @@ export default function SignupForm() {
             }}
           />
         )}
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="shadow-input mx-auto mt-20 w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
+    <>
+      <RegistrationLoader isLoading={isRegistering} />
+      <div className="shadow-input mx-auto mt-20 w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-xl text-center font-bold text-black dark:text-neutral-200">
         Welcome to Kaleidoscope
       </h2>
@@ -240,11 +256,15 @@ export default function SignupForm() {
         </LabelInputContainer>
 
         <button
-          
-          className="mt-4 group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 text-white shadow-lg transition-all hover:brightness-110"
+          disabled={isRegistering}
+          className={`mt-4 group/btn relative h-10 w-full rounded-md text-white shadow-lg transition-all ${
+            isRegistering
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 hover:brightness-110"
+          }`}
           type="submit"
         >
-          Sign up &rarr;
+          {isRegistering ? "Creating Account..." : "Sign up →"}
           <BottomGradient />
         </button>
       </form>
@@ -261,7 +281,8 @@ export default function SignupForm() {
           }}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

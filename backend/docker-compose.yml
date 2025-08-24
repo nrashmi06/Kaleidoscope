@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:${POSTGRES_VERSION:-17.4}
+    image: postgis/postgis:17-3.4
     container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
     env_file:
       - .env
@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${DOCKER_REGISTRY:-rajay04}/kaleidoscope:${APP_VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
       db:
