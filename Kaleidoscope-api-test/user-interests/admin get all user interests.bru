@@ -7,11 +7,7 @@ meta {
 get {
   url: {{base_url}}/api/users/interests/admin/category-analytics?page=0&size=10&sort=name,asc
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{adminAccessToken}}
+  auth: inherit
 }
 
 params:query {
@@ -32,7 +28,7 @@ tests {
     expect(res.getBody().data).to.have.property("totalPages");
     expect(res.getBody().data).to.have.property("totalElements");
     expect(res.getBody().data.categoryStats).to.be.an("array");
-
+  
     // Verify simplified category stats structure (no hierarchy)
     if (res.getBody().data.categoryStats.length > 0) {
       const firstStat = res.getBody().data.categoryStats[0];
@@ -44,7 +40,7 @@ tests {
       expect(firstStat.categoryName).to.be.a("string");
       expect(firstStat.userCount).to.be.a("number");
       expect(firstStat.percentage).to.be.a("number");
-
+  
       // Should NOT have category hierarchy details
       expect(firstStat).to.not.have.property("description");
       expect(firstStat).to.not.have.property("iconName");
