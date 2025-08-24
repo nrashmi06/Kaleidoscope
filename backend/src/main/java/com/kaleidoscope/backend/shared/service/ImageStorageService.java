@@ -16,4 +16,5 @@ public interface ImageStorageService {
     // Updated method to handle multiple signatures
     UploadSignatureResponseDTO generatePostUploadSignatures(GenerateUploadSignatureRequestDTO request);
     boolean validatePostImageUrl(String imageUrl);
+    String extractPublicIdFromUrl(String imageUrl);
 }

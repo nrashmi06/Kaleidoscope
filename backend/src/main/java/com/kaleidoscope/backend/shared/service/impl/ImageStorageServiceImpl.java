@@ -88,7 +88,8 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         }
     }
 
-    private String extractPublicIdFromUrl(String imageUrl) {
+    @Override
+    public String extractPublicIdFromUrl(String imageUrl) {
         // This implementation is fine and remains unchanged.
         String[] urlParts = imageUrl.split("/");
         StringBuilder publicId = new StringBuilder();
