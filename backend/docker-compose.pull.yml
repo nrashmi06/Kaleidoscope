@@ -18,9 +18,8 @@ services:
     restart: always
 
   app:
-    # Corrected to match the CI/CD pipeline's output tag
-    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
-    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
+    image: ajayprabhu2004/kaleidoscope-backend:${APP_VERSION:-latest}
+    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-backend}
     depends_on:
       db:
         condition: service_healthy
