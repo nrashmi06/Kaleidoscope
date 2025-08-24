@@ -1,7 +1,6 @@
 package com.kaleidoscope.backend.shared.controller.api;
 
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategoryParentListResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +10,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,14 +19,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Tag(name = "Category", description = "APIs for managing categories and category hierarchy")
 public interface CategoryApi {
 
-    @Operation(summary = "Get all parent categories", description = "Retrieves all top-level parent categories.")
+    @Operation(summary = "Get all parent categories", description = "Retrieves all top-level parent categories with pagination.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Parent categories retrieved successfully",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    ResponseEntity<ApiResponse<CategoryParentListResponseDTO>> getAllParentCategories();
+    ResponseEntity<ApiResponse<Page<CategoryResponseDTO>>> getAllParentCategories(
+            @Parameter(description = "Pagination parameters") Pageable pageable);
 
     @Operation(summary = "Create a new category", description = "Creates a new category. Requires admin privileges.")
     @ApiResponses(value = {

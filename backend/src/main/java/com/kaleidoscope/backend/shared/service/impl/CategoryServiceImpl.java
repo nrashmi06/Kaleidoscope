@@ -1,7 +1,6 @@
 package com.kaleidoscope.backend.shared.service.impl;
 
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategoryParentListResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryAlreadyExistsException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
@@ -11,6 +10,8 @@ import com.kaleidoscope.backend.shared.repository.CategoryRepository;
 import com.kaleidoscope.backend.shared.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,9 +87,9 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryParentListResponseDTO getAllParentCategories() {
-        List<Category> parentCategories = categoryRepository.findByParentIsNull();
-        return CategoryMapper.toParentListDTO(parentCategories);
+    public Page<CategoryResponseDTO> getAllParentCategories(Pageable pageable) {
+        Page<Category> parentCategories = categoryRepository.findByParentIsNull(pageable);
+        return CategoryMapper.toDTOPage(parentCategories);
     }
 
     @Override
