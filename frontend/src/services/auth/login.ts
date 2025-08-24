@@ -33,6 +33,15 @@ export const loginUser = async (
       ? response.headers['authorization'].slice(7)
       : userData.accessToken;
 
+    // Decode JWT token to get isUserInterestSelected
+    let isUserInterestSelected = false;
+    try {
+      const tokenPayload = JSON.parse(atob(accessToken.split('.')[1]));
+      isUserInterestSelected = tokenPayload.isUserInterestSelected || false;
+    } catch (error) {
+      console.error('Error decoding JWT token:', error);
+    }
+
     dispatch(
       setUser({
         userId: userData.userId,
@@ -40,6 +49,7 @@ export const loginUser = async (
         email: userData.email,
         role: userData.role,
         accessToken,
+        isUserInterestSelected,
       })
     );
 

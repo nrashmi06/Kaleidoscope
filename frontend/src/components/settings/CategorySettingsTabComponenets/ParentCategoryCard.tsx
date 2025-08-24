@@ -8,6 +8,7 @@ import { Category } from "@/lib/types/settings/category";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { Loader } from "@/components/common/Loader";
 import { Trash2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export interface ParentCategoryCardProps {
   name: string;
@@ -18,11 +19,13 @@ export interface ParentCategoryCardProps {
   onDeleted?: () => void;
 }
 
-const toPascalCase = (str: string) =>
-  str
+const toPascalCase = (str: string | null | undefined) => {
+  if (!str) return "";
+  return str
     .replace(/[_-]+/g, " ")
     .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .replace(/\s+/g, "");
+};
 
 export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
   name,
@@ -33,6 +36,7 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
   onDeleted,
 }) => {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
+  const role = useAppSelector((state) => state.auth.role);
   const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const fetchedOnce = useRef(false);
@@ -74,16 +78,39 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
 
   const confirmDelete = async () => {
     if (!deletingId || !accessToken) return;
-    const response = await deleteCategoryController({ categoryId: deletingId }, accessToken);
-    if (response.success) {
-      if (isSubcategoryDelete) {
-        setSubcategories((prev) => prev.filter((cat) => cat.categoryId !== deletingId));
-      } else {
-        onDeleted?.();
-      }
-    } else {
-      alert(response.errors?.[0] || "Failed to delete category.");
+    
+    console.log(`[ParentCategoryCard] Attempting to delete category ID: ${deletingId}, isSubcategory: ${isSubcategoryDelete}`);
+    console.log(`[ParentCategoryCard] User role:`, role);
+    
+    // Check if user has admin role
+    if (role !== 'ADMIN') {
+      toast.error("You need admin privileges to delete categories.");
+      setShowModal(false);
+      setDeletingId(null);
+      return;
     }
+    
+    try {
+      const response = await deleteCategoryController({ categoryId: deletingId }, accessToken);
+      console.log(`[ParentCategoryCard] Delete response:`, response);
+      
+      if (response.success) {
+        toast.success(`${isSubcategoryDelete ? 'Subcategory' : 'Category'} deleted successfully`);
+        if (isSubcategoryDelete) {
+          setSubcategories((prev) => prev.filter((cat) => cat.categoryId !== deletingId));
+        } else {
+          onDeleted?.();
+        }
+      } else {
+        const errorMsg = response.errors?.[0] || "Failed to delete category.";
+        console.error(`[ParentCategoryCard] Delete failed:`, errorMsg);
+        toast.error(errorMsg);
+      }
+    } catch (error) {
+      console.error(`[ParentCategoryCard] Delete error:`, error);
+      toast.error("An error occurred while deleting the category.");
+    }
+    
     setShowModal(false);
     setDeletingId(null);
   };
@@ -113,7 +140,8 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>
             </div>
           </div>
-          {subcategories.length === 0 && (
+          {/* Show delete icon only for admin users */}
+          {role === 'ADMIN' && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -155,16 +183,18 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
                       <p className="text-xs text-gray-500 dark:text-gray-400">{sub.description}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openDeleteModal(sub.categoryId, true);
-                    }}
-                    className="text-red-400 hover:text-red-600 transition-colors"
-                    title="Delete Subcategory"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {role === 'ADMIN' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteModal(sub.categoryId, true);
+                      }}
+                      className="text-red-400 hover:text-red-600 transition-colors"
+                      title="Delete Subcategory"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -177,25 +207,38 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
       {/* Custom Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-md p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-lg p-6">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
               Confirm Deletion
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-              Are you sure you want to delete this {isSubcategoryDelete ? "subcategory" : "category"}? This action cannot be undone.
-            </p>
-            <div className="mt-4 flex justify-end gap-3">
+            <div className="text-sm text-gray-600 dark:text-gray-300 mt-3">
+              {isSubcategoryDelete ? (
+                <p>
+                  Are you sure you want to delete this subcategory? This action cannot be undone.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="font-medium text-gray-700 dark:text-gray-200">
+                    User interests with this category will be deleted. All child categories will also be deleted.
+                  </p>
+                  <p>
+                    Are you sure you want to proceed?
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="px-6 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+                className="px-6 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
               >
-                Delete
+                Yes
               </button>
             </div>
           </div>

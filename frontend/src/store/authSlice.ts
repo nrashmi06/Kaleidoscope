@@ -6,6 +6,7 @@ interface AuthState {
   username: string;
   role: string;
   accessToken: string;
+  isUserInterestSelected: boolean;
 }
 // Example to ensure only serializable data is stored in Redux state
 const initialState: AuthState = {
@@ -14,6 +15,7 @@ const initialState: AuthState = {
     username: "",
     role: "",
     accessToken: "",
+    isUserInterestSelected: false,
   };
   
   const authSlice = createSlice({
@@ -26,6 +28,7 @@ const initialState: AuthState = {
         state.username = action.payload.username;
         state.role = action.payload.role;
         state.accessToken = action.payload.accessToken;
+        state.isUserInterestSelected = action.payload.isUserInterestSelected;
       },
       clearUser(state) {
         state.userId = "";
@@ -33,9 +36,13 @@ const initialState: AuthState = {
         state.username = "";
         state.role = "";
         state.accessToken = "";
+        state.isUserInterestSelected = false;
+      },
+      setInterestSelected(state) {
+        state.isUserInterestSelected = true;
       },
     },
   });
   
-  export const { setUser, clearUser } = authSlice.actions;
+  export const { setUser, clearUser, setInterestSelected } = authSlice.actions;
   export default authSlice.reducer;

@@ -17,10 +17,15 @@ export const IconSearchDropdown: React.FC<IconSearchDropdownProps> = ({
   onIconSelect,
 }) => {
   const [isTouched, setIsTouched] = useState(false);
-  const debouncedIconQuery = useDebounce(iconQuery, 300);
+  const debouncedIconQuery = useDebounce(iconQuery || "", 300);
 
   const filteredIcons = lucideIconNames
-    .filter((name) => name.toLowerCase().includes(debouncedIconQuery.toLowerCase()))
+    .filter((name) => {
+      // Add null safety for both name and debouncedIconQuery
+      if (!name || typeof name !== 'string') return false;
+      if (!debouncedIconQuery || typeof debouncedIconQuery !== 'string') return false;
+      return name.toLowerCase().includes(debouncedIconQuery.toLowerCase());
+    })
     .map((name) => {
       const Icon = getLucideIcon(name);
       return Icon ? { name, component: Icon } : null;
@@ -31,7 +36,12 @@ export const IconSearchDropdown: React.FC<IconSearchDropdownProps> = ({
     }[];
 
   const isExactMatch = lucideIconNames.some(
-    (name) => name.toLowerCase() === iconQuery.toLowerCase()
+    (name) => {
+      // Add null safety for both name and iconQuery
+      if (!name || typeof name !== 'string') return false;
+      if (!iconQuery || typeof iconQuery !== 'string') return false;
+      return name.toLowerCase() === iconQuery.toLowerCase();
+    }
   );
 
   const shouldShowDropdown = isTouched && iconQuery && !isExactMatch;
@@ -42,10 +52,10 @@ export const IconSearchDropdown: React.FC<IconSearchDropdownProps> = ({
       <input
         type="text"
         className="p-2 rounded border bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-        value={iconQuery}
+        value={iconQuery || ""}
         onChange={(e) => {
           setIsTouched(true);
-          setIconQuery(e.target.value);
+          setIconQuery(e.target.value || "");
         }}
         onFocus={() => setIsTouched(true)}
         placeholder="Search icon..."
