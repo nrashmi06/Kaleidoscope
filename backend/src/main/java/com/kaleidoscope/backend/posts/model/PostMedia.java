@@ -79,6 +79,6 @@ public class PostMedia {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return 31;
     }
 }

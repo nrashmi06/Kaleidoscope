@@ -60,7 +60,12 @@ public class PostServiceImpl implements PostService {
         // 4. Validate Media URLs and associate them
         if (postCreateRequestDTO.getMediaDetails() != null && !postCreateRequestDTO.getMediaDetails().isEmpty()) {
             postMapper.toPostMediaEntities(postCreateRequestDTO.getMediaDetails())
-                .forEach(post::addMedia);
+                    .forEach(mediaItem -> {
+                        if (!imageStorageService.validatePostImageUrl(mediaItem.getMediaUrl())) {
+                            throw new IllegalArgumentException("Invalid or untrusted media URL provided: " + mediaItem.getMediaUrl());
+                        }
+                        post.addMedia(mediaItem);
+                    });
         }
 
         // 5. Fetch and associate categories
