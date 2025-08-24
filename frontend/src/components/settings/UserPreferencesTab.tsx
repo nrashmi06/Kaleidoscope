@@ -2,20 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/hooks/useAppSelector";
+import { useDispatch } from "react-redux";
+import { clearInterestSelection } from "@/store/authSlice";
 import { UpdateUserPreferencesData } from "@/lib/types/settings/user-preferences";
 import { updateUserPreferencesController } from "@/controllers/userPreferencesController/updateUserPreferences";
 import { getUserPreferencesByIdAdminController } from "@/controllers/userPreferencesController/getUserPreferencesByIdAdminController";
 import { Loader } from "@/components/common/Loader";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
+import { RefreshCw } from "lucide-react";
 
 
 export const UserPreferencesTab = () => {
   const { userId } = useAppSelector((state) => state.auth);
   const accessToken = useAccessToken();
+  const dispatch = useDispatch();
+  const router = useRouter();
   const [form, setForm] = useState<UpdateUserPreferencesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resettingCategories, setResettingCategories] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { setTheme } = useTheme(); 
 
@@ -76,6 +84,29 @@ export const UserPreferencesTab = () => {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetCategories = async () => {
+    if (resettingCategories) return;
+    
+    setResettingCategories(true);
+    try {
+      // Clear the interest selection flag in Redux
+      dispatch(clearInterestSelection());
+      
+      // Show success message
+      toast.success("Category selection reset! Redirecting to category selection...");
+      
+      // Redirect to category selection page after a short delay
+      setTimeout(() => {
+        router.push("/onboarding/categories");
+      }, 1500);
+    } catch (error) {
+      console.error("Error resetting categories:", error);
+      toast.error("Failed to reset category selection");
+    } finally {
+      setResettingCategories(false);
     }
   };
 
@@ -180,6 +211,29 @@ export const UserPreferencesTab = () => {
             </div>
           )
         )}
+      </div>
+
+      {/* Category Management Section */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">Interest Categories</h3>
+        <div className="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h4 className="font-medium text-zinc-900 dark:text-white mb-2">Reconfigure Categories</h4>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                Want to change your interests? Reset your category selection to choose new categories that match your preferences.
+              </p>
+            </div>
+            <button
+              onClick={handleResetCategories}
+              disabled={resettingCategories}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg transition-colors duration-200 font-medium"
+            >
+              <RefreshCw className={`w-4 h-4 ${resettingCategories ? 'animate-spin' : ''}`} />
+              {resettingCategories ? "Resetting..." : "Reset Categories"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Submit Button Section */}

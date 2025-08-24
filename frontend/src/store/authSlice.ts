@@ -41,8 +41,11 @@ const initialState: AuthState = {
       setInterestSelected(state) {
         state.isUserInterestSelected = true;
       },
+      clearInterestSelection(state) {
+        state.isUserInterestSelected = false;
+      },
     },
   });
   
-  export const { setUser, clearUser, setInterestSelected } = authSlice.actions;
+  export const { setUser, clearUser, setInterestSelected, clearInterestSelection } = authSlice.actions;
   export default authSlice.reducer;
