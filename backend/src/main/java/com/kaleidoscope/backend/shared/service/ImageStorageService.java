@@ -1,9 +1,9 @@
 package com.kaleidoscope.backend.shared.service;
 
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
-import com.kaleidoscope.backend.shared.dto.response.SignatureDataDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.concurrent.CompletableFuture;
 
 public interface ImageStorageService {
