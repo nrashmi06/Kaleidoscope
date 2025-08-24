@@ -1,12 +1,12 @@
 package com.kaleidoscope.backend.shared.service;
 
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategoryParentListResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.model.Category;
-import com.kaleidoscope.backend.shared.dto.response.CategoryParentListResponseDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategoryParentResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 /**
  * Service for managing categories
  */
@@ -37,11 +37,12 @@ public interface CategoryService {
     void deleteCategory(Long categoryId);
 
     /**
-     * Get all categories
+     * Get all parent categories with pagination
      *
-     * @return list of all categories
+     * @param pageable pagination information
+     * @return paginated parent categories
      */
-    CategoryParentListResponseDTO getAllParentCategories();
+    Page<CategoryResponseDTO> getAllParentCategories(Pageable pageable);
 
     /**
      * Get a category by its ID

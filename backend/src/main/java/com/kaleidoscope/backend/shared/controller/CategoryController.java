@@ -2,14 +2,16 @@ package com.kaleidoscope.backend.shared.controller;
 
 import com.kaleidoscope.backend.shared.controller.api.CategoryApi;
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategoryParentListResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.shared.routes.CategoryRoutes;
 import com.kaleidoscope.backend.shared.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,15 +30,15 @@ public class CategoryController implements CategoryApi {
     @Override
     @GetMapping(CategoryRoutes.GET_ALL_PARENT_CATEGORIES)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<CategoryParentListResponseDTO>> getAllParentCategories() {
-        log.info("Getting all parent categories");
-        CategoryParentListResponseDTO parentCategories = categoryService.getAllParentCategories();
-
+    public ResponseEntity<ApiResponse<PaginatedResponse<CategoryResponseDTO>>> getAllParentCategories(Pageable pageable) {
+        log.info("Getting all parent categories (paginated)");
+        Page<CategoryResponseDTO> parentCategories = categoryService.getAllParentCategories(pageable);
+        PaginatedResponse<CategoryResponseDTO> paginated = PaginatedResponse.fromPage(parentCategories);
         return ResponseEntity.ok(
-                ApiResponse.<CategoryParentListResponseDTO>builder()
+                ApiResponse.<PaginatedResponse<CategoryResponseDTO>>builder()
                         .success(true)
                         .message("Parent categories retrieved successfully")
-                        .data(parentCategories)
+                        .data(paginated)
                         .errors(Collections.emptyList())
                         .timestamp(Instant.now().toEpochMilli())
                         .path(CategoryRoutes.GET_ALL_PARENT_CATEGORIES)

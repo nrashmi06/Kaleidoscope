@@ -1,16 +1,18 @@
 package com.kaleidoscope.backend.users.controller;
 
+import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.users.controller.api.UserInterestApi;
 import com.kaleidoscope.backend.users.dto.request.AddUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.BulkUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
-import com.kaleidoscope.backend.users.dto.response.UserInterestListResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserInterestResponseDTO;
 import com.kaleidoscope.backend.users.routes.UserInterestRoutes;
 import com.kaleidoscope.backend.users.service.UserInterestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,14 +59,13 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterests(Pageable pageable) {
-
-        UserInterestListResponseDTO interests = userInterestService.getUserInterests(pageable);
-
-        ApiResponse<UserInterestListResponseDTO> response = ApiResponse.success(
-                interests,
-                "User interests retrieved successfully",
-                UserInterestRoutes.GET_USER_INTERESTS
+    public ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterests(Pageable pageable) {
+        Page<UserInterestResponseDTO> interests = userInterestService.getUserInterests(pageable);
+        PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.fromPage(interests);
+        ApiResponse<PaginatedResponse<UserInterestResponseDTO>> response = ApiResponse.success(
+            paginated,
+            "User interests retrieved successfully",
+            UserInterestRoutes.GET_USER_INTERESTS
         );
         return ResponseEntity.ok(response);
     }
@@ -101,17 +102,14 @@ public class UserInterestController implements UserInterestApi {
 
     @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID)
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserInterestListResponseDTO>> getUserInterestsByUserId(
-            @PathVariable Long userId,
-            Pageable pageable) {
-
-        UserInterestListResponseDTO interests = userInterestService.getUserInterestsByUserId(userId, pageable);
-
-        ApiResponse<UserInterestListResponseDTO> response = ApiResponse.success(
-                interests,
-                "User interests retrieved successfully",
-                UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterestsByUserId(@PathVariable Long userId, Pageable pageable) {
+        Page<UserInterestResponseDTO> interests = userInterestService.getUserInterestsByUserId(userId, pageable);
+        PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.fromPage(interests);
+        ApiResponse<PaginatedResponse<UserInterestResponseDTO>> response = ApiResponse.success(
+            paginated,
+            "User interests retrieved successfully",
+            UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID
         );
         return ResponseEntity.ok(response);
     }
@@ -119,14 +117,14 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @GetMapping(UserInterestRoutes.ADMIN_GET_CATEGORY_ANALYTICS)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<CategoryAnalyticsResponseDTO>> getCategoryAnalytics(Pageable pageable) {
-
+    public ResponseEntity<ApiResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>>> getCategoryAnalytics(Pageable pageable) {
         CategoryAnalyticsResponseDTO analytics = userInterestService.getCategoryInterestAnalytics(pageable);
-
-        ApiResponse<CategoryAnalyticsResponseDTO> response = ApiResponse.success(
-                analytics,
-                "Category interest analytics retrieved successfully",
-                UserInterestRoutes.ADMIN_GET_CATEGORY_ANALYTICS
+        Page<CategoryAnalyticsResponseDTO.CategoryStats> statsPage = analytics.getCategoryStats();
+        PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats> paginated = PaginatedResponse.fromPage(statsPage);
+        ApiResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>> response = ApiResponse.success(
+            paginated,
+            "Category interest analytics retrieved successfully",
+            UserInterestRoutes.ADMIN_GET_CATEGORY_ANALYTICS
         );
         return ResponseEntity.ok(response);
     }

@@ -1,13 +1,15 @@
 package com.kaleidoscope.backend.shared.mapper;
 
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategoryListResponseDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategoryParentListResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryParentResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.shared.model.Category;
+import org.springframework.data.domain.Page;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CategoryMapper {
@@ -47,12 +49,6 @@ public class CategoryMapper {
                 .toList();
     }
 
-    public static CategoryParentListResponseDTO toParentListDTO(List<Category> parentCategories) {
-        List<CategoryParentResponseDTO> categoryDTOs = toParentDTOList(parentCategories);
-        return CategoryParentListResponseDTO.builder()
-                .categories(categoryDTOs)
-                .build();
-    }
 
     public static CategoryResponseDTO toDTOWithChildren(Category category, List<Category> allCategories) {
         if (category == null) {
@@ -110,13 +106,6 @@ public class CategoryMapper {
         return rootCategories;
     }
 
-    public static CategoryListResponseDTO toListDTO(List<Category> categories) {
-        List<CategoryResponseDTO> rootCategories = toHierarchicalDTOList(categories);
-        return CategoryListResponseDTO.builder()
-                .categories(rootCategories)
-                .totalCategories(categories.size())
-                .build();
-    }
 
     public static Category toEntity(CategoryRequestDTO dto) {
         return Category.builder()
@@ -138,5 +127,9 @@ public class CategoryMapper {
         if (dto.getIconName() != null) {
             category.setIconName(dto.getIconName());
         }
+    }
+
+    public static Page<CategoryResponseDTO> toDTOPage(Page<Category> categoryPage) {
+        return categoryPage.map(CategoryMapper::toDTO);
     }
 }

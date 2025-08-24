@@ -1,7 +1,8 @@
 package com.kaleidoscope.backend.users.service;
 
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
-import com.kaleidoscope.backend.users.dto.response.UserInterestListResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserInterestResponseDTO;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -43,24 +44,23 @@ public interface UserInterestService {
      * Get interests for the authenticated user
      *
      * @param pageable Pagination parameters
-     * @return User interests list
+     * @return Paginated user interests
      */
-    UserInterestListResponseDTO getUserInterests(Pageable pageable);
+    Page<UserInterestResponseDTO> getUserInterests(Pageable pageable);
 
     /**
      * Get interests for a specific user
      *
      * @param userId User ID
      * @param pageable Pagination parameters
-     * @return User interests list
+     * @return Paginated user interests
      */
-    UserInterestListResponseDTO getUserInterestsByUserId(Long userId, Pageable pageable);
+    Page<UserInterestResponseDTO> getUserInterestsByUserId(Long userId, Pageable pageable);
 
     /**
      * Admin: Get category interest analytics with pagination
-     *
      * @param pageable Pagination parameters
-     * @return Category interest analytics with user counts and pagination info
+     * @return Category analytics with user counts and pagination info
      */
     CategoryAnalyticsResponseDTO getCategoryInterestAnalytics(Pageable pageable);
 }

@@ -3,10 +3,8 @@ package com.kaleidoscope.backend.users.mapper;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.users.dto.response.CategoryAnalyticsResponseDTO;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 @Component
@@ -25,34 +23,24 @@ public class CategoryAnalyticsMapper {
                 .build();
     }
 
-    public CategoryAnalyticsResponseDTO toCategoryAnalyticsResponse(
-            List<CategoryAnalyticsResponseDTO.CategoryStats> categoryStats,
-            Long totalUsers,
-            Long totalCategories,
-            Page<Category> categoryPage,
-            Pageable pageable) {
-
-        return CategoryAnalyticsResponseDTO.builder()
-                .categoryStats(categoryStats)
-                .totalUsers(totalUsers)
-                .totalCategories(totalCategories)
-                .currentPage(pageable.getPageNumber())
-                .totalPages(categoryPage.getTotalPages())
-                .totalElements(categoryPage.getTotalElements())
-                .build();
-    }
-
-    public List<CategoryAnalyticsResponseDTO.CategoryStats> buildCategoryStatsList(
+    public Page<CategoryAnalyticsResponseDTO.CategoryStats> buildCategoryStatsPage(
             Page<Category> categoryPage,
             Map<Long, Long> userCountMap,
             Long totalUsers) {
+        return categoryPage.map(category -> {
+            Long userCount = userCountMap.getOrDefault(category.getCategoryId(), 0L);
+            return toCategoryStats(category, userCount, totalUsers);
+        });
+    }
 
-        return categoryPage.getContent().stream()
-                .map(category -> {
-                    Long userCount = userCountMap.getOrDefault(category.getCategoryId(), 0L);
-                    return toCategoryStats(category, userCount, totalUsers);
-                })
-                .sorted((a, b) -> Long.compare(b.getUserCount(), a.getUserCount())) // Sort by user count descending
-                .toList();
+    public CategoryAnalyticsResponseDTO toCategoryAnalyticsResponse(
+            Page<CategoryAnalyticsResponseDTO.CategoryStats> categoryStatsPage,
+            Long totalUsers,
+            Long totalCategories) {
+        return CategoryAnalyticsResponseDTO.builder()
+                .categoryStats(categoryStatsPage)
+                .totalUsers(totalUsers)
+                .totalCategories(totalCategories)
+                .build();
     }
 }

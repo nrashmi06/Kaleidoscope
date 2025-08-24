@@ -1,0 +1,18 @@
+meta {
+  name: search locations
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8080/kaleidoscope/api/locations/search?search=San Francisco&page=0&size=20&sort=name
+  body: none
+  auth: inherit
+}
+
+params:query {
+  search: San Francisco
+  page: 0
+  size: 20
+  sort: name
+}
