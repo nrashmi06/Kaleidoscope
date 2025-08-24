@@ -1,5 +1,8 @@
+# docker-compose.yml
+
 services:
   db:
+    # Uses the PostGIS image with a specific version for stability
     image: postgis/postgis:17-3.4
     container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
     env_file:
@@ -21,8 +24,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:${APP_VERSION:-latest}
-    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
+
+    # Corrected Image Name: Points to the single 'kaleidoscope' repository
+    # with a 'backend-' prefixed tag.
+    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
+
+    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-backend}
     depends_on:
       db:
         condition: service_healthy
@@ -35,8 +42,10 @@ services:
     restart: unless-stopped
 
 volumes:
+  # This named volume ensures your database data is persistent
   postgres_data:
 
 networks:
+  # This network allows the 'app' and 'db' containers to communicate
   app-network:
     driver: bridge

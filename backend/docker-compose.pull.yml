@@ -18,7 +18,8 @@ services:
     restart: always
 
   app:
-    image: ajayprabhu2004/kaleidoscope:${APP_VERSION:-latest}
+    # Corrected to match the CI/CD pipeline's output tag
+    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
       db:
@@ -37,4 +38,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-

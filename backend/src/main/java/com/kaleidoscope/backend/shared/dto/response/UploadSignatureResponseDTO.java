@@ -11,8 +11,4 @@ import java.util.List;
 @AllArgsConstructor
 public class UploadSignatureResponseDTO {
     private List<SignatureDataDTO> signatures;
-
-    public int getCount() {
-        return signatures != null ? signatures.size() : 0;
-    }
 }

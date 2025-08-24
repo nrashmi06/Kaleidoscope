@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
@@ -39,7 +40,7 @@ public class PostMedia {
     @Column(name = "media_type", nullable = false)
     private MediaType mediaType;
 
-    @Column(name = "media_url", nullable = false, length = 255)
+    @Column(name = "media_url", nullable = false, length = 1000)
     private String mediaUrl;
 
     @Column(nullable = false)
@@ -47,6 +48,7 @@ public class PostMedia {
     private Integer position = 0;
 
     private Integer width;
+
     private Integer height;
 
     @Column(name = "file_size_kb")
@@ -63,6 +65,10 @@ public class PostMedia {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -73,6 +79,6 @@ public class PostMedia {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return 31;
     }
 }
