@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.posts.dto.response;
 
 import com.kaleidoscope.backend.posts.enums.PostStatus;
+import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import lombok.Builder;
@@ -27,4 +28,5 @@ public class PostResponseDTO {
     private List<CategoryResponseDTO> categories;
     private List<PostMediaResponseDTO> media;
     private LocationResponseDTO location;
+    private PostType type;
 }

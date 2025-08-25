@@ -30,6 +30,7 @@ public class PostMapper {
                 .body(dto.getBody())
                 .summary(dto.getSummary())
                 .visibility(dto.getVisibility())
+                .type(dto.getType() != null ? dto.getType() : com.kaleidoscope.backend.posts.enums.PostType.SOCIAL)
                 .build();
     }
 
@@ -93,6 +94,7 @@ public class PostMapper {
                                 .build())
                         .collect(java.util.stream.Collectors.toList()))
                 .location(locationDto)
+                .type(post.getType())
                 .build();
     }
 

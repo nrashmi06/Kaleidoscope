@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.posts.model;
 
 import com.kaleidoscope.backend.posts.enums.PostStatus;
+import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
@@ -75,6 +76,11 @@ public class Post {
     @Column(nullable = false)
     @Builder.Default
     private PostStatus status = PostStatus.ARCHIVED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private PostType type = PostType.SOCIAL;
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
