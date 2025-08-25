@@ -17,4 +17,5 @@ public interface ImageStorageService {
     UploadSignatureResponseDTO generatePostUploadSignatures(GenerateUploadSignatureRequestDTO request);
     boolean validatePostImageUrl(String imageUrl);
     String extractPublicIdFromUrl(String imageUrl);
+    CompletableFuture<Void> deleteImageByPublicId(String publicId);
 }

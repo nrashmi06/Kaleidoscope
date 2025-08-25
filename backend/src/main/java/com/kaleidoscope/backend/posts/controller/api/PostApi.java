@@ -49,4 +49,21 @@ public interface PostApi {
     ResponseEntity<ApiResponse<PostResponseDTO>> createPost(
             @Parameter(description = "Post creation request body")
             @Valid @RequestBody PostCreateRequestDTO postCreateRequestDTO);
+
+    @Operation(summary = "Update an existing post", description = "Updates an existing post, including title, body, media, categories, location, and type. Handles media add/remove/reorder.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Post updated successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Post not found")
+    })
+    @org.springframework.web.bind.annotation.PutMapping(PostsRoutes.UPDATE_POST)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<ApiResponse<PostResponseDTO>> updatePost(
+            @io.swagger.v3.oas.annotations.Parameter(description = "ID of the post to update")
+            @org.springframework.web.bind.annotation.PathVariable Long postId,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Post update request body")
+            @Valid @org.springframework.web.bind.annotation.RequestBody com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO requestDTO);
 }

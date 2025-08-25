@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PostsRoutes {
-    private static final String API_VERSION = "/api/v1"; // Using v1 for clarity
+    private static final String API_VERSION = "/api"; // Using v1 for clarity
 
     // Base route for posts
     public static final String POSTS = API_VERSION + "/posts";
@@ -23,4 +23,11 @@ public class PostsRoutes {
      * Endpoint to create the actual post after media has been uploaded.
      */
     public static final String CREATE_POST = POSTS; //
+
+    // --- Endpoint for Phase 3 ---
+    /**
+     * PUT /api/v1/posts/{postId}
+     * Endpoint to update an existing post.
+     */
+    public static final String UPDATE_POST = POSTS + "/{postId}";
 }

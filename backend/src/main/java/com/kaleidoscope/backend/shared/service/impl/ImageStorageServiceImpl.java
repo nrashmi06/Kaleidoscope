@@ -177,7 +177,23 @@ public class ImageStorageServiceImpl implements ImageStorageService {
             throw new SignatureGenerationException("Failed to generate upload signatures", e);
         }
     }
-
+    @Async
+    @Override
+    public CompletableFuture<Void> deleteImageByPublicId(String publicId) {
+        log.info("Starting image deletion for public_id: {}", publicId);
+        if (publicId == null || publicId.isEmpty()) {
+            throw new ImageStorageException("Public ID must not be null or empty");
+        }
+        try {
+            // The 'destroy' method uses the public_id, so this is very direct.
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            log.info("Image deletion completed for public_id: {}", publicId);
+            return CompletableFuture.completedFuture(null);
+        } catch (IOException e) {
+            log.error("Failed to delete image from Cloudinary for public_id {}: {}", publicId, e.getMessage());
+            throw new ImageStorageException("Failed to delete image from Cloudinary", e);
+        }
+    }
 
     @Override
     public boolean validatePostImageUrl(String imageUrl) {

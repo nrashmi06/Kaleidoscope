@@ -1,6 +1,6 @@
 package com.kaleidoscope.backend.users.controller;
 
-import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.users.controller.api.UserInterestApi;
 import com.kaleidoscope.backend.users.dto.request.AddUserInterestRequestDTO;
