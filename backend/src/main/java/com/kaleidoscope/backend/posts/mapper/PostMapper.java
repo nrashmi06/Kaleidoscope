@@ -6,6 +6,7 @@ import com.kaleidoscope.backend.posts.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.UserResponseDTO;
+import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
@@ -17,7 +18,12 @@ import org.springframework.stereotype.Component;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+/**
+ * A stateless mapper responsible for converting between Post DTOs and Entities.
+ * It does not contain business logic for updating persistent entities.
+ */
 @Component
 public class PostMapper {
 
@@ -30,6 +36,7 @@ public class PostMapper {
                 .body(dto.getBody())
                 .summary(dto.getSummary())
                 .visibility(dto.getVisibility())
+                .type(dto.getType() != null ? dto.getType() : PostType.SOCIAL)
                 .build();
     }
 
@@ -48,12 +55,12 @@ public class PostMapper {
         LocationResponseDTO locationDto = null;
         if (location != null) {
             locationDto = LocationResponseDTO.builder()
-                .locationId(location.getLocationId())
-                .name(location.getName())
-                .latitude(location.getLatitude())
-                .longitude(location.getLongitude())
-                .address(location.getAddress())
-                .build();
+                    .locationId(location.getLocationId())
+                    .name(location.getName())
+                    .latitude(location.getLatitude())
+                    .longitude(location.getLongitude())
+                    .address(location.getAddress())
+                    .build();
         }
 
         return PostResponseDTO.builder()
@@ -76,7 +83,7 @@ public class PostMapper {
                                     .name(cat.getName())
                                     .build();
                         })
-                        .collect(java.util.stream.Collectors.toList()))
+                        .collect(Collectors.toList()))
                 .media(post.getMedia().stream()
                         .sorted(Comparator.comparing(PostMedia::getPosition))
                         .map(pm -> PostMediaResponseDTO.builder()
@@ -91,30 +98,27 @@ public class PostMapper {
                                 .extraMetadata(pm.getExtraMetadata())
                                 .createdAt(pm.getCreatedAt())
                                 .build())
-                        .collect(java.util.stream.Collectors.toList()))
+                        .collect(Collectors.toList()))
                 .location(locationDto)
+                .type(post.getType())
                 .build();
     }
 
-    /**
-     * Maps a list of MediaUploadRequestDTO to a set of PostMedia entities.
-     * Uses client-provided position if available, otherwise auto-increments.
-     */
     public List<PostMedia> toPostMediaEntities(List<MediaUploadRequestDTO> mediaDtos) {
+        if (mediaDtos == null) {
+            return List.of();
+        }
         AtomicInteger autoPosition = new AtomicInteger(0);
-        return mediaDtos.stream().map(mediaDto -> {
-            String url = mediaDto.getUrl();
-            Integer position = mediaDto.getPosition() != null ? mediaDto.getPosition() : autoPosition.getAndIncrement();
-            return PostMedia.builder()
-                    .mediaUrl(url)
-                    .mediaType(mediaDto.getMediaType())
-                    .position(position)
-                    .width(mediaDto.getWidth())
-                    .height(mediaDto.getHeight())
-                    .fileSizeKb(mediaDto.getFileSizeKb())
-                    .durationSeconds(mediaDto.getDurationSeconds())
-                    .extraMetadata(mediaDto.getExtraMetadata())
-                    .build();
-        }).toList();
+        return mediaDtos.stream().map(mediaDto -> PostMedia.builder()
+                .mediaUrl(mediaDto.getUrl())
+                .mediaType(mediaDto.getMediaType())
+                .position(mediaDto.getPosition() != null ? mediaDto.getPosition() : autoPosition.getAndIncrement())
+                .width(mediaDto.getWidth())
+                .height(mediaDto.getHeight())
+                .fileSizeKb(mediaDto.getFileSizeKb())
+                .durationSeconds(mediaDto.getDurationSeconds())
+                .extraMetadata(mediaDto.getExtraMetadata())
+                .build()
+        ).collect(Collectors.toList());
     }
 }

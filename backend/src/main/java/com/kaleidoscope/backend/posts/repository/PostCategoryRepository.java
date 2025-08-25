@@ -13,14 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface PostCategoryRepository extends JpaRepository<PostCategory, Long> {
-    
-    List<PostCategory> findByPost(Post post);
-    
-    List<PostCategory> findByCategory(Category category);
-    
-    Optional<PostCategory> findByPostAndCategory(Post post, Category category);
-    
-    Optional<PostCategory> findByPostAndIsPrimaryTrue(Post post);
+
     
     @Query("SELECT pc.category FROM PostCategory pc WHERE pc.post = :post")
     List<Category> findCategoriesByPost(@Param("post") Post post);
