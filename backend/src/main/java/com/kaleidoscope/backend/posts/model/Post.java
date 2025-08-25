@@ -18,10 +18,6 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Represents a post made by a user.
- * Implements soft-delete functionality via @SQLDelete and @Where.
- */
 @Entity
 @Table(name = "posts", indexes = {
         @Index(name = "idx_post_user_id", columnList = "user_id"),
@@ -104,15 +100,10 @@ public class Post {
             this.readTimeMinutes = 0;
             return;
         }
-
-        // A simple way to count words
         String[] words = this.body.trim().split("\\s+");
         this.wordCount = words.length;
-
-        // Assuming an average reading speed of 200 words per minute
         this.readTimeMinutes = (int) Math.ceil((double) this.wordCount / 200);
     }
-    // --- Relationships ---
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -125,8 +116,6 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Comment> comments = new HashSet<>();
-
-    // --- Helper Methods ---
 
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
@@ -164,8 +153,6 @@ public class Post {
         comments.remove(comment);
         comment.setPost(null);
     }
-
-    // --- Equals and HashCode ---
 
     @Override
     public boolean equals(Object o) {

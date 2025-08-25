@@ -1,6 +1,6 @@
 package com.kaleidoscope.backend.posts.model;
 
-import com.kaleidoscope.backend.posts.enums.CommentStatus;
+import com.kaleidoscope.backend.posts.enums.ReactionType;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,27 +13,25 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-// The index for parent_comment_id has been removed from the @Table annotation
-@Table(name = "comments", indexes = {
-        @Index(name = "idx_comment_post_id", columnList = "post_id"),
-        @Index(name = "idx_comment_user_id", columnList = "user_id"),
-        @Index(name = "idx_comment_status", columnList = "status"),
-        @Index(name = "idx_comment_created_at", columnList = "created_at")
+@Table(name = "reactions", indexes = {
+        @Index(name = "idx_reaction_post_id", columnList = "post_id"),
+        @Index(name = "idx_reaction_user_id", columnList = "user_id"),
+        @Index(name = "idx_reaction_user_post", columnList = "user_id, post_id", unique = true)
 })
 @EntityListeners(AuditingEntityListener.class)
-@SQLDelete(sql = "UPDATE comments SET deleted_at = NOW() WHERE comment_id = ?")
+@SQLDelete(sql = "UPDATE reactions SET deleted_at = NOW() WHERE reaction_id = ?")
 @Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Comment {
+public class Reaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "comment_id")
-    private Long commentId;
+    @Column(name = "reaction_id")
+    private Long reactionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
@@ -43,13 +41,9 @@ public class Comment {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String body;
-
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private CommentStatus status = CommentStatus.ACTIVE;
+    @Column(name = "reaction_type", nullable = false)
+    private ReactionType reactionType;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -66,8 +60,8 @@ public class Comment {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Comment comment = (Comment) o;
-        return commentId != null && commentId.equals(comment.commentId);
+        Reaction reaction = (Reaction) o;
+        return reactionId != null && reactionId.equals(reaction.reactionId);
     }
 
     @Override
