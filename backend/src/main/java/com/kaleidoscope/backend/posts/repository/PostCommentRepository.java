@@ -2,13 +2,14 @@ package com.kaleidoscope.backend.posts.repository;
 
 import com.kaleidoscope.backend.posts.model.PostComment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface PostCommentRepository extends JpaRepository<PostComment, Long> {
+public interface PostCommentRepository extends JpaRepository<PostComment, Long>, JpaSpecificationExecutor<PostComment> {
 
     /**
      * Soft-deletes all comments associated with a specific post by setting their

@@ -1,0 +1,12 @@
+meta {
+  name: list comments
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{base_url}}/api/posts/1/comments?page=0&size=10
+  auth: inherit
+}
+
+

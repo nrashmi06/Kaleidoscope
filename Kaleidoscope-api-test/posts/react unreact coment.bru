@@ -1,0 +1,19 @@
+meta {
+  name: react unreact coment
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{base_url}}/api/posts/1/comments/1/reactions?unreact=true
+  body: none
+  auth: inherit
+}
+
+params:query {
+  unreact: true
+}
+
+settings {
+  encodeUrl: true
+}
