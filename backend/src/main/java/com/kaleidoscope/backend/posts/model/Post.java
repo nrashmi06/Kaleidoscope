@@ -115,7 +115,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private Set<Comment> comments = new HashSet<>();
+    private Set<PostComment> comments = new HashSet<>();
 
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
@@ -144,12 +144,12 @@ public class Post {
         }
     }
 
-    public void addComment(Comment comment) {
+    public void addComment(PostComment comment) {
         comments.add(comment);
         comment.setPost(this);
     }
 
-    public void removeComment(Comment comment) {
+    public void removeComment(PostComment comment) {
         comments.remove(comment);
         comment.setPost(null);
     }

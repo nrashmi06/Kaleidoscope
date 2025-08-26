@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Reaction {
+public class PostReaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,8 +60,8 @@ public class Reaction {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Reaction reaction = (Reaction) o;
-        return reactionId != null && reactionId.equals(reaction.reactionId);
+        PostReaction postReaction = (PostReaction) o;
+        return reactionId != null && reactionId.equals(postReaction.reactionId);
     }
 
     @Override
@@ -69,3 +69,5 @@ public class Reaction {
         return 31;
     }
 }
+
+
