@@ -19,6 +19,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequiredArgsConstructor
@@ -59,8 +61,10 @@ public class PostController implements PostApi {
                         .build());
     }
 
+    @PutMapping(PostsRoutes.UPDATE_POST)
+    @PreAuthorize("isAuthenticated()")
     @Override
-    public ResponseEntity<ApiResponse<PostResponseDTO>> updatePost(Long postId, @Valid @RequestBody PostUpdateRequestDTO requestDTO) {
+    public ResponseEntity<ApiResponse<PostResponseDTO>> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDTO requestDTO) {
         PostResponseDTO updatedPost = postService.updatePost(postId, requestDTO);
         return ResponseEntity.ok(ApiResponse.<PostResponseDTO>builder()
                 .success(true)
