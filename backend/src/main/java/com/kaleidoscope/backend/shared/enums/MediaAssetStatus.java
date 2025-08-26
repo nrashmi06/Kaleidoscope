@@ -6,5 +6,7 @@ public enum MediaAssetStatus {
 
     UNLINKED,
 
-    ASSOCIATED
+    ASSOCIATED,
+
+    MARKED_FOR_DELETE
 }

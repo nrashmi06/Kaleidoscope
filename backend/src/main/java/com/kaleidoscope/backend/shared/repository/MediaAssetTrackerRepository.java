@@ -20,16 +20,16 @@ public interface MediaAssetTrackerRepository extends JpaRepository<MediaAssetTra
      * explicitly unlinked from a post, OR one that has been in a pending state for
      * longer than the specified cutoff time.
      *
-     * @param unlinkedStatus The status for explicitly unlinked assets.
+     * @param markForDeleteStatus The status for explicitly unlinked assets.
      * @param pendingStatus The status for assets pending upload/association.
      * @param cutoff The timestamp before which pending assets are considered old.
      * @return A list of orphaned MediaAssetTracker entities.
      */
     @Query("SELECT t FROM MediaAssetTracker t WHERE " +
-            "t.status = :unlinkedStatus OR " +
+            "t.status = :markForDeleteStatus OR " +
             "(t.status = :pendingStatus AND t.createdAt < :cutoff)")
     List<MediaAssetTracker> findOrphanedAssets(
-            MediaAssetStatus unlinkedStatus,
+            MediaAssetStatus markForDeleteStatus,
             MediaAssetStatus pendingStatus,
             LocalDateTime cutoff
     );

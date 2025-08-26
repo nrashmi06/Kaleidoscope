@@ -3,6 +3,11 @@ package com.kaleidoscope.backend.posts.service;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostResponseDTO;
+import com.kaleidoscope.backend.posts.enums.PostStatus;
+import com.kaleidoscope.backend.posts.enums.PostType;
+import com.kaleidoscope.backend.posts.enums.PostVisibility;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service for managing posts
@@ -22,4 +27,30 @@ public interface PostService {
      * @return the updated post
      */
     PostResponseDTO updatePost(Long postId, PostUpdateRequestDTO dto);
+
+    /**
+     * Soft delete a post by id. Only owner or admin can delete.
+     */
+    void softDeletePost(Long postId);
+
+    /**
+     * Hard delete a post by id. Admin only.
+     */
+    void hardDeletePost(Long postId);
+
+    /**
+     * Get a single post with visibility checks.
+     */
+    PostResponseDTO getPostById(Long postId);
+
+    /**
+     * Filter posts with role-aware visibility rules and pagination.
+     */
+    PaginatedResponse<PostResponseDTO> filterPosts(Pageable pageable,
+                                                   Long userId,
+                                                   Long categoryId,
+                                                   PostType type,
+                                                   PostStatus status,
+                                                   PostVisibility visibility,
+                                                   String query);
 }
