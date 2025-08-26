@@ -43,7 +43,6 @@ public class UserNotificationPreferencesServiceImpl implements UserNotificationP
     public UserNotificationPreferencesResponseDTO getNotificationPreferencesByUserId(Long userId) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
 
-        // Only allow users to view their own preferences or admin access
         if (!currentUserId.equals(userId) && !jwtUtils.isAdminFromContext()) {
             throw new AccessDeniedException("Access denied: Cannot view other users' notification preferences");
         }
@@ -58,7 +57,6 @@ public class UserNotificationPreferencesServiceImpl implements UserNotificationP
     @Override
     @Transactional(readOnly = true)
     public Page<UserNotificationPreferencesResponseDTO> getAllNotificationPreferences(Pageable pageable) {
-        // Admin only feature
         if (!jwtUtils.isAdminFromContext()) {
             throw new AccessDeniedException("Access denied: Admin privileges required");
         }
@@ -80,133 +78,23 @@ public class UserNotificationPreferencesServiceImpl implements UserNotificationP
     }
 
     @Override
-    public UserNotificationPreferencesResponseDTO updateLikesPreferences(UpdateLikesPreferencesRequestDTO requestDTO) {
+    public UserNotificationPreferencesResponseDTO partialUpdateNotificationPreferences(PartialUpdateNotificationPreferencesRequestDTO requestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
 
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.updateFromLikesDTO(preferences, requestDTO);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("Likes notification preferences updated successfully for user ID: {}", currentUserId);
+        if (requestDTO.getLikesEmail() != null) preferences.setLikesEmail(requestDTO.getLikesEmail());
+        if (requestDTO.getLikesPush() != null) preferences.setLikesPush(requestDTO.getLikesPush());
+        if (requestDTO.getCommentsEmail() != null) preferences.setCommentsEmail(requestDTO.getCommentsEmail());
+        if (requestDTO.getCommentsPush() != null) preferences.setCommentsPush(requestDTO.getCommentsPush());
+        if (requestDTO.getFollowsEmail() != null) preferences.setFollowsEmail(requestDTO.getFollowsEmail());
+        if (requestDTO.getFollowsPush() != null) preferences.setFollowsPush(requestDTO.getFollowsPush());
+        if (requestDTO.getMentionsEmail() != null) preferences.setMentionsEmail(requestDTO.getMentionsEmail());
+        if (requestDTO.getMentionsPush() != null) preferences.setMentionsPush(requestDTO.getMentionsPush());
+        if (requestDTO.getSystemEmail() != null) preferences.setSystemEmail(requestDTO.getSystemEmail());
+        if (requestDTO.getSystemPush() != null) preferences.setSystemPush(requestDTO.getSystemPush());
 
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO updateCommentsPreferences(UpdateCommentsPreferencesRequestDTO requestDTO) {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.updateFromCommentsDTO(preferences, requestDTO);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("Comments notification preferences updated successfully for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO updateFollowsPreferences(UpdateFollowsPreferencesRequestDTO requestDTO) {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.updateFromFollowsDTO(preferences, requestDTO);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("Follows notification preferences updated successfully for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO updateMentionsPreferences(UpdateMentionsPreferencesRequestDTO requestDTO) {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.updateFromMentionsDTO(preferences, requestDTO);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("Mentions notification preferences updated successfully for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO updateSystemPreferences(UpdateSystemPreferencesRequestDTO requestDTO) {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.updateFromSystemDTO(preferences, requestDTO);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("System notification preferences updated successfully for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO updateEmailPreferences(UpdateEmailPreferencesRequestDTO requestDTO) {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.updateFromEmailDTO(preferences, requestDTO);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("Email notification preferences updated successfully for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO updatePushPreferences(UpdatePushPreferencesRequestDTO requestDTO) {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.updateFromPushDTO(preferences, requestDTO);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("Push notification preferences updated successfully for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO enableAllEmailNotifications() {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.enableAllEmail(preferences);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("All email notifications enabled for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO disableAllEmailNotifications() {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.disableAllEmail(preferences);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("All email notifications disabled for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO enableAllPushNotifications() {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.enableAllPush(preferences);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("All push notifications enabled for user ID: {}", currentUserId);
-
-        return notificationPreferencesMapper.toResponseDTO(savedPreferences);
-    }
-
-    @Override
-    public UserNotificationPreferencesResponseDTO disableAllPushNotifications() {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
-
-        UserNotificationPreferences updatedPreferences = notificationPreferencesMapper.disableAllPush(preferences);
-        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(updatedPreferences);
-        log.info("All push notifications disabled for user ID: {}", currentUserId);
+        UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(preferences);
+        log.info("Notification preferences partially updated for user ID: {}", currentUserId);
 
         return notificationPreferencesMapper.toResponseDTO(savedPreferences);
     }
@@ -225,16 +113,13 @@ public class UserNotificationPreferencesServiceImpl implements UserNotificationP
 
     @Override
     public UserNotificationPreferencesResponseDTO createDefaultNotificationPreferences(Long userId) {
-        // Validate that the user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
 
-        // Check if preferences already exist
         if (notificationPreferencesRepository.findByUserUserId(userId).isPresent()) {
             throw new IllegalArgumentException("Notification preferences already exist for user ID: " + userId);
         }
 
-        // Create new preferences using mapper
         UserNotificationPreferences newPreferences = notificationPreferencesMapper.toEntity(user);
         UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(newPreferences);
         log.info("Created default notification preferences for user ID: {}", userId);

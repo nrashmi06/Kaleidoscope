@@ -15,7 +15,6 @@ public class UserNotificationPreferencesMapper {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    // Instance method for creating new entity (like UserMapper.toEntity)
     public UserNotificationPreferences toEntity(User user) {
         return UserNotificationPreferences.builder()
                 .user(user)
@@ -32,7 +31,6 @@ public class UserNotificationPreferencesMapper {
                 .build();
     }
 
-    // Instance method for entity to response DTO (like UserMapper.toUserLoginResponseDTO)
     public UserNotificationPreferencesResponseDTO toResponseDTO(UserNotificationPreferences preferences) {
         return UserNotificationPreferencesResponseDTO.builder()
                 .preferenceId(preferences.getPreferenceId())
@@ -52,7 +50,6 @@ public class UserNotificationPreferencesMapper {
                 .build();
     }
 
-    // Instance update methods (like UserMapper.updateUserFromDTO)
     public UserNotificationPreferences updateFromDTO(UserNotificationPreferences preferences, UpdateNotificationPreferencesRequestDTO dto) {
         preferences.setLikesEmail(dto.getLikesEmail());
         preferences.setLikesPush(dto.getLikesPush());
@@ -67,55 +64,6 @@ public class UserNotificationPreferencesMapper {
         return preferences;
     }
 
-    public UserNotificationPreferences updateFromLikesDTO(UserNotificationPreferences preferences, UpdateLikesPreferencesRequestDTO dto) {
-        preferences.setLikesEmail(dto.getLikesEmail());
-        preferences.setLikesPush(dto.getLikesPush());
-        return preferences;
-    }
-
-    public UserNotificationPreferences updateFromCommentsDTO(UserNotificationPreferences preferences, UpdateCommentsPreferencesRequestDTO dto) {
-        preferences.setCommentsEmail(dto.getCommentsEmail());
-        preferences.setCommentsPush(dto.getCommentsPush());
-        return preferences;
-    }
-
-    public UserNotificationPreferences updateFromFollowsDTO(UserNotificationPreferences preferences, UpdateFollowsPreferencesRequestDTO dto) {
-        preferences.setFollowsEmail(dto.getFollowsEmail());
-        preferences.setFollowsPush(dto.getFollowsPush());
-        return preferences;
-    }
-
-    public UserNotificationPreferences updateFromMentionsDTO(UserNotificationPreferences preferences, UpdateMentionsPreferencesRequestDTO dto) {
-        preferences.setMentionsEmail(dto.getMentionsEmail());
-        preferences.setMentionsPush(dto.getMentionsPush());
-        return preferences;
-    }
-
-    public UserNotificationPreferences updateFromSystemDTO(UserNotificationPreferences preferences, UpdateSystemPreferencesRequestDTO dto) {
-        preferences.setSystemEmail(dto.getSystemEmail());
-        preferences.setSystemPush(dto.getSystemPush());
-        return preferences;
-    }
-
-    public UserNotificationPreferences updateFromEmailDTO(UserNotificationPreferences preferences, UpdateEmailPreferencesRequestDTO dto) {
-        preferences.setLikesEmail(dto.getLikesEmail());
-        preferences.setCommentsEmail(dto.getCommentsEmail());
-        preferences.setFollowsEmail(dto.getFollowsEmail());
-        preferences.setMentionsEmail(dto.getMentionsEmail());
-        preferences.setSystemEmail(dto.getSystemEmail());
-        return preferences;
-    }
-
-    public UserNotificationPreferences updateFromPushDTO(UserNotificationPreferences preferences, UpdatePushPreferencesRequestDTO dto) {
-        preferences.setLikesPush(dto.getLikesPush());
-        preferences.setCommentsPush(dto.getCommentsPush());
-        preferences.setFollowsPush(dto.getFollowsPush());
-        preferences.setMentionsPush(dto.getMentionsPush());
-        preferences.setSystemPush(dto.getSystemPush());
-        return preferences;
-    }
-
-    // Utility methods for bulk operations
     public UserNotificationPreferences enableAllEmail(UserNotificationPreferences preferences) {
         preferences.setLikesEmail(true);
         preferences.setCommentsEmail(true);

@@ -15,27 +15,7 @@ public interface UserNotificationPreferencesService {
 
     UserNotificationPreferencesResponseDTO updateNotificationPreferences(UpdateNotificationPreferencesRequestDTO requestDTO);
 
-    UserNotificationPreferencesResponseDTO updateLikesPreferences(UpdateLikesPreferencesRequestDTO requestDTO);
-
-    UserNotificationPreferencesResponseDTO updateCommentsPreferences(UpdateCommentsPreferencesRequestDTO requestDTO);
-
-    UserNotificationPreferencesResponseDTO updateFollowsPreferences(UpdateFollowsPreferencesRequestDTO requestDTO);
-
-    UserNotificationPreferencesResponseDTO updateMentionsPreferences(UpdateMentionsPreferencesRequestDTO requestDTO);
-
-    UserNotificationPreferencesResponseDTO updateSystemPreferences(UpdateSystemPreferencesRequestDTO requestDTO);
-
-    UserNotificationPreferencesResponseDTO updateEmailPreferences(UpdateEmailPreferencesRequestDTO requestDTO);
-
-    UserNotificationPreferencesResponseDTO updatePushPreferences(UpdatePushPreferencesRequestDTO requestDTO);
-
-    UserNotificationPreferencesResponseDTO enableAllEmailNotifications();
-
-    UserNotificationPreferencesResponseDTO disableAllEmailNotifications();
-
-    UserNotificationPreferencesResponseDTO enableAllPushNotifications();
-
-    UserNotificationPreferencesResponseDTO disableAllPushNotifications();
+    UserNotificationPreferencesResponseDTO partialUpdateNotificationPreferences(PartialUpdateNotificationPreferencesRequestDTO requestDTO);
 
     UserNotificationPreferencesResponseDTO resetToDefaults();
 

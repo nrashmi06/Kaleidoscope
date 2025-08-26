@@ -1,11 +1,11 @@
 meta {
-  name: update follows preferences
+  name: partial update notification preferences
   type: http
-  seq: 6
+  seq: 4
 }
 
 patch {
-  url: {{base_url}}/api/user-notification-preferences/follows
+  url: {{base_url}}/api/user-notification-preferences
   body: json
   auth: inherit
 }
@@ -17,8 +17,8 @@ headers {
 
 body:json {
   {
-    "followsEmail": true,
-    "followsPush": false
+    "likesEmail": true,
+    "commentsPush": false
   }
 }
 
@@ -26,14 +26,16 @@ tests {
   test("Status code is 200", function () {
     expect(res.getStatus()).to.equal(200);
   });
-  
+
   test("Response has success true", function () {
     expect(res.getBody().success).to.equal(true);
   });
-  
-  test("Follows preferences updated successfully", function () {
+
+  test("Partial fields updated", function () {
     const data = res.getBody().data;
-    expect(data.followsEmail).to.equal(true);
-    expect(data.followsPush).to.equal(false);
+    expect(data.likesEmail).to.equal(true);
+    expect(data.commentsPush).to.equal(false);
   });
 }
+
+
