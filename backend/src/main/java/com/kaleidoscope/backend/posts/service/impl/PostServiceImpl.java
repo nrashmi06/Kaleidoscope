@@ -5,11 +5,10 @@ import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostResponseDTO;
-import com.kaleidoscope.backend.posts.exception.Posts.PostCategoryNotFoundException;
-import com.kaleidoscope.backend.posts.exception.Posts.PostLocationNotFoundException;
-import com.kaleidoscope.backend.posts.exception.Posts.PostNotFoundException;
-import com.kaleidoscope.backend.posts.exception.Posts.UnauthorizedActionException;
-import com.kaleidoscope.backend.posts.exception.Posts.IllegalStatePostActionException;
+import com.kaleidoscope.backend.posts.enums.PostStatus;
+import com.kaleidoscope.backend.posts.enums.PostType;
+import com.kaleidoscope.backend.posts.enums.PostVisibility;
+import com.kaleidoscope.backend.posts.exception.Posts.*;
 import com.kaleidoscope.backend.posts.mapper.PostMapper;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
@@ -22,11 +21,16 @@ import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
 import com.kaleidoscope.backend.shared.repository.CategoryRepository;
 import com.kaleidoscope.backend.shared.repository.LocationRepository;
 import com.kaleidoscope.backend.shared.repository.MediaAssetTrackerRepository;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +50,7 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
     private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
+    private final FollowRepository followRepository;
 
     @Override
     @Transactional
@@ -174,7 +179,7 @@ public class PostServiceImpl implements PostService {
             if (!incomingMediaIds.contains(entry.getKey())) {
                 String publicId = imageStorageService.extractPublicIdFromUrl(entry.getValue().getMediaUrl());
                 mediaAssetTrackerRepository.findByPublicId(publicId).ifPresent(tracker -> {
-                    tracker.setStatus(MediaAssetStatus.UNLINKED);
+                    tracker.setStatus(MediaAssetStatus.MARKED_FOR_DELETE);
                     tracker.setPost(null);
                 });
             }
@@ -184,5 +189,127 @@ public class PostServiceImpl implements PostService {
         for(PostMedia media : finalMediaList) {
             post.addMedia(media);
         }
+    }
+
+    @Override
+    @Transactional
+    public void softDeletePost(Long postId) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+        if (!isAdmin && !post.getUser().getUserId().equals(currentUserId)) {
+            throw new UnauthorizedActionException("User is not authorized to delete this post.");
+        }
+        // Soft delete is handled by @SQLDelete on Post
+        postRepository.delete(post);
+        log.info("Post {} soft-deleted by user {} (admin? {})", postId, currentUserId, isAdmin);
+    }
+
+    @Override
+    @Transactional
+    public void hardDeletePost(Long postId) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
+
+        for (PostMedia media : post.getMedia()) {
+            String publicId = imageStorageService.extractPublicIdFromUrl(media.getMediaUrl());
+            mediaAssetTrackerRepository.findByPublicId(publicId).ifPresent(tracker -> {
+                tracker.setStatus(MediaAssetStatus.UNLINKED);
+                tracker.setPost(null);
+            });
+            imageStorageService.deleteImageByPublicId(imageStorageService.extractPublicIdFromUrl(media.getMediaUrl()));
+        }
+
+        post.getMedia().clear();
+        post.getCategories().clear();
+        post.getComments().clear();
+        postRepository.hardDeleteById(post.getPostId());
+        log.info("Post {} hard-deleted by admin", postId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostResponseDTO getPostById(Long postId) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+        boolean isOwner = post.getUser().getUserId().equals(currentUserId);
+        if (!isAdmin && !isOwner) {
+            if (post.getStatus() != PostStatus.PUBLISHED) {
+                throw new UnauthorizedActionException("Not allowed to view this post");
+            }
+            if (post.getVisibility() == PostVisibility.PRIVATE) {
+                throw new UnauthorizedActionException("Not allowed to view this post");
+            }
+        }
+        return postMapper.toDTO(post);
+    }
+
+    // In PostServiceImpl.java
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponse<PostResponseDTO> filterPosts(Pageable pageable,
+                                                          Long userId,
+                                                          Long categoryId,
+                                                          PostType type,
+                                                          PostStatus status,
+                                                          PostVisibility visibility,
+                                                          String query) {
+        // Get details about the user making the request
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+
+        // Start with a specification that finds everything
+        Specification<Post> spec = Specification.where(null);
+
+        // --- Dynamically add filters based on request parameters ---
+        if (userId != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("user").get("userId"), userId));
+        }
+        if (categoryId != null) {
+            spec = spec.and((root, q, cb) -> {
+                // Join with the post_categories table to filter by category
+                var join = root.join("categories").get("category");
+                return cb.equal(join.get("categoryId"), categoryId);
+            });
+        }
+        if (type != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("type"), type));
+        }
+        if (status != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (visibility != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("visibility"), visibility));
+        }
+        if (query != null && !query.isBlank()) {
+            String likePattern = "%" + query.trim().toLowerCase() + "%";
+            spec = spec.and((root, q, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("title")), likePattern),
+                    cb.like(cb.lower(root.get("summary")), likePattern),
+                    cb.like(cb.lower(root.get("body")), likePattern)
+            ));
+        }
+        if (!isAdmin) {
+            Set<Long> followingIds = followRepository.findFollowingIdsByFollowerId(currentUserId);
+
+            Specification<Post> visibilitySpec = (root, q, cb) -> cb.or(
+                    cb.and(
+                            cb.equal(root.get("status"), PostStatus.PUBLISHED),
+                            cb.equal(root.get("visibility"), PostVisibility.PUBLIC)
+                    ),
+                    // Condition 2: The post belongs to the current user (they can see their own drafts).
+                    cb.equal(root.get("user").get("userId"), currentUserId),
+                    cb.and(
+                            cb.equal(root.get("visibility"), PostVisibility.PRIVATE),
+                            root.get("user").get("userId").in(followingIds)
+                    )
+            );
+            spec = spec.and(visibilitySpec);
+        }
+
+        Page<Post> postPage = postRepository.findAll(spec, pageable);
+        Page<PostResponseDTO> dtoPage = postPage.map(postMapper::toDTO);
+        return PaginatedResponse.fromPage(dtoPage);
     }
 }

@@ -26,10 +26,10 @@ public class MediaAssetCleanupScheduler {
     public void cleanupOrphanedMediaAssets() {
         log.info("Starting orphaned media asset cleanup job...");
 
-        LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(60);
 
         List<MediaAssetTracker> orphans = trackerRepository.findOrphanedAssets(
-                MediaAssetStatus.UNLINKED,
+                MediaAssetStatus.MARKED_FOR_DELETE,
                 MediaAssetStatus.PENDING,
                 cutoff
         );
