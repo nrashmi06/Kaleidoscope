@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CommentReactionRepository extends JpaRepository<CommentReaction, Long> {
@@ -19,6 +20,10 @@ public interface CommentReactionRepository extends JpaRepository<CommentReaction
     @Modifying
     @Query("UPDATE CommentReaction r SET r.deletedAt = :deletedAt WHERE r.comment.commentId = :commentId")
     void softDeleteReactionsByCommentId(@Param("commentId") Long commentId, @Param("deletedAt") LocalDateTime deletedAt);
+
+    @Query("SELECT r FROM CommentReaction r WHERE r.comment.commentId = :commentId AND r.user.userId = :userId")
+    Optional<CommentReaction> findByCommentIdAndUserId(@Param("commentId") Long commentId, @Param("userId") Long userId);
+
+    @Query(value = "SELECT * FROM comment_reactions r WHERE r.comment_id = :commentId AND r.user_id = :userId ORDER BY r.reaction_id DESC LIMIT 1", nativeQuery = true)
+    Optional<CommentReaction> findAnyByCommentIdAndUserIdIncludeDeleted(@Param("commentId") Long commentId, @Param("userId") Long userId);
 }
-
-

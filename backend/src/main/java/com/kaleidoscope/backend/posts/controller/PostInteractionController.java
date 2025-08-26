@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.posts.controller;
 
 import com.kaleidoscope.backend.posts.controller.api.PostInteractionApi;
-import com.kaleidoscope.backend.posts.dto.request.PostReactionRequestDTO;
+import com.kaleidoscope.backend.posts.dto.request.ReactionRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostReactionResponseDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCommentCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCommentResponseDTO;
@@ -17,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO;
+
 @RestController
 @RequiredArgsConstructor
 public class PostInteractionController implements PostInteractionApi {
@@ -29,7 +31,7 @@ public class PostInteractionController implements PostInteractionApi {
     public ResponseEntity<ApiResponse<PostReactionResponseDTO>> reactOrUnreact(
             @PathVariable Long postId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
-            @Valid @RequestBody(required = false) PostReactionRequestDTO body
+            @Valid @RequestBody(required = false) ReactionRequestDTO body
     ) {
         ReactionType reactionType = body != null ? body.getReactionType() : null;
         if (!unreact && reactionType == null) {
@@ -95,6 +97,44 @@ public class PostInteractionController implements PostInteractionApi {
                 .data(null)
                 .build());
     }
+
+    @Override
+    @PostMapping(PostInteractionRoutes.REACT_TO_COMMENT)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<CommentReactionResponseDTO>> reactOrUnreactToComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
+            @Valid @RequestBody(required = false) ReactionRequestDTO body
+    ) {
+        ReactionType reactionType = body != null ? body.getReactionType() : null;
+        if (!unreact && reactionType == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.<CommentReactionResponseDTO>builder()
+                    .success(false)
+                    .message("reactionType is required when unreact=false")
+                    .data(null)
+                    .build());
+        }
+        CommentReactionResponseDTO result = postInteractionService.reactOrUnreactToComment(postId, commentId, reactionType, unreact);
+        return ResponseEntity.ok(ApiResponse.<CommentReactionResponseDTO>builder()
+                .success(true)
+                .message(unreact ? "Reaction removed" : "Reaction updated")
+                .data(result)
+                .build());
+    }
+
+    @Override
+    @GetMapping(PostInteractionRoutes.REACT_TO_COMMENT)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<CommentReactionResponseDTO>> getCommentReactionSummary(
+            @PathVariable Long postId,
+            @PathVariable Long commentId
+    ) {
+        CommentReactionResponseDTO result = postInteractionService.getCommentReactionSummary(postId, commentId);
+        return ResponseEntity.ok(ApiResponse.<CommentReactionResponseDTO>builder()
+                .success(true)
+                .message("Reaction summary fetched")
+                .data(result)
+                .build());
+    }
 }
-
-

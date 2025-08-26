@@ -1,6 +1,6 @@
 package com.kaleidoscope.backend.posts.controller.api;
 
-import com.kaleidoscope.backend.posts.dto.request.PostReactionRequestDTO;
+import com.kaleidoscope.backend.posts.dto.request.ReactionRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostReactionResponseDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCommentCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCommentResponseDTO;
@@ -24,7 +24,7 @@ public interface PostInteractionApi {
     ResponseEntity<ApiResponse<PostReactionResponseDTO>> reactOrUnreact(
             @PathVariable Long postId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
-            @Valid @RequestBody(required = false) PostReactionRequestDTO body
+            @Valid @RequestBody(required = false) ReactionRequestDTO body
     );
 
     @Operation(summary = "Get reaction summary for a post")
@@ -48,6 +48,22 @@ public interface PostInteractionApi {
     @DeleteMapping(PostInteractionRoutes.COMMENT_BY_ID)
     @PreAuthorize("isAuthenticated()")
     ResponseEntity<ApiResponse<Object>> deleteComment(@PathVariable Long postId, @PathVariable Long commentId);
+
+    @Operation(summary = "React or unreact to a comment")
+    @PostMapping(PostInteractionRoutes.REACT_TO_COMMENT)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<ApiResponse<com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO>> reactOrUnreactToComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
+            @Valid @RequestBody(required = false) ReactionRequestDTO body
+    );
+
+    @Operation(summary = "Get reaction summary for a comment")
+    @GetMapping(PostInteractionRoutes.REACT_TO_COMMENT)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<ApiResponse<com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO>> getCommentReactionSummary(
+            @PathVariable Long postId,
+            @PathVariable Long commentId
+    );
 }
-
-

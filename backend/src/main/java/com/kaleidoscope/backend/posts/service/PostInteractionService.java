@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.posts.service;
 
+import com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCommentResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostReactionResponseDTO;
 import com.kaleidoscope.backend.posts.enums.ReactionType;
@@ -14,6 +15,8 @@ public interface PostInteractionService {
     PostCommentResponseDTO addComment(Long postId, String body);
     Page<PostCommentResponseDTO> listComments(Long postId, Pageable pageable);
     void deleteComment(Long postId, Long commentId);
+
+    // Comment Reactions
+    CommentReactionResponseDTO reactOrUnreactToComment(Long postId, Long commentId, ReactionType reactionType, boolean unreact);
+    CommentReactionResponseDTO getCommentReactionSummary(Long postId, Long commentId);
 }
-
-
