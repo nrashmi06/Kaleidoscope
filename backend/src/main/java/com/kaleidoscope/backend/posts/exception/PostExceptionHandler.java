@@ -1,5 +1,8 @@
 package com.kaleidoscope.backend.posts.exception;
 
+import com.kaleidoscope.backend.posts.exception.Comments.CommentNotFoundException;
+import com.kaleidoscope.backend.posts.exception.Comments.CommentPostMismatchException;
+import com.kaleidoscope.backend.posts.exception.Comments.CommentUnauthorizedException;
 import com.kaleidoscope.backend.posts.exception.Posts.*;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import org.springframework.http.HttpStatus;
@@ -59,5 +62,26 @@ public class PostExceptionHandler {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         ApiResponse<Object> response = ApiResponse.error("Illegal state for post action", ex.getMessage(), path);
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentNotFound(CommentNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Comment not found", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(CommentPostMismatchException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentPostMismatch(CommentPostMismatchException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Comment does not belong to specified post", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(CommentUnauthorizedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentUnauthorized(CommentUnauthorizedException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Not authorized to delete comment", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 }

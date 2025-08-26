@@ -3,12 +3,16 @@ package com.kaleidoscope.backend.posts.controller;
 import com.kaleidoscope.backend.posts.controller.api.PostInteractionApi;
 import com.kaleidoscope.backend.posts.dto.request.PostReactionRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostReactionResponseDTO;
+import com.kaleidoscope.backend.posts.dto.request.PostCommentCreateRequestDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostCommentResponseDTO;
 import com.kaleidoscope.backend.posts.enums.ReactionType;
 import com.kaleidoscope.backend.posts.routes.PostInteractionRoutes;
 import com.kaleidoscope.backend.posts.service.PostInteractionService;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -52,6 +56,43 @@ public class PostInteractionController implements PostInteractionApi {
                 .success(true)
                 .message("Reaction summary fetched")
                 .data(result)
+                .build());
+    }
+
+    @Override
+    @PostMapping(PostInteractionRoutes.COMMENTS)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<PostCommentResponseDTO>> addComment(@PathVariable Long postId,
+                                                                          @Valid @RequestBody PostCommentCreateRequestDTO requestDTO) {
+        PostCommentResponseDTO result = postInteractionService.addComment(postId, requestDTO.getBody());
+        return ResponseEntity.ok(ApiResponse.<PostCommentResponseDTO>builder()
+                .success(true)
+                .message("Comment added")
+                .data(result)
+                .build());
+    }
+
+    @Override
+    @GetMapping(PostInteractionRoutes.COMMENTS)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Page<PostCommentResponseDTO>>> listComments(@PathVariable Long postId, Pageable pageable) {
+        Page<PostCommentResponseDTO> page = postInteractionService.listComments(postId, pageable);
+        return ResponseEntity.ok(ApiResponse.<Page<PostCommentResponseDTO>>builder()
+                .success(true)
+                .message("Comments fetched")
+                .data(page)
+                .build());
+    }
+
+    @Override
+    @DeleteMapping(PostInteractionRoutes.COMMENT_BY_ID)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Object>> deleteComment(@PathVariable Long postId, @PathVariable Long commentId) {
+        postInteractionService.deleteComment(postId, commentId);
+        return ResponseEntity.ok(ApiResponse.<Object>builder()
+                .success(true)
+                .message("Comment deleted")
+                .data(null)
                 .build());
     }
 }
