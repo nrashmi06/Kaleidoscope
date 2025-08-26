@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostReactionRepository extends JpaRepository<PostReaction, Long> {
@@ -25,6 +26,12 @@ public interface PostReactionRepository extends JpaRepository<PostReaction, Long
     @Modifying
     @Query("UPDATE PostReaction r SET r.deletedAt = :deletedAt WHERE r.post.postId = :postId")
     void softDeleteReactionsByPostId(@Param("postId") Long postId, @Param("deletedAt") LocalDateTime deletedAt);
+
+    @Query("SELECT r FROM PostReaction r WHERE r.post.postId = :postId AND r.user.userId = :userId")
+    Optional<PostReaction> findByPostIdAndUserId(@Param("postId") Long postId, @Param("userId") Long userId);
+
+    @Query(value = "SELECT * FROM reactions r WHERE r.post_id = :postId AND r.user_id = :userId ORDER BY r.reaction_id DESC LIMIT 1", nativeQuery = true)
+    Optional<PostReaction> findAnyByPostIdAndUserIdIncludeDeleted(@Param("postId") Long postId, @Param("userId") Long userId);
 }
 
 
