@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 @Data
-public class PostCreateRequestDTO {
+public class PostUpdateRequestDTO {
     @NotBlank
     @Size(max = 200)
     private String title;
@@ -33,6 +33,6 @@ public class PostCreateRequestDTO {
     @NotEmpty
     private Set<Long> categoryIds;
 
-    // Optional: type of post (default to SOCIAL if not provided)
     private PostType type;
 }
+

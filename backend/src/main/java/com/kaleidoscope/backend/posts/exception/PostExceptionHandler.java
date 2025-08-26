@@ -1,9 +1,6 @@
 package com.kaleidoscope.backend.posts.exception;
 
-import com.kaleidoscope.backend.posts.exception.Posts.InvalidPostMediaException;
-import com.kaleidoscope.backend.posts.exception.Posts.PostCategoryNotFoundException;
-import com.kaleidoscope.backend.posts.exception.Posts.PostLocationNotFoundException;
-import com.kaleidoscope.backend.posts.exception.Posts.PostNotFoundException;
+import com.kaleidoscope.backend.posts.exception.Posts.*;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,5 +45,19 @@ public class PostExceptionHandler {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         ApiResponse<Object> response = ApiResponse.error("Invalid state", ex.getMessage(), path);
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(UnauthorizedActionException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnauthorizedAction(com.kaleidoscope.backend.posts.exception.Posts.UnauthorizedActionException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Unauthorized action", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(IllegalStatePostActionException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalStatePostAction(IllegalStatePostActionException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Illegal state for post action", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 }

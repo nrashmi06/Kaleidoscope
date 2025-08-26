@@ -2,7 +2,7 @@ package com.kaleidoscope.backend.shared.controller.api;
 
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
-import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

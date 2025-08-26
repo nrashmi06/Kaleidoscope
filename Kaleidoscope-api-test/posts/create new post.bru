@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: http://localhost:8080/api/posts
+  url: {{base_url}}/api/posts
   body: json
   auth: inherit
 }
@@ -18,6 +18,7 @@ body:json {
     "visibility": "PUBLIC",
     "locationId": 1,
     "categoryIds": [1, 2],
+    "type": "SOCIAL",
     "mediaDetails": [
       {
         "url": "https://res.cloudinary.com/demo/image/upload/v1692873600/posts/image1.jpg",

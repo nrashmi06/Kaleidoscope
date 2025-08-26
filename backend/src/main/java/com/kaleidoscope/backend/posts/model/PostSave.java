@@ -50,6 +50,6 @@ public class PostSave {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return 31;
     }
 }

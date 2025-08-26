@@ -3,7 +3,7 @@ package com.kaleidoscope.backend.shared.controller;
 import com.kaleidoscope.backend.shared.controller.api.LocationApi;
 import com.kaleidoscope.backend.shared.dto.request.LocationRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
-import com.kaleidoscope.backend.shared.dto.response.PaginatedResponse;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.shared.routes.LocationRoutes;
 import com.kaleidoscope.backend.shared.service.LocationService;

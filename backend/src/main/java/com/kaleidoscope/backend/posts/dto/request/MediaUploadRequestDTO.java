@@ -9,6 +9,7 @@ import java.util.Map;
 
 @Data
 public class MediaUploadRequestDTO {
+    private Long mediaId; // Optional, used for update
     @URL
     private String url;
     @NotNull

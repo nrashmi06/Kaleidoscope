@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.posts.model;
 
 import com.kaleidoscope.backend.posts.enums.PostStatus;
+import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
@@ -17,10 +18,6 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Represents a post made by a user.
- * Implements soft-delete functionality via @SQLDelete and @Where.
- */
 @Entity
 @Table(name = "posts", indexes = {
         @Index(name = "idx_post_user_id", columnList = "user_id"),
@@ -76,6 +73,11 @@ public class Post {
     @Builder.Default
     private PostStatus status = PostStatus.ARCHIVED;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private PostType type = PostType.SOCIAL;
+
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
 
@@ -98,15 +100,10 @@ public class Post {
             this.readTimeMinutes = 0;
             return;
         }
-
-        // A simple way to count words
         String[] words = this.body.trim().split("\\s+");
         this.wordCount = words.length;
-
-        // Assuming an average reading speed of 200 words per minute
         this.readTimeMinutes = (int) Math.ceil((double) this.wordCount / 200);
     }
-    // --- Relationships ---
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -118,9 +115,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private Set<Comment> comments = new HashSet<>();
-
-    // --- Helper Methods ---
+    private Set<PostComment> comments = new HashSet<>();
 
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
@@ -149,17 +144,15 @@ public class Post {
         }
     }
 
-    public void addComment(Comment comment) {
+    public void addComment(PostComment comment) {
         comments.add(comment);
         comment.setPost(this);
     }
 
-    public void removeComment(Comment comment) {
+    public void removeComment(PostComment comment) {
         comments.remove(comment);
         comment.setPost(null);
     }
-
-    // --- Equals and HashCode ---
 
     @Override
     public boolean equals(Object o) {

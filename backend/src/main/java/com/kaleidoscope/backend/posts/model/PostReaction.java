@@ -1,0 +1,73 @@
+package com.kaleidoscope.backend.posts.model;
+
+import com.kaleidoscope.backend.posts.enums.ReactionType;
+import com.kaleidoscope.backend.users.model.User;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "reactions", indexes = {
+        @Index(name = "idx_reaction_post_id", columnList = "post_id"),
+        @Index(name = "idx_reaction_user_id", columnList = "user_id"),
+        @Index(name = "idx_reaction_user_post", columnList = "user_id, post_id", unique = true)
+})
+@EntityListeners(AuditingEntityListener.class)
+@SQLDelete(sql = "UPDATE reactions SET deleted_at = NOW() WHERE reaction_id = ?")
+@Where(clause = "deleted_at IS NULL")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class PostReaction {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "reaction_id")
+    private Long reactionId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reaction_type", nullable = false)
+    private ReactionType reactionType;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PostReaction postReaction = (PostReaction) o;
+        return reactionId != null && reactionId.equals(postReaction.reactionId);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
+    }
+}
+
+
