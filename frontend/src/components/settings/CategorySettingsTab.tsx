@@ -27,8 +27,8 @@ export const CategorySettingsTab = () => {
   const fetchCategories = async () => {
     setLoading(true);
     const response = await getParentCategoriesController(accessToken);
-    if (response.success && response.data?.categories) {
-      setCategories(response.data.categories);
+    if (response.success && response.data?.content) {
+      setCategories(response.data.content);
       setError(null);
     } else {
       setError(response.errors?.[0] || "Failed to load categories.");

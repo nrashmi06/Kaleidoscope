@@ -52,10 +52,15 @@ export const CategoryForm: React.FC<Props> = ({
     e.preventDefault();
     if (!accessToken) return;
 
+    console.log("About to submit form with data:", JSON.stringify(form, null, 2));
+    console.log("Form parentId value:", form.parentId, "Type:", typeof form.parentId);
+
     setSubmitting(true);
     const response = isEditing
       ? await updateCategoryController(editingCategory!.categoryId, form, accessToken)
       : await createNewCategoryController(form, accessToken);
+
+    console.log("Response received:", response);
 
     if (response.success) {
       setForm({ name: "", description: "", iconName: "", parentId: null });
@@ -63,6 +68,7 @@ export const CategoryForm: React.FC<Props> = ({
       onSuccess();
       onCancelEdit?.();
     } else {
+      console.error("Form submission failed:", response.errors);
       alert(response.errors?.[0] || "Operation failed.");
     }
 

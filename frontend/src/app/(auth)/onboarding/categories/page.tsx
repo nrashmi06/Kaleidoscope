@@ -25,45 +25,37 @@ interface CategoryGroup {
   minRequired: number;
 }
 
-// Define category groups based on common topics
+// Create 4 pages with 5 categories each from DB categories
 const getCategoryGroups = (categories: Category[]): CategoryGroup[] => {
-  const techKeywords = ['technology', 'tech', 'programming', 'coding', 'software', 'computer', 'ai', 'machine learning', 'data', 'web', 'mobile', 'app'];
-  const scienceKeywords = ['science', 'biology', 'chemistry', 'physics', 'research', 'laboratory', 'medical', 'health', 'environment'];
-  const artsKeywords = ['art', 'music', 'design', 'creative', 'painting', 'drawing', 'photography', 'film', 'literature', 'writing'];
-  const businessKeywords = ['business', 'finance', 'marketing', 'entrepreneurship', 'management', 'economics', 'startup', 'investment'];
-  const sportsKeywords = ['sports', 'fitness', 'exercise', 'football', 'basketball', 'soccer', 'tennis', 'swimming', 'running', 'gym'];
-  const lifestyleKeywords = ['lifestyle', 'travel', 'food', 'cooking', 'fashion', 'beauty', 'home', 'garden', 'hobby'];
-
-  const groups: CategoryGroup[] = [
-    { name: "Technology & Programming", description: "Tech, coding, AI, and digital innovation", categories: [], minRequired: 1 },
-    { name: "Science & Research", description: "Scientific fields, research, and discoveries", categories: [], minRequired: 1 },
-    { name: "Arts & Creativity", description: "Creative arts, music, design, and literature", categories: [], minRequired: 1 },
-    { name: "Business & Finance", description: "Business, entrepreneurship, and financial topics", categories: [], minRequired: 1 },
-    { name: "Sports & Fitness", description: "Physical activities, sports, and wellness", categories: [], minRequired: 1 },
-    { name: "Lifestyle & Hobbies", description: "Personal interests, travel, and everyday life", categories: [], minRequired: 1 }
-  ];
-
-  // Categorize each category into appropriate groups
-  categories.forEach(category => {
-    const categoryText = `${category.name} ${category.description}`.toLowerCase();
+  // Only use categories that have parentId (child categories) for selection
+  // Parent categories are just for grouping/organization
+  const selectableCategories = categories.filter(cat => cat.parentId !== null);
+  
+  // If no child categories exist, use all categories
+  const categoriesToGroup = selectableCategories.length > 0 ? selectableCategories : categories;
+  
+  // Create 4 groups of 5 categories each
+  const groups: CategoryGroup[] = [];
+  const categoriesPerPage = 5;
+  const totalPages = 4;
+  
+  for (let i = 0; i < totalPages; i++) {
+    const startIndex = i * categoriesPerPage;
+    const endIndex = startIndex + categoriesPerPage;
+    const pageCategories = categoriesToGroup.slice(startIndex, endIndex);
     
-    if (techKeywords.some(keyword => categoryText.includes(keyword))) {
-      groups[0].categories.push(category);
-    } else if (scienceKeywords.some(keyword => categoryText.includes(keyword))) {
-      groups[1].categories.push(category);
-    } else if (artsKeywords.some(keyword => categoryText.includes(keyword))) {
-      groups[2].categories.push(category);
-    } else if (businessKeywords.some(keyword => categoryText.includes(keyword))) {
-      groups[3].categories.push(category);
-    } else if (sportsKeywords.some(keyword => categoryText.includes(keyword))) {
-      groups[4].categories.push(category);
-    } else {
-      groups[5].categories.push(category); // Default to lifestyle
+    // Only create group if there are categories for this page
+    if (pageCategories.length > 0) {
+      groups.push({
+        name: `Category Selection - Page ${i + 1}`,
+        description: `Choose at least one category that interests you (${pageCategories.length} options)`,
+        categories: pageCategories,
+        minRequired: 1
+      });
     }
-  });
-
-  // Filter out empty groups
-  return groups.filter(group => group.categories.length > 0);
+  }
+  
+  return groups;
 };
 
 const OnboardingCategoriesPage = () => {
@@ -88,8 +80,9 @@ const OnboardingCategoriesPage = () => {
     const fetchCategories = async () => {
       try {
         const response = await getOnboardingCategories(accessToken);
-        if (response.success && response.data?.categories) {
-          const fetchedCategories = response.data.categories;
+        
+        if (response.success && response.data?.content) {
+          const fetchedCategories = response.data.content;
           setCategories(fetchedCategories);
           
           // Group categories

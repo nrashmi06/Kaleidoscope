@@ -4,15 +4,25 @@ import { CategoryMapper } from "@/mapper/categoryMapper";
 
 // Get all parent categories for onboarding
 export const getOnboardingCategories = async (accessToken: string): Promise<ParentCategoriesResponse> => {
-  const response = await axios.get<ParentCategoriesResponse>(
-    CategoryMapper.getAllCategories,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+  try {
+    const response = await axios.get<ParentCategoriesResponse>(
+      CategoryMapper.getAllCategories,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+    if (axios.isAxiosError(error)) {
+      console.error("API Error Status:", error.response?.status);
+      console.error("API Error Response:", error.response?.data);
     }
-  );
-  return response.data;
+    throw error;
+  }
 };
 
 // Add user interests in bulk for onboarding
