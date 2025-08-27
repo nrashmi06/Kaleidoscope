@@ -237,7 +237,7 @@ public class PostServiceImpl implements PostService {
             if (post.getStatus() != PostStatus.PUBLISHED) {
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
-            if (post.getVisibility() == PostVisibility.PRIVATE) {
+            if (post.getVisibility() == PostVisibility.FOLLOWERS) {
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
         }
@@ -301,7 +301,7 @@ public class PostServiceImpl implements PostService {
                     // Condition 2: The post belongs to the current user (they can see their own drafts).
                     cb.equal(root.get("user").get("userId"), currentUserId),
                     cb.and(
-                            cb.equal(root.get("visibility"), PostVisibility.PRIVATE),
+                            cb.equal(root.get("visibility"), PostVisibility.FOLLOWERS),
                             root.get("user").get("userId").in(followingIds)
                     )
             );
