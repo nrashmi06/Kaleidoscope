@@ -13,7 +13,7 @@ import java.util.List;
 // Main Response DTO
 @Data
 @Builder
-public class PostResponseDTO {
+public class PostCreationResponseDTO {
     private Long postId;
     private String title;
     private String body;

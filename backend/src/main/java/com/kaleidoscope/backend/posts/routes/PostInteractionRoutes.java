@@ -10,6 +10,5 @@ public class PostInteractionRoutes {
     // Comments
     public static final String COMMENTS = PostsRoutes.POSTS + "/{postId}/comments";
     public static final String COMMENT_BY_ID = COMMENTS + "/{commentId}";
-
     public static final String REACT_TO_COMMENT = COMMENT_BY_ID + "/reactions";
 }

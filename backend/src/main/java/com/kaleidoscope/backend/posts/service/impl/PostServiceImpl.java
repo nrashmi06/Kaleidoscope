@@ -4,7 +4,7 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
@@ -54,7 +54,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponseDTO createPost(PostCreateRequestDTO postCreateRequestDTO) {
+    public PostCreationResponseDTO createPost(PostCreateRequestDTO postCreateRequestDTO) {
         Long userId = jwtUtils.getUserIdFromContext();
         User currentUser = userRepository.findByUserId(userId);
         if (currentUser == null) {
@@ -102,7 +102,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponseDTO updatePost(Long postId, PostUpdateRequestDTO requestDTO) {
+    public PostCreationResponseDTO updatePost(Long postId, PostUpdateRequestDTO requestDTO) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException(postId));
 
@@ -228,7 +228,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public PostResponseDTO getPostById(Long postId) {
+    public PostCreationResponseDTO getPostById(Long postId) {
         Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -248,13 +248,13 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedResponse<PostResponseDTO> filterPosts(Pageable pageable,
-                                                          Long userId,
-                                                          Long categoryId,
-                                                          PostType type,
-                                                          PostStatus status,
-                                                          PostVisibility visibility,
-                                                          String query) {
+    public PaginatedResponse<PostCreationResponseDTO> filterPosts(Pageable pageable,
+                                                                  Long userId,
+                                                                  Long categoryId,
+                                                                  PostType type,
+                                                                  PostStatus status,
+                                                                  PostVisibility visibility,
+                                                                  String query) {
         // Get details about the user making the request
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -309,7 +309,7 @@ public class PostServiceImpl implements PostService {
         }
 
         Page<Post> postPage = postRepository.findAll(spec, pageable);
-        Page<PostResponseDTO> dtoPage = postPage.map(postMapper::toDTO);
+        Page<PostCreationResponseDTO> dtoPage = postPage.map(postMapper::toDTO);
         return PaginatedResponse.fromPage(dtoPage);
     }
 }

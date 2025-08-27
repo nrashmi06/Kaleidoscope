@@ -5,3 +5,4 @@ public enum ContentType {
     STORY,
     COMMENT
 }
+
