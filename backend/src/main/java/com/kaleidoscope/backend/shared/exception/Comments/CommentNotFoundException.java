@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.posts.exception.Comments;
+package com.kaleidoscope.backend.shared.exception.Comments;
 
 public class CommentNotFoundException extends RuntimeException {
     public CommentNotFoundException(Long commentId) {

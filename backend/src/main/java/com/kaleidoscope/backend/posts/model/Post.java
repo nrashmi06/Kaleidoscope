@@ -4,6 +4,7 @@ import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.model.Category;
+import com.kaleidoscope.backend.shared.model.Comment;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
@@ -115,7 +116,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private Set<PostComment> comments = new HashSet<>();
+    private Set<Comment> comments = new HashSet<>();
 
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
@@ -144,12 +145,12 @@ public class Post {
         }
     }
 
-    public void addComment(PostComment comment) {
+    public void addComment(Comment comment) {
         comments.add(comment);
         comment.setPost(this);
     }
 
-    public void removeComment(PostComment comment) {
+    public void removeComment(Comment comment) {
         comments.remove(comment);
         comment.setPost(null);
     }

@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.posts.repository;
+package com.kaleidoscope.backend.shared.repository;
 
-import com.kaleidoscope.backend.posts.model.PostReaction;
+import com.kaleidoscope.backend.shared.model.Reaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface PostReactionRepository extends JpaRepository<PostReaction, Long> {
+public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
-    @Query("SELECT r.reactionType, COUNT(r) FROM PostReaction r WHERE r.post.postId = :postId GROUP BY r.reactionType")
+    @Query("SELECT r.reactionType, COUNT(r) FROM Reaction r WHERE r.post.postId = :postId GROUP BY r.reactionType")
     List<Object[]> countReactionsByPostIdGroupedByType(@Param("postId") Long postId);
 
     /**
@@ -24,14 +24,14 @@ public interface PostReactionRepository extends JpaRepository<PostReaction, Long
      * @param postId The ID of the post whose reactions should be soft-deleted.
      */
     @Modifying
-    @Query("UPDATE PostReaction r SET r.deletedAt = :deletedAt WHERE r.post.postId = :postId")
+    @Query("UPDATE Reaction r SET r.deletedAt = :deletedAt WHERE r.post.postId = :postId")
     void softDeleteReactionsByPostId(@Param("postId") Long postId, @Param("deletedAt") LocalDateTime deletedAt);
 
-    @Query("SELECT r FROM PostReaction r WHERE r.post.postId = :postId AND r.user.userId = :userId")
-    Optional<PostReaction> findByPostIdAndUserId(@Param("postId") Long postId, @Param("userId") Long userId);
+    @Query("SELECT r FROM Reaction r WHERE r.post.postId = :postId AND r.user.userId = :userId")
+    Optional<Reaction> findByPostIdAndUserId(@Param("postId") Long postId, @Param("userId") Long userId);
 
     @Query(value = "SELECT * FROM reactions r WHERE r.post_id = :postId AND r.user_id = :userId ORDER BY r.reaction_id DESC LIMIT 1", nativeQuery = true)
-    Optional<PostReaction> findAnyByPostIdAndUserIdIncludeDeleted(@Param("postId") Long postId, @Param("userId") Long userId);
+    Optional<Reaction> findAnyByPostIdAndUserIdIncludeDeleted(@Param("postId") Long postId, @Param("userId") Long userId);
 }
 
 

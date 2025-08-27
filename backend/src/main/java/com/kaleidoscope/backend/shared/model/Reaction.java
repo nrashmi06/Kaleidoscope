@@ -1,6 +1,7 @@
-package com.kaleidoscope.backend.posts.model;
+package com.kaleidoscope.backend.shared.model;
 
-import com.kaleidoscope.backend.posts.enums.ReactionType;
+import com.kaleidoscope.backend.shared.enums.ReactionType;
+import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,29 +14,29 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "comment_reactions", indexes = {
-        @Index(name = "idx_comment_reaction_comment_id", columnList = "comment_id"),
-        @Index(name = "idx_comment_reaction_user_id", columnList = "user_id"),
-        @Index(name = "idx_comment_reaction_user_comment", columnList = "user_id, comment_id", unique = true)
+@Table(name = "reactions", indexes = {
+        @Index(name = "idx_reaction_post_id", columnList = "post_id"),
+        @Index(name = "idx_reaction_user_id", columnList = "user_id"),
+        @Index(name = "idx_reaction_user_post", columnList = "user_id, post_id", unique = true)
 })
 @EntityListeners(AuditingEntityListener.class)
-@SQLDelete(sql = "UPDATE comment_reactions SET deleted_at = NOW() WHERE comment_reaction_id = ?")
+@SQLDelete(sql = "UPDATE reactions SET deleted_at = NOW() WHERE reaction_id = ?")
 @Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CommentReaction {
+public class Reaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "comment_reaction_id")
-    private Long commentReactionId;
+    @Column(name = "reaction_id")
+    private Long reactionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "comment_id", nullable = false)
-    private PostComment comment;
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -60,8 +61,8 @@ public class CommentReaction {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        CommentReaction that = (CommentReaction) o;
-        return commentReactionId != null && commentReactionId.equals(that.commentReactionId);
+        Reaction reaction = (Reaction) o;
+        return reactionId != null && reactionId.equals(reaction.reactionId);
     }
 
     @Override

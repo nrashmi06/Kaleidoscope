@@ -1,6 +1,7 @@
-package com.kaleidoscope.backend.posts.dto.response;
+package com.kaleidoscope.backend.shared.dto.response;
 
-import com.kaleidoscope.backend.posts.enums.CommentStatus;
+import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
+import com.kaleidoscope.backend.shared.enums.CommentStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,14 +9,14 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class PostCommentResponseDTO {
+public class CommentResponseDTO {
     private Long commentId;
     private Long postId;
     private String body;
     private CommentStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private UserResponseDTO author;
+    private UserSummaryResponseDTO author;
 }
 
 

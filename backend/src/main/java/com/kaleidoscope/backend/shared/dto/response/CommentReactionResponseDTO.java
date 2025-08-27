@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.posts.dto.response;
+package com.kaleidoscope.backend.shared.dto.response;
 
-import com.kaleidoscope.backend.posts.enums.ReactionType;
+import com.kaleidoscope.backend.shared.enums.ReactionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

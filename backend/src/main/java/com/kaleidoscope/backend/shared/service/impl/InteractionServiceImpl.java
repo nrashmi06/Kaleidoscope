@@ -1,24 +1,24 @@
-package com.kaleidoscope.backend.posts.service.impl;
+package com.kaleidoscope.backend.shared.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
-import com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostCommentResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostReactionResponseDTO;
-import com.kaleidoscope.backend.posts.enums.ReactionType;
-import com.kaleidoscope.backend.posts.exception.Comments.CommentNotFoundException;
-import com.kaleidoscope.backend.posts.exception.Comments.CommentPostMismatchException;
-import com.kaleidoscope.backend.posts.exception.Comments.CommentUnauthorizedException;
+import com.kaleidoscope.backend.shared.dto.response.CommentReactionResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
+import com.kaleidoscope.backend.shared.enums.ReactionType;
+import com.kaleidoscope.backend.shared.exception.Comments.CommentNotFoundException;
+import com.kaleidoscope.backend.shared.exception.Comments.CommentPostMismatchException;
+import com.kaleidoscope.backend.shared.exception.Comments.CommentUnauthorizedException;
 import com.kaleidoscope.backend.posts.exception.Posts.PostNotFoundException;
-import com.kaleidoscope.backend.posts.mapper.PostInteractionMapper;
-import com.kaleidoscope.backend.posts.model.CommentReaction;
+import com.kaleidoscope.backend.shared.mapper.InteractionMapper;
+import com.kaleidoscope.backend.shared.model.CommentReaction;
 import com.kaleidoscope.backend.posts.model.Post;
-import com.kaleidoscope.backend.posts.model.PostComment;
-import com.kaleidoscope.backend.posts.model.PostReaction;
-import com.kaleidoscope.backend.posts.repository.CommentReactionRepository;
-import com.kaleidoscope.backend.posts.repository.PostCommentRepository;
-import com.kaleidoscope.backend.posts.repository.PostReactionRepository;
+import com.kaleidoscope.backend.shared.model.Comment;
+import com.kaleidoscope.backend.shared.model.Reaction;
+import com.kaleidoscope.backend.shared.repository.CommentReactionRepository;
+import com.kaleidoscope.backend.shared.repository.CommentRepository;
+import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
-import com.kaleidoscope.backend.posts.service.PostInteractionService;
+import com.kaleidoscope.backend.shared.service.InteractionService;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,19 +34,19 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class PostInteractionServiceImpl implements PostInteractionService {
+public class InteractionServiceImpl implements InteractionService {
 
     private final PostRepository postRepository;
-    private final PostReactionRepository postReactionRepository;
-    private final PostCommentRepository postCommentRepository;
+    private final ReactionRepository reactionRepository;
+    private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
-    private final PostInteractionMapper postInteractionMapper;
+    private final InteractionMapper interactionMapper;
     private final CommentReactionRepository commentReactionRepository;
 
     @Override
     @Transactional
-    public PostReactionResponseDTO reactOrUnreact(Long postId, ReactionType reactionType, boolean unreact) {
+    public ReactionResponseDTO reactOrUnreact(Long postId, ReactionType reactionType, boolean unreact) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         User currentUser = userRepository.findByUserId(currentUserId);
         if (currentUser == null) {
@@ -55,25 +55,25 @@ public class PostInteractionServiceImpl implements PostInteractionService {
 
         Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
 
-        var existingOpt = postReactionRepository.findAnyByPostIdAndUserIdIncludeDeleted(postId, currentUserId);
+        var existingOpt = reactionRepository.findAnyByPostIdAndUserIdIncludeDeleted(postId, currentUserId);
         if (unreact) {
             existingOpt.ifPresent(existing -> {
                 existing.setDeletedAt(LocalDateTime.now());
-                postReactionRepository.save(existing);
+                reactionRepository.save(existing);
             });
         } else {
             if (existingOpt.isPresent()) {
-                PostReaction existing = existingOpt.get();
+                Reaction existing = existingOpt.get();
                 existing.setDeletedAt(null);
                 existing.setReactionType(reactionType);
-                postReactionRepository.save(existing);
+                reactionRepository.save(existing);
             } else {
-                PostReaction reaction = PostReaction.builder()
+                Reaction reaction = Reaction.builder()
                         .post(post)
                         .user(currentUser)
                         .reactionType(reactionType)
                         .build();
-                postReactionRepository.save(reaction);
+                reactionRepository.save(reaction);
             }
         }
 
@@ -82,20 +82,20 @@ public class PostInteractionServiceImpl implements PostInteractionService {
 
     @Override
     @Transactional(readOnly = true)
-    public PostReactionResponseDTO getReactionSummary(Long postId) {
+    public ReactionResponseDTO getReactionSummary(Long postId) {
         postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        ReactionType currentUserReaction = postReactionRepository
+        ReactionType currentUserReaction = reactionRepository
                 .findByPostIdAndUserId(postId, currentUserId)
-                .map(PostReaction::getReactionType)
+                .map(Reaction::getReactionType)
                 .orElse(null);
-        List<Object[]> counts = postReactionRepository.countReactionsByPostIdGroupedByType(postId);
-        return postInteractionMapper.toPostReactionSummary(postId, currentUserReaction, counts);
+        List<Object[]> counts = reactionRepository.countReactionsByPostIdGroupedByType(postId);
+        return interactionMapper.toPostReactionSummary(postId, currentUserReaction, counts);
     }
 
     @Override
     @Transactional
-    public PostCommentResponseDTO addComment(Long postId, String body) {
+    public CommentResponseDTO addComment(Long postId, String body) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         User currentUser = userRepository.findByUserId(currentUserId);
         if (currentUser == null) {
@@ -103,21 +103,21 @@ public class PostInteractionServiceImpl implements PostInteractionService {
         }
 
         Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
-        PostComment comment = PostComment.builder()
+        Comment comment = Comment.builder()
                 .post(post)
                 .user(currentUser)
                 .body(body)
                 .build();
-        PostComment saved = postCommentRepository.save(comment);
-        return postInteractionMapper.toCommentDTO(saved);
+        Comment saved = commentRepository.save(comment);
+        return interactionMapper.toCommentDTO(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PostCommentResponseDTO> listComments(Long postId, Pageable pageable) {
+    public Page<CommentResponseDTO> listComments(Long postId, Pageable pageable) {
         postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
-        Page<PostComment> page = postCommentRepository.findAll((root, q, cb) -> cb.equal(root.get("post").get("postId"), postId), pageable);
-        return page.map(postInteractionMapper::toCommentDTO);
+        Page<Comment> page = commentRepository.findAll((root, q, cb) -> cb.equal(root.get("post").get("postId"), postId), pageable);
+        return page.map(interactionMapper::toCommentDTO);
     }
 
     @Override
@@ -125,7 +125,7 @@ public class PostInteractionServiceImpl implements PostInteractionService {
     public void deleteComment(Long postId, Long commentId) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
-        PostComment comment = postCommentRepository.findById(commentId)
+        Comment comment = commentRepository.findById(commentId)
             .orElseThrow(() -> new CommentNotFoundException(commentId));
         if (!comment.getPost().getPostId().equals(postId)) {
             throw new CommentPostMismatchException(commentId, postId);
@@ -133,7 +133,7 @@ public class PostInteractionServiceImpl implements PostInteractionService {
         if (!isAdmin && !comment.getUser().getUserId().equals(currentUserId)) {
             throw new CommentUnauthorizedException(commentId);
         }
-        postCommentRepository.delete(comment);
+        commentRepository.delete(comment);
     }
 
     @Override
@@ -144,7 +144,7 @@ public class PostInteractionServiceImpl implements PostInteractionService {
         if (currentUser == null) {
             throw new IllegalStateException("Authenticated user not found for ID: " + currentUserId);
         }
-        PostComment comment = postCommentRepository.findById(commentId)
+        Comment comment = commentRepository.findById(commentId)
             .orElseThrow(() -> new CommentNotFoundException(commentId));
         if (!comment.getPost().getPostId().equals(postId)) {
             throw new CommentPostMismatchException(commentId, postId);
@@ -176,7 +176,7 @@ public class PostInteractionServiceImpl implements PostInteractionService {
     @Override
     @Transactional(readOnly = true)
     public CommentReactionResponseDTO getCommentReactionSummary(Long postId, Long commentId) {
-        PostComment comment = postCommentRepository.findById(commentId)
+        Comment comment = commentRepository.findById(commentId)
             .orElseThrow(() -> new CommentNotFoundException(commentId));
         if (!comment.getPost().getPostId().equals(postId)) {
             throw new CommentPostMismatchException(commentId, postId);
@@ -187,6 +187,6 @@ public class PostInteractionServiceImpl implements PostInteractionService {
                 .map(CommentReaction::getReactionType)
                 .orElse(null);
         List<Object[]> counts = commentReactionRepository.countReactionsByCommentIdGroupedByType(commentId);
-        return postInteractionMapper.toCommentReactionSummary(commentId, currentUserReaction, counts);
+        return interactionMapper.toCommentReactionSummary(commentId, currentUserReaction, counts);
     }
 }

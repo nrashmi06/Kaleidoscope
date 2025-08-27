@@ -24,7 +24,7 @@ public class PostCreationResponseDTO {
     private PostStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private UserResponseDTO author;
+    private UserSummaryResponseDTO author;
     private List<CategoryResponseDTO> categories;
     private List<PostMediaResponseDTO> media;
     private LocationResponseDTO location;

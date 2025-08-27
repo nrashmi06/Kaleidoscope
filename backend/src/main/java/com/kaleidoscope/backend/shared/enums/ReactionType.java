@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.posts.enums;
+package com.kaleidoscope.backend.shared.enums;
 
 /**
  * Represents the set of predefined reactions a user can have on a post.

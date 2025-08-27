@@ -5,7 +5,7 @@ import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
@@ -46,7 +46,7 @@ public class PostMapper {
         }
 
         User user = post.getUser();
-        UserResponseDTO authorDto = user != null ? UserResponseDTO.builder()
+        UserSummaryResponseDTO authorDto = user != null ? UserSummaryResponseDTO.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())
                 .build() : null;

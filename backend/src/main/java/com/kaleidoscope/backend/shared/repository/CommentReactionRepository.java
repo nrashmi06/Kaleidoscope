@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.posts.repository;
+package com.kaleidoscope.backend.shared.repository;
 
-import com.kaleidoscope.backend.posts.model.CommentReaction;
+import com.kaleidoscope.backend.shared.model.CommentReaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

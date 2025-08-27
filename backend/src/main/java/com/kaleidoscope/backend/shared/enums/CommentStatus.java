@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.posts.enums;
+package com.kaleidoscope.backend.shared.enums;
 
 /**
  * Represents the visibility and moderation status of a comment.

@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.posts.repository;
+package com.kaleidoscope.backend.shared.repository;
 
-import com.kaleidoscope.backend.posts.model.PostComment;
+import com.kaleidoscope.backend.shared.model.Comment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface PostCommentRepository extends JpaRepository<PostComment, Long>, JpaSpecificationExecutor<PostComment> {
+public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpecificationExecutor<Comment> {
 
     /**
      * Soft-deletes all comments associated with a specific post by setting their
@@ -20,6 +20,6 @@ public interface PostCommentRepository extends JpaRepository<PostComment, Long>,
      */
 
     @Modifying
-    @Query("UPDATE PostComment c SET c.deletedAt = :deletedAt WHERE c.post.postId = :postId")
+    @Query("UPDATE Comment c SET c.deletedAt = :deletedAt WHERE c.post.postId = :postId")
     void softDeleteCommentsByPostId(@Param("postId") Long postId, @Param("deletedAt") java.time.LocalDateTime deletedAt);
 }

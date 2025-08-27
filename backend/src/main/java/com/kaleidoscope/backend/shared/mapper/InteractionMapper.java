@@ -1,11 +1,11 @@
-package com.kaleidoscope.backend.posts.mapper;
+package com.kaleidoscope.backend.shared.mapper;
 
-import com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostCommentResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostReactionResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserResponseDTO;
-import com.kaleidoscope.backend.posts.enums.ReactionType;
-import com.kaleidoscope.backend.posts.model.PostComment;
+import com.kaleidoscope.backend.shared.dto.response.CommentReactionResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
+import com.kaleidoscope.backend.shared.enums.ReactionType;
+import com.kaleidoscope.backend.shared.model.Comment;
 import com.kaleidoscope.backend.users.model.User;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +15,10 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class PostInteractionMapper {
+public class InteractionMapper {
     // PostCommentMapper logic
-    public PostCommentResponseDTO toCommentDTO(PostComment comment) {
-        return PostCommentResponseDTO.builder()
+    public CommentResponseDTO toCommentDTO(Comment comment) {
+        return CommentResponseDTO.builder()
                 .commentId(comment.getCommentId())
                 .postId(comment.getPost().getPostId())
                 .body(comment.getBody())
@@ -28,16 +28,16 @@ public class PostInteractionMapper {
                 .author(toUserDTO(comment.getUser()))
                 .build();
     }
-    private UserResponseDTO toUserDTO(User user) {
+    private UserSummaryResponseDTO toUserDTO(User user) {
         if (user == null) return null;
-        UserResponseDTO dto = new UserResponseDTO();
+        UserSummaryResponseDTO dto = new UserSummaryResponseDTO();
         dto.setUserId(user.getUserId());
         dto.setUsername(user.getUsername());
         return dto;
     }
 
     // PostReactionMapper logic
-    public PostReactionResponseDTO toPostReactionSummary(Long postId, ReactionType currentUserReaction, List<Object[]> countsRaw) {
+    public ReactionResponseDTO toPostReactionSummary(Long postId, ReactionType currentUserReaction, List<Object[]> countsRaw) {
         Map<ReactionType, Long> countsByType = new EnumMap<>(ReactionType.class);
         long total = 0L;
         if (countsRaw != null) {
@@ -48,7 +48,7 @@ public class PostInteractionMapper {
                 total += count;
             }
         }
-        return PostReactionResponseDTO.builder()
+        return ReactionResponseDTO.builder()
                 .postId(postId)
                 .currentUserReaction(currentUserReaction)
                 .countsByType(countsByType)
