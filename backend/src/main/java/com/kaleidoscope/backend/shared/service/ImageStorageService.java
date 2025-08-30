@@ -14,8 +14,9 @@ public interface ImageStorageService {
     CompletableFuture<Void> deleteImage(String imageUrl);
 
     // Updated method to handle multiple signatures
-    UploadSignatureResponseDTO generatePostUploadSignatures(GenerateUploadSignatureRequestDTO request);
+    UploadSignatureResponseDTO generateUploadSignatures(GenerateUploadSignatureRequestDTO request);
     boolean validatePostImageUrl(String imageUrl);
+    boolean validateBlogImageUrl(String imageUrl);
     String extractPublicIdFromUrl(String imageUrl);
     CompletableFuture<Void> deleteImageByPublicId(String publicId);
 }

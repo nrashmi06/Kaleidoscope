@@ -12,6 +12,7 @@ import com.kaleidoscope.backend.posts.routes.PostsRoutes;
 import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
@@ -37,7 +38,8 @@ public class PostController implements PostApi {
     public ResponseEntity<ApiResponse<UploadSignatureResponseDTO>> generateUploadSignatures(
             @Valid @RequestBody GenerateUploadSignatureRequestDTO requestDTO) {
         log.info("Generating upload signatures for {} files", requestDTO.getFileNames().size());
-        UploadSignatureResponseDTO response = imageStorageService.generatePostUploadSignatures(requestDTO);
+        requestDTO.setContentType(ContentType.POST.name());
+        UploadSignatureResponseDTO response = imageStorageService.generateUploadSignatures(requestDTO);
         return ResponseEntity.ok(ApiResponse.<UploadSignatureResponseDTO>builder()
                 .success(true)
                 .message("Signatures generated successfully.")

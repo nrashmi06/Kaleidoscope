@@ -83,6 +83,19 @@ public class Blog {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<BlogMedia> media = new HashSet<>();
+
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<BlogCategory> categories = new HashSet<>();
+
+    @OneToMany(mappedBy = "taggingBlog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<BlogTag> taggedBlogs = new HashSet<>();
+
+
     @PrePersist
     @PreUpdate
     private void calculateReadStats() {
@@ -96,13 +109,15 @@ public class Blog {
         this.readTimeMinutes = (int) Math.ceil((double) this.wordCount / 200);
     }
 
-    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<BlogCategory> categories = new HashSet<>();
+    public void addMedia(BlogMedia mediaItem) {
+        media.add(mediaItem);
+        mediaItem.setBlog(this);
+    }
 
-    @OneToMany(mappedBy = "taggingBlog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<BlogTag> taggedBlogs = new HashSet<>();
+    public void removeMedia(BlogMedia mediaItem) {
+        media.remove(mediaItem);
+        mediaItem.setBlog(null);
+    }
 
     public void addCategory(Category category) {
         BlogCategory blogCategory = new BlogCategory(this, category);

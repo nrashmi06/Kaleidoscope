@@ -6,6 +6,7 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.SignatureDataDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
@@ -128,33 +129,44 @@ public class ImageStorageServiceImpl implements ImageStorageService {
 
     @Override
     @Transactional // Add transactional to ensure the tracker is saved reliably
-    public UploadSignatureResponseDTO generatePostUploadSignatures(GenerateUploadSignatureRequestDTO request) {
+    public UploadSignatureResponseDTO generateUploadSignatures(GenerateUploadSignatureRequestDTO request) {
         try {
-            // Get the current user who is initiating the upload
             Long userId = jwtUtils.getUserIdFromContext();
             User currentUser = userRepository.findByUserId(userId);
             if(currentUser == null) {
                 throw new IllegalStateException("Authenticated user not found for ID: " + userId);
             }
 
-            List<SignatureDataDTO> signatures = new ArrayList<>();
+            String folder;
+            String publicIdPrefix;
+            if (ContentType.BLOG.name().equalsIgnoreCase(request.getContentType())) {
+                folder = "kaleidoscope/blogs";
+                publicIdPrefix = "blogs/";
+            } else if (ContentType.POST.name().equalsIgnoreCase(request.getContentType())) {
+                folder = "kaleidoscope/posts";
+                publicIdPrefix = "posts/";
+            } else {
+                throw new SignatureGenerationException("Invalid contentType: " + request.getContentType());
+            }
 
+            List<SignatureDataDTO> signatures = new ArrayList<>();
             for (String fileName : request.getFileNames()) {
                 String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-                String publicId = "posts/" + System.currentTimeMillis() + "_" + uniqueId;
+                String publicId = publicIdPrefix + System.currentTimeMillis() + "_" + uniqueId;
                 long timestamp = System.currentTimeMillis() / 1000;
 
                 Map<String, Object> params = new TreeMap<>();
                 params.put("public_id", publicId);
-                params.put("folder", "kaleidoscope/posts");
+                params.put("folder", folder);
                 params.put("timestamp", timestamp);
 
                 String signature = cloudinary.apiSignRequest(params, cloudinary.config.apiSecret);
 
-
                 MediaAssetTracker tracker = MediaAssetTracker.builder()
                         .publicId(publicId)
                         .user(currentUser)
+                        .contentType(request.getContentType())
+                        .contentId(null)
                         .status(MediaAssetStatus.PENDING)
                         .build();
                 mediaAssetTrackerRepository.save(tracker);
@@ -163,20 +175,20 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                         signature,
                         timestamp,
                         publicId,
-                        "kaleidoscope/posts",
+                        folder,
                         cloudinary.config.apiKey,
                         cloudinary.config.cloudName
                 );
                 signatures.add(signatureData);
             }
-
             return new UploadSignatureResponseDTO(signatures);
-
         } catch (Exception e) {
-            log.error("Unexpected error generating signatures for files: {}", request.getFileNames(), e);
+            log.error("Unexpected error generating upload signatures for files: {}", request.getFileNames(), e);
             throw new SignatureGenerationException("Failed to generate upload signatures", e);
         }
     }
+
+
     @Async
     @Override
     public CompletableFuture<Void> deleteImageByPublicId(String publicId) {
@@ -197,25 +209,17 @@ public class ImageStorageServiceImpl implements ImageStorageService {
 
     @Override
     public boolean validatePostImageUrl(String imageUrl) {
-        try {
-            if (imageUrl == null || imageUrl.trim().isEmpty()) {
-                return false;
-            }
-
-            String cloudName = cloudinary.config.cloudName;
-            if (!imageUrl.contains("res.cloudinary.com/" + cloudName)) {
-                return false;
-            }
-
-            if (!imageUrl.contains("/kaleidoscope/posts/")) {
-                return false;
-            }
-
-            return true;
-
-        } catch (Exception e) {
-            log.error("Error validating post image URL: {}", imageUrl, e);
+        if (imageUrl == null || imageUrl.isEmpty()) {
             return false;
         }
+        return imageUrl.contains("kaleidoscope/posts");
+    }
+
+    @Override
+    public boolean validateBlogImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            return false;
+        }
+        return imageUrl.contains("kaleidoscope/blogs");
     }
 }

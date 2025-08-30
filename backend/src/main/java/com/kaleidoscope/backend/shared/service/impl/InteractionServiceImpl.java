@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.shared.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
+import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.shared.dto.request.CommentCreateRequestDTO;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
@@ -12,7 +13,7 @@ import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.exception.Comments.CommentNotFoundException;
 import com.kaleidoscope.backend.shared.exception.Comments.CommentPostMismatchException;
 import com.kaleidoscope.backend.shared.exception.Comments.CommentUnauthorizedException;
-import com.kaleidoscope.backend.posts.exception.Posts.PostNotFoundException;
+import com.kaleidoscope.backend.shared.exception.ContentNotFoundException;
 import com.kaleidoscope.backend.shared.mapper.InteractionMapper;
 import com.kaleidoscope.backend.shared.mapper.UserTagMapper;
 import com.kaleidoscope.backend.shared.model.Comment;
@@ -20,7 +21,6 @@ import com.kaleidoscope.backend.shared.model.Reaction;
 import com.kaleidoscope.backend.shared.model.UserTag;
 import com.kaleidoscope.backend.shared.repository.CommentRepository;
 import com.kaleidoscope.backend.shared.repository.ReactionRepository;
-import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.shared.repository.UserTagRepository;
 import com.kaleidoscope.backend.shared.service.InteractionService;
 import com.kaleidoscope.backend.shared.service.UserTagService;
@@ -71,7 +71,7 @@ public class InteractionServiceImpl implements InteractionService {
         }
 
         if (!exists) {
-            throw new PostNotFoundException(contentId);
+            throw new ContentNotFoundException(contentId);
         }
     }
 

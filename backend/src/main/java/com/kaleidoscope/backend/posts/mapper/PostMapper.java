@@ -13,6 +13,7 @@ import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
+import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.mapper.UserTagMapper;
 import com.kaleidoscope.backend.shared.repository.UserTagRepository;
 import com.kaleidoscope.backend.shared.repository.CommentRepository;
@@ -136,7 +137,7 @@ public class PostMapper {
         ).collect(Collectors.toList());
     }
 
-    public PostDetailResponseDTO toPostDetailDTO(Post post) {
+    public PostDetailResponseDTO toPostDetailDTO(Post post, ReactionType currentUserReaction) {
         if (post == null) {
             return null;
         }
@@ -206,6 +207,7 @@ public class PostMapper {
                 .taggedUsers(taggedUsers)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
+                .currentUserReaction(currentUserReaction)
                 .build();
     }
 

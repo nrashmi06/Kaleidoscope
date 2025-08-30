@@ -1,6 +1,5 @@
 package com.kaleidoscope.backend.shared.model; // Or a suitable package
 
-import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
@@ -20,7 +19,6 @@ import java.time.LocalDateTime;
 @Table(name = "media_asset_tracker", indexes = {
         @Index(name = "idx_media_asset_public_id", columnList = "public_id", unique = true),
         @Index(name = "idx_media_asset_user_id", columnList = "user_id"),
-        @Index(name = "idx_media_asset_post_id", columnList = "post_id"),
         @Index(name = "idx_media_asset_status_created_at", columnList = "status, created_at")
 })
 @EntityListeners(AuditingEntityListener.class)
@@ -51,12 +49,16 @@ public class MediaAssetTracker {
     private User user;
 
     /**
-     * The post this asset is successfully associated with.
-     * This will be NULL until the user saves the post with this media.
+     * Polymorphic association: type of content this asset is linked to (e.g., BLOG, POST, STORY)
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private Post post;
+    @Column(name = "content_type", nullable = false, length = 20)
+    private String contentType;
+
+    /**
+     * ID of the associated content (blog, post, story, etc.)
+     */
+    @Column(name = "content_id")
+    private Long contentId;
 
     /**
      * Tracks the asset's state from upload intent to final use.
