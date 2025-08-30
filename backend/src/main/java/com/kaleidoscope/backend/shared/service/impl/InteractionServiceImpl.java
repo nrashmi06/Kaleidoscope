@@ -2,7 +2,6 @@ package com.kaleidoscope.backend.shared.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
-import com.kaleidoscope.backend.shared.dto.response.CommentReactionResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
@@ -13,9 +12,7 @@ import com.kaleidoscope.backend.shared.exception.Comments.CommentUnauthorizedExc
 import com.kaleidoscope.backend.posts.exception.Posts.PostNotFoundException;
 import com.kaleidoscope.backend.shared.mapper.InteractionMapper;
 import com.kaleidoscope.backend.shared.model.Comment;
-import com.kaleidoscope.backend.shared.model.CommentReaction;
 import com.kaleidoscope.backend.shared.model.Reaction;
-import com.kaleidoscope.backend.shared.repository.CommentReactionRepository;
 import com.kaleidoscope.backend.shared.repository.CommentRepository;
 import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
@@ -44,24 +41,24 @@ public class InteractionServiceImpl implements InteractionService {
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
     private final InteractionMapper interactionMapper;
-    private final CommentReactionRepository commentReactionRepository;
 
     private void validateContentExists(ContentType contentType, Long contentId) {
         boolean exists = switch (contentType) {
             case POST -> postRepository.existsById(contentId);
             case BLOG -> blogRepository.existsById(contentId);
+            case COMMENT -> commentRepository.existsById(contentId);
             default -> throw new IllegalArgumentException("Content type not supported for interactions: " + contentType);
         };
         if (!exists) {
+            // Consider a more generic ContentNotFoundException here in the future
             throw new PostNotFoundException(contentId);
         }
     }
 
     @Override
     @Transactional
-    public ReactionResponseDTO reactOrUnreact(Long postId, ReactionType reactionType, boolean unreact) {
-        ContentType contentType = ContentType.POST;
-        validateContentExists(contentType, postId);
+    public ReactionResponseDTO reactOrUnreact(ContentType contentType, Long contentId, ReactionType reactionType, boolean unreact) {
+        validateContentExists(contentType, contentId);
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
         User currentUser = userRepository.findByUserId(currentUserId);
@@ -69,7 +66,8 @@ public class InteractionServiceImpl implements InteractionService {
             throw new IllegalStateException("Authenticated user not found for ID: " + currentUserId);
         }
 
-        var existingOpt = reactionRepository.findAnyByContentAndUserIncludeDeleted(postId, contentType.name(), currentUserId);
+        var existingOpt = reactionRepository.findAnyByContentAndUserIncludeDeleted(contentId, contentType.name(), currentUserId);
+
         if (unreact) {
             existingOpt.ifPresent(existing -> {
                 existing.setDeletedAt(LocalDateTime.now());
@@ -84,29 +82,28 @@ public class InteractionServiceImpl implements InteractionService {
             } else {
                 Reaction reaction = Reaction.builder()
                         .contentType(contentType)
-                        .contentId(postId)
+                        .contentId(contentId)
                         .user(currentUser)
                         .reactionType(reactionType)
                         .build();
                 reactionRepository.save(reaction);
             }
         }
-        return getReactionSummary(postId);
+        return getReactionSummary(contentType, contentId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ReactionResponseDTO getReactionSummary(Long postId) {
-        ContentType contentType = ContentType.POST;
-        validateContentExists(contentType, postId);
+    public ReactionResponseDTO getReactionSummary(ContentType contentType, Long contentId) {
+        validateContentExists(contentType, contentId);
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
         ReactionType currentUserReaction = reactionRepository
-                .findByContentAndUser(postId, contentType, currentUserId)
+                .findByContentAndUser(contentId, contentType, currentUserId)
                 .map(Reaction::getReactionType)
                 .orElse(null);
-        List<Object[]> counts = reactionRepository.countReactionsByContentGroupedByType(postId, contentType);
-        return interactionMapper.toPostReactionSummary(postId, currentUserReaction, counts);
+        List<Object[]> counts = reactionRepository.countReactionsByContentGroupedByType(contentId, contentType);
+        return interactionMapper.toReactionSummary(contentId, contentType, currentUserReaction, counts);
     }
 
     @Override
@@ -155,59 +152,5 @@ public class InteractionServiceImpl implements InteractionService {
             throw new CommentUnauthorizedException(commentId);
         }
         commentRepository.delete(comment);
-    }
-
-    @Override
-    @Transactional
-    public CommentReactionResponseDTO reactOrUnreactToComment(Long contentId, Long commentId, ReactionType reactionType, boolean unreact) {
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        User currentUser = userRepository.findByUserId(currentUserId);
-        if (currentUser == null) {
-            throw new IllegalStateException("Authenticated user not found for ID: " + currentUserId);
-        }
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new CommentNotFoundException(commentId));
-        if (!comment.getContentId().equals(contentId)) {
-            throw new CommentPostMismatchException(commentId, contentId);
-        }
-        var existingOpt = commentReactionRepository.findAnyByCommentIdAndUserIdIncludeDeleted(commentId, currentUserId);
-        if (unreact) {
-            existingOpt.ifPresent(existing -> {
-                existing.setDeletedAt(LocalDateTime.now());
-                commentReactionRepository.save(existing);
-            });
-        } else {
-            if (existingOpt.isPresent()) {
-                var existing = existingOpt.get();
-                existing.setDeletedAt(null);
-                existing.setReactionType(reactionType);
-                commentReactionRepository.save(existing);
-            } else {
-                var reaction = CommentReaction.builder()
-                        .comment(comment)
-                        .user(currentUser)
-                        .reactionType(reactionType)
-                        .build();
-                commentReactionRepository.save(reaction);
-            }
-        }
-        return getCommentReactionSummary(contentId, commentId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public CommentReactionResponseDTO getCommentReactionSummary(Long contentId, Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new CommentNotFoundException(commentId));
-        if (!comment.getContentId().equals(contentId)) {
-            throw new CommentPostMismatchException(commentId, contentId);
-        }
-        Long currentUserId = jwtUtils.getUserIdFromContext();
-        ReactionType currentUserReaction = commentReactionRepository
-                .findByCommentIdAndUserId(commentId, currentUserId)
-                .map(CommentReaction::getReactionType)
-                .orElse(null);
-        List<Object[]> counts = commentReactionRepository.countReactionsByCommentIdGroupedByType(commentId);
-        return interactionMapper.toCommentReactionSummary(commentId, currentUserReaction, counts);
     }
 }

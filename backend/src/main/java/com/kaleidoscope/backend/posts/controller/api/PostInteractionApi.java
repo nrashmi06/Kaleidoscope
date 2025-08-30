@@ -5,7 +5,6 @@ import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
 import com.kaleidoscope.backend.shared.dto.request.CommentCreateRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
 import com.kaleidoscope.backend.posts.routes.PostInteractionRoutes;
-import com.kaleidoscope.backend.shared.dto.response.CommentReactionResponseDTO;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -53,7 +52,7 @@ public interface PostInteractionApi {
     @Operation(summary = "React or unreact to a comment")
     @PostMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<CommentReactionResponseDTO>> reactOrUnreactToComment(
+    ResponseEntity<ApiResponse<ReactionResponseDTO>> reactOrUnreactToComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
@@ -63,7 +62,7 @@ public interface PostInteractionApi {
     @Operation(summary = "Get reaction summary for a comment")
     @GetMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<CommentReactionResponseDTO>> getCommentReactionSummary(
+    ResponseEntity<ApiResponse<ReactionResponseDTO>> getCommentReactionSummary(
             @PathVariable Long postId,
             @PathVariable Long commentId
     );

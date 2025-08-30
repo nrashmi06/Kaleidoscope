@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.shared.dto.response;
 
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,10 +14,9 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReactionResponseDTO {
-    private Long postId;
+    private Long contentId;
+    private ContentType contentType;
     private ReactionType currentUserReaction; // null if none
     private Map<ReactionType, Long> countsByType;
     private Long totalReactions;
 }
-
-

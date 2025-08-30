@@ -18,8 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.kaleidoscope.backend.shared.dto.response.CommentReactionResponseDTO;
-
 @RestController
 @RequiredArgsConstructor
 public class PostInteractionController implements PostInteractionApi {
@@ -42,7 +40,8 @@ public class PostInteractionController implements PostInteractionApi {
                     .data(null)
                     .build());
         }
-        ReactionResponseDTO result = interactionService.reactOrUnreact(postId, reactionType, unreact);
+        // Use ContentType.POST for post reactions
+        ReactionResponseDTO result = interactionService.reactOrUnreact(ContentType.POST, postId, reactionType, unreact);
         return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message(unreact ? "Reaction removed" : "Reaction updated")
@@ -54,7 +53,8 @@ public class PostInteractionController implements PostInteractionApi {
     @GetMapping(PostInteractionRoutes.REACT_TO_POST)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ReactionResponseDTO>> getReactionSummary(@PathVariable Long postId) {
-        ReactionResponseDTO result = interactionService.getReactionSummary(postId);
+        // Use ContentType.POST for post reaction summaries
+        ReactionResponseDTO result = interactionService.getReactionSummary(ContentType.POST, postId);
         return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message("Reaction summary fetched")
@@ -102,22 +102,23 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @PostMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<CommentReactionResponseDTO>> reactOrUnreactToComment(
-            @PathVariable Long postId,
+    public ResponseEntity<ApiResponse<ReactionResponseDTO>> reactOrUnreactToComment(
+            @PathVariable Long postId, // Still in the URL, but not used directly for the reaction
             @PathVariable Long commentId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
             @Valid @RequestBody(required = false) ReactionRequestDTO body
     ) {
         ReactionType reactionType = body != null ? body.getReactionType() : null;
         if (!unreact && reactionType == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.<CommentReactionResponseDTO>builder()
+            return ResponseEntity.badRequest().body(ApiResponse.<ReactionResponseDTO>builder()
                     .success(false)
                     .message("reactionType is required when unreact=false")
                     .data(null)
                     .build());
         }
-        CommentReactionResponseDTO result = interactionService.reactOrUnreactToComment(postId, commentId, reactionType, unreact);
-        return ResponseEntity.ok(ApiResponse.<CommentReactionResponseDTO>builder()
+        // Use ContentType.COMMENT for comment reactions
+        ReactionResponseDTO result = interactionService.reactOrUnreact(ContentType.COMMENT, commentId, reactionType, unreact);
+        return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message(unreact ? "Reaction removed" : "Reaction updated")
                 .data(result)
@@ -127,12 +128,13 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @GetMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<CommentReactionResponseDTO>> getCommentReactionSummary(
-            @PathVariable Long postId,
+    public ResponseEntity<ApiResponse<ReactionResponseDTO>> getCommentReactionSummary(
+            @PathVariable Long postId, // Still in the URL
             @PathVariable Long commentId
     ) {
-        CommentReactionResponseDTO result = interactionService.getCommentReactionSummary(postId, commentId);
-        return ResponseEntity.ok(ApiResponse.<CommentReactionResponseDTO>builder()
+        // Use ContentType.COMMENT for comment reaction summaries
+        ReactionResponseDTO result = interactionService.getReactionSummary(ContentType.COMMENT, commentId);
+        return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message("Reaction summary fetched")
                 .data(result)
