@@ -1,0 +1,34 @@
+meta {
+  name: update blog
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{base_url}}/api/blogs/1
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "Updated Blog Title",
+    "body": "Updated blog body.",
+    "summary": "Updated summary",
+    "categoryIds": [1, 2],
+    "locationId": 1,
+    "mediaDetails": [
+      {
+        "url": "https://res.cloudinary.com/demo/image/upload/v1692873600/blogs/image2.jpg",
+        "mediaType": "IMAGE",
+        "position": 1,
+        "width": 1024,
+        "height": 768,
+        "fileSizeKb": 200,
+        "durationSeconds": null,
+        "extraMetadata": {"caption": "Another view"}
+      }
+    ],
+    "taggedUserIds": [2, 4]
+  }
+}

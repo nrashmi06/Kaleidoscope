@@ -1,0 +1,32 @@
+meta {
+  name: get blog by id
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/api/blogs/1
+  auth: inherit
+}
+body:json {
+  {
+    "mediaDetails": [
+      { "mediaType": "IMAGE", "fileName": "test.jpg" }
+    ]
+  }
+}
+
+
+assert {
+  response.status == 200
+  response.body.data.blogId != null
+  response.body.data.title != null
+  response.body.data.categories != null
+  response.body.data.media != null
+  response.body.data.tags != null
+  response.body.data.author != null
+  response.body.data.reviewer != null
+  response.body.data.reactionCount != null
+  response.body.data.commentCount != null
+  response.body.data.currentUserReaction != null
+}
