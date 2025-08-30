@@ -12,16 +12,19 @@ import com.kaleidoscope.backend.posts.mapper.PostMapper;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
+import com.kaleidoscope.backend.posts.repository.specification.PostSpecification;
 import com.kaleidoscope.backend.posts.service.PostService;
+import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
-import com.kaleidoscope.backend.shared.repository.CategoryRepository;
-import com.kaleidoscope.backend.shared.repository.LocationRepository;
-import com.kaleidoscope.backend.shared.repository.MediaAssetTrackerRepository;
+import com.kaleidoscope.backend.shared.model.UserTag;
+import com.kaleidoscope.backend.shared.repository.*;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
+import com.kaleidoscope.backend.shared.service.UserTagService;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
@@ -50,6 +53,8 @@ public class PostServiceImpl implements PostService {
     private final JwtUtils jwtUtils;
     private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
     private final FollowRepository followRepository;
+    private final UserTagService userTagService;
+    private final UserTagRepository userTagRepository;
 
     @Override
     @Transactional
@@ -95,6 +100,18 @@ public class PostServiceImpl implements PostService {
         categories.forEach(post::addCategory);
 
         Post savedPost = postRepository.save(post);
+
+        // Logic for user tagging on creation
+        if (postCreateRequestDTO.getTaggedUserIds() != null && !postCreateRequestDTO.getTaggedUserIds().isEmpty()) {
+            for (Long taggedUserId : postCreateRequestDTO.getTaggedUserIds()) {
+                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO();
+                tagRequest.setTaggedUserId(taggedUserId);
+                tagRequest.setContentId(savedPost.getPostId());
+                tagRequest.setContentType(ContentType.POST);
+                userTagService.createUserTag(tagRequest);
+            }
+        }
+
         log.info("User '{}' created new post with ID: {}", currentUser.getUsername(), savedPost.getPostId());
         return postMapper.toDTO(savedPost);
     }
@@ -116,6 +133,7 @@ public class PostServiceImpl implements PostService {
         post.setVisibility(requestDTO.getVisibility());
 
         updatePostMedia(post, requestDTO.getMediaDetails());
+        updatePostTags(post, requestDTO.getTaggedUserIds());
 
         if (requestDTO.getCategoryIds() != null) {
             Set<Category> categories = new HashSet<>(categoryRepository.findAllById(requestDTO.getCategoryIds()));
@@ -137,6 +155,34 @@ public class PostServiceImpl implements PostService {
         Post savedPost = postRepository.save(post);
         log.info("User '{}' updated post with ID: {}", post.getUser().getUsername(), savedPost.getPostId());
         return postMapper.toDTO(savedPost);
+    }
+
+    private void updatePostTags(Post post, Set<Long> incomingTaggedUserIds) {
+        Set<Long> incomingIds = (incomingTaggedUserIds != null) ? incomingTaggedUserIds : Collections.emptySet();
+
+        List<UserTag> existingTags = userTagRepository.findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged()).getContent();
+        Map<Long, UserTag> existingTagsMap = existingTags.stream()
+                .collect(Collectors.toMap(tag -> tag.getTaggedUser().getUserId(), tag -> tag));
+
+        List<UserTag> tagsToRemove = existingTags.stream()
+                .filter(tag -> !incomingIds.contains(tag.getTaggedUser().getUserId()))
+                .collect(Collectors.toList());
+
+        if (!tagsToRemove.isEmpty()) {
+            userTagRepository.deleteAll(tagsToRemove);
+            log.info("Removed {} tags from post ID: {}", tagsToRemove.size(), post.getPostId());
+        }
+
+        for (Long incomingId : incomingIds) {
+            if (!existingTagsMap.containsKey(incomingId)) {
+                CreateUserTagRequestDTO tagRequest = CreateUserTagRequestDTO.builder()
+                        .taggedUserId(incomingId)
+                        .contentId(post.getPostId())
+                        .contentType(ContentType.POST)
+                        .build();
+                userTagService.createUserTag(tagRequest);
+            }
+        }
     }
 
     private void updatePostMedia(Post post, List<MediaUploadRequestDTO> mediaDtos) {
@@ -198,6 +244,13 @@ public class PostServiceImpl implements PostService {
         if (!isAdmin && !post.getUser().getUserId().equals(currentUserId)) {
             throw new UnauthorizedActionException("User is not authorized to delete this post.");
         }
+
+        List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
+        if (!tagsToDelete.isEmpty()) {
+            userTagRepository.deleteAll(tagsToDelete);
+            log.info("Soft deleted {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
+        }
+
         postRepository.delete(post);
         log.info("Post {} soft-deleted by user {} (admin? {})", postId, currentUserId, isAdmin);
     }
@@ -206,6 +259,12 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public void hardDeletePost(Long postId) {
         Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
+
+        List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
+        if (!tagsToDelete.isEmpty()) {
+            userTagRepository.deleteAll(tagsToDelete);
+            log.info("Hard deleted {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
+        }
 
         for (PostMedia media : post.getMedia()) {
             String publicId = imageStorageService.extractPublicIdFromUrl(media.getMediaUrl());
@@ -251,46 +310,18 @@ public class PostServiceImpl implements PostService {
                                                                   String query) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
-        Specification<Post> spec = Specification.where(null);
 
-        if (userId != null) {
-            spec = spec.and((root, q, cb) -> cb.equal(root.get("user").get("userId"), userId));
-        }
-        if (categoryId != null) {
-            spec = spec.and((root, q, cb) -> {
-                var join = root.join("categories").get("category");
-                return cb.equal(join.get("categoryId"), categoryId);
-            });
-        }
-        if (status != null) {
-            spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
-        }
-        if (visibility != null) {
-            spec = spec.and((root, q, cb) -> cb.equal(root.get("visibility"), visibility));
-        }
-        if (query != null && !query.isBlank()) {
-            String likePattern = "%" + query.trim().toLowerCase() + "%";
-            spec = spec.and((root, q, cb) -> cb.or(
-                    cb.like(cb.lower(root.get("title")), likePattern),
-                    cb.like(cb.lower(root.get("summary")), likePattern),
-                    cb.like(cb.lower(root.get("body")), likePattern)
-            ));
-        }
+        Specification<Post> spec = Specification.where(null);
+        spec = spec.and(PostSpecification.hasAuthor(userId));
+        spec = spec.and(PostSpecification.hasCategory(categoryId));
+        spec = spec.and(PostSpecification.hasStatus(status));
+        spec = spec.and(PostSpecification.hasVisibility(visibility));
+        spec = spec.and(PostSpecification.containsQuery(query));
+
+        // Add visibility rules for non-admin users
         if (!isAdmin) {
             Set<Long> followingIds = followRepository.findFollowingIdsByFollowerId(currentUserId);
-
-            Specification<Post> visibilitySpec = (root, q, cb) -> cb.or(
-                    cb.and(
-                            cb.equal(root.get("status"), PostStatus.PUBLISHED),
-                            cb.equal(root.get("visibility"), PostVisibility.PUBLIC)
-                    ),
-                    cb.equal(root.get("user").get("userId"), currentUserId),
-                    cb.and(
-                            cb.equal(root.get("visibility"), PostVisibility.FOLLOWERS),
-                            root.get("user").get("userId").in(followingIds)
-                    )
-            );
-            spec = spec.and(visibilitySpec);
+            spec = spec.and(PostSpecification.isVisibleToUser(currentUserId, followingIds));
         }
 
         Page<Post> postPage = postRepository.findAll(spec, pageable);

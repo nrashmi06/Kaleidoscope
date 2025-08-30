@@ -132,4 +132,27 @@ public class SharedExceptionHandler {
         ApiResponse<Object> response = ApiResponse.error("Not authorized to delete comment", ex.getMessage(), path);
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
+
+    // User Tagging Exception Handlers
+    @ExceptionHandler(TagNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTagNotFoundException(TagNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(
+                "Tag not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UserTaggingException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUserTaggingException(UserTaggingException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(
+                "User tagging error",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 }

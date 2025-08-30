@@ -1,13 +1,11 @@
 meta {
   name: get reaction summary
   type: http
-  seq: 11
+  seq: 5
 }
 
 get {
   url: {{base_url}}/api/posts/1/reactions
+  body: none
   auth: inherit
 }
-
-
-

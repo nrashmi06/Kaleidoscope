@@ -107,11 +107,6 @@ public class Post {
     @Builder.Default
     private Set<PostCategory> categories = new HashSet<>();
 
-    // --- THIS RELATIONSHIP IS NOW LOGICAL, SO WE REMOVE THE MAPPING ---
-    // @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    // @Builder.Default
-    // private Set<Comment> comments = new HashSet<>();
-
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
         mediaItem.setPost(this);
@@ -138,17 +133,6 @@ public class Post {
             toRemove.setPost(null);
         }
     }
-
-    // --- HELPER METHODS FOR COMMENTS ARE NO LONGER NEEDED HERE ---
-    // public void addComment(Comment comment) {
-    //     comments.add(comment);
-    //     comment.setPost(this);
-    // }
-    //
-    // public void removeComment(Comment comment) {
-    //     comments.remove(comment);
-    //     comment.setPost(null);
-    // }
 
     @Override
     public boolean equals(Object o) {

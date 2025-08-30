@@ -32,5 +32,5 @@ public class PostUpdateRequestDTO {
     @NotEmpty
     private Set<Long> categoryIds;
 
-    // --- REMOVED THE PostType FIELD ---
+    private Set<Long> taggedUserIds;
 }

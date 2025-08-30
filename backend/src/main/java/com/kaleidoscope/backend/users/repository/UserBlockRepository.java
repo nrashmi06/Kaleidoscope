@@ -33,4 +33,12 @@ public interface UserBlockRepository extends JpaRepository<UserBlock, Long> {
            "WHERE (ub.blocker.userId = :userId1 AND ub.blocked.userId = :userId2) " +
            "OR (ub.blocker.userId = :userId2 AND ub.blocked.userId = :userId1)")
     List<UserBlock> findBlocksBetweenUsers(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
+
+    /**
+     * Check if there's a block relationship between two users in either direction
+     */
+    @Query("SELECT COUNT(ub) > 0 FROM UserBlock ub " +
+           "WHERE (ub.blocker.userId = :userId1 AND ub.blocked.userId = :userId2) " +
+           "OR (ub.blocker.userId = :userId2 AND ub.blocked.userId = :userId1)")
+    boolean existsBlockRelationship(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
 }

@@ -8,14 +8,16 @@ import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.model.Comment;
 import com.kaleidoscope.backend.users.model.User;
 import org.springframework.stereotype.Component;
+import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
 
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 public class InteractionMapper {
-    public CommentResponseDTO toCommentDTO(Comment comment) {
+    public CommentResponseDTO toCommentDTO(Comment comment, Set<UserTagResponseDTO> tags) {
         return CommentResponseDTO.builder()
                 .commentId(comment.getCommentId())
                 .contentId(comment.getContentId())
@@ -25,6 +27,7 @@ public class InteractionMapper {
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
                 .author(toUserDTO(comment.getUser()))
+                .tags(tags)
                 .build();
     }
     private UserSummaryResponseDTO toUserDTO(User user) {

@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 @Builder
@@ -19,4 +20,5 @@ public class CommentResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UserSummaryResponseDTO author;
+    private Set<UserTagResponseDTO> tags;
 }
