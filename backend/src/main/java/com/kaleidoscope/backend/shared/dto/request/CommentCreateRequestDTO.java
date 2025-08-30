@@ -1,10 +1,10 @@
-package com.kaleidoscope.backend.posts.dto.request;
+package com.kaleidoscope.backend.shared.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class PostCommentCreateRequestDTO {
+public class CommentCreateRequestDTO {
     @NotBlank
     private String body;
 }

@@ -1,7 +1,6 @@
-package com.kaleidoscope.backend.posts.model;
+package com.kaleidoscope.backend.blogs.model;
 
-import com.kaleidoscope.backend.posts.enums.PostStatus;
-import com.kaleidoscope.backend.posts.enums.PostVisibility;
+import com.kaleidoscope.backend.blogs.enums.BlogStatus;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.users.model.User;
@@ -18,30 +17,33 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "posts", indexes = {
-        @Index(name = "idx_post_user_id", columnList = "user_id"),
-        @Index(name = "idx_post_status", columnList = "status"),
-        @Index(name = "idx_post_visibility", columnList = "visibility"),
-        @Index(name = "idx_post_created_at", columnList = "created_at")
+@Table(name = "blogs", indexes = {
+        @Index(name = "idx_blog_user_id", columnList = "user_id"),
+        @Index(name = "idx_blog_status", columnList = "blog_status"),
+        @Index(name = "idx_blog_created_at", columnList = "created_at")
 })
 @EntityListeners(AuditingEntityListener.class)
-@SQLDelete(sql = "UPDATE posts SET deleted_at = NOW() WHERE post_id = ?")
+@SQLDelete(sql = "UPDATE blogs SET deleted_at = NOW() WHERE blog_id = ?")
 @Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Post {
+public class Blog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "post_id")
-    private Long postId;
+    @Column(name = "blog_id")
+    private Long blogId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewer_id")
+    private User reviewer;
 
     @Column(length = 200)
     private String title;
@@ -63,20 +65,9 @@ public class Post {
     private Location location;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "blog_status", nullable = false)
     @Builder.Default
-    private PostVisibility visibility = PostVisibility.PUBLIC;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private PostStatus status = PostStatus.ARCHIVED;
-
-    @Column(name = "scheduled_at")
-    private LocalDateTime scheduledAt;
-
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
+    private BlogStatus blogStatus = BlogStatus.APPROVAL_PENDING;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -85,6 +76,12 @@ public class Post {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     @PreUpdate
@@ -99,63 +96,37 @@ public class Post {
         this.readTimeMinutes = (int) Math.ceil((double) this.wordCount / 200);
     }
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private Set<PostMedia> media = new HashSet<>();
+    private Set<BlogCategory> categories = new HashSet<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "taggingBlog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private Set<PostCategory> categories = new HashSet<>();
-
-    // --- THIS RELATIONSHIP IS NOW LOGICAL, SO WE REMOVE THE MAPPING ---
-    // @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    // @Builder.Default
-    // private Set<Comment> comments = new HashSet<>();
-
-    public void addMedia(PostMedia mediaItem) {
-        media.add(mediaItem);
-        mediaItem.setPost(this);
-    }
-
-    public void removeMedia(PostMedia mediaItem) {
-        media.remove(mediaItem);
-        mediaItem.setPost(null);
-    }
+    private Set<BlogTag> taggedBlogs = new HashSet<>();
 
     public void addCategory(Category category) {
-        PostCategory postCategory = new PostCategory(this, category);
-        categories.add(postCategory);
+        BlogCategory blogCategory = new BlogCategory(this, category);
+        categories.add(blogCategory);
     }
 
     public void removeCategory(Category category) {
-        PostCategory toRemove = this.categories.stream()
-                .filter(pc -> pc.getCategory().equals(category) && pc.getPost().equals(this))
+        BlogCategory toRemove = this.categories.stream()
+                .filter(bc -> bc.getCategory().equals(category) && bc.getBlog().equals(this))
                 .findFirst()
                 .orElse(null);
 
         if (toRemove != null) {
             this.categories.remove(toRemove);
-            toRemove.setPost(null);
+            toRemove.setBlog(null);
         }
     }
-
-    // --- HELPER METHODS FOR COMMENTS ARE NO LONGER NEEDED HERE ---
-    // public void addComment(Comment comment) {
-    //     comments.add(comment);
-    //     comment.setPost(this);
-    // }
-    //
-    // public void removeComment(Comment comment) {
-    //     comments.remove(comment);
-    //     comment.setPost(null);
-    // }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Post post = (Post) o;
-        return postId != null && postId.equals(post.postId);
+        Blog blog = (Blog) o;
+        return blogId != null && blogId.equals(blog.blogId);
     }
 
     @Override

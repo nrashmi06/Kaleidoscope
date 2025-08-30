@@ -4,9 +4,8 @@ import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserResponseDTO;
-import com.kaleidoscope.backend.posts.enums.PostType;
+import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
@@ -20,10 +19,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-/**
- * A stateless mapper responsible for converting between Post DTOs and Entities.
- * It does not contain business logic for updating persistent entities.
- */
 @Component
 public class PostMapper {
 
@@ -36,17 +31,17 @@ public class PostMapper {
                 .body(dto.getBody())
                 .summary(dto.getSummary())
                 .visibility(dto.getVisibility())
-                .type(dto.getType() != null ? dto.getType() : PostType.SOCIAL)
+                // --- REMOVED THE PostType MAPPING ---
                 .build();
     }
 
-    public PostResponseDTO toDTO(Post post) {
+    public PostCreationResponseDTO toDTO(Post post) {
         if (post == null) {
             return null;
         }
 
         User user = post.getUser();
-        UserResponseDTO authorDto = user != null ? UserResponseDTO.builder()
+        UserSummaryResponseDTO authorDto = user != null ? UserSummaryResponseDTO.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())
                 .build() : null;
@@ -63,7 +58,7 @@ public class PostMapper {
                     .build();
         }
 
-        return PostResponseDTO.builder()
+        return PostCreationResponseDTO.builder()
                 .postId(post.getPostId())
                 .title(post.getTitle())
                 .body(post.getBody())
@@ -100,7 +95,7 @@ public class PostMapper {
                                 .build())
                         .collect(Collectors.toList()))
                 .location(locationDto)
-                .type(post.getType())
+                // --- REMOVED THE PostType MAPPING ---
                 .build();
     }
 

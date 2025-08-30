@@ -1,0 +1,57 @@
+package com.kaleidoscope.backend.shared.mapper;
+
+import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
+import com.kaleidoscope.backend.shared.enums.ContentType;
+import com.kaleidoscope.backend.shared.enums.ReactionType;
+import com.kaleidoscope.backend.shared.model.Comment;
+import com.kaleidoscope.backend.users.model.User;
+import org.springframework.stereotype.Component;
+
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
+@Component
+public class InteractionMapper {
+    public CommentResponseDTO toCommentDTO(Comment comment) {
+        return CommentResponseDTO.builder()
+                .commentId(comment.getCommentId())
+                .contentId(comment.getContentId())
+                .contentType(comment.getContentType())
+                .body(comment.getBody())
+                .status(comment.getStatus())
+                .createdAt(comment.getCreatedAt())
+                .updatedAt(comment.getUpdatedAt())
+                .author(toUserDTO(comment.getUser()))
+                .build();
+    }
+    private UserSummaryResponseDTO toUserDTO(User user) {
+        if (user == null) return null;
+        UserSummaryResponseDTO dto = new UserSummaryResponseDTO();
+        dto.setUserId(user.getUserId());
+        dto.setUsername(user.getUsername());
+        return dto;
+    }
+
+    public ReactionResponseDTO toReactionSummary(Long contentId, ContentType contentType, ReactionType currentUserReaction, List<Object[]> countsRaw) {
+        Map<ReactionType, Long> countsByType = new EnumMap<>(ReactionType.class);
+        long total = 0L;
+        if (countsRaw != null) {
+            for (Object[] row : countsRaw) {
+                ReactionType type = (ReactionType) row[0];
+                Long count = (Long) row[1];
+                countsByType.put(type, count);
+                total += count;
+            }
+        }
+        return ReactionResponseDTO.builder()
+                .contentId(contentId)
+                .contentType(contentType)
+                .currentUserReaction(currentUserReaction)
+                .countsByType(countsByType)
+                .totalReactions(total)
+                .build();
+    }
+}

@@ -1,9 +1,9 @@
 package com.kaleidoscope.backend.posts.controller.api;
 
-import com.kaleidoscope.backend.posts.dto.request.ReactionRequestDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostReactionResponseDTO;
-import com.kaleidoscope.backend.posts.dto.request.PostCommentCreateRequestDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostCommentResponseDTO;
+import com.kaleidoscope.backend.shared.dto.request.ReactionRequestDTO;
+import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
+import com.kaleidoscope.backend.shared.dto.request.CommentCreateRequestDTO;
+import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
 import com.kaleidoscope.backend.posts.routes.PostInteractionRoutes;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,7 +21,7 @@ public interface PostInteractionApi {
     @Operation(summary = "React or unreact to a post")
     @PostMapping(PostInteractionRoutes.REACT_TO_POST)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostReactionResponseDTO>> reactOrUnreact(
+    ResponseEntity<ApiResponse<ReactionResponseDTO>> reactOrUnreact(
             @PathVariable Long postId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
             @Valid @RequestBody(required = false) ReactionRequestDTO body
@@ -30,19 +30,19 @@ public interface PostInteractionApi {
     @Operation(summary = "Get reaction summary for a post")
     @GetMapping(PostInteractionRoutes.REACT_TO_POST)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostReactionResponseDTO>> getReactionSummary(@PathVariable Long postId);
+    ResponseEntity<ApiResponse<ReactionResponseDTO>> getReactionSummary(@PathVariable Long postId);
 
     // Comments
     @Operation(summary = "Add a comment to a post")
     @PostMapping(PostInteractionRoutes.COMMENTS)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostCommentResponseDTO>> addComment(@PathVariable Long postId,
-                                                                   @Valid @RequestBody PostCommentCreateRequestDTO requestDTO);
+    ResponseEntity<ApiResponse<CommentResponseDTO>> addComment(@PathVariable Long postId,
+                                                               @Valid @RequestBody CommentCreateRequestDTO requestDTO);
 
     @Operation(summary = "List comments for a post")
     @GetMapping(PostInteractionRoutes.COMMENTS)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<Page<PostCommentResponseDTO>>> listComments(@PathVariable Long postId, Pageable pageable);
+    ResponseEntity<ApiResponse<Page<CommentResponseDTO>>> listComments(@PathVariable Long postId, Pageable pageable);
 
     @Operation(summary = "Delete a comment")
     @DeleteMapping(PostInteractionRoutes.COMMENT_BY_ID)
@@ -52,7 +52,7 @@ public interface PostInteractionApi {
     @Operation(summary = "React or unreact to a comment")
     @PostMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO>> reactOrUnreactToComment(
+    ResponseEntity<ApiResponse<ReactionResponseDTO>> reactOrUnreactToComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
@@ -62,7 +62,7 @@ public interface PostInteractionApi {
     @Operation(summary = "Get reaction summary for a comment")
     @GetMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<com.kaleidoscope.backend.posts.dto.response.CommentReactionResponseDTO>> getCommentReactionSummary(
+    ResponseEntity<ApiResponse<ReactionResponseDTO>> getCommentReactionSummary(
             @PathVariable Long postId,
             @PathVariable Long commentId
     );

@@ -1,15 +1,14 @@
 package com.kaleidoscope.backend.posts.controller.api;
 
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
-import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
+import com.kaleidoscope.backend.posts.routes.PostsRoutes;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
-import com.kaleidoscope.backend.posts.routes.PostsRoutes;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,7 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "Post", description = "APIs for managing posts")
 public interface PostApi {
@@ -51,7 +49,7 @@ public interface PostApi {
     })
     @PostMapping(PostsRoutes.CREATE_POST)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostResponseDTO>> createPost(
+    ResponseEntity<ApiResponse<PostCreationResponseDTO>> createPost(
             @Parameter(description = "Post creation request body")
             @Valid @RequestBody PostCreateRequestDTO postCreateRequestDTO);
 
@@ -66,7 +64,7 @@ public interface PostApi {
     })
     @org.springframework.web.bind.annotation.PutMapping(PostsRoutes.UPDATE_POST)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostResponseDTO>> updatePost(
+    ResponseEntity<ApiResponse<PostCreationResponseDTO>> updatePost(
             @io.swagger.v3.oas.annotations.Parameter(description = "ID of the post to update")
             @org.springframework.web.bind.annotation.PathVariable Long postId,
             @io.swagger.v3.oas.annotations.Parameter(description = "Post update request body")
@@ -109,7 +107,7 @@ public interface PostApi {
     })
     @GetMapping(PostsRoutes.GET_POST_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostResponseDTO>> getPostById(@PathVariable Long postId);
+    ResponseEntity<ApiResponse<PostCreationResponseDTO>> getPostById(@PathVariable Long postId);
 
     @Operation(summary = "Filter posts", description = "Returns paginated posts. Admins see all; users see PUBLISHED posts that are PUBLIC, their own, or from followings.")
     @ApiResponses(value = {
@@ -120,11 +118,11 @@ public interface PostApi {
     })
     @GetMapping(PostsRoutes.FILTER_POSTS)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PaginatedResponse<PostResponseDTO>>> filterPosts(
+    ResponseEntity<ApiResponse<PaginatedResponse<PostCreationResponseDTO>>> filterPosts(
             @Parameter(hidden = true) Pageable pageable,
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) PostType type,
+            // --- REMOVED PostType type ---
             @RequestParam(required = false) PostStatus status,
             @RequestParam(required = false) PostVisibility visibility,
             @RequestParam(required = false) String q

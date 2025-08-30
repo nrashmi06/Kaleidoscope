@@ -1,10 +1,13 @@
 package com.kaleidoscope.backend.posts.dto.response;
 
 import com.kaleidoscope.backend.shared.enums.MediaType;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @Builder
@@ -19,6 +22,6 @@ public class PostMediaResponseDTO {
     private Integer height;
     private Integer fileSizeKb;
     private Integer durationSeconds;
-    private java.util.Map<String, Object> extraMetadata;
-    private java.time.LocalDateTime createdAt;
+    private Map<String, Object> extraMetadata;
+    private LocalDateTime createdAt;
 }

@@ -1,0 +1,18 @@
+meta {
+  name: add reaction
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{base_url}}/api/posts/1/reactions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "reactionType": "LIKE"
+  }
+}
+

@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.posts.dto.request;
+package com.kaleidoscope.backend.shared.dto.request;
 
-import com.kaleidoscope.backend.posts.enums.ReactionType;
+import com.kaleidoscope.backend.shared.enums.ReactionType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

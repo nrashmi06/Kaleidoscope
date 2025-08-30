@@ -1,5 +1,7 @@
-package com.kaleidoscope.backend.users.model;
+package com.kaleidoscope.backend.shared.model;
 
+import com.kaleidoscope.backend.shared.enums.ContentType;
+import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -8,7 +10,13 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_tags")
+@Table(name = "user_tags",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"tagged_user_id", "content_type", "content_id"}),
+    indexes = {
+        @Index(columnList = "content_type, content_id"),
+        @Index(columnList = "tagged_user_id")
+    }
+)
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
@@ -16,25 +24,25 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class UserTag {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "tag_id")
     private Long tagId;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tagged_user_id", nullable = false)
+    private User taggedUser;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tagger_user_id", nullable = false)
+    private User taggerUser;
 
-    @Column(name = "usage_count", nullable = false)
-    @Builder.Default
-    private Integer usageCount = 0;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    private ContentType contentType;
 
-    @Column(name = "is_system_tag")
-    @Builder.Default
-    private Boolean isSystemTag = false;
+    @Column(name = "content_id", nullable = false)
+    private Long contentId;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -50,6 +58,7 @@ public class UserTag {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return 31;
     }
 }
+

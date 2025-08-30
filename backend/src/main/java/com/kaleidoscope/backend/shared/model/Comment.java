@@ -1,6 +1,7 @@
-package com.kaleidoscope.backend.posts.model;
+package com.kaleidoscope.backend.shared.model;
 
-import com.kaleidoscope.backend.posts.enums.ReactionType;
+import com.kaleidoscope.backend.shared.enums.CommentStatus;
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,37 +14,46 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reactions", indexes = {
-        @Index(name = "idx_reaction_post_id", columnList = "post_id"),
-        @Index(name = "idx_reaction_user_id", columnList = "user_id"),
-        @Index(name = "idx_reaction_user_post", columnList = "user_id, post_id", unique = true)
+// The index for parent_comment_id has been removed from the @Table annotation
+@Table(name = "comments", indexes = {
+        @Index(name = "idx_comment_post_id", columnList = "post_id"),
+        @Index(name = "idx_comment_user_id", columnList = "user_id"),
+        @Index(name = "idx_comment_status", columnList = "status"),
+        @Index(name = "idx_comment_created_at", columnList = "created_at")
 })
 @EntityListeners(AuditingEntityListener.class)
-@SQLDelete(sql = "UPDATE reactions SET deleted_at = NOW() WHERE reaction_id = ?")
+@SQLDelete(sql = "UPDATE comments SET deleted_at = NOW() WHERE comment_id = ?")
 @Where(clause = "deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PostReaction {
+public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "reaction_id")
-    private Long reactionId;
+    @Column(name = "comment_id")
+    private Long commentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    private ContentType contentType;
+
+    @Column(name = "content_id", nullable = false)
+    private Long contentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String body;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "reaction_type", nullable = false)
-    private ReactionType reactionType;
+    @Column(nullable = false)
+    @Builder.Default
+    private CommentStatus status = CommentStatus.ACTIVE;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -60,8 +70,8 @@ public class PostReaction {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        PostReaction postReaction = (PostReaction) o;
-        return reactionId != null && reactionId.equals(postReaction.reactionId);
+        Comment comment = (Comment) o;
+        return commentId != null && commentId.equals(comment.commentId);
     }
 
     @Override
@@ -69,5 +79,3 @@ public class PostReaction {
         return 31;
     }
 }
-
-
