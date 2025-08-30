@@ -1,6 +1,9 @@
 package com.kaleidoscope.backend.blogs.repository.specification;
 
 import com.kaleidoscope.backend.blogs.model.Blog;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.data.jpa.domain.Specification;
 
 public class BlogSpecification {
@@ -13,7 +16,11 @@ public class BlogSpecification {
 
     public static Specification<Blog> hasCategory(Long categoryId) {
         if (categoryId == null) return null;
-        return (root, query, cb) -> cb.isMember(categoryId, root.get("categories").get("categoryId"));
+        return (root, query, cb) -> {
+            Join<Object, Object> blogCategoryJoin = root.join("categories");
+            Join<Object, Object> categoryJoin = blogCategoryJoin.join("category");
+            return cb.equal(categoryJoin.get("categoryId"), categoryId);
+        };
     }
 
     public static Specification<Blog> hasStatus(String status) {
@@ -30,4 +37,3 @@ public class BlogSpecification {
         );
     }
 }
-

@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.blogs.exception;
+package com.kaleidoscope.backend.blogs.exception.Blogs;
 
 public class BlogNotFoundException extends RuntimeException {
     public BlogNotFoundException(Long blogId) {
