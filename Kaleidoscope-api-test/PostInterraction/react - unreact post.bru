@@ -1,11 +1,11 @@
 meta {
-  name: add reaction
+  name: react - unreact post
   type: http
-  seq: 20
+  seq: 7
 }
 
 post {
-  url: {{base_url}}/api/posts/1/reactions
+  url: {{base_url}}/api/posts/1/reactions?unreact=false
   body: json
   auth: inherit
 }
@@ -15,4 +15,3 @@ body:json {
     "reactionType": "LIKE"
   }
 }
-
