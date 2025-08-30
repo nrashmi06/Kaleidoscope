@@ -52,6 +52,7 @@ public class UserMapper {
                 .email(user.getEmail())
                 .username(user.getUsername())
                 .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl()) // <-- ADD THIS LINE
                 .build();
     }
 

@@ -14,6 +14,7 @@ public class FollowMapper {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build();
     }
 

@@ -56,6 +56,7 @@ public class UserTagServiceImpl implements UserTagService {
                 .email(user.getEmail())
                 .username(user.getUsername())
                 .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build());
 
         return PaginatedResponse.fromPage(dtoPage);
