@@ -2,6 +2,8 @@ package com.kaleidoscope.backend.posts.controller.api;
 
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostDetailResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.posts.routes.PostsRoutes;
@@ -107,7 +109,7 @@ public interface PostApi {
     })
     @GetMapping(PostsRoutes.GET_POST_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostCreationResponseDTO>> getPostById(@PathVariable Long postId);
+    ResponseEntity<ApiResponse<PostDetailResponseDTO>> getPostById(@PathVariable Long postId);
 
     @Operation(summary = "Filter posts", description = "Returns paginated posts. Admins see all; users see PUBLISHED posts that are PUBLIC, their own, or from followings.")
     @ApiResponses(value = {
@@ -118,7 +120,7 @@ public interface PostApi {
     })
     @GetMapping(PostsRoutes.FILTER_POSTS)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PaginatedResponse<PostCreationResponseDTO>>> filterPosts(
+    ResponseEntity<ApiResponse<PaginatedResponse<PostSummaryResponseDTO>>> filterPosts(
             @Parameter(hidden = true) Pageable pageable,
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long categoryId,

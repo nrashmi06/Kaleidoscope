@@ -5,6 +5,8 @@ import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostDetailResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.posts.exception.Posts.*;
@@ -283,7 +285,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public PostCreationResponseDTO getPostById(Long postId) {
+    public PostDetailResponseDTO getPostById(Long postId) {
         Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -297,12 +299,12 @@ public class PostServiceImpl implements PostService {
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
         }
-        return postMapper.toDTO(post);
+        return postMapper.toPostDetailDTO(post);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedResponse<PostCreationResponseDTO> filterPosts(Pageable pageable,
+    public PaginatedResponse<PostSummaryResponseDTO> filterPosts(Pageable pageable,
                                                                   Long userId,
                                                                   Long categoryId,
                                                                   PostStatus status,
@@ -325,7 +327,7 @@ public class PostServiceImpl implements PostService {
         }
 
         Page<Post> postPage = postRepository.findAll(spec, pageable);
-        Page<PostCreationResponseDTO> dtoPage = postPage.map(postMapper::toDTO);
+        Page<PostSummaryResponseDTO> dtoPage = postPage.map(postMapper::toPostSummaryDTO);
         return PaginatedResponse.fromPage(dtoPage);
     }
 }

@@ -5,6 +5,8 @@ import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostDetailResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
@@ -13,6 +15,8 @@ import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.mapper.UserTagMapper;
 import com.kaleidoscope.backend.shared.repository.UserTagRepository;
+import com.kaleidoscope.backend.shared.repository.CommentRepository;
+import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.users.model.User;
@@ -31,6 +35,10 @@ public class PostMapper {
     private UserTagRepository userTagRepository;
     @Autowired
     private UserTagMapper userTagMapper;
+    @Autowired
+    private CommentRepository commentRepository;
+    @Autowired
+    private ReactionRepository reactionRepository;
 
     public Post toEntity(PostCreateRequestDTO dto) {
         if (dto == null) {
@@ -126,5 +134,121 @@ public class PostMapper {
                 .extraMetadata(mediaDto.getExtraMetadata())
                 .build()
         ).collect(Collectors.toList());
+    }
+
+    public PostDetailResponseDTO toPostDetailDTO(Post post) {
+        if (post == null) {
+            return null;
+        }
+
+        User user = post.getUser();
+        UserSummaryResponseDTO authorDto = user != null ? UserSummaryResponseDTO.builder()
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .build() : null;
+
+        Location location = post.getLocation();
+        LocationResponseDTO locationDto = null;
+        if (location != null) {
+            locationDto = LocationResponseDTO.builder()
+                    .locationId(location.getLocationId())
+                    .name(location.getName())
+                    .latitude(location.getLatitude())
+                    .longitude(location.getLongitude())
+                    .address(location.getAddress())
+                    .build();
+        }
+
+        List<UserTagResponseDTO> taggedUsers = userTagRepository.findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged())
+                .stream()
+                .map(userTagMapper::toDTO)
+                .collect(Collectors.toList());
+
+        // Get reaction and comment counts
+        long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
+        long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
+
+        return PostDetailResponseDTO.builder()
+                .postId(post.getPostId())
+                .title(post.getTitle())
+                .body(post.getBody())
+                .summary(post.getSummary())
+                .visibility(post.getVisibility())
+                .status(post.getStatus())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .author(authorDto)
+                .categories(post.getCategories().stream()
+                        .map(pc -> {
+                            Category cat = pc.getCategory();
+                            return CategoryResponseDTO.builder()
+                                    .categoryId(cat.getCategoryId())
+                                    .name(cat.getName())
+                                    .build();
+                        })
+                        .collect(Collectors.toList()))
+                .media(post.getMedia().stream()
+                        .sorted(Comparator.comparing(PostMedia::getPosition))
+                        .map(pm -> PostMediaResponseDTO.builder()
+                                .mediaId(pm.getMediaId())
+                                .mediaUrl(pm.getMediaUrl())
+                                .mediaType(pm.getMediaType())
+                                .position(pm.getPosition())
+                                .width(pm.getWidth())
+                                .height(pm.getHeight())
+                                .fileSizeKb(pm.getFileSizeKb())
+                                .durationSeconds(pm.getDurationSeconds())
+                                .extraMetadata(pm.getExtraMetadata())
+                                .createdAt(pm.getCreatedAt())
+                                .build())
+                        .collect(Collectors.toList()))
+                .location(locationDto)
+                .taggedUsers(taggedUsers)
+                .reactionCount(reactionCount)
+                .commentCount(commentCount)
+                .build();
+    }
+
+    public PostSummaryResponseDTO toPostSummaryDTO(Post post) {
+        if (post == null) {
+            return null;
+        }
+
+        User user = post.getUser();
+        UserSummaryResponseDTO authorDto = user != null ? UserSummaryResponseDTO.builder()
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .build() : null;
+
+        // Find thumbnail URL from media with lowest position
+        String thumbnailUrl = post.getMedia().stream()
+                .min(Comparator.comparing(PostMedia::getPosition))
+                .map(PostMedia::getMediaUrl)
+                .orElse(null);
+
+        // Get reaction and comment counts
+        long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
+        long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
+
+        return PostSummaryResponseDTO.builder()
+                .postId(post.getPostId())
+                .title(post.getTitle())
+                .summary(post.getSummary())
+                .visibility(post.getVisibility())
+                .createdAt(post.getCreatedAt())
+                .author(authorDto)
+                .categories(post.getCategories().stream()
+                        .map(pc -> {
+                            Category cat = pc.getCategory();
+                            return CategoryResponseDTO.builder()
+                                    .categoryId(cat.getCategoryId())
+                                    .name(cat.getName())
+                                    .build();
+                        })
+                        .collect(Collectors.toList()))
+                .thumbnailUrl(thumbnailUrl)
+                .reactionCount(reactionCount)
+                .commentCount(commentCount)
+                .build();
     }
 }

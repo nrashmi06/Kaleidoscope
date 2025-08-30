@@ -18,6 +18,15 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     @Query("SELECT r.reactionType, COUNT(r) FROM Reaction r WHERE r.contentId = :contentId AND r.contentType = :contentType GROUP BY r.reactionType")
     List<Object[]> countReactionsByContentGroupedByType(@Param("contentId") Long contentId, @Param("contentType") ContentType contentType);
 
+    /**
+     * Counts the total number of reactions for a specific piece of content.
+     *
+     * @param contentId The ID of the content (Post, Blog, etc.).
+     * @param contentType The type of the content.
+     * @return The total count of reactions for the specified content.
+     */
+    long countByContentIdAndContentType(Long contentId, ContentType contentType);
+
     @Modifying
     @Query("UPDATE Reaction r SET r.deletedAt = :deletedAt WHERE r.contentId = :contentId AND r.contentType = :contentType")
     void softDeleteReactionsByContent(@Param("contentId") Long contentId, @Param("contentType") ContentType contentType, @Param("deletedAt") LocalDateTime deletedAt);

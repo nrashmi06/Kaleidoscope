@@ -4,6 +4,8 @@ import com.kaleidoscope.backend.posts.controller.api.PostApi;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostDetailResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.posts.routes.PostsRoutes;
@@ -94,9 +96,9 @@ public class PostController implements PostApi {
 
     @GetMapping(PostsRoutes.GET_POST_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PostCreationResponseDTO>> getPostById(@PathVariable Long postId) {
-        PostCreationResponseDTO post = postService.getPostById(postId);
-        return ResponseEntity.ok(ApiResponse.<PostCreationResponseDTO>builder()
+    public ResponseEntity<ApiResponse<PostDetailResponseDTO>> getPostById(@PathVariable Long postId) {
+        PostDetailResponseDTO post = postService.getPostById(postId);
+        return ResponseEntity.ok(ApiResponse.<PostDetailResponseDTO>builder()
                 .success(true)
                 .message("Post retrieved successfully.")
                 .data(post)
@@ -105,7 +107,7 @@ public class PostController implements PostApi {
 
     @GetMapping(PostsRoutes.FILTER_POSTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<PostCreationResponseDTO>>> filterPosts(
+    public ResponseEntity<ApiResponse<PaginatedResponse<PostSummaryResponseDTO>>> filterPosts(
             Pageable pageable,
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long categoryId,
@@ -113,8 +115,8 @@ public class PostController implements PostApi {
             @RequestParam(required = false) PostVisibility visibility,
             @RequestParam(required = false) String q
     ) {
-        PaginatedResponse<PostCreationResponseDTO> response = postService.filterPosts(pageable, userId, categoryId, status, visibility, q);
-        return ResponseEntity.ok(ApiResponse.<PaginatedResponse<PostCreationResponseDTO>>builder()
+        PaginatedResponse<PostSummaryResponseDTO> response = postService.filterPosts(pageable, userId, categoryId, status, visibility, q);
+        return ResponseEntity.ok(ApiResponse.<PaginatedResponse<PostSummaryResponseDTO>>builder()
                 .success(true)
                 .message("Posts retrieved successfully.")
                 .data(response)
