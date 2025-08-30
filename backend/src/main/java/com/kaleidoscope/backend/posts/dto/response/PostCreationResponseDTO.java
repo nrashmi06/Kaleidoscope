@@ -3,6 +3,7 @@ package com.kaleidoscope.backend.posts.dto.response;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
 import lombok.Builder;
 import lombok.Data;
 
@@ -26,5 +27,5 @@ public class PostCreationResponseDTO {
     private List<CategoryResponseDTO> categories;
     private List<PostMediaResponseDTO> media;
     private LocationResponseDTO location;
-    // --- REMOVED THE PostType FIELD ---
+    private List<UserTagResponseDTO> taggedUsers;
 }

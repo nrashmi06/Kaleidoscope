@@ -29,6 +29,7 @@ public class PostController implements PostApi {
     private final PostService postService;
     private final ImageStorageService imageStorageService;
 
+    @Override
     @PostMapping(PostsRoutes.GENERATE_UPLOAD_SIGNATURES)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UploadSignatureResponseDTO>> generateUploadSignatures(
