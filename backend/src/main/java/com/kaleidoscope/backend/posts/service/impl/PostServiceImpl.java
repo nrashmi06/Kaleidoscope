@@ -5,6 +5,8 @@ import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostDetailResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.posts.exception.Posts.*;
@@ -50,6 +52,7 @@ public class PostServiceImpl implements PostService {
     private final PostMapper postMapper;
     private final ImageStorageService imageStorageService;
     private final UserRepository userRepository;
+    private final ReactionRepository reactionRepository;
     private final JwtUtils jwtUtils;
     private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
     private final FollowRepository followRepository;
@@ -65,15 +68,26 @@ public class PostServiceImpl implements PostService {
             throw new IllegalStatePostActionException("Authenticated user not found for ID: " + userId);
         }
 
+        // 1. Map the DTO to a Post entity
         Post post = postMapper.toEntity(postCreateRequestDTO);
         post.setUser(currentUser);
 
+        // 2. Set Location and Categories before the first save
         if (postCreateRequestDTO.getLocationId() != null) {
             Location location = locationRepository.findById(postCreateRequestDTO.getLocationId())
                     .orElseThrow(() -> new PostLocationNotFoundException(postCreateRequestDTO.getLocationId()));
             post.setLocation(location);
         }
 
+        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(postCreateRequestDTO.getCategoryIds()));
+        if (categories.size() != postCreateRequestDTO.getCategoryIds().size()) {
+            throw new PostCategoryNotFoundException();
+        }
+        categories.forEach(post::addCategory);
+
+        Post savedPost = postRepository.save(post);
+
+        // 4. Now that savedPost.getPostId() is not null, process the media
         if (postCreateRequestDTO.getMediaDetails() != null && !postCreateRequestDTO.getMediaDetails().isEmpty()) {
             List<PostMedia> mediaItems = postMapper.toPostMediaEntities(postCreateRequestDTO.getMediaDetails());
             for (PostMedia mediaItem : mediaItems) {
@@ -87,26 +101,25 @@ public class PostServiceImpl implements PostService {
                 if (tracker.getStatus() != MediaAssetStatus.PENDING) {
                     throw new IllegalStatePostActionException("Media asset must be in PENDING state to be associated. Current state: " + tracker.getStatus());
                 }
-                post.addMedia(mediaItem);
+
+                // Add the media to the post object
+                savedPost.addMedia(mediaItem);
+
+                // Update the tracker with the *correct, non-null* contentId
                 tracker.setStatus(MediaAssetStatus.ASSOCIATED);
-                tracker.setPost(post);
+                tracker.setContentType(ContentType.POST.name());
+                tracker.setContentId(savedPost.getPostId()); // This now works correctly
             }
+            // Save again to persist the new media relationships
+            postRepository.save(savedPost);
         }
 
-        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(postCreateRequestDTO.getCategoryIds()));
-        if (categories.size() != postCreateRequestDTO.getCategoryIds().size()) {
-            throw new PostCategoryNotFoundException();
-        }
-        categories.forEach(post::addCategory);
-
-        Post savedPost = postRepository.save(post);
-
-        // Logic for user tagging on creation
+        // 5. Logic for user tagging can now use the generated postId
         if (postCreateRequestDTO.getTaggedUserIds() != null && !postCreateRequestDTO.getTaggedUserIds().isEmpty()) {
             for (Long taggedUserId : postCreateRequestDTO.getTaggedUserIds()) {
                 CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO();
                 tagRequest.setTaggedUserId(taggedUserId);
-                tagRequest.setContentId(savedPost.getPostId());
+                tagRequest.setContentId(savedPost.getPostId()); // This is correct
                 tagRequest.setContentType(ContentType.POST);
                 userTagService.createUserTag(tagRequest);
             }
@@ -208,7 +221,8 @@ public class PostServiceImpl implements PostService {
                 finalMediaList.add(newMedia);
 
                 tracker.setStatus(MediaAssetStatus.ASSOCIATED);
-                tracker.setPost(post);
+                tracker.setContentType(ContentType.POST.name());
+                tracker.setContentId(post.getPostId());
             } else {
                 incomingMediaIds.add(dto.getMediaId());
                 PostMedia existingMedia = existingMediaMap.get(dto.getMediaId());
@@ -224,7 +238,8 @@ public class PostServiceImpl implements PostService {
                 String publicId = imageStorageService.extractPublicIdFromUrl(entry.getValue().getMediaUrl());
                 mediaAssetTrackerRepository.findByPublicId(publicId).ifPresent(tracker -> {
                     tracker.setStatus(MediaAssetStatus.MARKED_FOR_DELETE);
-                    tracker.setPost(null);
+                    tracker.setContentType(ContentType.POST.name());
+                    tracker.setContentId(post.getPostId());
                 });
             }
         }
@@ -270,7 +285,8 @@ public class PostServiceImpl implements PostService {
             String publicId = imageStorageService.extractPublicIdFromUrl(media.getMediaUrl());
             mediaAssetTrackerRepository.findByPublicId(publicId).ifPresent(tracker -> {
                 tracker.setStatus(MediaAssetStatus.UNLINKED);
-                tracker.setPost(null);
+                tracker.setContentType(ContentType.POST.name());
+                tracker.setContentId(post.getPostId());
             });
             imageStorageService.deleteImageByPublicId(imageStorageService.extractPublicIdFromUrl(media.getMediaUrl()));
         }
@@ -283,7 +299,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public PostCreationResponseDTO getPostById(Long postId) {
+    public PostDetailResponseDTO getPostById(Long postId) {
         Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException(postId));
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -297,17 +313,22 @@ public class PostServiceImpl implements PostService {
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
         }
-        return postMapper.toDTO(post);
+        com.kaleidoscope.backend.shared.enums.ReactionType currentUserReaction = null;
+        var reactionOpt = reactionRepository.findByContentAndUser(postId, ContentType.POST, currentUserId);
+        if (reactionOpt.isPresent()) {
+            currentUserReaction = reactionOpt.get().getReactionType();
+        }
+        return postMapper.toPostDetailDTO(post, currentUserReaction);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedResponse<PostCreationResponseDTO> filterPosts(Pageable pageable,
-                                                                  Long userId,
-                                                                  Long categoryId,
-                                                                  PostStatus status,
-                                                                  PostVisibility visibility,
-                                                                  String query) {
+    public PaginatedResponse<PostSummaryResponseDTO> filterPosts(Pageable pageable,
+                                                                 Long userId,
+                                                                 Long categoryId,
+                                                                 PostStatus status,
+                                                                 PostVisibility visibility,
+                                                                 String query) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
 
@@ -325,7 +346,8 @@ public class PostServiceImpl implements PostService {
         }
 
         Page<Post> postPage = postRepository.findAll(spec, pageable);
-        Page<PostCreationResponseDTO> dtoPage = postPage.map(postMapper::toDTO);
+        Page<PostSummaryResponseDTO> dtoPage = postPage.map(postMapper::toPostSummaryDTO);
         return PaginatedResponse.fromPage(dtoPage);
     }
 }
+

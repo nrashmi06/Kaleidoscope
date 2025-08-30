@@ -29,4 +29,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpec
             @Param("contentType") ContentType contentType,
             @Param("deletedAt") LocalDateTime deletedAt
     );
+
+    /**
+     * Counts the number of comments for a specific piece of content.
+     *
+     * @param contentId The ID of the content (Post, Blog, etc.).
+     * @param contentType The type of the content.
+     * @return The count of comments for the specified content.
+     */
+    long countByContentIdAndContentType(Long contentId, ContentType contentType);
 }

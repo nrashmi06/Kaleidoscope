@@ -42,9 +42,11 @@ public class MediaAssetCleanupScheduler {
         log.info("Found {} orphaned media assets to clean up.", orphans.size());
         for (MediaAssetTracker tracker : orphans) {
             try {
+                String associationType = tracker.getContentType() + " (ID: " + tracker.getContentId() + ")";
+                log.info("Cleaning up orphaned media asset with public_id: {} (associated with: {})", tracker.getPublicId(), associationType);
                 imageStorageService.deleteImageByPublicId(tracker.getPublicId());
                 trackerRepository.delete(tracker);
-                log.info("Cleaned up orphaned media asset with public_id: {}", tracker.getPublicId());
+                log.info("Cleaned up orphaned media asset with public_id: {} (was associated with: {})", tracker.getPublicId(), associationType);
             } catch (Exception e) {
                 log.error("Failed to clean up media asset {}: {}", tracker.getPublicId(), e.getMessage());
             }

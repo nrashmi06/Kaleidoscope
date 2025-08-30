@@ -1,0 +1,11 @@
+meta {
+  name: hard delete blog
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_url}}/api/blogs/1/hard
+  body: none
+  auth: inherit
+}

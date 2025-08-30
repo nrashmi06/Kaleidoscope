@@ -1,0 +1,20 @@
+meta {
+  name: generate upload signatures
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/blogs/generate-upload-signatures
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "fileNames": [
+      "example1.jpg",
+      "example2.png"
+    ]
+  }
+}

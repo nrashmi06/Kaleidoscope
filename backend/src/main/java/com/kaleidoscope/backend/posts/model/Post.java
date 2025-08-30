@@ -52,12 +52,6 @@ public class Post {
     @Column(length = 500)
     private String summary;
 
-    @Column(name = "word_count")
-    private Integer wordCount;
-
-    @Column(name = "read_time_minutes")
-    private Integer readTimeMinutes;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;
@@ -85,19 +79,6 @@ public class Post {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    @PreUpdate
-    private void calculateReadStats() {
-        if (this.body == null || this.body.isBlank()) {
-            this.wordCount = 0;
-            this.readTimeMinutes = 0;
-            return;
-        }
-        String[] words = this.body.trim().split("\\s+");
-        this.wordCount = words.length;
-        this.readTimeMinutes = (int) Math.ceil((double) this.wordCount / 200);
-    }
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
