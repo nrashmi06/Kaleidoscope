@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.shared.model;
 
 import com.kaleidoscope.backend.shared.enums.CommentStatus;
-import com.kaleidoscope.backend.posts.model.Post;
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,9 +36,12 @@ public class Comment {
     @Column(name = "comment_id")
     private Long commentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    private ContentType contentType;
+
+    @Column(name = "content_id", nullable = false)
+    private Long contentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

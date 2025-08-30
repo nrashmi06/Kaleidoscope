@@ -5,6 +5,7 @@ import com.kaleidoscope.backend.shared.dto.request.ReactionRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
 import com.kaleidoscope.backend.shared.dto.request.CommentCreateRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.posts.routes.PostInteractionRoutes;
 import com.kaleidoscope.backend.shared.service.InteractionService;
@@ -66,7 +67,7 @@ public class PostInteractionController implements PostInteractionApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CommentResponseDTO>> addComment(@PathVariable Long postId,
                                                                       @Valid @RequestBody CommentCreateRequestDTO requestDTO) {
-        CommentResponseDTO result = interactionService.addComment(postId, requestDTO.getBody());
+        CommentResponseDTO result = interactionService.addComment(ContentType.POST, postId, requestDTO.getBody());
         return ResponseEntity.ok(ApiResponse.<CommentResponseDTO>builder()
                 .success(true)
                 .message("Comment added")
@@ -78,7 +79,7 @@ public class PostInteractionController implements PostInteractionApi {
     @GetMapping(PostInteractionRoutes.COMMENTS)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Page<CommentResponseDTO>>> listComments(@PathVariable Long postId, Pageable pageable) {
-        Page<CommentResponseDTO> page = interactionService.listComments(postId, pageable);
+        Page<CommentResponseDTO> page = interactionService.listComments(ContentType.POST, postId, pageable);
         return ResponseEntity.ok(ApiResponse.<Page<CommentResponseDTO>>builder()
                 .success(true)
                 .message("Comments fetched")

@@ -1,6 +1,5 @@
 package com.kaleidoscope.backend.posts.dto.request;
 
-import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -33,6 +32,4 @@ public class PostCreateRequestDTO {
     @NotEmpty
     private Set<Long> categoryIds;
 
-    // Optional: type of post (default to SOCIAL if not provided)
-    private PostType type;
 }

@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.shared.model;
 
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
-import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,9 +15,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "reactions", indexes = {
-        @Index(name = "idx_reaction_post_id", columnList = "post_id"),
+        @Index(name = "idx_reaction_content", columnList = "content_type, content_id"),
         @Index(name = "idx_reaction_user_id", columnList = "user_id"),
-        @Index(name = "idx_reaction_user_post", columnList = "user_id, post_id", unique = true)
+        @Index(name = "idx_reaction_user_content", columnList = "user_id, content_type, content_id", unique = true)
 })
 @EntityListeners(AuditingEntityListener.class)
 @SQLDelete(sql = "UPDATE reactions SET deleted_at = NOW() WHERE reaction_id = ?")
@@ -34,9 +34,12 @@ public class Reaction {
     @Column(name = "reaction_id")
     private Long reactionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    private ContentType contentType;
+
+    @Column(name = "content_id", nullable = false)
+    private Long contentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -70,5 +73,3 @@ public class Reaction {
         return 31;
     }
 }
-
-

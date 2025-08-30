@@ -10,8 +10,10 @@ import java.util.List;
 
 @Repository
 public interface BlogRepository extends JpaRepository<Blog, Long> {
-    List<Blog> findByUserId(Long userId);
-    List<Blog> findByLocationId(Long locationId);
+
+    List<Blog> findByUser_UserId(Long userId);
+
+    List<Blog> findByLocation_LocationId(Long locationId);
     List<Blog> findByBlogStatus(BlogStatus blogStatus);
     List<Blog> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
     List<Blog> findByDeletedAtIsNotNull();

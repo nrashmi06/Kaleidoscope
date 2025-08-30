@@ -6,7 +6,6 @@ import com.kaleidoscope.backend.posts.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
-import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
@@ -20,10 +19,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-/**
- * A stateless mapper responsible for converting between Post DTOs and Entities.
- * It does not contain business logic for updating persistent entities.
- */
 @Component
 public class PostMapper {
 
@@ -36,7 +31,7 @@ public class PostMapper {
                 .body(dto.getBody())
                 .summary(dto.getSummary())
                 .visibility(dto.getVisibility())
-                .type(dto.getType() != null ? dto.getType() : PostType.SOCIAL)
+                // --- REMOVED THE PostType MAPPING ---
                 .build();
     }
 
@@ -100,7 +95,7 @@ public class PostMapper {
                                 .build())
                         .collect(Collectors.toList()))
                 .location(locationDto)
-                .type(post.getType())
+                // --- REMOVED THE PostType MAPPING ---
                 .build();
     }
 

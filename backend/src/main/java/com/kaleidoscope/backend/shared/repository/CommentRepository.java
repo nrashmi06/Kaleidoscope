@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.shared.repository;
 
+import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.model.Comment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -8,18 +9,24 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpecificationExecutor<Comment> {
 
     /**
-     * Soft-deletes all comments associated with a specific post by setting their
-     * deleted_at timestamp. While this is often handled by cascading from the Post
-     * entity, this method provides an explicit way to perform the action.
+     * Soft-deletes all comments associated with a specific piece of content
+     * by setting their deleted_at timestamp.
      *
-     * @param postId The ID of the post whose comments should be soft-deleted.
+     * @param contentId The ID of the content (Post, Blog, etc.).
+     * @param contentType The type of the content.
+     * @param deletedAt The timestamp to set for deletion.
      */
-
     @Modifying
-    @Query("UPDATE Comment c SET c.deletedAt = :deletedAt WHERE c.post.postId = :postId")
-    void softDeleteCommentsByPostId(@Param("postId") Long postId, @Param("deletedAt") java.time.LocalDateTime deletedAt);
+    @Query("UPDATE Comment c SET c.deletedAt = :deletedAt WHERE c.contentId = :contentId AND c.contentType = :contentType")
+    void softDeleteCommentsByContent(
+            @Param("contentId") Long contentId,
+            @Param("contentType") ContentType contentType,
+            @Param("deletedAt") LocalDateTime deletedAt
+    );
 }

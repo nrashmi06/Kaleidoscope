@@ -20,7 +20,8 @@ public class InteractionMapper {
     public CommentResponseDTO toCommentDTO(Comment comment) {
         return CommentResponseDTO.builder()
                 .commentId(comment.getCommentId())
-                .postId(comment.getPost().getPostId())
+                .contentId(comment.getContentId()) // Changed from getPost().getPostId()
+                .contentType(comment.getContentType()) // Added contentType
                 .body(comment.getBody())
                 .status(comment.getStatus())
                 .createdAt(comment.getCreatedAt())
@@ -36,7 +37,7 @@ public class InteractionMapper {
         return dto;
     }
 
-    // PostReactionMapper logic
+    // PostReactionMapper logic (no changes needed here for now)
     public ReactionResponseDTO toPostReactionSummary(Long postId, ReactionType currentUserReaction, List<Object[]> countsRaw) {
         Map<ReactionType, Long> countsByType = new EnumMap<>(ReactionType.class);
         long total = 0L;
@@ -56,7 +57,7 @@ public class InteractionMapper {
                 .build();
     }
 
-    // CommentReactionMapper logic
+    // CommentReactionMapper logic (no changes needed here)
     public CommentReactionResponseDTO toCommentReactionSummary(Long commentId, ReactionType currentUserReaction, List<Object[]> counts) {
         Map<ReactionType, Long> reactionCounts = new HashMap<>();
         for (Object[] row : counts) {
@@ -71,4 +72,3 @@ public class InteractionMapper {
                 .build();
     }
 }
-

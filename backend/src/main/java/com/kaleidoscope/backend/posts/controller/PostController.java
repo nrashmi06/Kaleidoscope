@@ -5,7 +5,6 @@ import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
-import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.posts.routes.PostsRoutes;
 import com.kaleidoscope.backend.posts.service.PostService;
@@ -17,6 +16,7 @@ import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,9 +29,6 @@ public class PostController implements PostApi {
     private final PostService postService;
     private final ImageStorageService imageStorageService;
 
-    /**
-     * PHASE 1: Endpoint to generate upload signatures for the client.
-     */
     @PostMapping(PostsRoutes.GENERATE_UPLOAD_SIGNATURES)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UploadSignatureResponseDTO>> generateUploadSignatures(
@@ -108,16 +105,15 @@ public class PostController implements PostApi {
     @GetMapping(PostsRoutes.FILTER_POSTS)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PaginatedResponse<PostCreationResponseDTO>>> filterPosts(
-            org.springframework.data.domain.Pageable pageable,
+            Pageable pageable,
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) PostType type,
             @RequestParam(required = false) PostStatus status,
             @RequestParam(required = false) PostVisibility visibility,
             @RequestParam(required = false) String q
     ) {
-        PaginatedResponse<PostCreationResponseDTO> response = postService.filterPosts(pageable, userId, categoryId, type, status, visibility, q);
-        return ResponseEntity.ok(ApiResponse.<com.kaleidoscope.backend.shared.response.PaginatedResponse<PostCreationResponseDTO>>builder()
+        PaginatedResponse<PostCreationResponseDTO> response = postService.filterPosts(pageable, userId, categoryId, status, visibility, q);
+        return ResponseEntity.ok(ApiResponse.<PaginatedResponse<PostCreationResponseDTO>>builder()
                 .success(true)
                 .message("Posts retrieved successfully.")
                 .data(response)

@@ -6,7 +6,6 @@ import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
-import com.kaleidoscope.backend.posts.enums.PostType;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.posts.exception.Posts.*;
 import com.kaleidoscope.backend.posts.mapper.PostMapper;
@@ -115,7 +114,6 @@ public class PostServiceImpl implements PostService {
         post.setBody(requestDTO.getBody());
         post.setSummary(requestDTO.getSummary());
         post.setVisibility(requestDTO.getVisibility());
-        post.setType(requestDTO.getType());
 
         updatePostMedia(post, requestDTO.getMediaDetails());
 
@@ -200,7 +198,6 @@ public class PostServiceImpl implements PostService {
         if (!isAdmin && !post.getUser().getUserId().equals(currentUserId)) {
             throw new UnauthorizedActionException("User is not authorized to delete this post.");
         }
-        // Soft delete is handled by @SQLDelete on Post
         postRepository.delete(post);
         log.info("Post {} soft-deleted by user {} (admin? {})", postId, currentUserId, isAdmin);
     }
@@ -221,7 +218,6 @@ public class PostServiceImpl implements PostService {
 
         post.getMedia().clear();
         post.getCategories().clear();
-        post.getComments().clear();
         postRepository.hardDeleteById(post.getPostId());
         log.info("Post {} hard-deleted by admin", postId);
     }
@@ -238,43 +234,33 @@ public class PostServiceImpl implements PostService {
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
             if (post.getVisibility() == PostVisibility.FOLLOWERS) {
+                // This logic might need adjustment based on whether the current user follows the post owner
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
         }
         return postMapper.toDTO(post);
     }
 
-    // In PostServiceImpl.java
-
     @Override
     @Transactional(readOnly = true)
     public PaginatedResponse<PostCreationResponseDTO> filterPosts(Pageable pageable,
                                                                   Long userId,
                                                                   Long categoryId,
-                                                                  PostType type,
                                                                   PostStatus status,
                                                                   PostVisibility visibility,
                                                                   String query) {
-        // Get details about the user making the request
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
-
-        // Start with a specification that finds everything
         Specification<Post> spec = Specification.where(null);
 
-        // --- Dynamically add filters based on request parameters ---
         if (userId != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("user").get("userId"), userId));
         }
         if (categoryId != null) {
             spec = spec.and((root, q, cb) -> {
-                // Join with the post_categories table to filter by category
                 var join = root.join("categories").get("category");
                 return cb.equal(join.get("categoryId"), categoryId);
             });
-        }
-        if (type != null) {
-            spec = spec.and((root, q, cb) -> cb.equal(root.get("type"), type));
         }
         if (status != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
@@ -298,7 +284,6 @@ public class PostServiceImpl implements PostService {
                             cb.equal(root.get("status"), PostStatus.PUBLISHED),
                             cb.equal(root.get("visibility"), PostVisibility.PUBLIC)
                     ),
-                    // Condition 2: The post belongs to the current user (they can see their own drafts).
                     cb.equal(root.get("user").get("userId"), currentUserId),
                     cb.and(
                             cb.equal(root.get("visibility"), PostVisibility.FOLLOWERS),
