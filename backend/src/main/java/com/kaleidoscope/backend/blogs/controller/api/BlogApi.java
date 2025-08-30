@@ -4,10 +4,12 @@ import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogDetailResponseDTO;
+import com.kaleidoscope.backend.blogs.dto.response.BlogSummaryResponseDTO;
 import com.kaleidoscope.backend.blogs.routes.BlogsRoutes;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +17,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -106,4 +109,23 @@ public interface BlogApi {
     @GetMapping(BlogsRoutes.GET_BLOG_BY_ID)
     @PreAuthorize("isAuthenticated()")
     ResponseEntity<ApiResponse<BlogDetailResponseDTO>> getBlogById(@PathVariable Long blogId);
+
+    @Operation(summary = "Filter blogs", description = "Returns paginated, filtered list of blogs.")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Blogs retrieved successfully",
+                content = @Content(mediaType = "application/json",
+                        schema = @Schema(implementation = ApiResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    @GetMapping(BlogsRoutes.FILTER_BLOGS)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<ApiResponse<PaginatedResponse<BlogSummaryResponseDTO>>> filterBlogs(
+            Pageable pageable,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String visibility,
+            @RequestParam(required = false) String q
+    );
 }

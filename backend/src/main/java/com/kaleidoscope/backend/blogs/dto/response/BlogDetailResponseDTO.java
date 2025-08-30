@@ -2,7 +2,7 @@ package com.kaleidoscope.backend.blogs.dto.response;
 
 import com.kaleidoscope.backend.blogs.enums.BlogStatus;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
-import com.kaleidoscope.backend.posts.dto.response.CategoryResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import lombok.AllArgsConstructor;
@@ -30,7 +30,7 @@ public class BlogDetailResponseDTO {
     private LocalDateTime reviewedAt;
     private UserSummaryResponseDTO author;
     private UserSummaryResponseDTO reviewer;
-    private List<CategoryResponseDTO> categories;
+    private List<CategorySummaryResponseDTO> categories;
     private List<BlogMediaResponseDTO> media;
     private LocationResponseDTO location;
     private long reactionCount;

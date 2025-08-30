@@ -5,16 +5,19 @@ import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogDetailResponseDTO;
+import com.kaleidoscope.backend.blogs.dto.response.BlogSummaryResponseDTO;
 import com.kaleidoscope.backend.blogs.routes.BlogsRoutes;
 import com.kaleidoscope.backend.blogs.service.BlogService;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -109,6 +112,25 @@ public class BlogController implements BlogApi {
                 .success(true)
                 .message("Blog retrieved successfully")
                 .data(blog)
+                .build());
+    }
+
+    @Override
+    @GetMapping(BlogsRoutes.FILTER_BLOGS)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<PaginatedResponse<BlogSummaryResponseDTO>>> filterBlogs(
+            Pageable pageable,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String visibility,
+            @RequestParam(required = false) String q
+    ) {
+        PaginatedResponse<BlogSummaryResponseDTO> response = blogService.filterBlogs(pageable, userId, categoryId, status, visibility, q);
+        return ResponseEntity.ok(ApiResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
+                .success(true)
+                .message("Blogs retrieved successfully.")
+                .data(response)
                 .build());
     }
 }

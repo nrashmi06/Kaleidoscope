@@ -2,7 +2,7 @@ package com.kaleidoscope.backend.posts.mapper;
 
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
-import com.kaleidoscope.backend.posts.dto.response.CategoryResponseDTO;
+import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostDetailResponseDTO;
@@ -93,7 +93,7 @@ public class PostMapper {
                 .categories(post.getCategories().stream()
                         .map(pc -> {
                             Category cat = pc.getCategory();
-                            return CategoryResponseDTO.builder()
+                            return CategorySummaryResponseDTO.builder()
                                     .categoryId(cat.getCategoryId())
                                     .name(cat.getName())
                                     .build();
@@ -182,7 +182,7 @@ public class PostMapper {
                 .categories(post.getCategories().stream()
                         .map(pc -> {
                             Category cat = pc.getCategory();
-                            return CategoryResponseDTO.builder()
+                            return CategorySummaryResponseDTO.builder()
                                     .categoryId(cat.getCategoryId())
                                     .name(cat.getName())
                                     .build();
@@ -242,7 +242,7 @@ public class PostMapper {
                 .categories(post.getCategories().stream()
                         .map(pc -> {
                             Category cat = pc.getCategory();
-                            return CategoryResponseDTO.builder()
+                            return CategorySummaryResponseDTO.builder()
                                     .categoryId(cat.getCategoryId())
                                     .name(cat.getName())
                                     .build();

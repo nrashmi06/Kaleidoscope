@@ -19,4 +19,5 @@ public class BlogsRoutes {
     public static final String DELETE_BLOG = BLOGS + "/{blogId}";
     public static final String HARD_DELETE_BLOG = BLOGS + "/{blogId}/hard";
     public static final String GET_BLOG_BY_ID = BLOGS + "/{blogId}";
+    public static final String FILTER_BLOGS = BLOGS + "/filter";
 }

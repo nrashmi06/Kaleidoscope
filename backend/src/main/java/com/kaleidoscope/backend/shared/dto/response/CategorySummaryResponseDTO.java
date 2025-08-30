@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.posts.dto.response;
+package com.kaleidoscope.backend.shared.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +9,7 @@ import lombok.AllArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CategoryResponseDTO {
+public class CategorySummaryResponseDTO {
     private Long categoryId;
     private String name;
 }

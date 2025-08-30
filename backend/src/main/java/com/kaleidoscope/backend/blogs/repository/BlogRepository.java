@@ -3,6 +3,7 @@ package com.kaleidoscope.backend.blogs.repository;
 import com.kaleidoscope.backend.blogs.model.Blog;
 import com.kaleidoscope.backend.blogs.enums.BlogStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface BlogRepository extends JpaRepository<Blog, Long> {
+public interface BlogRepository extends JpaRepository<Blog, Long>, JpaSpecificationExecutor<Blog> {
 
     List<Blog> findByUser_UserId(Long userId);
 

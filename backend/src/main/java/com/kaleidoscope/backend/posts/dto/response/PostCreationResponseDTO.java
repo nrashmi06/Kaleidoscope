@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.posts.dto.response;
 
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
+import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
 import lombok.Builder;
@@ -22,7 +23,7 @@ public class PostCreationResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UserSummaryResponseDTO author;
-    private List<CategoryResponseDTO> categories;
+    private List<CategorySummaryResponseDTO> categories;
     private List<PostMediaResponseDTO> media;
     private LocationResponseDTO location;
     private List<UserTagResponseDTO> taggedUsers;

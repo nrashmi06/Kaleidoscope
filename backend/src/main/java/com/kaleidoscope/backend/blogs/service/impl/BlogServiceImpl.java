@@ -5,6 +5,7 @@ import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogDetailResponseDTO;
+import com.kaleidoscope.backend.blogs.dto.response.BlogSummaryResponseDTO;
 import com.kaleidoscope.backend.blogs.enums.BlogStatus;
 import com.kaleidoscope.backend.blogs.exception.BlogNotFoundException;
 import com.kaleidoscope.backend.blogs.exception.UnauthorizedBlogActionException;
@@ -12,6 +13,7 @@ import com.kaleidoscope.backend.blogs.mapper.BlogMapper;
 import com.kaleidoscope.backend.blogs.model.Blog;
 import com.kaleidoscope.backend.blogs.model.BlogMedia;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
+import com.kaleidoscope.backend.blogs.repository.specification.BlogSpecification;
 import com.kaleidoscope.backend.blogs.service.BlogService;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
@@ -23,11 +25,15 @@ import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
 import com.kaleidoscope.backend.shared.repository.*;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -150,10 +156,10 @@ public class BlogServiceImpl implements BlogService {
     public void softDeleteBlog(Long blogId) {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new BlogNotFoundException(blogId));
-        
+
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
-        
+
         if (!isAdmin && !blog.getUser().getUserId().equals(currentUserId)) {
             throw new UnauthorizedBlogActionException("User is not authorized to delete this blog.");
         }
@@ -215,6 +221,39 @@ public class BlogServiceImpl implements BlogService {
         return blogMapper.toBlogDetailDTO(blog, currentUserReaction);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q) {
+        Specification<Blog> spec = Specification.where(null);
+        if (userId != null) {
+            spec = spec.and(BlogSpecification.hasAuthor(userId));
+        }
+        if (categoryId != null) {
+            spec = spec.and(BlogSpecification.hasCategory(categoryId));
+        }
+        if (status != null) {
+            spec = spec.and(BlogSpecification.hasStatus(status));
+        }
+        // If you have a visibility field, add similar logic here
+        if (q != null && !q.isEmpty()) {
+            spec = spec.and(BlogSpecification.containsQuery(q));
+        }
+        Page<Blog> blogPage = blogRepository.findAll(spec, pageable);
+        List<BlogSummaryResponseDTO> dtos = blogPage.getContent().stream()
+            .map(blogMapper::toBlogSummaryDTO)
+            .collect(Collectors.toList());
+        // Use builder for PaginatedResponse
+        return PaginatedResponse.<BlogSummaryResponseDTO>builder()
+            .content(dtos)
+            .page(blogPage.getNumber())
+            .size(blogPage.getSize())
+            .totalPages(blogPage.getTotalPages())
+            .totalElements(blogPage.getTotalElements())
+            .first(blogPage.isFirst())
+            .last(blogPage.isLast())
+            .build();
+    }
+
     private void updateBlogMedia(Blog blog, List<MediaUploadRequestDTO> mediaDtos) {
         if (mediaDtos == null) return;
 
@@ -234,7 +273,7 @@ public class BlogServiceImpl implements BlogService {
                     throw new IllegalArgumentException("Cannot associate a media asset that is not in PENDING state.");
                 }
 
-                BlogMedia newMedia = blogMapper.toBlogMediaEntities(Collections.singletonList(dto)).get(0);
+                BlogMedia newMedia = blogMapper.toBlogMediaEntities(Collections.singletonList(dto)).stream().findFirst().orElse(null);
                 finalMediaList.add(newMedia);
 
                 tracker.setStatus(MediaAssetStatus.ASSOCIATED);
