@@ -41,7 +41,6 @@ public class PostMapper {
                 .body(dto.getBody())
                 .summary(dto.getSummary())
                 .visibility(dto.getVisibility())
-                // --- REMOVED THE PostType MAPPING ---
                 .build();
     }
 
@@ -77,8 +76,6 @@ public class PostMapper {
                 .title(post.getTitle())
                 .body(post.getBody())
                 .summary(post.getSummary())
-                .wordCount(post.getWordCount())
-                .readTimeMinutes(post.getReadTimeMinutes())
                 .visibility(post.getVisibility())
                 .status(post.getStatus())
                 .createdAt(post.getCreatedAt())
