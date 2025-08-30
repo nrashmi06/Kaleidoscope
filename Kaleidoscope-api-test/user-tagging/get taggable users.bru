@@ -1,0 +1,14 @@
+meta {
+  name: get taggable users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/users/taggable-users?q=test&page=0&size=10
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

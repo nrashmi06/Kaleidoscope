@@ -14,7 +14,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-// The index for parent_comment_id has been removed from the @Table annotation
 @Table(name = "comments", indexes = {
         @Index(name = "idx_comment_post_id", columnList = "post_id"),
         @Index(name = "idx_comment_user_id", columnList = "user_id"),

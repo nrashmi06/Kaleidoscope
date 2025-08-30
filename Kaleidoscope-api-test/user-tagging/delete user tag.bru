@@ -1,0 +1,14 @@
+meta {
+  name: delete user tag
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/api/users/tags/1
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

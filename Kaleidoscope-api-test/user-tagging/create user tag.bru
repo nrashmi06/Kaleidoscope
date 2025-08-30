@@ -1,0 +1,19 @@
+meta {
+  name: create user tag
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/users/tags
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "taggedUserId": 2,
+    "contentType": "POST",
+    "contentId": 1
+  }
+}

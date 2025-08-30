@@ -32,4 +32,6 @@ public class PostCreateRequestDTO {
     @NotEmpty
     private Set<Long> categoryIds;
 
+    // New field for user tags
+    private Set<Long> taggedUserIds;
 }
