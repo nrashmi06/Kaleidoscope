@@ -17,6 +17,8 @@ export interface ParentCategoryCardProps {
   categoryId: number;
   onCategorySelect: (category: Category) => void;
   onDeleted?: () => void;
+  onSubcategoryAdded?: (parentId: number, subcategory: Category) => void;
+  onSubcategoryDeleted?: (parentId: number, subcategoryId: number) => void;
 }
 
 const toPascalCase = (str: string | null | undefined) => {
@@ -27,14 +29,24 @@ const toPascalCase = (str: string | null | undefined) => {
     .replace(/\s+/g, "");
 };
 
-export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
+// Define the ref interface
+export interface ParentCategoryCardRef {
+  addSubcategory: (subcategory: Category) => void;
+}
+
+export const ParentCategoryCard = React.forwardRef<
+  ParentCategoryCardRef,
+  ParentCategoryCardProps
+>(({
   name,
   description,
   iconName,
   categoryId,
   onCategorySelect,
   onDeleted,
-}) => {
+  onSubcategoryAdded,
+  onSubcategoryDeleted,
+}, ref) => {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const role = useAppSelector((state) => state.auth.role);
   const [subcategories, setSubcategories] = useState<Category[]>([]);
@@ -65,6 +77,18 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
       fetchedOnce.current = true;
     }
   };
+
+  // Function to add a new subcategory dynamically
+  const addSubcategory = (newSubcategory: Category) => {
+    setSubcategories(prev => [...prev, newSubcategory]);
+    // Mark as fetched so we don't overwrite with API data
+    fetchedOnce.current = true;
+  };
+
+  // Expose the addSubcategory function to parent component
+  React.useImperativeHandle(ref, () => ({
+    addSubcategory,
+  }), []);
 
   useEffect(() => {
     fetchSubcategories();
@@ -98,6 +122,8 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
         toast.success(`${isSubcategoryDelete ? 'Subcategory' : 'Category'} deleted successfully`);
         if (isSubcategoryDelete) {
           setSubcategories((prev) => prev.filter((cat) => cat.categoryId !== deletingId));
+          // Notify parent component about subcategory deletion
+          onSubcategoryDeleted?.(categoryId, deletingId);
         } else {
           onDeleted?.();
         }
@@ -259,4 +285,7 @@ export const ParentCategoryCard: React.FC<ParentCategoryCardProps> = ({
       )}
     </>
   );
-};
+});
+
+// Add displayName for better debugging
+ParentCategoryCard.displayName = 'ParentCategoryCard';

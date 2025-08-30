@@ -6,10 +6,12 @@ import { updateCategoryController } from "@/controllers/categoryController/updat
 import { CreateCategoryData, FlatCategory } from "@/lib/types/settings/category";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { IconSearchDropdown } from "./IconSearchDropdown";
+import { toast } from "react-hot-toast";
 
 interface Props {
   categories: FlatCategory[];
-  onSuccess: () => void;
+  onSuccess: (newCategory?: FlatCategory) => void;
+  onError?: (error: string) => void;
   editingCategory?: FlatCategory | null;
   onCancelEdit?: () => void;
 }
@@ -17,6 +19,7 @@ interface Props {
 export const CategoryForm: React.FC<Props> = ({
   categories,
   onSuccess,
+  onError,
   editingCategory,
   onCancelEdit,
 }) => {
@@ -65,11 +68,30 @@ export const CategoryForm: React.FC<Props> = ({
     if (response.success) {
       setForm({ name: "", description: "", iconName: "", parentId: null });
       setIconQuery("");
-      onSuccess();
+      
+      // Show success toast
+      toast.success(isEditing ? "Category updated successfully!" : "Category created successfully!");
+      
+      // Pass the created/updated category data to the parent for optimistic updates
+      if (response.data) {
+        const categoryData: FlatCategory = {
+          categoryId: response.data.categoryId,
+          name: response.data.name,
+          description: response.data.description,
+          iconName: response.data.iconName,
+          parentId: response.data.parentId,
+        };
+        onSuccess(categoryData);
+      } else {
+        onSuccess(); // Fallback to refetch
+      }
+      
       onCancelEdit?.();
     } else {
       console.error("Form submission failed:", response.errors);
-      alert(response.errors?.[0] || "Operation failed.");
+      const errorMessage = response.errors?.[0] || "Operation failed.";
+      toast.error(errorMessage);
+      onError?.(errorMessage);
     }
 
     setSubmitting(false);
@@ -151,7 +173,7 @@ export const CategoryForm: React.FC<Props> = ({
       <div className="flex gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
         <button
           type="submit"
-          className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
           disabled={submitting}
         >
           {submitting
@@ -167,7 +189,8 @@ export const CategoryForm: React.FC<Props> = ({
           <button
             type="button"
             onClick={onCancelEdit}
-            className="px-6 py-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+            className="px-6 py-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
+            disabled={submitting}
           >
             Cancel
           </button>

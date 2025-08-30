@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
 import { FlatCategory } from "@/lib/types/settings/category";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Loader } from "@/components/common/Loader";
-import { ParentCategoryCard } from "@/components/settings/CategorySettingsTabComponenets/ParentCategoryCard";
+import { ParentCategoryCard, ParentCategoryCardRef } from "@/components/settings/CategorySettingsTabComponenets/ParentCategoryCard";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { CategoryForm } from "@/components/settings/CategorySettingsTabComponenets/CategoryForm";
+import { toast } from "react-hot-toast";
 
 export const CategorySettingsTab = () => {
   const accessToken = useAccessToken();
@@ -15,10 +16,14 @@ export const CategorySettingsTab = () => {
   const [editingCategory, setEditingCategory] = useState<FlatCategory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recentlyAddedId, setRecentlyAddedId] = useState<number | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(6); // Show 6 categories per page
+  
+  // Refs to access ParentCategoryCard methods
+  const categoryRefs = useRef<{ [key: number]: ParentCategoryCardRef | null }>({});
 
   useEffect(() => {
     if (accessToken) fetchCategories();
@@ -34,6 +39,106 @@ export const CategorySettingsTab = () => {
       setError(response.errors?.[0] || "Failed to load categories.");
     }
     setLoading(false);
+  };
+
+  // Function to handle successful category creation with optimistic updates
+  const handleCategorySuccess = (newOrUpdatedCategory?: FlatCategory) => {
+    if (newOrUpdatedCategory) {
+      if (editingCategory) {
+        // Update existing category
+        setCategories(prev => 
+          prev.map(cat => 
+            cat.categoryId === newOrUpdatedCategory.categoryId 
+              ? newOrUpdatedCategory 
+              : cat
+          )
+        );
+        setEditingCategory(null); // Clear editing state
+      } else {
+        // Check if this is a subcategory (has parentId)
+        if (newOrUpdatedCategory.parentId) {
+          // This is a subcategory - add it to the parent category's subcategories
+          const parentCategoryRef = categoryRefs.current[newOrUpdatedCategory.parentId];
+          if (parentCategoryRef?.addSubcategory) {
+            const subcategoryData = {
+              categoryId: newOrUpdatedCategory.categoryId,
+              name: newOrUpdatedCategory.name,
+              description: newOrUpdatedCategory.description,
+              iconName: newOrUpdatedCategory.iconName,
+              parentId: newOrUpdatedCategory.parentId,
+              subcategories: []
+            };
+            parentCategoryRef.addSubcategory(subcategoryData);
+            
+            // Set visual feedback for the parent category
+            setRecentlyAddedId(newOrUpdatedCategory.parentId);
+            setTimeout(() => setRecentlyAddedId(null), 3000);
+          }
+        } else {
+          // This is a parent category - add it to the main categories list
+          setCategories(prev => [...prev, newOrUpdatedCategory]);
+          
+          // Set the recently added ID for visual feedback
+          setRecentlyAddedId(newOrUpdatedCategory.categoryId);
+          setTimeout(() => setRecentlyAddedId(null), 3000); // Clear after 3 seconds
+          
+          // Calculate if we need to navigate to a new page to show the new category
+          const newTotalCategories = categories.length + 1;
+          const newTotalPages = Math.ceil(newTotalCategories / itemsPerPage);
+          
+          // If the new category would be on a page beyond current pagination, navigate to it
+          if (newTotalPages > totalPages) {
+            setCurrentPage(newTotalPages);
+          }
+        }
+      }
+    } else {
+      // Fallback: Refetch all categories
+      fetchCategories();
+    }
+  };
+
+  // Function to handle category creation/update errors
+  const handleCategoryError = (error: string) => {
+    toast.error(error);
+    // Optionally refetch data to ensure consistency
+    fetchCategories();
+  };
+
+  // Function to handle category deletion with optimistic updates
+  const handleCategoryDeleted = (deletedCategoryId: number) => {
+    // Show success toast
+    toast.success("Category deleted successfully!");
+    
+    // Optimistic update: Remove deleted category immediately
+    setCategories(prev => prev.filter(cat => cat.categoryId !== deletedCategoryId));
+    
+    // Calculate new pagination after deletion
+    const newTotalCategories = categories.length - 1;
+    const newTotalPages = Math.ceil(newTotalCategories / itemsPerPage);
+    
+    // If current page is now beyond available pages, go to last page
+    if (currentPage > newTotalPages && newTotalPages > 0) {
+      setCurrentPage(newTotalPages);
+    }
+    
+    // Clear editing state if we were editing the deleted category
+    if (editingCategory?.categoryId === deletedCategoryId) {
+      setEditingCategory(null);
+    }
+  };
+
+  // Function to handle subcategory addition
+  const handleSubcategoryAdded = (parentId: number, subcategory: any) => {
+    // This is handled automatically through the ref system
+    console.log(`Subcategory ${subcategory.name} added to parent ${parentId}`);
+  };
+
+  // Function to handle subcategory deletion
+  const handleSubcategoryDeleted = (parentId: number, subcategoryId: number) => {
+    // Show success toast
+    toast.success("Subcategory deleted successfully!");
+    console.log(`Subcategory ${subcategoryId} deleted from parent ${parentId}`);
   };
 
   // Pagination calculations
@@ -69,7 +174,8 @@ export const CategorySettingsTab = () => {
 
         <CategoryForm
           categories={categories}
-          onSuccess={fetchCategories}
+          onSuccess={handleCategorySuccess}
+          onError={handleCategoryError}
           editingCategory={editingCategory}
           onCancelEdit={() => setEditingCategory(null)}
         />
@@ -90,15 +196,30 @@ export const CategorySettingsTab = () => {
             {/* Categories Grid */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {currentCategories.map((category) => (
-                <ParentCategoryCard
+                <div
                   key={category.categoryId}
-                  name={category.name}
-                  description={category.description}
-                  iconName={category.iconName}
-                  categoryId={category.categoryId}
-                  onCategorySelect={(cat) => setEditingCategory(cat)}
-                  onDeleted={fetchCategories}
-                />
+                  className={`transition-all duration-500 ${
+                    recentlyAddedId === category.categoryId
+                      ? "animate-pulse border-2 border-green-400 shadow-lg shadow-green-200 dark:shadow-green-800"
+                      : ""
+                  }`}
+                >
+                  <ParentCategoryCard
+                    ref={(ref) => {
+                      if (ref) {
+                        categoryRefs.current[category.categoryId] = ref;
+                      }
+                    }}
+                    name={category.name}
+                    description={category.description}
+                    iconName={category.iconName}
+                    categoryId={category.categoryId}
+                    onCategorySelect={(cat) => setEditingCategory(cat)}
+                    onDeleted={() => handleCategoryDeleted(category.categoryId)}
+                    onSubcategoryAdded={handleSubcategoryAdded}
+                    onSubcategoryDeleted={handleSubcategoryDeleted}
+                  />
+                </div>
               ))}
             </div>
 
