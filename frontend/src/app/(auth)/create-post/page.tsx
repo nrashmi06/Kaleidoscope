@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccessToken } from "@/hooks/useAccessToken";
-import { PostCreateRequestDTO, LocationOption } from "@/lib/types/post";
+import { useAppSelector } from "@/hooks/useAppSelector";
+import { PostCreateRequestDTO, LocationOption, MediaUploadRequestDTO } from "@/lib/types/post";
+import { Post } from "@/services/post/fetchPosts";
 import { createPostController } from "@/controllers/postController/createPost";
 import { generateUploadSignatureController } from "@/controllers/postController/uploadSignature";
 import { uploadToCloudinary } from "@/services/cloudinary/upload";
@@ -27,6 +29,7 @@ import Image from "next/image";
 export default function CreatePostPage() {
   const router = useRouter();
   const accessToken = useAccessToken();
+  const { userId, username } = useAppSelector((state) => state.auth);
   
   // Form state
   const [formData, setFormData] = useState<PostCreateRequestDTO>({
@@ -82,8 +85,10 @@ export default function CreatePostPage() {
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
     setSelectedFiles(prev => [...prev, ...files]);
 
     // Create previews
@@ -94,6 +99,96 @@ export default function CreatePostPage() {
       };
       reader.readAsDataURL(file);
     });
+
+    // Immediately upload to Cloudinary
+    if (accessToken) {
+      await uploadFilesToCloudinary(files);
+    }
+  };
+
+  const uploadFilesToCloudinary = async (files: File[]) => {
+    try {
+      toast.loading("Uploading media...");
+
+      // Get upload signatures for all files
+      const fileNames = files.map(file => file.name);
+      console.log('Requesting upload signatures for files:', fileNames);
+      
+      const signatureResponse = await generateUploadSignatureController(accessToken, {
+        fileNames: fileNames,
+      });
+
+      if (!signatureResponse.success || !signatureResponse.data) {
+        throw new Error(`Failed to get upload signatures: ${signatureResponse.error || 'Unknown error'}`);
+      }
+
+      const signatures = signatureResponse.data.data.signatures;
+      
+      if (signatures.length !== files.length) {
+        throw new Error(`Mismatch: requested ${files.length} signatures but received ${signatures.length}`);
+      }
+
+      // Upload each file to Cloudinary
+      const newMediaDetails: MediaUploadRequestDTO[] = [];
+      const currentMediaCount = formData.mediaDetails?.length || 0;
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const signature = signatures[i];
+        
+        setUploadProgress(prev => ({ ...prev, [selectedFiles.length + i]: 0 }));
+
+        const { signature: signatureHash, timestamp, cloudName, apiKey, folder, publicId } = signature;
+
+        const uploadResponse = await uploadToCloudinary(
+          file,
+          cloudName,
+          signatureHash,
+          timestamp,
+          apiKey,
+          folder,
+          publicId
+        );
+
+        if (!uploadResponse.success || !uploadResponse.data) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        const cloudinaryResult = uploadResponse.data;
+
+        // Create media detail object
+        const mediaDetail = {
+          url: cloudinaryResult.secure_url,
+          mediaType: (cloudinaryResult.resource_type === "video" ? "VIDEO" : "IMAGE") as "IMAGE" | "VIDEO",
+          position: currentMediaCount + i, // Sequential position starting from existing media count
+          width: cloudinaryResult.width,
+          height: cloudinaryResult.height,
+          fileSizeKb: Math.round(cloudinaryResult.bytes / 1024),
+          durationSeconds: cloudinaryResult.duration || null,
+          extraMetadata: {
+            format: cloudinaryResult.format,
+            publicId: cloudinaryResult.public_id,
+          },
+        };
+
+        newMediaDetails.push(mediaDetail);
+        setUploadProgress(prev => ({ ...prev, [selectedFiles.length + i]: 100 }));
+      }
+
+      // Add to form data
+      setFormData(prev => ({
+        ...prev,
+        mediaDetails: [...(prev.mediaDetails || []), ...newMediaDetails]
+      }));
+
+      toast.dismiss();
+      toast.success(`${files.length} file(s) uploaded successfully!`);
+      
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast.dismiss();
+      toast.error(error instanceof Error ? error.message : "Failed to upload files");
+    }
   };
 
   const removeMedia = (index: number) => {
@@ -128,110 +223,122 @@ export default function CreatePostPage() {
       return;
     }
 
+    if (!formData.summary.trim()) {
+      toast.error("Summary is required");
+      return;
+    }
+
     if (formData.categoryIds.length === 0) {
       toast.error("Please select at least one category");
       return;
     }
 
     setLoading(true);
-    setUploading(true);
 
     try {
-      let uploadedMediaDetails = [];
-
-      // Upload files to Cloudinary if any are selected
-      if (selectedFiles.length > 0) {
-        toast.loading("Uploading media...");
-        
-        // Get upload signatures for all files at once
-        const fileNames = selectedFiles.map(file => file.name);
-        console.log('Requesting upload signatures for files:', fileNames);
-        
-        const signatureResponse = await generateUploadSignatureController(accessToken, {
-          fileNames: fileNames,
-        });
-
-        console.log('Signature response:', signatureResponse);
-
-        if (!signatureResponse.success || !signatureResponse.data) {
-          throw new Error(`Failed to get upload signatures: ${signatureResponse.error || 'Unknown error'}`);
-        }
-
-        // Upload each file to Cloudinary
-        for (let i = 0; i < selectedFiles.length; i++) {
-          const file = selectedFiles[i];
-          const fileName = file.name;
-          setUploadProgress(prev => ({ ...prev, [i]: 0 }));
-
-          // Get signature data for this specific file
-          const fileSignatureData = signatureResponse.data[fileName];
-          if (!fileSignatureData) {
-            throw new Error(`No signature data found for ${fileName}`);
-          }
-
-          const { signature, timestamp, cloudName, apiKey, folder, publicId, uploadUrl } = fileSignatureData;
-
-          // Upload to Cloudinary
-          const uploadResponse = await uploadToCloudinary(
-            file,
-            uploadUrl,
-            signature,
-            timestamp,
-            apiKey,
-            folder,
-            publicId
-          );
-
-          if (!uploadResponse.success || !uploadResponse.data) {
-            throw new Error(`Failed to upload ${file.name}`);
-          }
-
-          const cloudinaryResult = uploadResponse.data;
-
-          // Create media detail object according to API spec
-          uploadedMediaDetails.push({
-            url: cloudinaryResult.secure_url,
-            mediaType: (cloudinaryResult.resource_type === "video" ? "VIDEO" : "IMAGE") as "IMAGE" | "VIDEO",
-            position: i,
-            width: cloudinaryResult.width,
-            height: cloudinaryResult.height,
-            fileSizeKb: Math.round(cloudinaryResult.bytes / 1024),
-            durationSeconds: cloudinaryResult.duration || null,
-            extraMetadata: {
-              format: cloudinaryResult.format,
-              publicId: cloudinaryResult.public_id,
-            },
-          });
-
-          setUploadProgress(prev => ({ ...prev, [i]: 100 }));
-        }
-        
-        toast.dismiss();
-        toast.success("Media uploaded successfully!");
-      }
-
-      // Create the post with uploaded media details
+      // Create the post with pre-uploaded media details (if any)
       const postData = {
-        ...formData,
-        mediaDetails: uploadedMediaDetails,
+        title: formData.title.trim(),
+        body: formData.body.trim(),
+        summary: formData.summary.trim(),
+        visibility: formData.visibility,
+        locationId: formData.locationId,
+        categoryIds: formData.categoryIds,
+        mediaDetails: formData.mediaDetails || [],
+        taggedUserIds: formData.taggedUserIds && formData.taggedUserIds.length > 0 ? formData.taggedUserIds : undefined,
       };
-
-      const response = await createPostController(postData, accessToken);
-
-      if (response.success) {
-        toast.success("Post created successfully!");
-        router.push("/feed");
-      } else {
-        toast.error(response.errors?.[0] || "Failed to create post");
+      
+      console.log('Creating post with data:', JSON.stringify(postData, null, 2));
+      console.log('formData.mediaDetails:', formData.mediaDetails);
+      console.log('mediaDetails length:', formData.mediaDetails?.length || 0);
+      if (formData.mediaDetails && formData.mediaDetails.length > 0) {
+        console.log('First media detail:', formData.mediaDetails[0]);
+        formData.mediaDetails.forEach((media, index) => {
+          console.log(`Media ${index}: position=${media.position}, url=${media.url}`);
+        });
       }
+      console.log('Post data keys:', Object.keys(postData));
+      console.log('Post data values:', Object.values(postData));
+      
+      const createResponse = await createPostController(postData, accessToken);
+      
+      if (!createResponse.success) {
+        console.log('❌ Post creation failed:', createResponse);
+        toast.error(createResponse.errors?.[0] || "Failed to create post");
+        return;
+      }
+      
+      console.log('✅ Post created successfully:', createResponse.data);
+      toast.success("Post created successfully!");
+      
+      // Create optimistic post for immediate feed update
+      if (typeof window !== 'undefined') {
+        const optimisticPost: Post = {
+          postId: createResponse.data?.postId || Date.now(), // Use returned ID or fallback
+          title: formData.title.trim(),
+          body: formData.body.trim(),
+          summary: formData.summary.trim(),
+          visibility: formData.visibility,
+          createdAt: new Date().toISOString(),
+          author: {
+            userId: typeof userId === 'string' ? parseInt(userId) : (userId || 0),
+            username: username || "Unknown",
+            profilePictureUrl: undefined,
+          },
+          location: selectedLocation && selectedLocation.locationId ? {
+            locationId: selectedLocation.locationId,
+            name: selectedLocation.name,
+            city: selectedLocation.address || "",
+            country: selectedLocation.address || "",
+          } : undefined,
+          categories: categories
+            .filter(cat => formData.categoryIds.includes(cat.categoryId))
+            .map(cat => ({
+              categoryId: cat.categoryId,
+              name: cat.name,
+            })),
+          mediaDetails: formData.mediaDetails || [],
+          thumbnailUrl: formData.mediaDetails?.[0]?.url,
+          taggedUsers: users
+            .filter(user => formData.taggedUserIds?.includes(user.userId))
+            .map(user => ({
+              userId: user.userId,
+              username: user.username,
+            })),
+          likeCount: 0,
+          commentCount: 0,
+          reactionCount: 0,
+          shareCount: 0,
+          isLikedByCurrentUser: false,
+        };
+
+        // Trigger callback from feed page to add post optimistically
+        const feedUpdateEvent = new CustomEvent('newPostCreated', { 
+          detail: optimisticPost 
+        });
+        window.dispatchEvent(feedUpdateEvent);
+      }
+      
+      // Reset form
+      setFormData({
+        title: "",
+        body: "",
+        summary: "",
+        visibility: "PUBLIC",
+        locationId: null,
+        categoryIds: [],
+        mediaDetails: [],
+        taggedUserIds: [],
+      });
+      setSelectedFiles([]);
+      setMediaPreview([]);
+      
+      router.push("/feed");
     } catch (error) {
       console.error("Error creating post:", error);
-      toast.dismiss();
       toast.error(error instanceof Error ? error.message : "Failed to create post");
     } finally {
       setLoading(false);
-      setUploading(false);
-      setUploadProgress({});
     }
   };
 
