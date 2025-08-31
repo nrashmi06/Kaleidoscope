@@ -50,8 +50,9 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     @Async
     @Override
     public CompletableFuture<String> uploadImage(MultipartFile image, String folderPath) {
-        log.info("Starting image upload to folder: {}", folderPath);
+        log.info("[uploadImage] Starting image upload to folder: {}", folderPath);
         if (image == null || image.isEmpty()) {
+            log.error("[uploadImage] Image file is null or empty");
             throw new ImageStorageException("Image file must not be null or empty");
         }
         try {
@@ -62,78 +63,83 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                     "quality", "auto",
                     "fetch_format", "auto"
             ));
+            log.debug("[uploadImage] Cloudinary upload result: {}", uploadResult);
             String imageUrl = uploadResult.get("secure_url").toString();
-            log.info("Image upload completed: {}", imageUrl);
+            log.info("[uploadImage] Image upload completed: {}", imageUrl);
             return CompletableFuture.completedFuture(imageUrl);
         } catch (IOException e) {
-            log.error("Failed to upload image to Cloudinary", e);
+            log.error("[uploadImage] Failed to upload image to Cloudinary", e);
             throw new ImageStorageException("Failed to upload image to Cloudinary", e);
         }
     }
 
     @Override
     public CompletableFuture<String> uploadUserProfileImage(MultipartFile image, String userId) {
+        log.info("[uploadUserProfileImage] Uploading profile image for userId: {}", userId);
         return uploadImage(image, "users/profiles/" + userId);
     }
 
     @Override
     public CompletableFuture<String> uploadUserCoverPhoto(MultipartFile image, String userId) {
+        log.info("[uploadUserCoverPhoto] Uploading cover photo for userId: {}", userId);
         return uploadImage(image, "users/covers/" + userId);
     }
 
     @Override
     public CompletableFuture<String> uploadCategoryImage(MultipartFile image, String categoryId) {
+        log.info("[uploadCategoryImage] Uploading category image for categoryId: {}", categoryId);
         return uploadImage(image, "categories/" + categoryId);
     }
 
     @Async
     @Override
     public CompletableFuture<Void> deleteImage(String imageUrl) {
-        log.info("Starting image deletion for URL: {}", imageUrl);
+        log.info("[deleteImage] Starting image deletion for URL: {}", imageUrl);
         if (imageUrl == null || imageUrl.isEmpty()) {
+            log.error("[deleteImage] Image URL is null or empty");
             throw new ImageStorageException("Image URL must not be null or empty");
         }
-
         try {
             String publicId = extractPublicIdFromUrl(imageUrl);
+            log.debug("[deleteImage] Extracted publicId: {} from imageUrl: {}", publicId, imageUrl);
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            log.info("Image deletion completed for URL: {}", imageUrl);
+            log.info("[deleteImage] Image deletion completed for URL: {}", imageUrl);
             return CompletableFuture.completedFuture(null);
         } catch (IOException e) {
-            log.error("Failed to delete image from Cloudinary", e);
+            log.error("[deleteImage] Failed to delete image from Cloudinary", e);
             throw new ImageStorageException("Failed to delete image from Cloudinary", e);
         }
     }
 
     @Override
     public String extractPublicIdFromUrl(String imageUrl) {
+        log.info("[extractPublicIdFromUrl] Extracting publicId from imageUrl: {}", imageUrl);
         String[] urlParts = imageUrl.split("/");
-        StringBuilder publicId = new StringBuilder();
-        boolean foundVersion = false;
         for (int i = 0; i < urlParts.length; i++) {
-            if (urlParts[i].startsWith("v") && urlParts[i].length() > 1 && Character.isDigit(urlParts[i].charAt(1))) {
-                foundVersion = true;
-                continue;
-            }
-            if (foundVersion) {
-                if (i == urlParts.length - 1) {
-                    String fileWithExt = urlParts[i];
-                    publicId.append(fileWithExt.substring(0, fileWithExt.lastIndexOf('.')));
-                } else {
-                    publicId.append(urlParts[i]).append("/");
+            if (urlParts[i].equals("blogs") || urlParts[i].equals("posts")) {
+                if (i + 1 < urlParts.length) {
+                    String fileWithExt = urlParts[i + 1];
+                    String fileName = fileWithExt.contains(".") ? fileWithExt.substring(0, fileWithExt.lastIndexOf('.')) : fileWithExt;
+                    String publicId = urlParts[i] + "/" + fileName;
+                    log.debug("[extractPublicIdFromUrl] Extracted publicId: {}", publicId);
+                    return publicId;
                 }
             }
         }
-        return publicId.toString();
+        log.error("[extractPublicIdFromUrl] Could not extract publicId from URL: {}", imageUrl);
+        throw new IllegalArgumentException("Could not extract publicId from URL: " + imageUrl);
     }
 
     @Override
-    @Transactional // Add transactional to ensure the tracker is saved reliably
+    @Transactional
     public UploadSignatureResponseDTO generateUploadSignatures(GenerateUploadSignatureRequestDTO request) {
+        log.info("[generateUploadSignatures] Generating upload signatures for files: {}", request.getFileNames());
         try {
             Long userId = jwtUtils.getUserIdFromContext();
+            log.debug("[generateUploadSignatures] Retrieved userId from context: {}", userId);
             User currentUser = userRepository.findByUserId(userId);
             if(currentUser == null) {
+                log.error("[generateUploadSignatures] Authenticated user not found for ID: {}", userId);
                 throw new IllegalStateException("Authenticated user not found for ID: " + userId);
             }
 
@@ -146,6 +152,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                 folder = "kaleidoscope/posts";
                 publicIdPrefix = "posts/";
             } else {
+                log.error("[generateUploadSignatures] Invalid contentType: {}", request.getContentType());
                 throw new SignatureGenerationException("Invalid contentType: " + request.getContentType());
             }
 
@@ -170,6 +177,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                         .status(MediaAssetStatus.PENDING)
                         .build();
                 mediaAssetTrackerRepository.save(tracker);
+                log.debug("[generateUploadSignatures] Saved MediaAssetTracker for publicId: {}", publicId);
 
                 SignatureDataDTO signatureData = new SignatureDataDTO(
                         signature,
@@ -180,46 +188,55 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                         cloudinary.config.cloudName
                 );
                 signatures.add(signatureData);
+                log.debug("[generateUploadSignatures] Generated signature for file: {} publicId: {}", fileName, publicId);
             }
+            log.info("[generateUploadSignatures] Successfully generated {} signatures", signatures.size());
             return new UploadSignatureResponseDTO(signatures);
         } catch (Exception e) {
-            log.error("Unexpected error generating upload signatures for files: {}", request.getFileNames(), e);
+            log.error("[generateUploadSignatures] Unexpected error generating upload signatures for files: {}", request.getFileNames(), e);
             throw new SignatureGenerationException("Failed to generate upload signatures", e);
         }
     }
 
-
     @Async
     @Override
     public CompletableFuture<Void> deleteImageByPublicId(String publicId) {
-        log.info("Starting image deletion for public_id: {}", publicId);
+        log.info("[deleteImageByPublicId] Starting image deletion for public_id: {}", publicId);
         if (publicId == null || publicId.isEmpty()) {
+            log.error("[deleteImageByPublicId] Public ID is null or empty");
             throw new ImageStorageException("Public ID must not be null or empty");
         }
         try {
-            // The 'destroy' method uses the public_id, so this is very direct.
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            log.info("Image deletion completed for public_id: {}", publicId);
+            log.info("[deleteImageByPublicId] Image deletion completed for public_id: {}", publicId);
             return CompletableFuture.completedFuture(null);
         } catch (IOException e) {
-            log.error("Failed to delete image from Cloudinary for public_id {}: {}", publicId, e.getMessage());
+            log.error("[deleteImageByPublicId] Failed to delete image from Cloudinary for public_id {}: {}", publicId, e.getMessage());
             throw new ImageStorageException("Failed to delete image from Cloudinary", e);
         }
     }
 
     @Override
     public boolean validatePostImageUrl(String imageUrl) {
+        log.info("[validatePostImageUrl] Validating post image URL: {}", imageUrl);
         if (imageUrl == null || imageUrl.isEmpty()) {
+            log.warn("[validatePostImageUrl] Image URL is null or empty");
             return false;
         }
-        return imageUrl.contains("kaleidoscope/posts");
+        boolean valid = imageUrl.contains("kaleidoscope/posts");
+        log.debug("[validatePostImageUrl] Validation result: {}", valid);
+        return valid;
     }
 
     @Override
     public boolean validateBlogImageUrl(String imageUrl) {
+        log.info("[validateBlogImageUrl] Validating blog image URL: {}", imageUrl);
         if (imageUrl == null || imageUrl.isEmpty()) {
+            log.warn("[validateBlogImageUrl] Image URL is null or empty");
             return false;
         }
-        return imageUrl.contains("kaleidoscope/blogs");
+        boolean valid = imageUrl.contains("kaleidoscope/blogs");
+        log.debug("[validateBlogImageUrl] Validation result: {}", valid);
+        return valid;
     }
 }
