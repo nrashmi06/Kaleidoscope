@@ -116,13 +116,12 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         log.info("[extractPublicIdFromUrl] Extracting publicId from imageUrl: {}", imageUrl);
         String[] urlParts = imageUrl.split("/");
         for (int i = 0; i < urlParts.length; i++) {
-            if (urlParts[i].equals("blogs") || urlParts[i].equals("posts")) {
+            if (urlParts[i].equals("posts") || urlParts[i].equals("blogs")) {
                 if (i + 1 < urlParts.length) {
                     String fileWithExt = urlParts[i + 1];
                     String fileName = fileWithExt.contains(".") ? fileWithExt.substring(0, fileWithExt.lastIndexOf('.')) : fileWithExt;
-                    String publicId = urlParts[i] + "/" + fileName;
-                    log.debug("[extractPublicIdFromUrl] Extracted publicId: {}", publicId);
-                    return publicId;
+                    log.debug("[extractPublicIdFromUrl] Extracted publicId: {}", fileName);
+                    return fileName;
                 }
             }
         }
@@ -144,13 +143,11 @@ public class ImageStorageServiceImpl implements ImageStorageService {
             }
 
             String folder;
-            String publicIdPrefix;
+            String publicIdPrefix = "";
             if (ContentType.BLOG.name().equalsIgnoreCase(request.getContentType())) {
                 folder = "kaleidoscope/blogs";
-                publicIdPrefix = "blogs/";
             } else if (ContentType.POST.name().equalsIgnoreCase(request.getContentType())) {
                 folder = "kaleidoscope/posts";
-                publicIdPrefix = "posts/";
             } else {
                 log.error("[generateUploadSignatures] Invalid contentType: {}", request.getContentType());
                 throw new SignatureGenerationException("Invalid contentType: " + request.getContentType());
