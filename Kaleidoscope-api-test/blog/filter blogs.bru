@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: http://localhost:8080/kaleidoscope/api/blogs?userId=1&categoryId=2&status=PUBLISHED&visibility=PUBLIC&q=first&page=0&size=10&sort=createdAt,desc
+  url: {{base_url}}/api/blogs/filter?userId=1&categoryId=2&status=PUBLISHED&visibility=PUBLIC&q=first&page=0&size=10&sort=createdAt,desc
   body: none
   auth: inherit
 }

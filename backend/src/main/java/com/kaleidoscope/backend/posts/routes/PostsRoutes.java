@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PostsRoutes {
-    private static final String API_VERSION = "/api"; // Using v1 for clarity
+    private static final String API_VERSION = "/api";
 
     // Base route for posts
     public static final String POSTS = API_VERSION + "/posts";
