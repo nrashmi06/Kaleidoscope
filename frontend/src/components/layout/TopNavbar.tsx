@@ -55,6 +55,15 @@ export default function TopNavbar({
 
       {/* Right: Actions */}
       <div className="flex items-center space-x-4 relative" ref={menuRef}>
+        {/* Create Post Button */}
+        <button
+          onClick={() => router.push("/create-post")}
+          aria-label="Create Post"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          Create Post
+        </button>
+
         {/* Notification Bell */}
         <div className="relative">
   <button
