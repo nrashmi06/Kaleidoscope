@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "reactions", indexes = {
         @Index(name = "idx_reaction_content", columnList = "content_type, content_id"),
-        @Index(name = "idx_reaction_user_id", columnList = "user_id"),
         @Index(name = "idx_reaction_user_content", columnList = "user_id, content_type, content_id", unique = true)
 })
 @EntityListeners(AuditingEntityListener.class)

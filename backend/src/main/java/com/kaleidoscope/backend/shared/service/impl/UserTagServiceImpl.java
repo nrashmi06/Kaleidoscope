@@ -2,8 +2,8 @@ package com.kaleidoscope.backend.shared.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.enums.ContentType;
-import com.kaleidoscope.backend.shared.exception.TagNotFoundException;
-import com.kaleidoscope.backend.shared.exception.UserTaggingException;
+import com.kaleidoscope.backend.shared.exception.userTags.TagNotFoundException;
+import com.kaleidoscope.backend.shared.exception.userTags.UserTaggingException;
 import com.kaleidoscope.backend.shared.model.UserTag;
 import com.kaleidoscope.backend.shared.repository.UserTagRepository;
 import com.kaleidoscope.backend.users.repository.specifications.UserSpecifications;

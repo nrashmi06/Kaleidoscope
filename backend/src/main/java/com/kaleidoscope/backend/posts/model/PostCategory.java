@@ -10,10 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "post_categories", indexes = {
-        @Index(name = "idx_post_category_post_id", columnList = "post_id"),
-        @Index(name = "idx_post_category_category_id", columnList = "category_id"),
         @Index(name = "idx_post_category_is_primary", columnList = "is_primary"),
-        @Index(name = "idx_post_category_created_at", columnList = "created_at"),
         @Index(name = "idx_post_category_post_category", columnList = "post_id, category_id", unique = true)
 })
 @EntityListeners(AuditingEntityListener.class)

@@ -42,7 +42,7 @@ public class Blog {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewer_id")
+    @JoinColumn(name = "reviewer_id", nullable = true)
     private User reviewer;
 
     @Column(length = 200)

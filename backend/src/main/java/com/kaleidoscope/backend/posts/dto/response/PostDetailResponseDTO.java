@@ -6,6 +6,7 @@ import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import lombok.Builder;
 import lombok.Data;
 
@@ -26,7 +27,7 @@ public class PostDetailResponseDTO {
     private LocalDateTime updatedAt;
 
     // Relational Details
-    private UserSummaryResponseDTO author;
+    private UserDetailsSummaryResponseDTO author;
     private List<CategorySummaryResponseDTO> categories;
     private List<PostMediaResponseDTO> media;
     private LocationResponseDTO location;
