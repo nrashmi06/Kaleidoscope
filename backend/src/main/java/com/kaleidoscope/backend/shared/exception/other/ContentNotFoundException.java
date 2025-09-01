@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.shared.exception;
+package com.kaleidoscope.backend.shared.exception.other;
 
 public class ContentNotFoundException extends RuntimeException {
     private final Long contentId;

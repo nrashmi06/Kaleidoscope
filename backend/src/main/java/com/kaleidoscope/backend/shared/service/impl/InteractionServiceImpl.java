@@ -13,7 +13,7 @@ import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.exception.Comments.CommentNotFoundException;
 import com.kaleidoscope.backend.shared.exception.Comments.CommentPostMismatchException;
 import com.kaleidoscope.backend.shared.exception.Comments.CommentUnauthorizedException;
-import com.kaleidoscope.backend.shared.exception.ContentNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.ContentNotFoundException;
 import com.kaleidoscope.backend.shared.mapper.InteractionMapper;
 import com.kaleidoscope.backend.shared.mapper.UserTagMapper;
 import com.kaleidoscope.backend.shared.model.Comment;

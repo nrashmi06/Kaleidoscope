@@ -60,4 +60,32 @@ public class PostExceptionHandler {
         ApiResponse<Object> response = ApiResponse.error("Illegal state for post action", ex.getMessage(), path);
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
+
+    @ExceptionHandler(com.kaleidoscope.backend.shared.exception.Comments.CommentNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentNotFound(com.kaleidoscope.backend.shared.exception.Comments.CommentNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Comment not found", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(com.kaleidoscope.backend.shared.exception.Comments.CommentPostMismatchException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentPostMismatch(com.kaleidoscope.backend.shared.exception.Comments.CommentPostMismatchException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Comment does not belong to specified post", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(com.kaleidoscope.backend.shared.exception.Comments.CommentUnauthorizedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCommentUnauthorized(com.kaleidoscope.backend.shared.exception.Comments.CommentUnauthorizedException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Not authorized to delete comment", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(com.kaleidoscope.backend.shared.exception.other.ContentNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleContentNotFoundException(com.kaleidoscope.backend.shared.exception.other.ContentNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error("Content not found", ex.getMessage(), path);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
 }
