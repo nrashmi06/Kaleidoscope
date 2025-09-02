@@ -13,12 +13,9 @@ import java.util.Set;
 
 @Entity
 @Table(name = "locations", indexes = {
-        @Index(name = "idx_location_name", columnList = "name"),
-        @Index(name = "idx_location_city", columnList = "city"),
-        @Index(name = "idx_location_state", columnList = "state"),
-        @Index(name = "idx_location_country", columnList = "country"),
         @Index(name = "idx_location_place_id", columnList = "place_id", unique = true),
-        @Index(name = "idx_location_coordinates", columnList = "latitude, longitude")
+        @Index(name = "idx_location_coordinates", columnList = "latitude, longitude"),
+        @Index(name = "idx_location_name", columnList = "name")
 })
 @EntityListeners(AuditingEntityListener.class)
 @Getter

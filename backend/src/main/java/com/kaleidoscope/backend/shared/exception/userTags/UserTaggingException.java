@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.shared.exception;
+package com.kaleidoscope.backend.shared.exception.userTags;
 
 public class UserTaggingException extends RuntimeException {
     public UserTaggingException(String message) {

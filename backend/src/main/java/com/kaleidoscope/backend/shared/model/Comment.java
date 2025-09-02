@@ -15,9 +15,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "comments", indexes = {
-        @Index(name = "idx_comment_post_id", columnList = "post_id"),
         @Index(name = "idx_comment_user_id", columnList = "user_id"),
-        @Index(name = "idx_comment_status", columnList = "status"),
+        @Index(name = "idx_comment_content", columnList = "content_type, content_id"),
         @Index(name = "idx_comment_created_at", columnList = "created_at")
 })
 @EntityListeners(AuditingEntityListener.class)

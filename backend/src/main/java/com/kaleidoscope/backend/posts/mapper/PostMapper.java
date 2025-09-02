@@ -21,6 +21,7 @@ import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -59,9 +60,12 @@ public class PostMapper {
         }
 
         User user = post.getUser();
-        UserSummaryResponseDTO authorDto = user != null ? UserSummaryResponseDTO.builder()
+        UserDetailsSummaryResponseDTO authorDto = user != null ? UserDetailsSummaryResponseDTO.builder()
                 .userId(user.getUserId())
+                .email(user.getEmail())
                 .username(user.getUsername())
+                .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build() : null;
 
         Location location = post.getLocation();
@@ -143,9 +147,12 @@ public class PostMapper {
         }
 
         User user = post.getUser();
-        UserSummaryResponseDTO authorDto = user != null ? UserSummaryResponseDTO.builder()
+        UserDetailsSummaryResponseDTO authorDto = user != null ? UserDetailsSummaryResponseDTO.builder()
                 .userId(user.getUserId())
+                .email(user.getEmail())
                 .username(user.getUsername())
+                .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build() : null;
 
         Location location = post.getLocation();
@@ -217,9 +224,12 @@ public class PostMapper {
         }
 
         User user = post.getUser();
-        UserSummaryResponseDTO authorDto = user != null ? UserSummaryResponseDTO.builder()
+        UserDetailsSummaryResponseDTO authorDto = user != null ? UserDetailsSummaryResponseDTO.builder()
                 .userId(user.getUserId())
+                .email(user.getEmail())
                 .username(user.getUsername())
+                .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build() : null;
 
         // Find thumbnail URL from media with lowest position
