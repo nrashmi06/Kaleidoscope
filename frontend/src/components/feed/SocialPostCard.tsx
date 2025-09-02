@@ -1,14 +1,74 @@
 "use client";
 
+import { useState } from "react";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal } from "lucide-react";
 import { Post } from "@/services/post/fetchPosts";
 import { formatDistanceToNow } from "date-fns";
+import { useAccessToken } from "@/hooks/useAccessToken";
+import { likePostController, unlikePostController } from "@/controllers/postController/reactions";
+import { toast } from "react-hot-toast";
 
 interface SocialPostCardProps {
   post: Post;
+  onPostUpdate?: (updatedPost: Post) => void;
 }
 
-export function SocialPostCard({ post }: SocialPostCardProps) {
+export function SocialPostCard({ post, onPostUpdate }: SocialPostCardProps) {
+  const accessToken = useAccessToken();
+  const [isLiking, setIsLiking] = useState(false);
+  const [localLikeState, setLocalLikeState] = useState({
+    isLiked: post.isLikedByCurrentUser || false,
+    likeCount: post.likeCount || 0,
+  });
+
+  const handleLikeToggle = async () => {
+    if (!accessToken || isLiking) return;
+
+    setIsLiking(true);
+    
+    // Optimistic update
+    const wasLiked = localLikeState.isLiked;
+    const newLikeCount = wasLiked ? localLikeState.likeCount - 1 : localLikeState.likeCount + 1;
+    
+    setLocalLikeState({
+      isLiked: !wasLiked,
+      likeCount: newLikeCount,
+    });
+
+    try {
+      const result = wasLiked 
+        ? await unlikePostController(post.postId, accessToken)
+        : await likePostController(post.postId, accessToken);
+
+      if (!result.success) {
+        // Revert optimistic update on failure
+        setLocalLikeState({
+          isLiked: wasLiked,
+          likeCount: localLikeState.likeCount,
+        });
+        toast.error(result.error || "Failed to update like");
+      } else {
+        // Update parent component if callback provided
+        if (onPostUpdate) {
+          const updatedPost: Post = {
+            ...post,
+            isLikedByCurrentUser: !wasLiked,
+            likeCount: newLikeCount,
+          };
+          onPostUpdate(updatedPost);
+        }
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      setLocalLikeState({
+        isLiked: wasLiked,
+        likeCount: localLikeState.likeCount,
+      });
+      toast.error("An error occurred while updating like");
+    } finally {
+      setIsLiking(false);
+    }
+  };
   return (
     <div className="w-full max-w-full mx-auto bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-800">
       {/* Header */}
@@ -56,9 +116,19 @@ export function SocialPostCard({ post }: SocialPostCardProps) {
         {/* Actions */}
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center space-x-6">
-            <button className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-red-500">
-              <Heart className="w-4 h-4 mr-2" />
-              {post.likeCount || 0} Likes
+            <button 
+              onClick={handleLikeToggle}
+              disabled={isLiking}
+              className={`flex items-center text-sm transition-colors ${
+                localLikeState.isLiked 
+                  ? "text-red-500" 
+                  : "text-gray-600 dark:text-gray-300 hover:text-red-500"
+              } ${isLiking ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <Heart 
+                className={`w-4 h-4 mr-2 ${localLikeState.isLiked ? "fill-current" : ""}`} 
+              />
+              {localLikeState.likeCount} Likes
             </button>
             <button className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-blue-500">
               <MessageCircle className="w-4 h-4 mr-2" />

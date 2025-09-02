@@ -83,6 +83,14 @@ export default function FeedPage() {
     setPosts(prevPosts => [newPost, ...prevPosts]);
   };
 
+  const handlePostUpdate = (updatedPost: Post) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.postId === updatedPost.postId ? updatedPost : post
+      )
+    );
+  };
+
   return (
     <div className="min-h-screen w-full">
       <div className="max-w-full mx-auto flex flex-col lg:flex-row gap-3">
@@ -98,7 +106,11 @@ export default function FeedPage() {
             </div>
           ) : posts.length > 0 ? (
             posts.map((post) => (
-              <SocialPostCard key={post.postId} post={post} />
+              <SocialPostCard 
+                key={post.postId} 
+                post={post} 
+                onPostUpdate={handlePostUpdate}
+              />
             ))
           ) : (
             <div className="flex justify-center items-center py-8">
