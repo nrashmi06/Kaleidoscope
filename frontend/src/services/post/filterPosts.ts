@@ -44,6 +44,7 @@ export const filterPostsService = async (
     
     console.log('🔍 Filtering posts with URL:', url);
     console.log('🔍 Filter options:', filterOptions);
+    console.log('🔍 Search query (q parameter):', filterOptions?.q);
     
     const response = await fetch(url, {
       method: "GET",

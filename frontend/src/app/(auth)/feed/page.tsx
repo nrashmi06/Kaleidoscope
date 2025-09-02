@@ -54,39 +54,19 @@ export default function FeedPage() {
       try {
         console.log('🔄 Fetching posts from backend with accessToken:', accessToken ? 'Available' : 'Missing');
         
-        // Try fetchPostsController first as it was working before
-        console.log('🔄 Trying fetchPostsController first...');
-        const fetchResult = await fetchPostsController(accessToken, {
-          page: 0,
-          size: 50,
-          sortBy: "createdAt",
-          sortDirection: "DESC"
-        });
-        
-        console.log('📊 Fetch posts result:', fetchResult);
-        
-        if (fetchResult.success && fetchResult.data) {
-          console.log('✅ Posts fetched with fetchPostsController:', fetchResult.data.data.content.length, 'posts');
-          setPosts(fetchResult.data.data.content);
-          setHasMorePosts(!fetchResult.data.data.last);
-          setCurrentPage(0);
-          return; // Exit early if successful
-        }
-        
-        // If fetchPostsController fails, try filterPostsController
-        console.log('🔄 Trying filterPostsController as fallback...');
+        // Since there's only one posts endpoint that supports filtering, use filterPostsController for everything
+        console.log('🔄 Loading posts with filterPostsController...');
         const result = await filterPostsController(accessToken, {
           page: 0,
-          size: 50, // Fetch 50 posts at a time for better performance
+          size: 50,
           sort: "createdAt,desc",
-          visibility: "PUBLIC",
-          status: "PUBLISHED"
+          // Don't add visibility and status filters for initial load to get all posts
         });
         
         console.log('📊 Filter posts result:', result);
         
         if (result.success && result.data) {
-          console.log('✅ Posts fetched with filterPostsController:', result.data.data.content.length, 'posts');
+          console.log('✅ Posts loaded:', result.data.data.content.length, 'posts');
           let fetchedPosts = result.data.data.content;
           
           // Set pagination info
@@ -118,7 +98,7 @@ export default function FeedPage() {
           
           setPosts(fetchedPosts);
         } else {
-          console.error("❌ Both fetchPostsController and filterPostsController failed");
+          console.error("❌ Failed to load posts:", result.error);
         }
       } catch (error) {
         console.error("Error fetching posts:", error);
@@ -136,11 +116,11 @@ export default function FeedPage() {
     setIsRefreshing(true);
     try {
       console.log('🔄 Manually refreshing posts...');
-      const result = await fetchPostsController(accessToken, {
+      const result = await filterPostsController(accessToken, {
         page: 0,
         size: 50, // Reset to first 50 posts
-        sortBy: "createdAt",
-        sortDirection: "DESC"
+        sort: "createdAt,desc",
+        q: searchQuery || undefined // Include search query if active
       });
       
       if (result.success && result.data) {
@@ -164,14 +144,26 @@ export default function FeedPage() {
     try {
       console.log('🔄 Loading more posts...');
       const nextPage = currentPage + 1;
-      const result = await filterPostsController(accessToken, {
-        page: nextPage,
-        size: 50,
-        sort: "createdAt,desc",
-        visibility: "PUBLIC",
-        status: "PUBLISHED",
-        q: searchQuery || undefined
-      });
+      
+      let result;
+      if (searchQuery && searchQuery.trim() !== '') {
+        // If we're in search mode, use filterPostsController
+        console.log('🔍 Loading more search results for:', searchQuery);
+        result = await filterPostsController(accessToken, {
+          page: nextPage,
+          size: 50,
+          sort: "createdAt,desc",
+          q: searchQuery
+        });
+      } else {
+        // Otherwise load more regular posts
+        console.log('📄 Loading more regular posts');
+        result = await filterPostsController(accessToken, {
+          page: nextPage,
+          size: 50,
+          sort: "createdAt,desc"
+        });
+      }
       
       if (result.success && result.data) {
         console.log('✅ More posts loaded:', result.data.data.content.length, 'posts');
@@ -192,13 +184,15 @@ export default function FeedPage() {
     setIsRefreshing(true);
     try {
       console.log('🔄 Loading ALL posts...');
+      
+      // Clear search query when loading all posts
+      setSearchQuery("");
+      
       const result = await filterPostsController(accessToken, {
         page: 0,
         size: 1000, // Load a very large number to get all posts
-        sort: "createdAt,desc",
-        visibility: "PUBLIC",
-        status: "PUBLISHED",
-        q: searchQuery || undefined
+        sort: "createdAt,desc"
+        // No search query = all posts
       });
       
       if (result.success && result.data) {
@@ -229,25 +223,45 @@ export default function FeedPage() {
 
     try {
       console.log('🔍 Searching posts with query:', query);
+      
+      if (!query || query.trim() === '') {
+        // If empty query, load all posts normally
+        console.log('🔄 Empty search query, loading all posts...');
+        const result = await filterPostsController(accessToken, {
+          page: 0,
+          size: 50,
+          sort: "createdAt,desc"
+        });
+        
+        if (result.success && result.data) {
+          console.log('✅ All posts loaded for empty search:', result.data.data.content.length, 'posts');
+          setPosts(result.data.data.content);
+          setCurrentPage(0);
+          setHasMorePosts(!result.data.data.last);
+        }
+        return;
+      }
+      
+      // For actual search queries, use filterPostsController
       const result = await filterPostsController(accessToken, {
         page: 0,
         size: 50,
         sort: "createdAt,desc",
-        visibility: "PUBLIC",
-        status: "PUBLISHED",
-        q: query || undefined
+        q: query
       });
 
       if (result.success && result.data) {
-        console.log('✅ Search results:', result.data.data.content.length, 'posts');
+        console.log('✅ Search results:', result.data.data.content.length, 'posts found for query:', query);
         setPosts(result.data.data.content);
         setCurrentPage(0);
         setHasMorePosts(result.data.data.totalPages > 1);
       } else {
         console.error("Failed to search posts:", result.error);
+        setPosts([]); // Clear posts if search fails
       }
     } catch (error) {
       console.error("Error searching posts:", error);
+      setPosts([]); // Clear posts on error
     }
   };
 
@@ -297,7 +311,11 @@ export default function FeedPage() {
         {/* Main Feed Column */}
         <div className="flex-1 space-y-6">
           <StoryCircles />
-          <PostCreationInput onPostCreated={addNewPostToFeed} onSearch={handleSearch} />
+          <PostCreationInput 
+            onPostCreated={addNewPostToFeed} 
+            onSearch={handleSearch} 
+            currentSearchQuery={searchQuery}
+          />
           
           {/* Refresh Button */}
           <div className="flex justify-between items-center">
