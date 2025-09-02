@@ -16,5 +16,5 @@ export const PostMapper = {
 
   // User endpoints for tagging
   getAllUsers: `${BASE_URL}/users`,
-  searchUsers: `${BASE_URL}/users/search`,
+  searchUsers: `${BASE_URL}/users`,
 } as const;

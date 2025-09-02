@@ -9,7 +9,7 @@ export const searchUsers = async (
   size: number = 20
 ): Promise<UsersResponse> => {
   const response = await axios.get<UsersResponse>(
-    `${PostMapper.searchUsers}?q=${encodeURIComponent(query)}&page=${page}&size=${size}`,
+    `${PostMapper.searchUsers}?search=${encodeURIComponent(query)}&page=${page}&size=${size}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
