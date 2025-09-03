@@ -4,6 +4,7 @@ import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
+import com.kaleidoscope.backend.shared.model.UserTag;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -88,6 +89,13 @@ public class Post {
     @Builder.Default
     private Set<PostCategory> categories = new HashSet<>();
 
+    // Using the shared UserTag entity instead of a specific PostTag
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "content_id")
+    @Where(clause = "content_type = 'POST'")
+    @Builder.Default
+    private Set<UserTag> userTags = new HashSet<>();
+
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
         mediaItem.setPost(this);
@@ -112,6 +120,29 @@ public class Post {
         if (toRemove != null) {
             this.categories.remove(toRemove);
             toRemove.setPost(null);
+        }
+    }
+
+    public void addUserTag(User taggerUser, User taggedUser) {
+        UserTag userTag = UserTag.builder()
+                .taggerUser(taggerUser)
+                .taggedUser(taggedUser)
+                .contentType(com.kaleidoscope.backend.shared.enums.ContentType.POST)
+                .contentId(this.postId)
+                .build();
+        userTags.add(userTag);
+    }
+
+    public void removeUserTag(User taggedUser) {
+        UserTag toRemove = this.userTags.stream()
+                .filter(ut -> ut.getTaggedUser().equals(taggedUser) &&
+                             ut.getContentId().equals(this.postId) &&
+                             ut.getContentType() == com.kaleidoscope.backend.shared.enums.ContentType.POST)
+                .findFirst()
+                .orElse(null);
+
+        if (toRemove != null) {
+            this.userTags.remove(toRemove);
         }
     }
 

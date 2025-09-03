@@ -1,5 +1,7 @@
 package com.kaleidoscope.backend.shared.model;
 
+import com.kaleidoscope.backend.blogs.model.BlogCategory;
+import com.kaleidoscope.backend.posts.model.PostCategory;
 import com.kaleidoscope.backend.users.model.UserInterest;
 import jakarta.persistence.*;
 import lombok.*;
@@ -46,6 +48,20 @@ public class Category {
             orphanRemoval = true // Also needed here to clean up interests
     )
     private Set<UserInterest> interestedUsers = new HashSet<>();
+
+    @OneToMany(
+            mappedBy = "category",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true // Crucial for cascading deletes of blog categories
+    )
+    private Set<BlogCategory> blogCategories = new HashSet<>();
+
+    @OneToMany(
+            mappedBy = "category",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true // Crucial for cascading deletes of post categories
+    )
+    private Set<PostCategory> postCategories = new HashSet<>();
 
     // Helper methods to keep both sides of the relationship in sync
     public void addSubcategory(Category subcategory) {
