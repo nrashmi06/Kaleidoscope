@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.blogs.controller.api;
 
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
+import com.kaleidoscope.backend.blogs.dto.request.BlogStatusUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogDetailResponseDTO;
@@ -128,4 +129,20 @@ public interface BlogApi {
             @RequestParam(required = false) String visibility,
             @RequestParam(required = false) String q
     );
+
+    @Operation(summary = "Update blog status (Admin only)", description = "Allows admin to change the approval status of a blog.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Blog status updated successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - Admin access required"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Blog not found")
+    })
+    @PutMapping(BlogsRoutes.UPDATE_BLOG_STATUS)
+    @PreAuthorize("hasRole('ADMIN')")
+    ResponseEntity<ApiResponse<BlogCreationResponseDTO>> updateBlogStatus(
+            @Parameter(description = "Blog ID") @PathVariable Long blogId,
+            @Parameter(description = "Blog status update request") @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO);
 }

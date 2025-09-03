@@ -1,0 +1,42 @@
+meta {
+  name: update blog status (admin)
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{base_url}}/api/blogs/{{blogId}}/status
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "APPROVED",
+    "reviewerComment": "Blog content reviewed and approved for publication"
+  }
+}
+
+vars:pre-request {
+  blogId: 8
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: eq true
+  res.body.message: eq "Blog status updated successfully"
+  res.body.data.blogId: eq {{blogId}}
+  res.body.data.blogStatus: eq "APPROVED"
+}
+
+tests {
+  test("should update blog status successfully", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.success).to.be.true;
+    expect(res.body.data.blogStatus).to.equal("APPROVED");
+  });
+  
+  test("should have reviewer information", function() {
+    expect(res.body.data.reviewedAt).to.not.be.null;
+  });
+}

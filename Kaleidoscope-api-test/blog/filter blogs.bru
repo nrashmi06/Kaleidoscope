@@ -5,15 +5,14 @@ meta {
 }
 
 get {
-  url: {{base_url}}/api/blogs/filter?userId=1&categoryId=2&status=PUBLISHED&q=first&page=0&size=10&sort=createdAt,desc
+  url: {{base_url}}/api/blogs/filter?userId=1&categoryId=8&q=first&page=0&size=10&sort=createdAt,desc
   body: none
   auth: inherit
 }
 
 params:query {
   userId: 1
-  categoryId: 2
-  status: PUBLISHED
+  categoryId: 8
   q: first
   page: 0
   size: 10
