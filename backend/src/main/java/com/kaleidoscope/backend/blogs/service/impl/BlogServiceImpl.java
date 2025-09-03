@@ -66,6 +66,22 @@ public class BlogServiceImpl implements BlogService {
             throw new IllegalArgumentException("Authenticated user not found for ID: " + userId);
         }
 
+        // Validate categories early and provide specific error message
+        if (blogCreateRequestDTO.getCategoryIds() == null || blogCreateRequestDTO.getCategoryIds().isEmpty()) {
+            throw new IllegalArgumentException("At least one category must be specified");
+        }
+
+        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogCreateRequestDTO.getCategoryIds()));
+        if (categories.size() != blogCreateRequestDTO.getCategoryIds().size()) {
+            Set<Long> foundCategoryIds = categories.stream()
+                    .map(Category::getCategoryId)
+                    .collect(Collectors.toSet());
+            Set<Long> missingCategoryIds = blogCreateRequestDTO.getCategoryIds().stream()
+                    .filter(id -> !foundCategoryIds.contains(id))
+                    .collect(Collectors.toSet());
+            throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
+        }
+
         Blog blog = blogMapper.toEntity(blogCreateRequestDTO);
         blog.setUser(currentUser);
         blog.setBlogStatus(BlogStatus.APPROVAL_PENDING);
@@ -76,14 +92,14 @@ public class BlogServiceImpl implements BlogService {
             blog.setLocation(location);
         }
 
-        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogCreateRequestDTO.getCategoryIds()));
-        if (categories.size() != blogCreateRequestDTO.getCategoryIds().size()) {
-            throw new CategoryNotFoundException("One or more categories not found");
-        }
-        categories.forEach(blog::addCategory);
-
         // Save the blog first to generate its ID
         Blog savedBlog = blogRepository.save(blog);
+
+        // Now add categories after the blog has an ID
+        categories.forEach(savedBlog::addCategory);
+
+        // Save again to persist the category relationships
+        savedBlog = blogRepository.save(savedBlog);
 
         if (blogCreateRequestDTO.getMediaDetails() != null && !blogCreateRequestDTO.getMediaDetails().isEmpty()) {
             List<BlogMedia> mediaItems = blogMapper.toBlogMediaEntities(blogCreateRequestDTO.getMediaDetails());
@@ -132,7 +148,13 @@ public class BlogServiceImpl implements BlogService {
         if (blogUpdateRequestDTO.getCategoryIds() != null) {
             Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogUpdateRequestDTO.getCategoryIds()));
             if (categories.size() != blogUpdateRequestDTO.getCategoryIds().size()) {
-                throw new CategoryNotFoundException("One or more categories not found");
+                Set<Long> foundCategoryIds = categories.stream()
+                        .map(Category::getCategoryId)
+                        .collect(Collectors.toSet());
+                Set<Long> missingCategoryIds = blogUpdateRequestDTO.getCategoryIds().stream()
+                        .filter(id -> !foundCategoryIds.contains(id))
+                        .collect(Collectors.toSet());
+                throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
             }
             blog.getCategories().clear();
             categories.forEach(blog::addCategory);

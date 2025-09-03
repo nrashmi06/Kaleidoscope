@@ -51,7 +51,18 @@ public class BlogController implements BlogApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BlogCreationResponseDTO>> createBlog(
             @Valid @RequestBody BlogCreateRequestDTO blogCreateRequestDTO) {
-        log.info("Creating blog with title: {}", blogCreateRequestDTO.getTitle());
+        log.info("Creating blog with title: {}", blogCreateRequestDTO != null ? blogCreateRequestDTO.getTitle() : "null request");
+
+        if (blogCreateRequestDTO == null) {
+            log.error("Blog creation request is null");
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<BlogCreationResponseDTO>builder()
+                            .success(false)
+                            .message("Request body is required")
+                            .data(null)
+                            .build());
+        }
+
         BlogCreationResponseDTO createdBlog = blogService.createBlog(blogCreateRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<BlogCreationResponseDTO>builder()
