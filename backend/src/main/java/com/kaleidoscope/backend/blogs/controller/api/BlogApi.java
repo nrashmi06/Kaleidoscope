@@ -14,6 +14,7 @@ import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -130,19 +131,144 @@ public interface BlogApi {
             @RequestParam(required = false) String q
     );
 
-    @Operation(summary = "Update blog status (Admin only)", description = "Allows admin to change the approval status of a blog.")
+    @Operation(
+        summary = "Update blog status (Admin only)",
+        description = "Allows administrators to change the approval status of a blog. This endpoint enables content moderation workflow by updating blog status to any of the following: DRAFT, APPROVAL_PENDING, APPROVED, FLAGGED, ARCHIVED, REJECTED, or PUBLISHED. Only users with ADMIN role can access this endpoint.",
+        tags = {"Blog Management", "Admin"}
+    )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Blog status updated successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - Admin access required"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Blog not found")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "Blog status updated successfully. Returns the updated blog information including new status, reviewer details, and review timestamp.",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                        name = "Successful status update",
+                        value = """
+                        {
+                          "success": true,
+                          "message": "Blog status updated successfully",
+                          "data": {
+                            "blogId": 1,
+                            "title": "Sample Blog Title",
+                            "blogStatus": "APPROVED",
+                            "reviewedAt": "2025-09-03T10:30:00",
+                            "author": {
+                              "userId": 123,
+                              "username": "blogauthor"
+                            }
+                          }
+                        }
+                        """
+                    )
+                )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "400",
+                description = "Invalid input - Invalid blog status provided or missing required fields",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                        name = "Invalid status",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "Invalid blog status provided"
+                        }
+                        """
+                    )
+                )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "401",
+                description = "Unauthorized - Authentication token missing or invalid"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Admin access required. Only users with ADMIN role can update blog status",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                        name = "Access denied",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "Access denied: Admin privileges required"
+                        }
+                        """
+                    )
+                )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "404",
+                description = "Blog not found - The specified blog ID does not exist",
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                        name = "Blog not found",
+                        value = """
+                        {
+                          "success": false,
+                          "message": "Blog not found with ID: 999"
+                        }
+                        """
+                    )
+                )
+            )
     })
     @PutMapping(BlogsRoutes.UPDATE_BLOG_STATUS)
     @PreAuthorize("hasRole('ADMIN')")
     ResponseEntity<ApiResponse<BlogCreationResponseDTO>> updateBlogStatus(
-            @Parameter(description = "Blog ID") @PathVariable Long blogId,
-            @Parameter(description = "Blog status update request") @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO);
+            @Parameter(
+                description = "Unique identifier of the blog to update",
+                required = true,
+                example = "1",
+                schema = @Schema(type = "integer", format = "int64", minimum = "1")
+            )
+            @PathVariable Long blogId,
+            @Parameter(
+                description = "Blog status update request containing the new status and optional reviewer comment",
+                required = true,
+                content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = BlogStatusUpdateRequestDTO.class),
+                    examples = {
+                        @ExampleObject(
+                            name = "Approve blog",
+                            description = "Approve a blog for publication",
+                            value = """
+                            {
+                              "status": "APPROVED",
+                              "reviewerComment": "Content reviewed and approved for publication"
+                            }
+                            """
+                        ),
+                        @ExampleObject(
+                            name = "Reject blog",
+                            description = "Reject a blog submission",
+                            value = """
+                            {
+                              "status": "REJECTED",
+                              "reviewerComment": "Content does not meet community guidelines"
+                            }
+                            """
+                        ),
+                        @ExampleObject(
+                            name = "Flag blog",
+                            description = "Flag a blog for review",
+                            value = """
+                            {
+                              "status": "FLAGGED",
+                              "reviewerComment": "Requires additional review due to reported content"
+                            }
+                            """
+                        )
+                    }
+                )
+            )
+            @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO);
 }
