@@ -220,4 +220,3 @@ public class InteractionServiceImpl implements InteractionService {
         log.info("[deleteComment] Deleted comment with ID: {}", commentId);
     }
 }
-

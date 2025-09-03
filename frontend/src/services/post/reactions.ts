@@ -1,3 +1,4 @@
+// Define the expected response structure from the API
 export interface ReactToPostResponse {
   success: boolean;
   message: string;
@@ -5,42 +6,39 @@ export interface ReactToPostResponse {
   errors: any[];
 }
 
+/**
+ * Sends a request to the backend to add or update a reaction on a post.
+ */
 export const likePostService = async (
   postId: number,
   accessToken: string
 ): Promise<{ success: boolean; data?: ReactToPostResponse; error?: string }> => {
   try {
-    console.log(`[ReactionsService] Liking post ${postId}`);
-    
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api/posts/${postId}/reactions`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/posts/${postId}/reactions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        reactionType: "LIKE"
+        reactionType: "LIKE" // Hardcoding LIKE as per the social card's functionality
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[ReactionsService] Failed to like post: ${response.status} ${errorText}`);
+      const errorData = await response.json();
       return {
         success: false,
-        error: `Failed to like post: ${response.status} ${response.statusText}`,
+        error: errorData.message || "Failed to like post",
       };
     }
 
     const data: ReactToPostResponse = await response.json();
-    console.log(`[ReactionsService] Post liked successfully:`, data);
-    
     return {
       success: true,
       data,
     };
   } catch (error) {
-    console.error(`[ReactionsService] Error liking post:`, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "An unexpected error occurred",
@@ -48,42 +46,37 @@ export const likePostService = async (
   }
 };
 
+/**
+ * Sends a request to the backend to unlike (remove a reaction from) a post.
+ */
 export const unlikePostService = async (
   postId: number,
   accessToken: string
 ): Promise<{ success: boolean; data?: ReactToPostResponse; error?: string }> => {
   try {
-    console.log(`[ReactionsService] Unliking post ${postId}`);
-    
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api/posts/${postId}/reactions?unreact=false`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/posts/${postId}/reactions?unreact=true`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json", // Important for CORS preflight consistency
         "Authorization": `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({
-        reactionType: "LIKE"
-      }),
+      body: JSON.stringify({}), // Sending an empty JSON body ensures CORS preflight works correctly
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[ReactionsService] Failed to unlike post: ${response.status} ${errorText}`);
+      const errorData = await response.json();
       return {
         success: false,
-        error: `Failed to unlike post: ${response.status} ${response.statusText}`,
+        error: errorData.message || "Failed to unlike post",
       };
     }
 
     const data: ReactToPostResponse = await response.json();
-    console.log(`[ReactionsService] Post unliked successfully:`, data);
-    
     return {
       success: true,
       data,
     };
   } catch (error) {
-    console.error(`[ReactionsService] Error unliking post:`, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "An unexpected error occurred",

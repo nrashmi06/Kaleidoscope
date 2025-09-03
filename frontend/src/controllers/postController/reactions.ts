@@ -1,5 +1,9 @@
 import { likePostService, unlikePostService, ReactToPostResponse } from "@/services/post/reactions";
 
+/**
+ * Controller to handle liking a post.
+ * It wraps the service call with logging and structured error handling.
+ */
 export const likePostController = async (
   postId: number,
   accessToken: string
@@ -29,6 +33,10 @@ export const likePostController = async (
   }
 };
 
+/**
+ * Controller to handle unliking a post.
+ * It wraps the service call with logging and structured error handling.
+ */
 export const unlikePostController = async (
   postId: number,
   accessToken: string
