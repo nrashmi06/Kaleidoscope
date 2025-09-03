@@ -67,8 +67,9 @@ export const fetchPostsService = async (
   options?: {
     page?: number;
     size?: number;
-    sortBy?: string;
-    sortDirection?: "ASC" | "DESC";
+    sort?: string; // Changed to match backend format: "createdAt,desc"
+    sortBy?: string; // Keep for backward compatibility
+    sortDirection?: "ASC" | "DESC"; // Keep for backward compatibility
   }
 ): Promise<{ success: boolean; data?: FetchPostsResponse; error?: string }> => {
   try {
@@ -76,8 +77,18 @@ export const fetchPostsService = async (
     
     if (options?.page !== undefined) params.append('page', options.page.toString());
     if (options?.size !== undefined) params.append('size', options.size.toString());
-    if (options?.sortBy) params.append('sortBy', options.sortBy);
-    if (options?.sortDirection) params.append('sortDirection', options.sortDirection);
+    
+    // Handle sort parameter - prefer new format, fallback to old format
+    if (options?.sort) {
+      params.append('sort', options.sort);
+    } else if (options?.sortBy && options?.sortDirection) {
+      // Convert old format to new format
+      const direction = options.sortDirection.toLowerCase();
+      params.append('sort', `${options.sortBy},${direction}`);
+    } else if (options?.sortBy) {
+      // Default to desc if no direction specified
+      params.append('sort', `${options.sortBy},desc`);
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL || 'http://127.0.0.1:8080';
     const url = `${baseUrl}/kaleidoscope/api/posts${params.toString() ? `?${params.toString()}` : ''}`;

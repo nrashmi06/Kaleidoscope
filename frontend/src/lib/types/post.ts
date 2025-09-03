@@ -150,8 +150,7 @@ export interface User {
   userId: number;
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  accountStatus?: string;
 }
 
 export type UsersResponse = StandardAPIResponse<PaginatedResponse<User>>;

@@ -22,7 +22,9 @@ import {
   Users, 
   Image as ImageIcon,
   Plus,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Image from "next/image";
 
@@ -50,6 +52,7 @@ export default function CreatePostPage() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [mediaPreview, setMediaPreview] = useState<string[]>([]);
+  const [mediaPreviewIndex, setMediaPreviewIndex] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({});
   const [uploading, setUploading] = useState(false);
@@ -65,11 +68,19 @@ export default function CreatePostPage() {
   useEffect(() => {
     if (userSearchQuery.trim() && accessToken) {
       const timeoutId = setTimeout(() => {
-        searchUsersController(accessToken, userSearchQuery).then((response) => {
-          if (response.success && response.data?.content) {
-            setUsers(response.data.content);
-          }
-        });
+        searchUsersController(accessToken, userSearchQuery)
+          .then((response) => {
+            if (response.success && response.data?.content) {
+              setUsers(response.data.content);
+            } else {
+              console.warn("User search failed:", response.message);
+              setUsers([]);
+            }
+          })
+          .catch((error) => {
+            console.error("User search error:", error);
+            setUsers([]);
+          });
       }, 300);
 
       return () => clearTimeout(timeoutId);
@@ -89,13 +100,18 @@ export default function CreatePostPage() {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
+    console.log('Files uploaded:', files.length);
     setSelectedFiles(prev => [...prev, ...files]);
 
     // Create previews
-    files.forEach((file) => {
+    files.forEach((file, index) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setMediaPreview(prev => [...prev, e.target?.result as string]);
+        setMediaPreview(prev => {
+          const newPreviews = [...prev, e.target?.result as string];
+          console.log('Media preview updated, total images:', newPreviews.length);
+          return newPreviews;
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -193,7 +209,18 @@ export default function CreatePostPage() {
 
   const removeMedia = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    setMediaPreview(prev => prev.filter((_, i) => i !== index));
+    setMediaPreview(prev => {
+      const newPreview = prev.filter((_, i) => i !== index);
+      // Reset preview index if needed
+      if (index <= mediaPreviewIndex && mediaPreviewIndex > 0) {
+        setMediaPreviewIndex(mediaPreviewIndex - 1);
+      } else if (mediaPreviewIndex >= newPreview.length && newPreview.length > 0) {
+        setMediaPreviewIndex(newPreview.length - 1);
+      } else if (newPreview.length === 0) {
+        setMediaPreviewIndex(0);
+      }
+      return newPreview;
+    });
   };
 
   const handleCategoryToggle = (categoryId: number) => {
@@ -269,7 +296,53 @@ export default function CreatePostPage() {
       }
       
       console.log('✅ Post created successfully:', createResponse.data);
-      toast.success("Post created successfully!");
+      
+      // Tag users if any are selected
+      if (formData.taggedUserIds && formData.taggedUserIds.length > 0 && createResponse.data?.postId) {
+        try {
+          // Validate that all tagged user IDs exist in our users list (guard rail)
+          const validUserIds = formData.taggedUserIds.filter(userId => 
+            users.some(user => user.userId === userId)
+          );
+          
+          const invalidUserIds = formData.taggedUserIds.filter(userId => 
+            !users.some(user => user.userId === userId)
+          );
+          
+          if (invalidUserIds.length > 0) {
+            console.warn('Invalid user IDs detected:', invalidUserIds);
+            toast.error(`Cannot tag users with IDs: ${invalidUserIds.join(', ')} - they may no longer exist`);
+          }
+          
+          if (validUserIds.length === 0) {
+            console.warn('No valid users to tag');
+            toast.error("No valid users to tag");
+          } else {
+            const { tagUserController } = await import("@/controllers/userController/tagUser");
+            const tagResponse = await tagUserController({
+              userIds: validUserIds,
+              postId: createResponse.data.postId,
+            }, accessToken);
+            
+            if (!tagResponse.success) {
+              console.warn('User tagging failed:', tagResponse.error);
+              toast.error(`Post created but failed to tag users: ${tagResponse.error}`);
+            } else {
+              console.log('✅ Users tagged successfully');
+              if (invalidUserIds.length > 0) {
+                toast.success(`Post created! ${validUserIds.length} users tagged successfully, ${invalidUserIds.length} users could not be tagged.`);
+              } else {
+                toast.success(`Post created and ${validUserIds.length} users tagged successfully!`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error tagging users:', error);
+          toast.error("Post created but failed to tag users");
+        }
+      } else {
+        toast.success("Post created successfully!");
+      }
       
       // Create optimistic post for immediate feed update
       if (typeof window !== 'undefined') {
@@ -313,10 +386,27 @@ export default function CreatePostPage() {
         };
 
         // Trigger callback from feed page to add post optimistically
+        console.log('🚀 Dispatching new post event:', optimisticPost);
         const feedUpdateEvent = new CustomEvent('newPostCreated', { 
           detail: optimisticPost 
         });
+        
+        // Store in localStorage as backup
+        try {
+          const existingPendingPosts = JSON.parse(localStorage.getItem('pendingNewPosts') || '[]');
+          existingPendingPosts.push(optimisticPost);
+          localStorage.setItem('pendingNewPosts', JSON.stringify(existingPendingPosts));
+          console.log('💾 Stored new post in localStorage as backup');
+        } catch (error) {
+          console.warn('Failed to store in localStorage:', error);
+        }
+        
+        // Ensure event is dispatched before navigation
         window.dispatchEvent(feedUpdateEvent);
+        console.log('✅ Event dispatched successfully');
+        
+        // Give time for event listeners to process
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       // Reset form
@@ -332,8 +422,15 @@ export default function CreatePostPage() {
       });
       setSelectedFiles([]);
       setMediaPreview([]);
+      setMediaPreviewIndex(0);
+      setUsers([]);
+      setUserSearchQuery("");
+      setSelectedLocation(null);
       
-      router.push("/feed");
+      // Redirect to feed to see the new post
+      setTimeout(() => {
+        router.push('/feed');
+      }, 1500);
     } catch (error) {
       console.error("Error creating post:", error);
       toast.error(error instanceof Error ? error.message : "Failed to create post");
@@ -492,10 +589,17 @@ export default function CreatePostPage() {
 
           {/* Media Upload */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <ImageIcon className="w-4 h-4" />
               Media Upload
             </label>
+            
+            {/* Thumbnail Note */}
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                 <strong>Note:</strong> The first picture will be used as the post's thumbnail.
+              </p>
+            </div>
             
             <div className="space-y-4">
               {/* Upload Button */}
@@ -515,66 +619,164 @@ export default function CreatePostPage() {
 
               {/* Media Preview */}
               {mediaPreview.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {mediaPreview.map((preview, index) => (
-                    <div key={index} className="relative group">
+                <div className="space-y-4">
+                  {/* Debug Info */}
+                  <div className="text-xs text-gray-500 text-center">
+                    Images: {mediaPreview.length}, Current: {mediaPreviewIndex + 1}
+                  </div>
+                  
+                  {/* Navigation Controls */}
+                  {mediaPreview.length > 1 && (
+                    <div className="flex items-center justify-center gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          console.log('Previous button clicked, current index:', mediaPreviewIndex);
+                          setMediaPreviewIndex(prev => {
+                            const newIndex = Math.max(prev - 1, 0);
+                            console.log('New index:', newIndex);
+                            return newIndex;
+                          });
+                        }}
+                        disabled={mediaPreviewIndex === 0}
+                        className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+                      >
+                        <ChevronLeft className="w-6 h-6" />
+                      </button>
+                      <div className="text-center">
+                        <span className="text-lg font-bold text-gray-800 dark:text-gray-200 px-4 py-2 bg-white dark:bg-gray-700 rounded-full shadow-md">
+                          {mediaPreviewIndex + 1} / {mediaPreview.length}
+                        </span>
+                        <div className="text-xs text-gray-500 mt-1">Use arrows to navigate</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          console.log('Next button clicked, current index:', mediaPreviewIndex);
+                          setMediaPreviewIndex(prev => {
+                            const newIndex = Math.min(prev + 1, mediaPreview.length - 1);
+                            console.log('New index:', newIndex);
+                            return newIndex;
+                          });
+                        }}
+                        disabled={mediaPreviewIndex === mediaPreview.length - 1}
+                        className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+                      >
+                        <ChevronRight className="w-6 h-6" />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Current Image Display */}
+                  <div className="flex justify-center">
+                    <div className="relative group max-w-md">
                       <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
                         <Image
-                          src={preview}
-                          alt={`Preview ${index + 1}`}
+                          src={mediaPreview[mediaPreviewIndex]}
+                          alt={`Preview ${mediaPreviewIndex + 1}`}
                           className="w-full h-full object-cover"
-                          width={200}
-                          height={200}
+                          width={300}
+                          height={300}
                         />
                         
                         {/* Upload Progress Overlay */}
-                        {uploading && uploadProgress[index] !== undefined && (
+                        {uploading && uploadProgress[mediaPreviewIndex] !== undefined && (
                           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                             <div className="text-center">
                               <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mb-2"></div>
                               <div className="text-white text-xs font-medium">
-                                {uploadProgress[index]}%
+                                {uploadProgress[mediaPreviewIndex]}%
                               </div>
                             </div>
                           </div>
                         )}
                       </div>
                       
+                      {/* Remove Button */}
                       {!uploading && (
                         <button
                           type="button"
-                          onClick={() => removeMedia(index)}
+                          onClick={() => {
+                            removeMedia(mediaPreviewIndex);
+                            // Adjust preview index if needed
+                            if (mediaPreviewIndex >= mediaPreview.length - 1) {
+                              setMediaPreviewIndex(Math.max(0, mediaPreview.length - 2));
+                            }
+                          }}
                           className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       )}
+                      
+                      {/* Thumbnail Badge */}
+                      {mediaPreviewIndex === 0 && (
+                        <div className="absolute bottom-2 left-2 px-2 py-1 bg-blue-500 text-white text-xs rounded-md font-medium">
+                          Thumbnail
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  
+                  {/* Thumbnail Grid for Multiple Images */}
+                  {mediaPreview.length > 1 && (
+                    <div className="flex justify-center">
+                      <div className="flex gap-2 overflow-x-auto max-w-full">
+                        {mediaPreview.map((preview, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => setMediaPreviewIndex(index)}
+                            className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                              index === mediaPreviewIndex 
+                                ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800' 
+                                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                            }`}
+                          >
+                            <Image
+                              src={preview}
+                              alt={`Thumbnail ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              width={64}
+                              height={64}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
           {/* Tag Users */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-              <Users className="w-4 h-4" />
-              Tag Users
-            </label>
-            
-            <div className="space-y-4">
-              {/* Search Input */}
-              <input
-                type="text"
-                value={userSearchQuery}
-                onChange={(e) => setUserSearchQuery(e.target.value)}
-                placeholder="Search users to tag..."
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              />
+          {accessToken && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                <Users className="w-4 h-4" />
+                Tag Users
+              </label>
+              
+              <div className="space-y-4">
+                {/* Search Input */}
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Search users to tag..."
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
 
-              {/* Search Results */}
-              {users.length > 0 && (
+                {/* Authentication Status */}
+                {!accessToken && (
+                  <div className="text-sm text-red-600 dark:text-red-400">
+                    Please log in to tag users
+                  </div>
+                )}
+
+                {/* Search Results */}
+                {users.length > 0 && (
                 <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg">
                   {users.map((user) => (
                     <label
@@ -594,7 +796,7 @@ export default function CreatePostPage() {
                           @{user.username}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {user.firstName} {user.lastName}
+                          {user.email}
                         </div>
                       </div>
                     </label>
@@ -629,6 +831,34 @@ export default function CreatePostPage() {
               )}
             </div>
           </div>
+          )}
+
+          {/* Post Summary/Preview */}
+          {(formData.title.trim() || formData.summary.trim() || mediaPreview.length > 0 || (formData.taggedUserIds && formData.taggedUserIds.length > 0)) && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
+              <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">Post Preview</h3>
+              <div className="space-y-2 text-sm">
+                {formData.title.trim() && (
+                  <div><span className="font-medium">Title:</span> {formData.title.trim()}</div>
+                )}
+                {formData.summary.trim() && (
+                  <div><span className="font-medium">Summary:</span> {formData.summary.trim()}</div>
+                )}
+                {mediaPreview.length > 0 && (
+                  <div><span className="font-medium">Media:</span> {mediaPreview.length} file(s) uploaded</div>
+                )}
+                {formData.taggedUserIds && formData.taggedUserIds.length > 0 && (
+                  <div><span className="font-medium">Tagged Users:</span> {formData.taggedUserIds.length} user(s) will be notified</div>
+                )}
+                {selectedLocation && (
+                  <div><span className="font-medium">Location:</span> {selectedLocation.name}</div>
+                )}
+                {formData.categoryIds.length > 0 && (
+                  <div><span className="font-medium">Categories:</span> {formData.categoryIds.length} selected</div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex gap-4 pt-6">
