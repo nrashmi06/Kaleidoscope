@@ -25,13 +25,13 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update  # Changed from 'validate' to 'update' to allow schema changes
     properties:
       hibernate:
         show_sql: true
         format_sql: true
         hbm2ddl:
-          auto: validate
+          auto: update  # Changed from 'validate' to 'update'
 
   # File Upload Configuration
   servlet:

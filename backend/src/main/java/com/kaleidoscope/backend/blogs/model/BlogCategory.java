@@ -3,43 +3,50 @@ package com.kaleidoscope.backend.blogs.model;
 import com.kaleidoscope.backend.shared.model.Category;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "blog_categories", indexes = {
-        @Index(name = "idx_blog_category_blog_id", columnList = "blog_id"),
-        @Index(name = "idx_blog_category_category_id", columnList = "category_id")
+        @Index(name = "idx_blog_category_is_primary", columnList = "is_primary"),
+        @Index(name = "idx_blog_category_blog_category", columnList = "blog_id, category_id", unique = true)
 })
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
-public class BlogCategory implements Serializable {
+@AllArgsConstructor
+@Builder
+public class BlogCategory {
 
-    @EmbeddedId
-    private BlogCategoryId id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "blog_category_id")
+    private Long blogCategoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("blogId")
-    @JoinColumn(name = "blog_id")
+    @JoinColumn(name = "blog_id", nullable = false)
     private Blog blog;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("categoryId")
-    @JoinColumn(name = "category_id")
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @Column(name = "is_primary", nullable = false)
-    private boolean isPrimary = false;
+    @Column(name = "is_primary")
+    @Builder.Default
+    private Boolean isPrimary = false;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
+    // Custom constructor for use in Blog helper methods
     public BlogCategory(Blog blog, Category category) {
         this.blog = blog;
         this.category = category;
-        this.id = new BlogCategoryId(blog.getBlogId(), category.getCategoryId());
+        this.isPrimary = false; // Initialize isPrimary to prevent null constraint violation
     }
 
     @Override
@@ -47,7 +54,7 @@ public class BlogCategory implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         BlogCategory that = (BlogCategory) o;
-        return id != null && id.equals(that.id);
+        return blogCategoryId != null && blogCategoryId.equals(that.blogCategoryId);
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.blogs.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
+import com.kaleidoscope.backend.blogs.dto.request.BlogStatusUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogDetailResponseDTO;
@@ -66,6 +67,22 @@ public class BlogServiceImpl implements BlogService {
             throw new IllegalArgumentException("Authenticated user not found for ID: " + userId);
         }
 
+        // Validate categories early and provide specific error message
+        if (blogCreateRequestDTO.getCategoryIds() == null || blogCreateRequestDTO.getCategoryIds().isEmpty()) {
+            throw new IllegalArgumentException("At least one category must be specified");
+        }
+
+        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogCreateRequestDTO.getCategoryIds()));
+        if (categories.size() != blogCreateRequestDTO.getCategoryIds().size()) {
+            Set<Long> foundCategoryIds = categories.stream()
+                    .map(Category::getCategoryId)
+                    .collect(Collectors.toSet());
+            Set<Long> missingCategoryIds = blogCreateRequestDTO.getCategoryIds().stream()
+                    .filter(id -> !foundCategoryIds.contains(id))
+                    .collect(Collectors.toSet());
+            throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
+        }
+
         Blog blog = blogMapper.toEntity(blogCreateRequestDTO);
         blog.setUser(currentUser);
         blog.setBlogStatus(BlogStatus.APPROVAL_PENDING);
@@ -76,14 +93,14 @@ public class BlogServiceImpl implements BlogService {
             blog.setLocation(location);
         }
 
-        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogCreateRequestDTO.getCategoryIds()));
-        if (categories.size() != blogCreateRequestDTO.getCategoryIds().size()) {
-            throw new CategoryNotFoundException("One or more categories not found");
-        }
-        categories.forEach(blog::addCategory);
-
         // Save the blog first to generate its ID
         Blog savedBlog = blogRepository.save(blog);
+
+        // Now add categories after the blog has an ID
+        categories.forEach(savedBlog::addCategory);
+
+        // Save again to persist the category relationships
+        savedBlog = blogRepository.save(savedBlog);
 
         if (blogCreateRequestDTO.getMediaDetails() != null && !blogCreateRequestDTO.getMediaDetails().isEmpty()) {
             List<BlogMedia> mediaItems = blogMapper.toBlogMediaEntities(blogCreateRequestDTO.getMediaDetails());
@@ -132,7 +149,13 @@ public class BlogServiceImpl implements BlogService {
         if (blogUpdateRequestDTO.getCategoryIds() != null) {
             Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogUpdateRequestDTO.getCategoryIds()));
             if (categories.size() != blogUpdateRequestDTO.getCategoryIds().size()) {
-                throw new CategoryNotFoundException("One or more categories not found");
+                Set<Long> foundCategoryIds = categories.stream()
+                        .map(Category::getCategoryId)
+                        .collect(Collectors.toSet());
+                Set<Long> missingCategoryIds = blogUpdateRequestDTO.getCategoryIds().stream()
+                        .filter(id -> !foundCategoryIds.contains(id))
+                        .collect(Collectors.toSet());
+                throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
             }
             blog.getCategories().clear();
             categories.forEach(blog::addCategory);
@@ -225,13 +248,28 @@ public class BlogServiceImpl implements BlogService {
     @Transactional(readOnly = true)
     public PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q) {
         Specification<Blog> spec = Specification.where(null);
+
+        // Check if current user is admin
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+
+        // If not admin, only show published blogs (unless filtering by own userId)
+        if (!isAdmin) {
+            Long currentUserId = jwtUtils.getUserIdFromContext();
+            if (userId == null || !userId.equals(currentUserId)) {
+                // For non-admin users viewing other users' blogs or general feed, only show published blogs
+                spec = spec.and(BlogSpecification.hasStatus(BlogStatus.PUBLISHED.name()));
+            }
+            // If userId equals currentUserId, they can see all their own blogs regardless of status
+        }
+
         if (userId != null) {
             spec = spec.and(BlogSpecification.hasAuthor(userId));
         }
         if (categoryId != null) {
             spec = spec.and(BlogSpecification.hasCategory(categoryId));
         }
-        if (status != null) {
+        if (status != null && isAdmin) {
+            // Only admins can filter by specific status
             spec = spec.and(BlogSpecification.hasStatus(status));
         }
         // If you have a visibility field, add similar logic here
@@ -240,21 +278,44 @@ public class BlogServiceImpl implements BlogService {
         }
         Page<Blog> blogPage = blogRepository.findAll(spec, pageable);
         List<BlogSummaryResponseDTO> dtos = blogPage.getContent().stream()
-            .map(blogMapper::toBlogSummaryDTO)
-            .collect(Collectors.toList());
+                .map(blogMapper::toBlogSummaryDTO)
+                .collect(Collectors.toList());
         // Use builder for PaginatedResponse
         return PaginatedResponse.<BlogSummaryResponseDTO>builder()
-            .content(dtos)
-            .page(blogPage.getNumber())
-            .size(blogPage.getSize())
-            .totalPages(blogPage.getTotalPages())
-            .totalElements(blogPage.getTotalElements())
-            .first(blogPage.isFirst())
-            .last(blogPage.isLast())
-            .build();
+                .content(dtos)
+                .page(blogPage.getNumber())
+                .size(blogPage.getSize())
+                .totalPages(blogPage.getTotalPages())
+                .totalElements(blogPage.getTotalElements())
+                .first(blogPage.isFirst())
+                .last(blogPage.isLast())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public BlogCreationResponseDTO updateBlogStatus(Long blogId, BlogStatusUpdateRequestDTO requestDTO) {
+        Blog blog = blogRepository.findById(blogId)
+                .orElseThrow(() -> new BlogNotFoundException(blogId));
+
+        Long reviewerId = jwtUtils.getUserIdFromContext();
+        User reviewer = userRepository.findByUserId(reviewerId);
+        if (reviewer == null) {
+            throw new IllegalArgumentException("Reviewer not found for ID: " + reviewerId);
+        }
+
+        blog.setBlogStatus(requestDTO.getStatus());
+        blog.setReviewer(reviewer);
+        blog.setReviewedAt(LocalDateTime.now());
+
+        Blog savedBlog = blogRepository.save(blog);
+        log.info("Blog {} status updated to {} by admin {}", blogId, requestDTO.getStatus(), reviewerId);
+
+        return blogMapper.toDTO(savedBlog);
     }
 
     private void updateBlogMedia(Blog blog, List<MediaUploadRequestDTO> mediaDtos) {
+        log.debug("Updating media for blogId: {}", blog.getBlogId());
         if (mediaDtos == null) return;
 
         Map<Long, BlogMedia> existingMediaMap = blog.getMedia().stream()
@@ -265,32 +326,42 @@ public class BlogServiceImpl implements BlogService {
 
         for (MediaUploadRequestDTO dto : mediaDtos) {
             if (dto.getMediaId() == null) {
+                log.debug("Adding new media from URL: {}", dto.getUrl());
                 String publicId = imageStorageService.extractPublicIdFromUrl(dto.getUrl());
                 MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
-                        .orElseThrow(() -> new IllegalArgumentException("Media asset not tracked for public_id: " + publicId));
+                        .orElseThrow(() -> {
+                            log.error("Media asset not tracked for public_id: {}", publicId);
+                            return new IllegalArgumentException("Media asset not tracked for public_id: " + publicId);
+                        });
 
                 if (tracker.getStatus() != MediaAssetStatus.PENDING) {
+                    log.error("Cannot associate a media asset that is not in PENDING state. Status: {}", tracker.getStatus());
                     throw new IllegalArgumentException("Cannot associate a media asset that is not in PENDING state.");
                 }
 
                 BlogMedia newMedia = blogMapper.toBlogMediaEntities(Collections.singletonList(dto)).stream().findFirst().orElse(null);
-                finalMediaList.add(newMedia);
-
-                tracker.setStatus(MediaAssetStatus.ASSOCIATED);
-                tracker.setContentType(ContentType.BLOG.name());
-                tracker.setContentId(blog.getBlogId());
+                if (newMedia != null) {
+                    finalMediaList.add(newMedia);
+                    tracker.setStatus(MediaAssetStatus.ASSOCIATED);
+                    tracker.setContentType(ContentType.BLOG.name());
+                    tracker.setContentId(blog.getBlogId());
+                    log.debug("Associated new media with blog");
+                }
             } else {
                 incomingMediaIds.add(dto.getMediaId());
                 BlogMedia existingMedia = existingMediaMap.get(dto.getMediaId());
                 if (existingMedia != null) {
+                    log.debug("Updating position for existing mediaId: {}", dto.getMediaId());
                     existingMedia.setPosition(dto.getPosition());
                     finalMediaList.add(existingMedia);
                 }
             }
         }
 
+        // Mark removed media for deletion
         for (Map.Entry<Long, BlogMedia> entry : existingMediaMap.entrySet()) {
             if (!incomingMediaIds.contains(entry.getKey())) {
+                log.debug("Marking media for delete: {}", entry.getValue().getMediaUrl());
                 String publicId = imageStorageService.extractPublicIdFromUrl(entry.getValue().getMediaUrl());
                 mediaAssetTrackerRepository.findByPublicId(publicId).ifPresent(tracker -> {
                     tracker.setStatus(MediaAssetStatus.MARKED_FOR_DELETE);
@@ -300,8 +371,9 @@ public class BlogServiceImpl implements BlogService {
             }
         }
 
+        // Clear existing media and add the final list
         blog.getMedia().clear();
-        for(BlogMedia media : finalMediaList) {
+        for (BlogMedia media : finalMediaList) {
             blog.addMedia(media);
         }
     }

@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.blogs.service;
 
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
+import com.kaleidoscope.backend.blogs.dto.request.BlogStatusUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogDetailResponseDTO;
@@ -15,4 +16,5 @@ public interface BlogService {
     void hardDeleteBlog(Long blogId);
     BlogDetailResponseDTO getBlogById(Long blogId);
     PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q);
+    BlogCreationResponseDTO updateBlogStatus(Long blogId, BlogStatusUpdateRequestDTO requestDTO);
 }

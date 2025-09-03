@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.blogs.controller;
 
 import com.kaleidoscope.backend.blogs.controller.api.BlogApi;
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
+import com.kaleidoscope.backend.blogs.dto.request.BlogStatusUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogDetailResponseDTO;
@@ -51,7 +52,18 @@ public class BlogController implements BlogApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<BlogCreationResponseDTO>> createBlog(
             @Valid @RequestBody BlogCreateRequestDTO blogCreateRequestDTO) {
-        log.info("Creating blog with title: {}", blogCreateRequestDTO.getTitle());
+        log.info("Creating blog with title: {}", blogCreateRequestDTO != null ? blogCreateRequestDTO.getTitle() : "null request");
+
+        if (blogCreateRequestDTO == null) {
+            log.error("Blog creation request is null");
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<BlogCreationResponseDTO>builder()
+                            .success(false)
+                            .message("Request body is required")
+                            .data(null)
+                            .build());
+        }
+
         BlogCreationResponseDTO createdBlog = blogService.createBlog(blogCreateRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<BlogCreationResponseDTO>builder()
@@ -131,6 +143,21 @@ public class BlogController implements BlogApi {
                 .success(true)
                 .message("Blogs retrieved successfully.")
                 .data(response)
+                .build());
+    }
+
+    @Override
+    @PutMapping(BlogsRoutes.UPDATE_BLOG_STATUS)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<BlogCreationResponseDTO>> updateBlogStatus(
+            @PathVariable Long blogId,
+            @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO) {
+        log.info("Admin updating blog status for blog ID: {} to status: {}", blogId, requestDTO.getStatus());
+        BlogCreationResponseDTO updatedBlog = blogService.updateBlogStatus(blogId, requestDTO);
+        return ResponseEntity.ok(ApiResponse.<BlogCreationResponseDTO>builder()
+                .success(true)
+                .message("Blog status updated successfully")
+                .data(updatedBlog)
                 .build());
     }
 }
