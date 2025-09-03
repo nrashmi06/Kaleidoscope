@@ -25,11 +25,13 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         show_sql: true
         format_sql: true
+        hbm2ddl:
+          auto: validate
 
   # File Upload Configuration
   servlet:
