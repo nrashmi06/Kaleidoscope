@@ -18,13 +18,15 @@ services:
     restart: always
 
   app:
-    # This version pulls the pre-built image from your registry
-    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_REGISTRY:-rajay04}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
       db:
         condition: service_healthy
-      elasticsearch: # App will wait for Elasticsearch to start
+      elasticsearch:
         condition: service_started
     env_file:
       - .env
@@ -39,7 +41,7 @@ services:
     container_name: kaleidoscope-elasticsearch
     environment:
       - "discovery.type=single-node"
-      - "xpack.security.enabled=false" # For development only, disables authentication
+      - "xpack.security.enabled=false"
     ports:
       - "9200:9200"
     networks:
@@ -61,7 +63,7 @@ services:
 
 volumes:
   postgres_data:
-  elasticsearch_data: # Added volume for Elasticsearch data persistence
+  elasticsearch_data:
 
 networks:
   app-network:

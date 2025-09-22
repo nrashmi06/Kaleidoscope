@@ -21,17 +21,21 @@ spring:
       pool-name: KaleidoscopeHikariCP
       auto-commit: true
 
+  # Elasticsearch Configuration
+  elasticsearch:
+    uris: http://localhost:9200
+
   # JPA Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update  # Changed from 'validate' to 'update' to allow schema changes
+      ddl-auto: update
     properties:
       hibernate:
         show_sql: true
         format_sql: true
         hbm2ddl:
-          auto: update  # Changed from 'validate' to 'update'
+          auto: update
 
   # File Upload Configuration
   servlet:
