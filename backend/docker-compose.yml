@@ -22,6 +22,22 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  redis:
+    image: redis:7-alpine
+    container_name: kaleidoscope-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    volumes:
+      - redis_data:/data
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
   app:
     build:
       context: .
@@ -31,6 +47,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
       elasticsearch:
         condition: service_started
       logstash:
@@ -38,7 +56,7 @@ services:
     env_file:
       - .env
     environment:
-      # Docker-specific overrides (only used when running app in Docker)
+      - SPRING_DATA_REDIS_HOST=redis
       - LOGSTASH_HOST=logstash
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTIC_SEARCH_URL=http://elasticsearch:9200
@@ -49,7 +67,7 @@ services:
       - app-network
     restart: unless-stopped
     profiles:
-      - full-docker  # Only start this when using docker profile
+      - full-docker
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -57,7 +75,6 @@ services:
     environment:
       - "discovery.type=single-node"
       - "xpack.security.enabled=false"
-      # Increased Java heap size for stability
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ports:
       - "9200:9200"
@@ -70,7 +87,6 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          # Increased memory limit
           memory: 2G
 
   logstash:
@@ -80,7 +96,7 @@ services:
       - "5000:5000"
       - "5001:5001"
       - "5044:5044"
-      - "9600:9600"  # monitoring API
+      - "9600:9600"
     networks:
       - app-network
     volumes:
@@ -113,12 +129,12 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          # Increased memory limit
           memory: 1G
 
 volumes:
   postgres_data:
   elasticsearch_data:
+  redis_data:
 
 networks:
   app-network:
