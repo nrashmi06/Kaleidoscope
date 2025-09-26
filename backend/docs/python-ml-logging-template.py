@@ -25,6 +25,23 @@ class CorrelationIdFilter(logging.Filter):
         record.correlation_id = self.correlation_id or str(uuid.uuid4())
         return True
 
+class RequestContextFilter(logging.Filter):
+    """Filter to add request context (MDC) fields to log records"""
+    def __init__(self):
+        super().__init__()
+        self.context = {}
+
+    def set_context(self, **kwargs):
+        self.context = kwargs
+
+    def clear_context(self):
+        self.context = {}
+
+    def filter(self, record):
+        for k, v in self.context.items():
+            setattr(record, k, v)
+        return True
+
 class JSONFormatter(logging.Formatter):
     """JSON formatter compatible with Logstash pipeline"""
 
@@ -37,9 +54,15 @@ class JSONFormatter(logging.Formatter):
             'service': 'kaleidoscope-ml-service',
             'environment': os.getenv('ENVIRONMENT', 'development'),
             'application': 'kaleidoscope',
-            'thread': record.thread,
+            'thread': getattr(record, 'thread', None),
             'mdc': {
-                'correlationId': getattr(record, 'correlation_id', None)
+                'correlationId': getattr(record, 'correlation_id', None),
+                'requestMethod': getattr(record, 'request_method', None),
+                'requestUri': getattr(record, 'request_uri', None),
+                'responseStatus': getattr(record, 'response_status', None),
+                'responseTimeMs': getattr(record, 'response_time_ms', None),
+                'clientIp': getattr(record, 'client_ip', None),
+                'userAgent': getattr(record, 'user_agent', None)
             }
         }
 
@@ -56,6 +79,7 @@ def setup_logging(logstash_host: str = "localhost", logstash_port: int = 5001):
     """
 
     correlation_filter = CorrelationIdFilter()
+    request_context_filter = RequestContextFilter()
     logger = logging.getLogger("kaleidoscope-ml-service")
     logger.setLevel(logging.DEBUG if os.getenv('DEBUG') == 'true' else logging.INFO)
     logger.handlers.clear()
@@ -64,6 +88,7 @@ def setup_logging(logstash_host: str = "localhost", logstash_port: int = 5001):
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(JSONFormatter())
     console_handler.addFilter(correlation_filter)
+    console_handler.addFilter(request_context_filter)
     logger.addHandler(console_handler)
 
     # TCP handler for Logstash
@@ -72,6 +97,7 @@ def setup_logging(logstash_host: str = "localhost", logstash_port: int = 5001):
         logstash_handler = logging.handlers.SocketHandler(logstash_host, logstash_port)
         logstash_handler.setFormatter(JSONFormatter())
         logstash_handler.addFilter(correlation_filter)
+        logstash_handler.addFilter(request_context_filter)
         logger.addHandler(logstash_handler)
         logger.info(f"Connected to Logstash at {logstash_host}:{logstash_port}")
     except Exception as e:
@@ -102,4 +128,17 @@ def process_ml_request(correlation_id: str = None):
         "processing_time_ms": 150,
         "confidence_score": 0.95
     })
+
+# To set correlation ID and request context per request:
+# correlation_filter.set_correlation_id('your-correlation-id')
+# request_context_filter.set_context(
+#     request_method='POST',
+#     request_uri='/api/ml/predict',
+#     response_status=200,
+#     response_time_ms=123,
+#     client_ip='203.0.113.1',
+#     user_agent='Mozilla/5.0 ...'
+# )
+# logger.info('Prediction completed')
+# request_context_filter.clear_context()
 """
