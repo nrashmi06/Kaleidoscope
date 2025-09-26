@@ -62,93 +62,127 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public PostCreationResponseDTO createPost(PostCreateRequestDTO postCreateRequestDTO) {
-        log.info("Starting post creation process");
+        log.info("Starting post creation process for user request with {} categories and {} media items",
+                 postCreateRequestDTO.getCategoryIds().size(),
+                 postCreateRequestDTO.getMediaDetails() != null ? postCreateRequestDTO.getMediaDetails().size() : 0);
+
         Long userId = jwtUtils.getUserIdFromContext();
-        log.debug("Fetched userId from context: {}", userId);
+        log.debug("Fetched userId from JWT context: {}", userId);
 
         User currentUser = userRepository.findByUserId(userId);
         if (currentUser == null) {
-            log.error("Authenticated user not found for ID: {}", userId);
+            log.error("Authentication failure: User not found in database for authenticated ID: {}", userId);
             throw new IllegalStatePostActionException("Authenticated user not found for ID: " + userId);
         }
-        log.debug("Authenticated user found: {}", currentUser.getUsername());
+        log.info("Authenticated user validated: username={}, userId={}", currentUser.getUsername(), userId);
 
         // 1. Map the DTO to a Post entity
-        log.debug("Mapping PostCreateRequestDTO to Post entity");
+        log.debug("Mapping PostCreateRequestDTO to Post entity with title: '{}'", postCreateRequestDTO.getTitle());
         Post post = postMapper.toEntity(postCreateRequestDTO);
         post.setUser(currentUser);
 
         // 2. Set Location and Categories before the first save
         if (postCreateRequestDTO.getLocationId() != null) {
-            log.debug("Setting location for post: {}", postCreateRequestDTO.getLocationId());
+            log.debug("Resolving location for post: locationId={}", postCreateRequestDTO.getLocationId());
             Location location = locationRepository.findById(postCreateRequestDTO.getLocationId())
                     .orElseThrow(() -> {
-                        log.error("Location not found: {}", postCreateRequestDTO.getLocationId());
+                        log.error("Location resolution failed: locationId={} not found in database", postCreateRequestDTO.getLocationId());
                         return new PostLocationNotFoundException(postCreateRequestDTO.getLocationId());
                     });
             post.setLocation(location);
+            log.info("Location successfully associated with post: locationId={}", location.getLocationId());
+        } else {
+            log.debug("No location specified for post creation");
         }
 
-        log.debug("Fetching categories for post: {}", postCreateRequestDTO.getCategoryIds());
+        log.debug("Validating and fetching categories: categoryIds={}", postCreateRequestDTO.getCategoryIds());
         Set<Category> categories = new HashSet<>(categoryRepository.findAllById(postCreateRequestDTO.getCategoryIds()));
         if (categories.size() != postCreateRequestDTO.getCategoryIds().size()) {
-            log.error("Some categories not found for IDs: {}", postCreateRequestDTO.getCategoryIds());
+            log.error("Category validation failed: requested={}, found={}, missingCategories={}",
+                     postCreateRequestDTO.getCategoryIds().size(),
+                     categories.size(),
+                     postCreateRequestDTO.getCategoryIds().stream()
+                             .filter(id -> categories.stream().noneMatch(cat -> cat.getCategoryId().equals(id)))
+                             .collect(Collectors.toList()));
             throw new PostCategoryNotFoundException();
         }
         categories.forEach(post::addCategory);
+        log.info("Successfully validated and associated {} categories with post", categories.size());
 
-        log.debug("Saving post entity to repository");
+        log.debug("Persisting post entity to database");
         Post savedPost = postRepository.save(post);
+        log.info("Post entity successfully saved: postId={}, title='{}'", savedPost.getPostId(), savedPost.getTitle());
 
         // 4. Now that savedPost.getPostId() is not null, process the media
         if (postCreateRequestDTO.getMediaDetails() != null && !postCreateRequestDTO.getMediaDetails().isEmpty()) {
-            log.debug("Processing media details for post");
+            log.info("Processing {} media items for post", postCreateRequestDTO.getMediaDetails().size());
             List<PostMedia> mediaItems = postMapper.toPostMediaEntities(postCreateRequestDTO.getMediaDetails());
+
             for (PostMedia mediaItem : mediaItems) {
                 log.debug("Validating media URL: {}", mediaItem.getMediaUrl());
                 if (!imageStorageService.validatePostImageUrl(mediaItem.getMediaUrl())) {
-                    log.error("Invalid or untrusted media URL: {}", mediaItem.getMediaUrl());
+                    log.error("Media validation failed: invalid or untrusted URL={}", mediaItem.getMediaUrl());
                     throw new IllegalArgumentException("Invalid or untrusted media URL: " + mediaItem.getMediaUrl());
                 }
+
                 String publicId = imageStorageService.extractPublicIdFromUrl(mediaItem.getMediaUrl());
-                log.debug("Extracted publicId from media URL: {}", publicId);
+                log.debug("Extracted publicId from media URL: publicId={}", publicId);
+
                 MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
                         .orElseThrow(() -> {
-                            log.error("Media asset not tracked for public_id: {}", publicId);
+                            log.error("Media asset tracking failed: publicId={} not found in tracker database", publicId);
                             return new IllegalStatePostActionException("Media asset not tracked for public_id: " + publicId);
                         });
 
                 if (tracker.getStatus() != MediaAssetStatus.PENDING) {
-                    log.error("Media asset must be in PENDING state to be associated. Current state: {}", tracker.getStatus());
+                    log.error("Media asset state validation failed: expected=PENDING, actual={}, publicId={}",
+                             tracker.getStatus(), publicId);
                     throw new IllegalStatePostActionException("Media asset must be in PENDING state to be associated. Current state: " + tracker.getStatus());
                 }
 
-                log.debug("Associating media with post");
+                log.debug("Associating media with post: publicId={}, mediaType={}", publicId, mediaItem.getMediaType());
                 savedPost.addMedia(mediaItem);
 
                 tracker.setStatus(MediaAssetStatus.ASSOCIATED);
                 tracker.setContentType(ContentType.POST.name());
                 tracker.setContentId(savedPost.getPostId());
-                log.debug("Updated media asset tracker for publicId: {}", publicId);
+                log.info("Media asset successfully associated: publicId={}, postId={}", publicId, savedPost.getPostId());
             }
-            log.debug("Saving post with associated media");
+
+            log.debug("Persisting post with associated media to database");
             postRepository.save(savedPost);
+            log.info("Post with {} media items successfully saved", mediaItems.size());
+        } else {
+            log.debug("No media items to process for this post");
         }
 
         // 5. Logic for user tagging can now use the generated postId
         if (postCreateRequestDTO.getTaggedUserIds() != null && !postCreateRequestDTO.getTaggedUserIds().isEmpty()) {
-            log.debug("Processing tagged user IDs: {}", postCreateRequestDTO.getTaggedUserIds());
+            log.info("Processing user tags: {} users to be tagged in post", postCreateRequestDTO.getTaggedUserIds().size());
+
             for (Long taggedUserId : postCreateRequestDTO.getTaggedUserIds()) {
-                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO();
-                tagRequest.setTaggedUserId(taggedUserId);
-                tagRequest.setContentId(savedPost.getPostId());
-                tagRequest.setContentType(ContentType.POST);
-                log.debug("Creating user tag for userId: {}", taggedUserId);
-                userTagService.createUserTag(tagRequest);
+                try {
+                    CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO();
+                    tagRequest.setTaggedUserId(taggedUserId);
+                    tagRequest.setContentId(savedPost.getPostId());
+                    tagRequest.setContentType(ContentType.POST);
+
+                    log.debug("Creating user tag: taggedUserId={}, postId={}", taggedUserId, savedPost.getPostId());
+                    userTagService.createUserTag(tagRequest);
+                    log.info("User tag successfully created: taggedUserId={}, postId={}", taggedUserId, savedPost.getPostId());
+
+                } catch (Exception e) {
+                    log.warn("User tag creation failed for taggedUserId={}, postId={}, error={}",
+                            taggedUserId, savedPost.getPostId(), e.getMessage());
+                    // Continue processing other tags even if one fails
+                }
             }
+        } else {
+            log.debug("No user tags to process for this post");
         }
 
-        log.info("User '{}' created new post with ID: {}", currentUser.getUsername(), savedPost.getPostId());
+        log.info("Post creation completed successfully: postId={}, userId={}, username='{}', title='{}'",
+                savedPost.getPostId(), userId, currentUser.getUsername(), savedPost.getTitle());
         return postMapper.toDTO(savedPost);
     }
 
@@ -418,3 +452,4 @@ public class PostServiceImpl implements PostService {
         return PaginatedResponse.fromPage(dtoPage);
     }
 }
+

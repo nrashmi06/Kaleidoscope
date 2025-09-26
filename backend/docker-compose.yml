@@ -16,6 +16,11 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   app:
     build:
@@ -28,13 +33,23 @@ services:
         condition: service_healthy
       elasticsearch:
         condition: service_started
+      logstash:
+        condition: service_started
     env_file:
       - .env
+    environment:
+      # Docker-specific overrides (only used when running app in Docker)
+      - LOGSTASH_HOST=logstash
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTIC_SEARCH_URL=http://elasticsearch:9200
+      - SPRING_DATA_ELASTICSEARCH_CLIENT_REACTIVE_ENDPOINTS=elasticsearch:9200
     ports:
       - "${APP_PORT:-8080}:8080"
     networks:
       - app-network
     restart: unless-stopped
+    profiles:
+      - full-docker  # Only start this when using docker profile
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -42,6 +57,8 @@ services:
     environment:
       - "discovery.type=single-node"
       - "xpack.security.enabled=false"
+      # Increased Java heap size for stability
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ports:
       - "9200:9200"
     networks:
@@ -49,6 +66,37 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          # Increased memory limit
+          memory: 2G
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: kaleidoscope-logstash
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+      - "5044:5044"
+      - "9600:9600"  # monitoring API
+    networks:
+      - app-network
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - "ELASTICSEARCH_HOST=elasticsearch:9200"
+      - "xpack.monitoring.enabled=false"
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+    depends_on:
+      - elasticsearch
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
@@ -59,7 +107,14 @@ services:
       - app-network
     depends_on:
       - elasticsearch
+      - logstash
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          # Increased memory limit
+          memory: 1G
 
 volumes:
   postgres_data:
