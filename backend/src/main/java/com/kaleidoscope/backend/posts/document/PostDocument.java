@@ -60,6 +60,13 @@ public class PostDocument {
     @Field(type = FieldType.Long)
     private long commentCount;
 
+    // --- ML Image Tags and People Count ---
+    @Field(type = FieldType.Keyword)
+    private List<String> mlImageTags;
+
+    @Field(type = FieldType.Integer)
+    private Integer peopleCount;
+
     // --- Supporting Nested Classes ---
 
     @Data
