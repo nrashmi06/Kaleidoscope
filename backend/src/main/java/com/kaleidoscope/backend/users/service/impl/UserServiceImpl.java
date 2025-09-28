@@ -1,5 +1,8 @@
 package com.kaleidoscope.backend.users.service.impl;
 
+import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
+import com.kaleidoscope.backend.ml.dto.ProfilePictureEventDTO;
+import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
@@ -11,6 +14,7 @@ import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.GrantedAuthority;
@@ -29,11 +33,14 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final ImageStorageService imageStorageService;
+    private final RedisStreamPublisher redisStreamPublisher;
 
     public UserServiceImpl(UserRepository userRepository,
-                           ImageStorageService imageStorageService) {
+                           ImageStorageService imageStorageService,
+                           RedisStreamPublisher redisStreamPublisher) {
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
+        this.redisStreamPublisher = redisStreamPublisher;
     }
 
     @Override
@@ -141,6 +148,19 @@ public class UserServiceImpl implements UserService {
             }
 
             user = userRepository.save(user);
+
+            if (newProfilePictureUrl != null && !newProfilePictureUrl.trim().isEmpty()) {
+                // Publish to Redis Stream for ML processing - only when image URL exists
+                log.info("Publishing profile picture event for user {}: imageUrl={}", userId, newProfilePictureUrl);
+                ProfilePictureEventDTO event = ProfilePictureEventDTO.builder()
+                    .userId(userId)
+                    .imageUrl(newProfilePictureUrl)
+                    .correlationId(MDC.get("correlationId"))
+                    .build();
+                redisStreamPublisher.publish(RedisStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
+            } else {
+                log.debug("Skipping Redis Stream publishing for user {} - no profile picture URL", userId);
+            }
 
             // Delete old images after successful save
             if (newProfilePictureUrl != null && oldProfilePictureUrl != null && !oldProfilePictureUrl.isEmpty()) {

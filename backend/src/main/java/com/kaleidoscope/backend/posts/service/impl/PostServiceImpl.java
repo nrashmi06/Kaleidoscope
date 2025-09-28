@@ -1,6 +1,9 @@
 package com.kaleidoscope.backend.posts.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
+import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
+import com.kaleidoscope.backend.ml.dto.PostImageEventDTO;
+import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
@@ -32,6 +35,7 @@ import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -58,6 +62,7 @@ public class PostServiceImpl implements PostService {
     private final FollowRepository followRepository;
     private final UserTagService userTagService;
     private final UserTagRepository userTagRepository;
+    private final RedisStreamPublisher redisStreamPublisher;
 
     @Override
     @Transactional
@@ -152,6 +157,18 @@ public class PostServiceImpl implements PostService {
             log.debug("Persisting post with associated media to database");
             postRepository.save(savedPost);
             log.info("Post with {} media items successfully saved", mediaItems.size());
+
+            // Iterate through the saved media and publish an event for each one
+            log.info("Publishing {} post image events to Redis Stream for post {}", savedPost.getMedia().size(), savedPost.getPostId());
+            savedPost.getMedia().forEach(mediaItem -> {
+                PostImageEventDTO event = PostImageEventDTO.builder()
+                    .postId(savedPost.getPostId())
+                    .mediaId(mediaItem.getMediaId())
+                    .imageUrl(mediaItem.getMediaUrl())
+                    .correlationId(MDC.get("correlationId"))
+                    .build();
+                redisStreamPublisher.publish(RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
+            });
         } else {
             log.debug("No media items to process for this post");
         }
@@ -239,6 +256,26 @@ public class PostServiceImpl implements PostService {
 
         Post savedPost = postRepository.save(post);
         log.info("User '{}' updated post with ID: {}", post.getUser().getUsername(), savedPost.getPostId());
+
+        // Publish update event to Redis Stream for post updates - only if there are images
+        if (!savedPost.getMedia().isEmpty()) {
+            // Get the first media item with its ID and URL
+            PostMedia firstMedia = savedPost.getMedia().stream().findFirst().orElse(null);
+            if (firstMedia != null && firstMedia.getMediaUrl() != null) {
+                log.info("Publishing post update event to Redis Stream for post {} with media ID {}",
+                        savedPost.getPostId(), firstMedia.getMediaId());
+                PostImageEventDTO event = PostImageEventDTO.builder()
+                        .postId(savedPost.getPostId())
+                        .mediaId(firstMedia.getMediaId()) // Include media ID for tracking ML insights
+                        .imageUrl(firstMedia.getMediaUrl())
+                        .correlationId(MDC.get("correlationId"))
+                        .build();
+                redisStreamPublisher.publish(RedisStreamConstants.POST_UPDATE_STREAM, event);
+            }
+        } else {
+            log.debug("Skipping Redis Stream publishing for post update {} - no media present", savedPost.getPostId());
+        }
+
         return postMapper.toDTO(savedPost);
     }
 
@@ -281,6 +318,7 @@ public class PostServiceImpl implements PostService {
 
         Set<Long> incomingMediaIds = new HashSet<>();
         List<PostMedia> finalMediaList = new ArrayList<>();
+        List<PostMedia> newMediaItems = new ArrayList<>();
 
         for (MediaUploadRequestDTO dto : mediaDtos) {
             if (dto.getMediaId() == null) {
@@ -299,6 +337,7 @@ public class PostServiceImpl implements PostService {
 
                 PostMedia newMedia = postMapper.toPostMediaEntities(Collections.singletonList(dto)).get(0);
                 finalMediaList.add(newMedia);
+                newMediaItems.add(newMedia);
 
                 tracker.setStatus(MediaAssetStatus.ASSOCIATED);
                 tracker.setContentType(ContentType.POST.name());
@@ -330,6 +369,20 @@ public class PostServiceImpl implements PostService {
         post.getMedia().clear();
         for(PostMedia media : finalMediaList) {
             post.addMedia(media);
+        }
+
+        // Publish Redis Stream events for newly added media during update
+        if (!newMediaItems.isEmpty()) {
+            log.info("Publishing {} new media events to Redis Stream for post update {}", newMediaItems.size(), post.getPostId());
+            newMediaItems.forEach(mediaItem -> {
+                PostImageEventDTO event = PostImageEventDTO.builder()
+                    .postId(post.getPostId())
+                    .mediaId(mediaItem.getMediaId())
+                    .imageUrl(mediaItem.getMediaUrl())
+                    .correlationId(MDC.get("correlationId"))
+                    .build();
+                redisStreamPublisher.publish(RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
+            });
         }
     }
 
