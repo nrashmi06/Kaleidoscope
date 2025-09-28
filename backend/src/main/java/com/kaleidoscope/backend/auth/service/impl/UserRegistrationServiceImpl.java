@@ -8,6 +8,9 @@ import com.kaleidoscope.backend.auth.model.EmailVerification;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.auth.service.UserRegistrationService;
+import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
+import com.kaleidoscope.backend.ml.dto.ProfilePictureEventDTO;
+import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.enums.Theme;
@@ -23,6 +26,7 @@ import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -46,6 +50,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
     private final EmailService emailService;
+    private final RedisStreamPublisher redisStreamPublisher;
 
     @Override
     @Transactional
@@ -115,10 +120,32 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
                 user.setProfilePictureUrl(profilePictureUrl);
                 userRepository.save(user);
                 log.debug("Profile picture uploaded for user ID: {}", user.getUserId());
+
+                // Publish profile picture event to Redis Stream
+                publishProfilePictureEvent(user, profilePictureUrl);
             } catch (Exception e) {
                 log.error("Failed to upload profile picture for user ID: {}", user.getUserId(), e);
                 throw new ImageStorageException("Failed to upload profile picture");
             }
+        }
+    }
+
+    private void publishProfilePictureEvent(User user, String profilePictureUrl) {
+        if (profilePictureUrl != null && !profilePictureUrl.trim().isEmpty()) {
+            try {
+                log.info("Publishing profile picture event for newly registered user {}: imageUrl={}", user.getUserId(), profilePictureUrl);
+                ProfilePictureEventDTO event = ProfilePictureEventDTO.builder()
+                    .userId(user.getUserId())
+                    .imageUrl(profilePictureUrl)
+                    .correlationId(MDC.get("correlationId"))
+                    .build();
+
+                redisStreamPublisher.publish(RedisStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
+            } catch (Exception e) {
+                log.error("Failed to publish profile picture event to Redis Stream for user ID: {}", user.getUserId(), e);
+            }
+        } else {
+            log.debug("Skipping Redis Stream publishing for newly registered user {} - no profile picture URL", user.getUserId());
         }
     }
 

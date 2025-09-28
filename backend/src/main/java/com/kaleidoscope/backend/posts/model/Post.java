@@ -19,12 +19,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "posts", indexes = {
-        @Index(name = "idx_post_user_id", columnList = "user_id"),
-        @Index(name = "idx_post_status", columnList = "status"),
-        @Index(name = "idx_post_visibility", columnList = "visibility"),
-        @Index(name = "idx_post_created_at", columnList = "created_at")
-})
+@Table(name = "posts")
 @EntityListeners(AuditingEntityListener.class)
 @SQLDelete(sql = "UPDATE posts SET deleted_at = NOW() WHERE post_id = ?")
 @Where(clause = "deleted_at IS NULL")

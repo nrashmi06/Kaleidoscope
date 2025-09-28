@@ -39,7 +39,10 @@ services:
           memory: 256M
 
   app:
-    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_REGISTRY:-rajay04}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
       db:
@@ -63,6 +66,8 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+    profiles:
+      - full-docker
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0

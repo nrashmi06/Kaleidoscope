@@ -95,7 +95,6 @@ public class Blog {
     @Builder.Default
     private Set<BlogTag> taggedBlogs = new HashSet<>();
 
-
     @PrePersist
     @PreUpdate
     private void calculateReadStats() {
