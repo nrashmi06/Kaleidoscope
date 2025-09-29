@@ -3,20 +3,23 @@
 ## Overview
 Social following system with follow/unfollow capabilities, follower/following lists, and relationship management for building connections in the Kaleidoscope application.
 
+**Base URL**: `/api/follows`
+
 ## Created Components
 
 ### 1. Routes (FollowRoutes.java)
 - `FOLLOW`: POST/DELETE `/api/follows`
-- `FOLLOWERS`: GET `/api/follows/followers`
+- `FOLLOWERS`: GET `/api/follows/followers`  
 - `FOLLOWING`: GET `/api/follows/following`
 
 ### 2. DTOs
-- **Response**: `FollowListResponseDTO`, `UserDetailsSummaryResponseDTO`
+- **Response**: `FollowListResponseDTO` (users, currentPage, totalPages, totalElements)
+- **User Details**: `UserDetailsSummaryResponseDTO` (userId, email, username, accountStatus, profilePictureUrl)
 
 ### 3. Features
 - Follow/unfollow users with request parameter approach
-- Paginated follower and following lists
-- User summary information in follow lists
+- Paginated follower and following lists with default size of 10
+- User summary information in follow lists including profile pictures
 - Unique follow relationships with database constraints
 
 ### 4. Model
@@ -25,8 +28,9 @@ Social following system with follow/unfollow capabilities, follower/following li
 - Automatic timestamp tracking with `@PrePersist`
 
 ### 5. Security
-- Authentication required for all operations
+- Authentication required for all operations (`@PreAuthorize("isAuthenticated()")`)
 - Users can only perform actions on behalf of themselves
+- Default page size: 10 items (`@PageableDefault(size = 10)`)
 
 ## API Endpoints
 
@@ -35,9 +39,17 @@ Social following system with follow/unfollow capabilities, follower/following li
 #### Follow Another User
 ```
 POST /api/follows?targetUserId=456
-Authorization: Bearer token required
+Authorization: Bearer <accessToken>
+```
 
-Response: 200 OK
+**cURL Example**:
+```bash
+curl -X POST "http://localhost:8080/kaleidoscope/api/follows?targetUserId=456" \
+  -H "Authorization: Bearer your-jwt-token"
+```
+
+**Response**: `200 OK`
+```json
 {
   "success": true,
   "message": "Successfully followed user",
@@ -66,9 +78,17 @@ Response: 200 OK
 #### Unfollow Previously Followed User
 ```
 DELETE /api/follows?targetUserId=456
-Authorization: Bearer token required
+Authorization: Bearer <accessToken>
+```
 
-Response: 200 OK
+**cURL Example**:
+```bash
+curl -X DELETE "http://localhost:8080/kaleidoscope/api/follows?targetUserId=456" \
+  -H "Authorization: Bearer your-jwt-token"
+```
+
+**Response**: `200 OK`
+```json
 {
   "success": true,
   "message": "Successfully unfollowed user",
@@ -92,18 +112,26 @@ Response: 200 OK
 
 ### 3. Get Followers
 
-#### Get List of User's Followers
+#### Get List of User's Followers (Paginated)
 ```
 GET /api/follows/followers?userId=456&page=0&size=10&sort=createdAt,desc
-Authorization: Bearer token required
+Authorization: Bearer <accessToken>
+```
 
-Query Parameters:
-- userId (required): User ID to get followers for
-- page (optional): Page number (default: 0)
-- size (optional): Page size (default: 10)
-- sort (optional): Sort criteria (default: varies)
+**Query Parameters:**
+- `userId` (required): User ID to get followers for
+- `page` (optional): Page number (default: 0)
+- `size` (optional): Page size (default: 10)
+- `sort` (optional): Sort criteria (default: varies)
 
-Response: 200 OK
+**cURL Example**:
+```bash
+curl -X GET "http://localhost:8080/kaleidoscope/api/follows/followers?userId=456&page=0&size=10" \
+  -H "Authorization: Bearer your-jwt-token"
+```
+
+**Response**: `200 OK`
+```json
 {
   "success": true,
   "message": "Followers retrieved successfully",
@@ -113,13 +141,15 @@ Response: 200 OK
         "userId": 789,
         "email": "jane.doe@example.com",
         "username": "janedoe",
-        "accountStatus": "ACTIVE"
+        "accountStatus": "ACTIVE",
+        "profilePictureUrl": "https://your-cdn.com/profiles/jane-profile.jpg"
       },
       {
         "userId": 890,
         "email": "mike.smith@example.com",
         "username": "mikesmith",
-        "accountStatus": "ACTIVE"
+        "accountStatus": "ACTIVE",
+        "profilePictureUrl": "https://your-cdn.com/profiles/mike-profile.jpg"
       }
     ],
     "currentPage": 0,
@@ -132,32 +162,41 @@ Response: 200 OK
 }
 ```
 
-**Response Structure:**
+**Response Structure** (`FollowListResponseDTO`):
 - `users`: List of `UserDetailsSummaryResponseDTO` objects
 - `currentPage`: Current page number
 - `totalPages`: Total number of pages
 - `totalElements`: Total number of followers
 
-**User Details Include:**
+**User Details Include** (`UserDetailsSummaryResponseDTO`):
 - `userId`: User's unique identifier
 - `email`: User's email address
 - `username`: User's username
 - `accountStatus`: Current account status
+- `profilePictureUrl`: User's profile picture URL
 
 ### 4. Get Following
 
-#### Get List of Users Someone is Following
+#### Get List of Users Someone is Following (Paginated)
 ```
 GET /api/follows/following?userId=456&page=0&size=10&sort=createdAt,desc
-Authorization: Bearer token required
+Authorization: Bearer <accessToken>
+```
 
-Query Parameters:
-- userId (required): User ID to get following list for
-- page (optional): Page number (default: 0)
-- size (optional): Page size (default: 10)
-- sort (optional): Sort criteria (default: varies)
+**Query Parameters:**
+- `userId` (required): User ID to get following list for
+- `page` (optional): Page number (default: 0)
+- `size` (optional): Page size (default: 10)
+- `sort` (optional): Sort criteria (default: varies)
 
-Response: 200 OK
+**cURL Example**:
+```bash
+curl -X GET "http://localhost:8080/kaleidoscope/api/follows/following?userId=456&page=0&size=10" \
+  -H "Authorization: Bearer your-jwt-token"
+```
+
+**Response**: `200 OK`
+```json
 {
   "success": true,
   "message": "Following list retrieved successfully",
@@ -167,13 +206,15 @@ Response: 200 OK
         "userId": 123,
         "email": "john.doe@example.com",
         "username": "johndoe",
-        "accountStatus": "ACTIVE"
+        "accountStatus": "ACTIVE",
+        "profilePictureUrl": "https://your-cdn.com/profiles/john-profile.jpg"
       },
       {
         "userId": 234,
         "email": "alice.wilson@example.com",
         "username": "alicewilson",
-        "accountStatus": "ACTIVE"
+        "accountStatus": "ACTIVE",
+        "profilePictureUrl": "https://your-cdn.com/profiles/alice-profile.jpg"
       }
     ],
     "currentPage": 0,
@@ -187,7 +228,7 @@ Response: 200 OK
 ```
 
 **Response Structure:**
-- Same structure as followers endpoint
+- Same structure as followers endpoint (`FollowListResponseDTO`)
 - Returns users that the specified user is following
 - Includes pagination information for large lists
 
@@ -228,20 +269,18 @@ public class Follow {
 - All endpoints require valid JWT token
 - Uses `@PreAuthorize("isAuthenticated()")` for all operations
 
+### Pagination
+- Default page size: 10 items (`@PageableDefault(size = 10)`)
+- Configurable page size via request parameters
+- Returns complete pagination metadata
+
 ### Business Logic
 - Users cannot follow themselves (handled in service layer)
 - Follow relationships are unique per user pair
 - Pagination prevents large data exposure
 
-## Error Handling
-
-### Custom Exceptions
-Your application includes specific follow-related exceptions:
-- `UserAlreadyFollowedException`: When trying to follow already followed user
-- `SelfFollowNotAllowedException`: When trying to follow yourself
-- `FollowRelationshipNotFoundException`: When follow relationship doesn't exist
-
-### Standard Error Response
+## Error Response Format
+All endpoints return standardized error responses:
 ```json
 {
   "success": false,
@@ -249,7 +288,7 @@ Your application includes specific follow-related exceptions:
   "data": null,
   "errors": ["Specific error details"],
   "timestamp": 1751455561337,
-  "path": "/api/follows/endpoint"
+  "path": "/api/follows/{endpoint}"
 }
 ```
 
@@ -259,25 +298,36 @@ Your application includes specific follow-related exceptions:
 - **401 UNAUTHORIZED**: Authentication required
 - **404 NOT_FOUND**: User not found
 
-## Bruno API Test Suite
-
-Your Bruno API test collection may include follow-related tests in the users folder or similar location for testing:
-- Follow user functionality
-- Unfollow user functionality
-- Get followers with pagination
-- Get following with pagination
-
 ## Service Implementation
 
-### Key Methods
+### Key Methods (FollowService)
 - `followUser(Long targetUserId)`: Creates follow relationship
 - `unfollowUser(Long targetUserId)`: Removes follow relationship
 - `getFollowers(Long userId, Pageable pageable)`: Returns paginated followers
 - `getFollowing(Long userId, Pageable pageable)`: Returns paginated following list
 
-### Pagination
-- Default page size: 10 items
-- Configurable via `@PageableDefault(size = 10)`
-- Returns complete pagination metadata
+### Controller Implementation (FollowController)
+- Implements `FollowApi` interface for Swagger documentation
+- Uses `@RequestParam` for targetUserId and userId parameters
+- Returns standardized `ApiResponse<T>` wrapper
+- Includes proper timestamp and path information
+
+## Bruno API Test Suite
+Located under `Kaleidoscope-api-test/users/` or similar:
+- Follow user functionality testing
+- Unfollow user functionality testing
+- Get followers with pagination testing
+- Get following with pagination testing
+
+## Features Implemented
+✅ Follow/unfollow users with request parameters  
+✅ Paginated follower and following lists  
+✅ User summary information with profile pictures  
+✅ Unique follow relationships with database constraints  
+✅ Authentication required for all operations  
+✅ Standardized API response format  
+✅ Default pagination (10 items per page)  
+✅ Swagger documentation via FollowApi interface  
+✅ Context path support (/kaleidoscope)
 
 This follow management system provides essential social networking capabilities with proper relationship management, pagination, and security controls for the Kaleidoscope application.
