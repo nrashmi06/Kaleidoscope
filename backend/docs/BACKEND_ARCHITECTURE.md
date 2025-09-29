@@ -178,10 +178,20 @@ public class UserController {
 ```
 
 ### 3. **Validation**
+Example of validation usage:
 ```java
-@Valid @RequestBody CreateUserDTO request
-// Combined with DTO validation annotations
-@NotNull @Size(min = 3, max = 50) private String username;
+// Valid request body with DTO validation annotations
+@PostMapping("/api/users")
+public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody CreateUserDTO request) {
+    // Controller method implementation
+}
+
+// Example DTO validation annotations
+public class CreateUserDTO {
+    @NotNull 
+    @Size(min = 3, max = 50) 
+    private String username;
+}
 ```
 
 ### 4. **Exception Handling**
@@ -189,15 +199,16 @@ public class UserController {
 @ControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleValidation(...) {
+    public ResponseEntity<ApiResponse<Object>> handleValidation() {
         // Centralized error handling
+        return ResponseEntity.badRequest().build();
     }
 }
 ```
 
 ## Security Architecture
 
-> 📖 **For detailed authentication system documentation, see [AUTHENTICATION_SYSTEM.md](./AUTHENTICATION_SYSTEM.md)**
+For detailed authentication system documentation, see [AUTHENTICATION_SYSTEM.md](AUTHENTICATION_SYSTEM.md)
 
 ### 1. **JWT Authentication**
 - **Access Tokens**: Short-lived (configurable expiration)
@@ -205,9 +216,19 @@ public class GlobalExceptionHandler {
 - **Token Renewal**: Automatic refresh mechanism
 
 ### 2. **Method-Level Security**
+Example security annotations:
 ```java
-@PreAuthorize("isAuthenticated()")  // Requires authentication
-@PreAuthorize("hasRole('ROLE_ADMIN')")  // Requires admin role
+// Requires authentication
+@PreAuthorize("isAuthenticated()")
+public ResponseEntity<PostResponseDTO> getPost() {
+    // Method implementation
+}
+
+// Requires admin role  
+@PreAuthorize("hasRole('ROLE_ADMIN')")
+public ResponseEntity<AdminResponseDTO> adminFunction() {
+    // Admin method implementation
+}
 ```
 
 ### 3. **Password Security**
