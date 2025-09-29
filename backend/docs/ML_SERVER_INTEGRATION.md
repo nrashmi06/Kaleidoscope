@@ -105,14 +105,90 @@ sequenceDiagram
     participant RedisPublisher
     participant RedisStream
     participant MLServer
+    participant Database
 
-    PostService->>RedisPublisher: publish(streamName, eventDTO)
-    RedisPublisher->>RedisPublisher: Convert DTO to Map
-    RedisPublisher->>RedisStream: Add message to stream
-    RedisStream-->>RedisPublisher: Return messageId
-    RedisPublisher-->>PostService: Success/Failure
-    RedisStream->>MLServer: Notify of new message
-    MLServer->>RedisStream: Consume message
+    PostService->>RedisPublisher: publishPostImageEvent(postId, mediaId, imageUrl)
+    RedisPublisher->>RedisStream: Add message to post-image-processing
+    Note over RedisStream: Message queued with correlation ID
+    MLServer->>RedisStream: Consume message from post-image-processing
+    MLServer->>MLServer: Process image (AI analysis)
+    MLServer->>RedisStream: Publish results to ml-insights-results
+    PostService->>RedisStream: Consume results from ml-insights-results
+    PostService->>Database: Store AI insights
+```
+
+### Event Publishing Examples
+
+#### Post Image Processing
+When a new post with media is created:
+
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class PostService {
+    private final RedisStreamPublisher redisStreamPublisher;
+    
+    public Post createPost(CreatePostDto dto, User author) {
+        Post post = postRepository.save(createPostEntity(dto, author));
+        
+        // Publish media for AI processing
+        post.getMedia().forEach(media -> {
+            PostImageEventDTO event = PostImageEventDTO.builder()
+                .postId(post.getPostId())
+                .mediaId(media.getMediaId())
+                .imageUrl(media.getFileUrl())
+                .correlationId(MDC.get("correlationId"))
+                .build();
+                
+            redisStreamPublisher.publish(
+                RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, 
+                event
+            );
+            
+            log.info("Published post image for ML processing - postId: {}, mediaId: {}", 
+                    post.getPostId(), media.getMediaId());
+        });
+        
+        return post;
+    }
+}
+```
+
+#### Profile Picture Processing
+When a user updates their profile picture:
+
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class UserService {
+    private final RedisStreamPublisher redisStreamPublisher;
+    
+    public User updateProfilePicture(Long userId, String imageUrl) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
+            
+        user.setProfilePictureUrl(imageUrl);
+        User savedUser = userRepository.save(user);
+        
+        // Publish for ML processing
+        ProfilePictureEventDTO event = ProfilePictureEventDTO.builder()
+            .userId(userId)
+            .imageUrl(imageUrl)
+            .correlationId(MDC.get("correlationId"))
+            .build();
+            
+        redisStreamPublisher.publish(
+            RedisStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM,
+            event
+        );
+        
+        log.info("Published profile picture for ML processing - userId: {}", userId);
+        
+        return savedUser;
+    }
+}
 ```
 
 ## Consumer Implementation (ML Server → Backend)
