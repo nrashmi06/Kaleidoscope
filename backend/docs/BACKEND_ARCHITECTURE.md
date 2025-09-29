@@ -197,6 +197,8 @@ public class GlobalExceptionHandler {
 
 ## Security Architecture
 
+> 📖 **For detailed authentication system documentation, see [AUTHENTICATION_SYSTEM.md](./AUTHENTICATION_SYSTEM.md)**
+
 ### 1. **JWT Authentication**
 - **Access Tokens**: Short-lived (configurable expiration)
 - **Refresh Tokens**: Long-lived, stored as HTTP-only cookies
