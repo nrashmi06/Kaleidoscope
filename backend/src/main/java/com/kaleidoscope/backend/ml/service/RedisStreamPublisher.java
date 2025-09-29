@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.ml.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +8,7 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,9 +29,16 @@ public class RedisStreamPublisher {
         try {
             log.info("Publishing event to Redis Stream '{}': eventType={}", streamName, eventDto.getClass().getSimpleName());
 
-            // Convert the DTO to a Map
-            @SuppressWarnings("unchecked")
-            Map<String, String> messagePayload = objectMapper.convertValue(eventDto, Map.class);
+            // Convert the DTO to a Map with proper String conversion
+            Map<String, Object> rawMap = objectMapper.convertValue(eventDto, new TypeReference<Map<String, Object>>() {});
+
+            // Convert all values to Strings to ensure Redis compatibility
+            Map<String, String> messagePayload = new HashMap<>();
+            for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                messagePayload.put(key, value != null ? value.toString() : null);
+            }
 
             MapRecord<String, String, String> record = MapRecord.create(streamName, messagePayload);
             String messageId = stringRedisTemplate.opsForStream().add(record).getValue();
