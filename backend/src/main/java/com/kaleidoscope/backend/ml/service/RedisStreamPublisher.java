@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +17,11 @@ public class RedisStreamPublisher {
 
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+
+    // Add configuration for critical vs non-critical events
+    private static final Set<String> CRITICAL_STREAMS = Set.of(
+        "media-ai-insights", "face-detection", "face-recognition"
+    );
 
     public void publish(String streamName, Object eventDto) {
         try {
@@ -33,8 +39,38 @@ public class RedisStreamPublisher {
         } catch (Exception e) {
             log.error("Failed to publish event to Redis Stream '{}': eventType={}, error={}",
                      streamName, eventDto.getClass().getSimpleName(), e.getMessage(), e);
-            // Note: We don't rethrow the exception to avoid breaking the main business flow
-            // ML processing is typically non-critical for the core application functionality
+
+            // For critical streams, rethrow to ensure caller handles the failure
+            if (CRITICAL_STREAMS.contains(streamName)) {
+                throw new RuntimeException("Failed to publish critical event to stream: " + streamName, e);
+            }
+            // Non-critical events can be logged and continue
+        }
+    }
+
+    // Add method for publishing with retry
+    public void publishWithRetry(String streamName, Object eventDto, int maxRetries) {
+        int attempts = 0;
+        while (attempts < maxRetries) {
+            try {
+                publish(streamName, eventDto);
+                return; // Success
+            } catch (Exception e) {
+                attempts++;
+                if (attempts >= maxRetries) {
+                    log.error("Failed to publish after {} attempts to stream '{}': {}",
+                             maxRetries, streamName, e.getMessage());
+                    throw e;
+                }
+
+                // Exponential backoff
+                try {
+                    Thread.sleep(1000L * attempts);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during retry backoff", ie);
+                }
+            }
         }
     }
 }
