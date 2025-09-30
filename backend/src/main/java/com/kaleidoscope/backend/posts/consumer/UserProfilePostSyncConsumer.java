@@ -1,8 +1,7 @@
-package com.kaleidoscope.backend.users.consumer;
+package com.kaleidoscope.backend.posts.consumer;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
-import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
 import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.users.model.User;
@@ -13,15 +12,12 @@ import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.document.Document;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import org.springframework.data.elasticsearch.core.query.UpdateQuery;
-import org.springframework.data.redis.connection.stream.ObjectRecord;
+import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Redis Stream consumer for synchronizing user profile changes to PostDocument author fields
@@ -31,18 +27,17 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class UserProfilePostSyncConsumer implements StreamListener<String, ObjectRecord<String, Map<String, Object>>> {
+public class UserProfilePostSyncConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
     private final PostSearchRepository postSearchRepository;
     private final UserRepository userRepository;
     private final ElasticsearchTemplate elasticsearchTemplate;
 
     @Override
-    public void onMessage(ObjectRecord<String, Map<String, Object>> record) {
+    public void onMessage(MapRecord<String, String, String> record) {
         try {
-            Map<String, Object> payload = record.getValue();
-            Long userId = Long.valueOf(payload.get("userId").toString());
-            
+            Long userId = Long.valueOf(record.getValue().get("userId"));
+
             log.info("[UserProfilePostSyncConsumer] Processing profile sync for user {}", userId);
 
             // Fetch updated user details from database
@@ -87,6 +82,8 @@ public class UserProfilePostSyncConsumer implements StreamListener<String, Objec
                             .userId(updatedUser.getUserId())
                             .username(updatedUser.getUsername())
                             .profilePictureUrl(updatedUser.getProfilePictureUrl())
+                            .email(updatedUser.getEmail())
+                            .accountStatus(updatedUser.getAccountStatus() != null ? updatedUser.getAccountStatus().name() : null)
                             .build();
 
                     PostDocument updatedPost = post.toBuilder()
