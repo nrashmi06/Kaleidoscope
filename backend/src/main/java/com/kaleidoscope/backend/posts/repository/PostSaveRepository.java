@@ -3,7 +3,10 @@ package com.kaleidoscope.backend.posts.repository;
 import com.kaleidoscope.backend.posts.model.PostSave;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.users.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,10 +21,13 @@ public interface PostSaveRepository extends JpaRepository<PostSave, Long> {
     
     List<PostSave> findByUserOrderByCreatedAtDesc(User user);
     
+    Page<PostSave> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+
     List<PostSave> findByPostOrderByCreatedAtDesc(Post post);
     
     boolean existsByPostAndUser(Post post, User user);
     
+    @Modifying
     void deleteByPostAndUser(Post post, User user);
     
     @Query("SELECT COUNT(ps) FROM PostSave ps WHERE ps.post = :post")
