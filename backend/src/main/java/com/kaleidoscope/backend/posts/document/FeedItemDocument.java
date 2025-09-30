@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.shared.document;
+package com.kaleidoscope.backend.posts.document;
 
 import lombok.Builder;
 import lombok.Data;

@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.shared.repository.search;
+package com.kaleidoscope.backend.posts.repository.search;
 
-import com.kaleidoscope.backend.shared.document.RecommendationDocument;
+import com.kaleidoscope.backend.posts.document.RecommendationDocument;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Repository;
 

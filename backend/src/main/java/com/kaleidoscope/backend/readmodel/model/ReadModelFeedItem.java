@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.shared.model;
+package com.kaleidoscope.backend.readmodel.model;
 
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.users.model.User;

@@ -12,7 +12,7 @@ import com.kaleidoscope.backend.blogs.model.BlogMedia;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
@@ -66,7 +66,7 @@ public class BlogMapper {
             return null;
         }
 
-        UserSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
+        UserDetailsSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
         LocationResponseDTO locationDto = toLocationResponseDTO(blog.getLocation());
 
         return BlogCreationResponseDTO.builder()
@@ -92,8 +92,8 @@ public class BlogMapper {
             return null;
         }
 
-        UserSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
-        UserSummaryResponseDTO reviewerDto = toUserSummaryDTO(blog.getReviewer());
+        UserDetailsSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
+        UserDetailsSummaryResponseDTO reviewerDto = toUserSummaryDTO(blog.getReviewer());
         LocationResponseDTO locationDto = toLocationResponseDTO(blog.getLocation());
 
         long reactionCount = reactionRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
@@ -127,7 +127,7 @@ public class BlogMapper {
             return null;
         }
 
-        UserSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
+        UserDetailsSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
         String thumbnailUrl = getThumbnailUrl(blog);
 
         long reactionCount = reactionRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
@@ -165,13 +165,16 @@ public class BlogMapper {
         ).collect(Collectors.toList());
     }
 
-    private UserSummaryResponseDTO toUserSummaryDTO(User user) {
+    private UserDetailsSummaryResponseDTO toUserSummaryDTO(User user) {
         if (user == null) {
             return null;
         }
-        return UserSummaryResponseDTO.builder()
+        return UserDetailsSummaryResponseDTO.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())
+                .email(user.getEmail())
+                .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build();
     }
 

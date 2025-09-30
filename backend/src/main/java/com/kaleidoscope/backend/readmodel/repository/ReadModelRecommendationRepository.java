@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.shared.repository;
+package com.kaleidoscope.backend.readmodel.repository;
 
-import com.kaleidoscope.backend.shared.model.ReadModelRecommendation;
+import com.kaleidoscope.backend.readmodel.model.ReadModelRecommendation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

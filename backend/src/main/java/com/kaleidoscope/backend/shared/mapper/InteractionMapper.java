@@ -2,7 +2,7 @@ package com.kaleidoscope.backend.shared.mapper;
 
 import com.kaleidoscope.backend.shared.dto.response.CommentResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.ReactionResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.model.Comment;
@@ -30,12 +30,15 @@ public class InteractionMapper {
                 .tags(tags)
                 .build();
     }
-    private UserSummaryResponseDTO toUserDTO(User user) {
+    private UserDetailsSummaryResponseDTO toUserDTO(User user) {
         if (user == null) return null;
-        UserSummaryResponseDTO dto = new UserSummaryResponseDTO();
-        dto.setUserId(user.getUserId());
-        dto.setUsername(user.getUsername());
-        return dto;
+        return UserDetailsSummaryResponseDTO.builder()
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .accountStatus(user.getAccountStatus().name())
+                .profilePictureUrl(user.getProfilePictureUrl())
+                .build();
     }
 
     public ReactionResponseDTO toReactionSummary(Long contentId, ContentType contentType, ReactionType currentUserReaction, List<Object[]> countsRaw) {
