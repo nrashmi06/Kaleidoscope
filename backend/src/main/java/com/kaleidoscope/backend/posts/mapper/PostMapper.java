@@ -2,26 +2,26 @@ package com.kaleidoscope.backend.posts.mapper;
 
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
-import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostDetailResponseDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostMediaResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
+import com.kaleidoscope.backend.posts.service.PostViewService;
+import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.mapper.UserTagMapper;
-import com.kaleidoscope.backend.shared.repository.UserTagRepository;
-import com.kaleidoscope.backend.shared.repository.CommentRepository;
-import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
-import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.shared.repository.CommentRepository;
+import com.kaleidoscope.backend.shared.repository.ReactionRepository;
+import com.kaleidoscope.backend.shared.repository.UserTagRepository;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
+import com.kaleidoscope.backend.users.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -41,6 +41,8 @@ public class PostMapper {
     private CommentRepository commentRepository;
     @Autowired
     private ReactionRepository reactionRepository;
+    @Autowired
+    private PostViewService postViewService;
 
     public Post toEntity(PostCreateRequestDTO dto) {
         if (dto == null) {
@@ -175,6 +177,7 @@ public class PostMapper {
         // Get reaction and comment counts
         long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
         long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
+        long viewCount = postViewService.getViewCount(post.getPostId()); // Get Redis-optimized view count
 
         return PostDetailResponseDTO.builder()
                 .postId(post.getPostId())
@@ -214,6 +217,7 @@ public class PostMapper {
                 .taggedUsers(taggedUsers)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
+                .viewCount(viewCount) // Add view count to response
                 .currentUserReaction(currentUserReaction)
                 .build();
     }
@@ -241,6 +245,7 @@ public class PostMapper {
         // Get reaction and comment counts
         long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
         long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
+        long viewCount = postViewService.getViewCount(post.getPostId()); // Get Redis-optimized view count
 
         return PostSummaryResponseDTO.builder()
                 .postId(post.getPostId())
@@ -261,6 +266,7 @@ public class PostMapper {
                 .thumbnailUrl(thumbnailUrl)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
+                .viewCount(viewCount) // Add view count to response
                 .build();
     }
 }

@@ -19,6 +19,7 @@ import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.specification.PostSpecification;
 import com.kaleidoscope.backend.posts.service.PostService;
+import com.kaleidoscope.backend.posts.service.PostViewService;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
@@ -63,6 +64,7 @@ public class PostServiceImpl implements PostService {
     private final UserTagService userTagService;
     private final UserTagRepository userTagRepository;
     private final RedisStreamPublisher redisStreamPublisher;
+    private final PostViewService postViewService;
 
     @Override
     @Transactional
@@ -464,6 +466,13 @@ public class PostServiceImpl implements PostService {
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
         }
+
+        // Track view count using Redis optimization (only for non-owners)
+        if (!isOwner) {
+            postViewService.incrementViewAsync(postId, currentUserId);
+            log.debug("View tracking initiated for post {} by user {}", postId, currentUserId);
+        }
+
         com.kaleidoscope.backend.shared.enums.ReactionType currentUserReaction = null;
         var reactionOpt = reactionRepository.findByContentAndUser(postId, ContentType.POST, currentUserId);
         if (reactionOpt.isPresent()) {
