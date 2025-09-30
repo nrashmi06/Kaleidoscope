@@ -453,17 +453,28 @@ public class PostServiceImpl implements PostService {
             log.error("Post not found: {}", postId);
             return new PostNotFoundException(postId);
         });
+
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
         boolean isOwner = post.getUser().getUserId().equals(currentUserId);
+
+        // Access control validation
         if (!isAdmin && !isOwner) {
+            // Non-admin, non-owner users can only see PUBLISHED posts
             if (post.getStatus() != PostStatus.PUBLISHED) {
-                log.error("Not allowed to view post {}: not published", postId);
+                log.error("Access denied: User {} cannot view unpublished post {}", currentUserId, postId);
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
+
+            // For FOLLOWERS visibility, check if current user follows the author
             if (post.getVisibility() == PostVisibility.FOLLOWERS) {
-                log.error("Not allowed to view post {}: visibility is FOLLOWERS", postId);
-                throw new UnauthorizedActionException("Not allowed to view this post");
+                boolean isFollowing = followRepository.existsByFollower_UserIdAndFollowing_UserId(
+                    currentUserId, post.getUser().getUserId());
+                if (!isFollowing) {
+                    log.error("Access denied: User {} is not following author {} for FOLLOWERS post {}",
+                            currentUserId, post.getUser().getUserId(), postId);
+                    throw new UnauthorizedActionException("Not allowed to view this post");
+                }
             }
         }
 

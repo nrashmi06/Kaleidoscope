@@ -61,15 +61,18 @@ public class PostSpecification {
     public static Specification<Post> isVisibleToUser(Long currentUserId, Set<Long> followingIds) {
         // This specification handles the complex visibility rules for non-admin users.
         return (root, query, cb) -> cb.or(
-                // Rule 1: Post is PUBLISHED and PUBLIC
+                // Rule 1: The user is the author of the post (author can see all their posts regardless of status)
+                cb.equal(root.get("user").get("userId"), currentUserId),
+
+                // Rule 2: Post is PUBLISHED and PUBLIC (everyone can see)
                 cb.and(
                         cb.equal(root.get("status"), PostStatus.PUBLISHED),
                         cb.equal(root.get("visibility"), PostVisibility.PUBLIC)
                 ),
-                // Rule 2: The user is the author of the post
-                cb.equal(root.get("user").get("userId"), currentUserId),
-                // Rule 3: Post is for FOLLOWERS and the user is in the author's following list
+
+                // Rule 3: Post is PUBLISHED, for FOLLOWERS, and current user follows the author
                 cb.and(
+                        cb.equal(root.get("status"), PostStatus.PUBLISHED),
                         cb.equal(root.get("visibility"), PostVisibility.FOLLOWERS),
                         root.get("user").get("userId").in(followingIds)
                 )
