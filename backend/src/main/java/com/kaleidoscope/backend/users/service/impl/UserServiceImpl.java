@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -148,6 +149,17 @@ public class UserServiceImpl implements UserService {
             }
 
             user = userRepository.save(user);
+
+            // Trigger Elasticsearch sync for denormalized author data in posts
+            try {
+                Map<String, Object> profileSyncPayload = Map.of("userId", userId);
+                redisStreamPublisher.publish(RedisStreamConstants.USER_PROFILE_POST_SYNC_STREAM, profileSyncPayload);
+                log.debug("Published USER_PROFILE_POST_SYNC_STREAM event for user {}", userId);
+            } catch (Exception e) {
+                log.error("Failed to publish user profile sync event for user {}: {}",
+                         userId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
 
             if (newProfilePictureUrl != null && !newProfilePictureUrl.trim().isEmpty()) {
                 // Publish to Redis Stream for ML processing - only when image URL exists

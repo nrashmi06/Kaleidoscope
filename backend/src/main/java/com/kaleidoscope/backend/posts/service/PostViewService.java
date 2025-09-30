@@ -1,6 +1,8 @@
 package com.kaleidoscope.backend.posts.service;
 
+import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
+import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -19,7 +21,8 @@ public class PostViewService {
 
     private final StringRedisTemplate redisTemplate;
     private final PostRepository postRepository;
-    
+    private final PostSearchRepository postSearchRepository;
+
     // Redis key patterns
     private static final String VIEW_COUNT_KEY = "post:views:%d"; // post:views:123
     private static final String USER_VIEW_KEY = "user:view:%d:%d"; // user:view:userId:postId
@@ -120,6 +123,31 @@ public class PostViewService {
                         int updatedRows = postRepository.incrementViewCount(postId, redisCount);
                         
                         if (updatedRows > 0) {
+                            // CRUCIAL: Synchronously update Elasticsearch with the new view count
+                            try {
+                                // Get current DB view count after increment
+                                Long currentDbViewCount = postRepository.findViewCountByPostId(postId);
+                                long totalViewCount = currentDbViewCount != null ? currentDbViewCount : redisCount;
+
+                                // Find and update the PostDocument in Elasticsearch
+                                postSearchRepository.findById(postId.toString()).ifPresentOrElse(
+                                    document -> {
+                                        // Update the viewCount field
+                                        PostDocument updatedDocument = document.toBuilder()
+                                                .viewCount(totalViewCount)
+                                                .build();
+                                        postSearchRepository.save(updatedDocument);
+                                        log.debug("Updated Elasticsearch viewCount for post {} to {}", postId, totalViewCount);
+                                    },
+                                    () -> log.warn("PostDocument not found in Elasticsearch for postId: {}", postId)
+                                );
+
+                            } catch (Exception esException) {
+                                log.error("Failed to sync viewCount to Elasticsearch for post {}: {}",
+                                         postId, esException.getMessage(), esException);
+                                // Continue processing other posts even if ES sync fails
+                            }
+
                             // Clear Redis count and remove from pending set
                             redisTemplate.delete(viewCountKey);
                             redisTemplate.opsForSet().remove(PENDING_VIEWS_SET, postIdStr);

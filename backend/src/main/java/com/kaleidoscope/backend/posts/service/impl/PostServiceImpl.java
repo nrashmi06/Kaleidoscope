@@ -4,6 +4,7 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
 import com.kaleidoscope.backend.ml.dto.PostImageEventDTO;
 import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
@@ -17,7 +18,7 @@ import com.kaleidoscope.backend.posts.mapper.PostMapper;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
-import com.kaleidoscope.backend.posts.repository.specification.PostSpecification;
+import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.posts.service.PostViewService;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
@@ -39,7 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +65,7 @@ public class PostServiceImpl implements PostService {
     private final UserTagRepository userTagRepository;
     private final RedisStreamPublisher redisStreamPublisher;
     private final PostViewService postViewService;
+    private final PostSearchRepository postSearchRepository;
 
     @Override
     @Transactional
@@ -198,6 +199,59 @@ public class PostServiceImpl implements PostService {
             }
         } else {
             log.debug("No user tags to process for this post");
+        }
+
+        // 6. Index the new post to Elasticsearch with initial/default denormalized values
+        try {
+            // Find thumbnail URL from media with lowest position (same logic as PostMapper)
+            String thumbnailUrl = savedPost.getMedia().stream()
+                    .min(Comparator.comparing(PostMedia::getPosition))
+                    .map(PostMedia::getMediaUrl)
+                    .orElse(null);
+
+            // Build author object for denormalized data
+            PostDocument.Author author = PostDocument.Author.builder()
+                    .userId(currentUser.getUserId())
+                    .username(currentUser.getUsername())
+                    .profilePictureUrl(currentUser.getProfilePictureUrl())
+                    .build();
+
+            // Build categories list for denormalized data
+            List<PostDocument.Category> documentCategories = savedPost.getCategories().stream()
+                    .map(pc -> {
+                        Category cat = pc.getCategory();
+                        return PostDocument.Category.builder()
+                                .categoryId(cat.getCategoryId())
+                                .name(cat.getName())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            // Create PostDocument with initial values
+            PostDocument postDocument = PostDocument.builder()
+                    .id(savedPost.getPostId().toString())
+                    .postId(savedPost.getPostId())
+                    .title(savedPost.getTitle())
+                    .body(savedPost.getBody())
+                    .summary(savedPost.getSummary())
+                    .thumbnailUrl(thumbnailUrl)
+                    .visibility(savedPost.getVisibility())
+                    .status(savedPost.getStatus())
+                    .createdAt(savedPost.getCreatedAt())
+                    .author(author)
+                    .categories(documentCategories)
+                    .reactionCount(0L)       // Initial value
+                    .commentCount(0L)        // Initial value
+                    .viewCount(0L)           // Initial value
+                    .build();
+
+            // Index to Elasticsearch
+            postSearchRepository.save(postDocument);
+            log.info("Successfully indexed new post {} to Elasticsearch", savedPost.getPostId());
+
+        } catch (Exception e) {
+            log.error("Failed to index post {} to Elasticsearch: {}", savedPost.getPostId(), e.getMessage(), e);
+            // Continue execution - don't fail post creation if ES indexing fails
         }
 
         log.info("Post creation completed successfully: postId={}, userId={}, username='{}', title='{}'",
@@ -501,27 +555,37 @@ public class PostServiceImpl implements PostService {
                                                                  PostStatus status,
                                                                  PostVisibility visibility,
                                                                  String query) {
-        log.info("Filtering posts with params: userId={}, categoryId={}, status={}, visibility={}, query={}",
+        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}",
                 userId, categoryId, status, visibility, query);
+
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
 
-        Specification<Post> spec = Specification.where(null);
-        spec = spec.and(PostSpecification.hasAuthor(userId));
-        spec = spec.and(PostSpecification.hasCategory(categoryId));
-        spec = spec.and(PostSpecification.hasStatus(status));
-        spec = spec.and(PostSpecification.hasVisibility(visibility));
-        spec = spec.and(PostSpecification.containsQuery(query));
-
-        if (!isAdmin) {
-            log.debug("Applying visibility rules for non-admin user: {}", currentUserId);
-            Set<Long> followingIds = followRepository.findFollowingIdsByFollowerId(currentUserId);
-            spec = spec.and(PostSpecification.isVisibleToUser(currentUserId, followingIds));
+        // For non-admin users, get following IDs for visibility rules
+        Set<Long> followingIds = null;
+        if (!isAdmin && currentUserId != null) {
+            followingIds = followRepository.findFollowingIdsByFollowerId(currentUserId);
+            log.debug("Retrieved {} following IDs for user {}", followingIds.size(), currentUserId);
         }
 
-        Page<Post> postPage = postRepository.findAll(spec, pageable);
-        Page<PostSummaryResponseDTO> dtoPage = postPage.map(postMapper::toPostSummaryDTO);
-        log.debug("Returning paginated response for filtered posts");
+        // Use the custom Elasticsearch repository method
+        Page<PostDocument> documentPage = postSearchRepository.findVisibleAndFilteredPosts(
+                currentUserId,
+                followingIds,
+                userId,
+                categoryId,
+                status,
+                visibility,
+                query,
+                pageable
+        );
+
+        // Map PostDocument to PostSummaryResponseDTO using the new overloaded mapper method
+        Page<PostSummaryResponseDTO> dtoPage = documentPage.map(postMapper::toPostSummaryDTO);
+
+        log.info("Elasticsearch query returned {} posts out of {} total",
+                dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
+
         return PaginatedResponse.fromPage(dtoPage);
     }
 }

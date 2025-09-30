@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.posts.mapper;
 
+import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
@@ -267,6 +268,55 @@ public class PostMapper {
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
                 .viewCount(viewCount) // Add view count to response
+                .build();
+    }
+
+    /**
+     * Overloaded method to map PostDocument directly to PostSummaryResponseDTO
+     * Uses denormalized data from Elasticsearch, avoiding database calls for better performance
+     */
+    public PostSummaryResponseDTO toPostSummaryDTO(PostDocument document) {
+        if (document == null) {
+            return null;
+        }
+
+        // Map author from denormalized document data
+        UserDetailsSummaryResponseDTO authorDto = null;
+        if (document.getAuthor() != null) {
+            PostDocument.Author author = document.getAuthor();
+            authorDto = UserDetailsSummaryResponseDTO.builder()
+                    .userId(author.getUserId())
+                    .username(author.getUsername())
+                    .profilePictureUrl(author.getProfilePictureUrl())
+                    // FIX: Explicitly map email and accountStatus which exist in the PostDocument.Author nested class
+                    .email(author.getEmail())
+                    .accountStatus(author.getAccountStatus())
+                    .build();
+        }
+
+        // Map categories from denormalized document data
+        List<CategorySummaryResponseDTO> categoryDtos = List.of();
+        if (document.getCategories() != null) {
+            categoryDtos = document.getCategories().stream()
+                    .map(cat -> CategorySummaryResponseDTO.builder()
+                            .categoryId(cat.getCategoryId())
+                            .name(cat.getName())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        return PostSummaryResponseDTO.builder()
+                .postId(document.getPostId())
+                .title(document.getTitle())
+                .summary(document.getSummary())
+                .visibility(document.getVisibility())
+                .createdAt(document.getCreatedAt())
+                .author(authorDto)
+                .categories(categoryDtos)
+                .thumbnailUrl(document.getThumbnailUrl())
+                .reactionCount(document.getReactionCount())
+                .commentCount(document.getCommentCount())
+                .viewCount(document.getViewCount()) // Use denormalized view count directly
                 .build();
     }
 }

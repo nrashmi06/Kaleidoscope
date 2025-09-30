@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @Document(indexName = "posts")
 public class PostDocument {
 
@@ -60,6 +60,9 @@ public class PostDocument {
     @Field(type = FieldType.Long)
     private long commentCount;
 
+    @Field(type = FieldType.Long)
+    private Long viewCount;
+
     // --- ML Image Tags and People Count ---
     @Field(type = FieldType.Keyword)
     private List<String> mlImageTags;
@@ -77,6 +80,15 @@ public class PostDocument {
 
         @Field(type = FieldType.Keyword)
         private String username;
+
+        @Field(type = FieldType.Keyword)
+        private String profilePictureUrl;
+
+        @Field(type = FieldType.Keyword)
+        private String email;
+
+        @Field(type = FieldType.Keyword)
+        private String accountStatus;
     }
 
     @Data
