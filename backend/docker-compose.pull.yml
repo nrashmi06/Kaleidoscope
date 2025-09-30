@@ -31,6 +31,8 @@ services:
       - app-network
     volumes:
       - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     restart: always
     deploy:
       resources:

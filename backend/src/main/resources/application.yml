@@ -79,3 +79,4 @@ cloudinary:
   api-key: ${CLOUDINARY_API_KEY:test-api-key}
   api-secret: ${CLOUDINARY_API_SECRET:test-api-secret}
   url: ${CLOUDINARY_URL:cloudinary://test-api-key:test-api-secret@test-cloud}
+
