@@ -2,6 +2,10 @@ package com.kaleidoscope.backend.async.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.FaceDetectionResultDTO;
+import com.kaleidoscope.backend.async.exception.async.BboxParsingException;
+import com.kaleidoscope.backend.async.exception.async.MediaAiInsightsNotFoundException;
+import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
+import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
 import com.kaleidoscope.backend.posts.enums.FaceDetectionStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
@@ -43,7 +47,7 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             MediaAiInsights mediaAiInsights = mediaAiInsightsRepository.findById(resultDTO.getMediaId())
                     .orElseThrow(() -> {
                         log.error("MediaAiInsights not found for mediaId: {}", resultDTO.getMediaId());
-                        return new RuntimeException("MediaAiInsights not found for mediaId: " + resultDTO.getMediaId());
+                        return new MediaAiInsightsNotFoundException(resultDTO.getMediaId());
                     });
             log.info("Retrieved MediaAiInsights for mediaId: {}, postId: {}", 
                     mediaAiInsights.getMediaId(), mediaAiInsights.getPost().getPostId());
@@ -57,11 +61,15 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             log.info("Successfully processed face detection for mediaId: {} - created face record with ID: {}", 
                     resultDTO.getMediaId(), savedFace.getId());
 
-        } catch (Exception e) {
-            log.error("Error processing face detection message from Redis Stream: streamKey={}, messageId={}, error={}", 
+        } catch (MediaAiInsightsNotFoundException | StreamDeserializationException | BboxParsingException e) {
+            log.error("Error processing face detection message from Redis Stream: streamKey={}, messageId={}, error={}",
                     record.getStream(), record.getId(), e.getMessage(), e);
-            // Re-throw to trigger retry mechanism if configured
-            throw new RuntimeException("Failed to process face detection message", e);
+            throw e; // Re-throw specific exceptions
+        } catch (Exception e) {
+            log.error("Unexpected error processing face detection message from Redis Stream: streamKey={}, messageId={}, error={}",
+                    record.getStream(), record.getId(), e.getMessage(), e);
+            throw new StreamMessageProcessingException(record.getStream(), record.getId().getValue(),
+                    "Unexpected error during face detection processing", e);
         }
     }
 
@@ -75,9 +83,12 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                     .bbox(parseIntegerList(recordValue.get("bbox")))
                     .embedding(recordValue.get("embedding"))
                     .build();
+        } catch (BboxParsingException e) {
+            throw e; // Re-throw BboxParsingException as-is
         } catch (Exception e) {
             log.error("Failed to convert MapRecord to FaceDetectionResultDTO: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to deserialize face detection message", e);
+            throw new StreamDeserializationException(record.getStream(), record.getId().getValue(),
+                    "Failed to deserialize face detection message", e);
         }
     }
 
@@ -105,7 +116,7 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                     
         } catch (Exception e) {
             log.error("Failed to parse bbox coordinates: {}, error: {}", value, e.getMessage());
-            throw new RuntimeException("Failed to parse bbox coordinates", e);
+            throw new BboxParsingException(value, e);
         }
     }
 

@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.async.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kaleidoscope.backend.async.exception.async.StreamPublishException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -51,7 +52,7 @@ public class RedisStreamPublisher {
 
             // For critical streams, rethrow to ensure caller handles the failure
             if (CRITICAL_STREAMS.contains(streamName)) {
-                throw new RuntimeException("Failed to publish critical event to stream: " + streamName, e);
+                throw new StreamPublishException(streamName, "Critical event publish failed", e);
             }
             // Non-critical events can be logged and continue
         }
@@ -69,7 +70,7 @@ public class RedisStreamPublisher {
                 if (attempts >= maxRetries) {
                     log.error("Failed to publish after {} attempts to stream '{}': {}",
                              maxRetries, streamName, e.getMessage());
-                    throw e;
+                    throw new StreamPublishException(streamName, "Failed after " + maxRetries + " attempts", e);
                 }
 
                 // Exponential backoff
@@ -77,7 +78,7 @@ public class RedisStreamPublisher {
                     Thread.sleep(1000L * attempts);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted during retry backoff", ie);
+                    throw new StreamPublishException(streamName, "Interrupted during retry backoff", ie);
                 }
             }
         }

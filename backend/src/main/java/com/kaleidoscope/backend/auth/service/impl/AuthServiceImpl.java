@@ -17,7 +17,7 @@ import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
 import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import jakarta.servlet.http.Cookie;

@@ -4,7 +4,7 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.dto.request.*;
 import com.kaleidoscope.backend.users.dto.response.UserPreferencesResponseDTO;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.exception.user.UserPreferencesNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserPreferencesMapper;
 import com.kaleidoscope.backend.users.model.User;

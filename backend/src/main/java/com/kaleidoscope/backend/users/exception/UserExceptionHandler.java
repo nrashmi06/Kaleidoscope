@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.users.exception;
 
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.exception.follow.FollowRelationshipNotFoundException;
 import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;

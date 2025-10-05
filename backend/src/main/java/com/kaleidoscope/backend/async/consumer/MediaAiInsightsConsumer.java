@@ -2,6 +2,9 @@ package com.kaleidoscope.backend.async.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.MediaAiInsightsResultDTO;
+import com.kaleidoscope.backend.async.exception.async.PostMediaNotFoundException;
+import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
+import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
 import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.Post;
@@ -48,7 +51,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             PostMedia postMedia = postMediaRepository.findById(resultDTO.getMediaId())
                     .orElseThrow(() -> {
                         log.error("PostMedia not found for mediaId: {}", resultDTO.getMediaId());
-                        return new RuntimeException("PostMedia not found for mediaId: " + resultDTO.getMediaId());
+                        return new PostMediaNotFoundException(resultDTO.getMediaId());
                     });
             log.info("Retrieved PostMedia for mediaId: {}, postId: {}", 
                     postMedia.getMediaId(), postMedia.getPost().getPostId());
@@ -68,11 +71,15 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Successfully processed ML insights for mediaId: {} - PostgreSQL and Elasticsearch updated", 
                     resultDTO.getMediaId());
 
-        } catch (Exception e) {
-            log.error("Error processing ML insights message from Redis Stream: streamKey={}, messageId={}, error={}", 
+        } catch (PostMediaNotFoundException | StreamDeserializationException e) {
+            log.error("Error processing ML insights message from Redis Stream: streamKey={}, messageId={}, error={}",
                     record.getStream(), record.getId(), e.getMessage(), e);
-            // Re-throw to trigger retry mechanism if configured
-            throw new RuntimeException("Failed to process ML insights message", e);
+            throw e; // Re-throw specific exceptions
+        } catch (Exception e) {
+            log.error("Unexpected error processing ML insights message from Redis Stream: streamKey={}, messageId={}, error={}",
+                    record.getStream(), record.getId(), e.getMessage(), e);
+            throw new StreamMessageProcessingException(record.getStream(), record.getId().getValue(),
+                    "Unexpected error during ML insights processing", e);
         }
     }
 
@@ -91,7 +98,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                     .build();
         } catch (Exception e) {
             log.error("Failed to convert MapRecord to MediaAiInsightsResultDTO: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to deserialize ML insights message", e);
+            throw new StreamDeserializationException(record.getStream(), record.getId().getValue(),
+                    "Failed to deserialize ML insights message", e);
         }
     }
 

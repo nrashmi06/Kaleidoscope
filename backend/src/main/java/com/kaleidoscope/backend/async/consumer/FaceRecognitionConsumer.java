@@ -2,6 +2,10 @@ package com.kaleidoscope.backend.async.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.FaceRecognitionResultDTO;
+import com.kaleidoscope.backend.async.exception.async.MediaDetectedFaceNotFoundException;
+import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
+import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.posts.enums.FaceDetectionStatus;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
@@ -41,7 +45,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             MediaDetectedFace detectedFace = mediaDetectedFaceRepository.findById(resultDTO.getFaceId())
                     .orElseThrow(() -> {
                         log.error("MediaDetectedFace not found for faceId: {}", resultDTO.getFaceId());
-                        return new RuntimeException("MediaDetectedFace not found for faceId: " + resultDTO.getFaceId());
+                        return new MediaDetectedFaceNotFoundException(resultDTO.getFaceId());
                     });
             log.info("Retrieved MediaDetectedFace for faceId: {}, mediaId: {}", 
                     detectedFace.getId(), detectedFace.getMediaAiInsights().getMediaId());
@@ -50,7 +54,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             User suggestedUser = userRepository.findById(resultDTO.getSuggestedUserId())
                     .orElseThrow(() -> {
                         log.error("User not found for suggestedUserId: {}", resultDTO.getSuggestedUserId());
-                        return new RuntimeException("User not found for suggestedUserId: " + resultDTO.getSuggestedUserId());
+                        return new UserNotFoundException("User not found for userId: " + resultDTO.getSuggestedUserId());
                     });
             log.info("Retrieved suggested User: userId={}, username={}", 
                     suggestedUser.getUserId(), suggestedUser.getUsername());
@@ -65,11 +69,15 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             log.info("Successfully processed face recognition for faceId: {} - updated with suggested user: {}", 
                     resultDTO.getFaceId(), suggestedUser.getUsername());
 
-        } catch (Exception e) {
-            log.error("Error processing face recognition message from Redis Stream: streamKey={}, messageId={}, error={}", 
+        } catch (MediaDetectedFaceNotFoundException | UserNotFoundException | StreamDeserializationException e) {
+            log.error("Error processing face recognition message from Redis Stream: streamKey={}, messageId={}, error={}",
                     record.getStream(), record.getId(), e.getMessage(), e);
-            // Re-throw to trigger retry mechanism if configured
-            throw new RuntimeException("Failed to process face recognition message", e);
+            throw e; // Re-throw specific exceptions
+        } catch (Exception e) {
+            log.error("Unexpected error processing face recognition message from Redis Stream: streamKey={}, messageId={}, error={}",
+                    record.getStream(), record.getId(), e.getMessage(), e);
+            throw new StreamMessageProcessingException(record.getStream(), record.getId().getValue(),
+                    "Unexpected error during face recognition processing", e);
         }
     }
 
@@ -85,7 +93,8 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                     .build();
         } catch (Exception e) {
             log.error("Failed to convert MapRecord to FaceRecognitionResultDTO: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to deserialize face recognition message", e);
+            throw new StreamDeserializationException(record.getStream(), record.getId().getValue(),
+                    "Failed to deserialize face recognition message", e);
         }
     }
 

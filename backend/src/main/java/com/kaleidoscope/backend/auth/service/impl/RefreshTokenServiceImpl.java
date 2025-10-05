@@ -3,7 +3,7 @@ package com.kaleidoscope.backend.auth.service.impl;
 import com.kaleidoscope.backend.auth.config.JwtProperties;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.exception.token.RefreshTokenException;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.auth.model.RefreshToken;
 import com.kaleidoscope.backend.users.model.User;

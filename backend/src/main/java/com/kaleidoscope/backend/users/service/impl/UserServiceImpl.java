@@ -8,7 +8,7 @@ import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;

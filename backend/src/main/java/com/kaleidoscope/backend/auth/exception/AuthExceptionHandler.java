@@ -12,7 +12,7 @@ import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.exception.user.InvalidUsernameException;
 import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
 import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.exception.user.UsernameAlreadyInUseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

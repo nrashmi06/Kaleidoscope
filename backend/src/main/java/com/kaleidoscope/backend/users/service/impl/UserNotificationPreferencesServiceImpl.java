@@ -4,7 +4,7 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.users.dto.request.*;
 import com.kaleidoscope.backend.users.dto.response.UserNotificationPreferencesResponseDTO;
 import com.kaleidoscope.backend.users.exception.notification.UserNotificationPreferencesNotFoundException;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserNotificationPreferencesMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserNotificationPreferences;
