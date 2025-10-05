@@ -1,0 +1,79 @@
+package com.kaleidoscope.backend.shared.model;
+
+import com.kaleidoscope.backend.shared.enums.CommentStatus;
+import com.kaleidoscope.backend.shared.enums.ContentType;
+import com.kaleidoscope.backend.users.model.User;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "comments", indexes = {
+        @Index(name = "idx_comment_user_id", columnList = "user_id"),
+        @Index(name = "idx_comment_content", columnList = "content_type, content_id"),
+        @Index(name = "idx_comment_created_at", columnList = "created_at")
+})
+@EntityListeners(AuditingEntityListener.class)
+@SQLDelete(sql = "UPDATE comments SET deleted_at = NOW() WHERE comment_id = ?")
+@Where(clause = "deleted_at IS NULL")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Comment {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "comment_id")
+    private Long commentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    private ContentType contentType;
+
+    @Column(name = "content_id", nullable = false)
+    private Long contentId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String body;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private CommentStatus status = CommentStatus.ACTIVE;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Comment comment = (Comment) o;
+        return commentId != null && commentId.equals(comment.commentId);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
+    }
+}

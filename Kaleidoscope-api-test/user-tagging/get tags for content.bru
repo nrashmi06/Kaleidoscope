@@ -1,0 +1,14 @@
+meta {
+  name: get tags for content
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/content/POST/1/tags?page=0&size=10
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

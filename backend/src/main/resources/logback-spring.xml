@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProfile name="!prod">
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    </springProfile>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <includeContext>true</includeContext>
+            <includeMdcKeyName>mdc</includeMdcKeyName>
+            <customFields>{"service":"kaleidoscope-backend","environment":"${SPRING_PROFILES_ACTIVE:-default}"}</customFields>
+            <fieldNames>
+                <timestamp>@timestamp</timestamp>
+                <message>message</message>
+                <level>level</level>
+                <thread>thread</thread>
+                <logger>logger</logger>
+            </fieldNames>
+        </encoder>
+    </appender>
+
+    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${LOGSTASH_HOST:-127.0.0.1}:${LOGSTASH_PORT:-5000}</destination>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <includeContext>true</includeContext>
+            <includeMdcKeyName>mdc</includeMdcKeyName>
+            <customFields>{"service":"kaleidoscope-backend","environment":"${SPRING_PROFILES_ACTIVE:-default}","application":"kaleidoscope"}</customFields>
+            <fieldNames>
+                <timestamp>@timestamp</timestamp>
+                <message>message</message>
+                <level>level</level>
+                <thread>thread</thread>
+                <logger>logger</logger>
+            </fieldNames>
+        </encoder>
+
+        <connectionTimeout>5000</connectionTimeout>
+        <reconnectionDelay>1 second</reconnectionDelay>
+        <keepAliveDuration>5 minutes</keepAliveDuration>
+        <writeBufferSize>16384</writeBufferSize>
+        <queueSize>512</queueSize>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/kaleidoscope.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/archived/kaleidoscope.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="ASYNC_LOGSTASH" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="LOGSTASH"/>
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <neverBlock>true</neverBlock>
+        <maxFlushTime>2000</maxFlushTime>
+    </appender>
+
+    <springProfile name="dev,development,local,default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ASYNC_LOGSTASH"/>
+        </root>
+        <logger name="com.kaleidoscope.backend" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.shared.config.CorrelationIdFilter" level="INFO"/>
+        <logger name="com.kaleidoscope.backend.shared.config.RequestLoggingFilter" level="INFO"/>
+        <logger name="com.kaleidoscope.backend.auth" level="INFO"/>
+        <logger name="com.kaleidoscope.backend.users" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.posts" level="DEBUG"/>
+    </springProfile>
+
+    <springProfile name="prod,production">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_LOGSTASH"/>
+            <appender-ref ref="FILE"/>
+        </root>
+        <logger name="com.kaleidoscope.backend" level="INFO"/>
+        <logger name="com.kaleidoscope.backend.shared.config" level="INFO"/>
+        <logger name="com.kaleidoscope.backend.auth" level="INFO"/>
+    </springProfile>
+
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.apache.catalina" level="INFO"/>
+    <logger name="org.eclipse.jetty" level="INFO"/>
+
+    <logger name="net.logstash.logback.appender.LogstashTcpSocketAppender" level="WARN"/>
+</configuration>

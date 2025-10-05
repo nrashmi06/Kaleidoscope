@@ -4,6 +4,8 @@ import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryAlreadyExistsException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
+import com.kaleidoscope.backend.shared.exception.userTags.TagNotFoundException;
+import com.kaleidoscope.backend.shared.exception.userTags.UserTaggingException;
 import com.kaleidoscope.backend.shared.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -107,5 +109,28 @@ public class SharedExceptionHandler {
                 path
         );
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // User Tagging Exception Handlers
+    @ExceptionHandler(TagNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTagNotFoundException(TagNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(
+                "Tag not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UserTaggingException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUserTaggingException(UserTaggingException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        ApiResponse<Object> response = ApiResponse.error(
+                "User tagging error",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

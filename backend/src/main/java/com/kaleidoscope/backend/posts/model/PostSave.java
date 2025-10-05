@@ -10,8 +10,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "post_saves", indexes = {
-        @Index(name = "idx_post_save_post_id", columnList = "post_id"),
-        @Index(name = "idx_post_save_user_id", columnList = "user_id"),
         @Index(name = "idx_post_save_created_at", columnList = "created_at"),
         @Index(name = "idx_post_save_user_post", columnList = "user_id, post_id", unique = true)
 })
@@ -50,6 +48,6 @@ public class PostSave {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return 31;
     }
 }

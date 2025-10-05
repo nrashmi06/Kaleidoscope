@@ -1,0 +1,22 @@
+meta {
+  name: filter posts
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/posts
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 10
+  sort: createdAt,desc
+  userId: 1
+  categoryId: 1
+  status: PUBLISHED
+  visibility: PUBLIC
+  q: test
+}

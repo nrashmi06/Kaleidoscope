@@ -14,7 +14,6 @@ const navigationItems = [
   { icon: Home, label: "Feed", path: "/feed" },
   { icon: Users, label: "Friends", path: "/friends" },
   { icon: FileText, label: "Articles", path: "/articles" },
-  { icon: Play, label: "Watch Videos", path: "/videos" },
   { icon: ImageIcon, label: "Gallery", path: "/gallery" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];

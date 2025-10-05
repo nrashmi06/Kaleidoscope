@@ -1,0 +1,23 @@
+meta {
+  name: create blog
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/blogs
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "My First Blog",
+    "body": "This is the content of my first blog.",
+    "summary": "A short summary.",
+    "categoryIds": [5],
+    "locationId": 3,
+    "mediaDetails": [],
+    "blogTagIds": []
+  }
+}

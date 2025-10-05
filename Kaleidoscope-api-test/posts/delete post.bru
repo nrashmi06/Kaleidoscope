@@ -1,0 +1,19 @@
+meta {
+  name: delete post
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_url}}/api/posts/1/hard
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  : 
+}
+
+settings {
+  encodeUrl: true
+}

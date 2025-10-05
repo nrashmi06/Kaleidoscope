@@ -4,6 +4,7 @@ import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
+import com.kaleidoscope.backend.shared.model.UserTag;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,17 +18,8 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Represents a post made by a user.
- * Implements soft-delete functionality via @SQLDelete and @Where.
- */
 @Entity
-@Table(name = "posts", indexes = {
-        @Index(name = "idx_post_user_id", columnList = "user_id"),
-        @Index(name = "idx_post_status", columnList = "status"),
-        @Index(name = "idx_post_visibility", columnList = "visibility"),
-        @Index(name = "idx_post_created_at", columnList = "created_at")
-})
+@Table(name = "posts")
 @EntityListeners(AuditingEntityListener.class)
 @SQLDelete(sql = "UPDATE posts SET deleted_at = NOW() WHERE post_id = ?")
 @Where(clause = "deleted_at IS NULL")
@@ -56,12 +48,6 @@ public class Post {
     @Column(length = 500)
     private String summary;
 
-    @Column(name = "word_count")
-    private Integer wordCount;
-
-    @Column(name = "read_time_minutes")
-    private Integer readTimeMinutes;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;
@@ -74,7 +60,7 @@ public class Post {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private PostStatus status = PostStatus.DRAFT;
+    private PostStatus status = PostStatus.ARCHIVED;
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
@@ -90,24 +76,6 @@ public class Post {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    @PreUpdate
-    private void calculateReadStats() {
-        if (this.body == null || this.body.isBlank()) {
-            this.wordCount = 0;
-            this.readTimeMinutes = 0;
-            return;
-        }
-
-        // A simple way to count words
-        String[] words = this.body.trim().split("\\s+");
-        this.wordCount = words.length;
-
-        // Assuming an average reading speed of 200 words per minute
-        this.readTimeMinutes = (int) Math.ceil((double) this.wordCount / 200);
-    }
-    // --- Relationships ---
-
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<PostMedia> media = new HashSet<>();
@@ -116,11 +84,12 @@ public class Post {
     @Builder.Default
     private Set<PostCategory> categories = new HashSet<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // Using the shared UserTag entity instead of a specific PostTag
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "content_id")
+    @Where(clause = "content_type = 'POST'")
     @Builder.Default
-    private Set<Comment> comments = new HashSet<>();
-
-    // --- Helper Methods ---
+    private Set<UserTag> userTags = new HashSet<>();
 
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
@@ -149,17 +118,28 @@ public class Post {
         }
     }
 
-    public void addComment(Comment comment) {
-        comments.add(comment);
-        comment.setPost(this);
+    public void addUserTag(User taggerUser, User taggedUser) {
+        UserTag userTag = UserTag.builder()
+                .taggerUser(taggerUser)
+                .taggedUser(taggedUser)
+                .contentType(com.kaleidoscope.backend.shared.enums.ContentType.POST)
+                .contentId(this.postId)
+                .build();
+        userTags.add(userTag);
     }
 
-    public void removeComment(Comment comment) {
-        comments.remove(comment);
-        comment.setPost(null);
-    }
+    public void removeUserTag(User taggedUser) {
+        UserTag toRemove = this.userTags.stream()
+                .filter(ut -> ut.getTaggedUser().equals(taggedUser) &&
+                             ut.getContentId().equals(this.postId) &&
+                             ut.getContentType() == com.kaleidoscope.backend.shared.enums.ContentType.POST)
+                .findFirst()
+                .orElse(null);
 
-    // --- Equals and HashCode ---
+        if (toRemove != null) {
+            this.userTags.remove(toRemove);
+        }
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -171,6 +151,6 @@ public class Post {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return 31;
     }
 }

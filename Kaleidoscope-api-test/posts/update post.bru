@@ -1,0 +1,46 @@
+meta {
+  name: update post
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/api/posts/1
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "Updated Post Title",
+    "body": "Updated content for the post.",
+    "summary": "Updated summary.",
+    "visibility": "PUBLIC",
+    "locationId": 1,
+    "categoryIds": [1, 2],
+    "mediaDetails": [
+      {
+        "mediaId": 10,
+        "url": "https://res.cloudinary.com/demo/image/upload/v1692873600/posts/image1.jpg",
+        "mediaType": "IMAGE",
+        "position": 1,
+        "width": 800,
+        "height": 600,
+        "fileSizeKb": 120,
+        "durationSeconds": null,
+        "extraMetadata": {"caption": "Updated caption"}
+      },
+      {
+        "url": "https://res.cloudinary.com/demo/image/upload/v1692873600/posts/image2.jpg",
+        "mediaType": "IMAGE",
+        "position": 2,
+        "width": 1024,
+        "height": 768,
+        "fileSizeKb": 200,
+        "durationSeconds": null,
+        "extraMetadata": {"caption": "New image"}
+      }
+    ],
+    "taggedUserIds": [2, 3]
+  }
+}

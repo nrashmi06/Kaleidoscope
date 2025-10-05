@@ -21,6 +21,10 @@ spring:
       pool-name: KaleidoscopeHikariCP
       auto-commit: true
 
+  # Elasticsearch Configuration
+  elasticsearch:
+    uris: http://localhost:9200
+
   # JPA Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -30,6 +34,8 @@ spring:
       hibernate:
         show_sql: true
         format_sql: true
+        hbm2ddl:
+          auto: update
 
   # File Upload Configuration
   servlet:

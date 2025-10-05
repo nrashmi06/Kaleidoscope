@@ -4,9 +4,11 @@ import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.CustomAccessDeniedHandler;
 import com.kaleidoscope.backend.auth.security.jwt.AuthEntryPointJwt;
 import com.kaleidoscope.backend.auth.security.jwt.AuthTokenFilter;
+import com.kaleidoscope.backend.shared.config.CorrelationIdFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -18,34 +20,40 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 @Slf4j
 public class SecurityConfig {
     private final AuthEntryPointJwt unauthorizedHandler;
     private final AuthTokenFilter authTokenFilter;
+    private final CorrelationIdFilter correlationIdFilter;
     private final CorsConfig corsConfig;
-//    private final SseAuthenticationFilter sseAuthenticationFilter;
 
     public SecurityConfig(
             AuthEntryPointJwt unauthorizedHandler,
             AuthTokenFilter authTokenFilter,
+            CorrelationIdFilter correlationIdFilter,
             CorsConfig corsConfig
-//            SseAuthenticationFilter sseAuthenticationFilter,
     ) {
         this.unauthorizedHandler = unauthorizedHandler;
         this.authTokenFilter = authTokenFilter;
+        this.correlationIdFilter = correlationIdFilter;
         this.corsConfig = corsConfig;
-//        this.sseAuthenticationFilter = sseAuthenticationFilter;
+
+        log.info("SecurityConfig initialized with CorrelationIdFilter and AuthTokenFilter");
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomAccessDeniedHandler customAccessDeniedHandler) throws Exception {
+        log.debug("Configuring security filter chain with correlation ID and authentication filters");
+
         return http
                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                 .authorizeHttpRequests(requests -> requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 AuthRoutes.FORGOT_PASSWORD,
                                 AuthRoutes.RESET_PASSWORD,
@@ -72,8 +80,10 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .csrf(AbstractHttpConfigurer::disable)
+                // Add CorrelationIdFilter before SecurityContextHolderFilter (modern replacement for SecurityContextPersistenceFilter)
+                .addFilterBefore(correlationIdFilter, SecurityContextHolderFilter.class)
+                // Add AuthTokenFilter before UsernamePasswordAuthenticationFilter (as originally configured)
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)
-//                .addFilterAfter(sseAuthenticationFilter, AuthTokenFilter.class)
                 .build();
     }
 

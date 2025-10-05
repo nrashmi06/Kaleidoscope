@@ -1,0 +1,21 @@
+meta {
+  name: get taggable users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/users/taggable-users?q=aj&page=0&size=10
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: aj
+  page: 0
+  size: 10
+}
+
+settings {
+  encodeUrl: true
+}

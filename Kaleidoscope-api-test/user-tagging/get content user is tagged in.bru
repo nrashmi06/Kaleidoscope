@@ -1,0 +1,14 @@
+meta {
+  name: get content user is tagged in
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/users/2/tagged-content?page=0&size=10
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

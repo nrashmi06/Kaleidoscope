@@ -57,9 +57,15 @@ export interface DeleteCategoryData {
 // ✅ Response Types (Grouped Below)
 // -------------------------------
 
-// ✅ Response for retrieving all parent categories (flat, no subcategories)
+// ✅ Response for retrieving all parent categories (paginated response)
 export type ParentCategoriesResponse = StandardAPIResponse<{
-  categories: FlatCategory[];
+  content: FlatCategory[];
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+  first: boolean;
+  last: boolean;
 }>;
 
 // ✅ Response for retrieving a full list of categories by parent ID or ID in general

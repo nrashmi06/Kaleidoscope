@@ -14,4 +14,5 @@ public class UserDetailsSummaryResponseDTO {
     private String email;
     private String username;
     private String accountStatus;
+    private String profilePictureUrl;
 }
