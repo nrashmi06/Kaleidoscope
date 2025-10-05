@@ -83,12 +83,12 @@ public class UserController implements UserApi {
             @RequestBody UpdateUserProfileStatusRequestDTO updateUserProfileStatusRequestDTO) {
 
         userService.updateUserProfileStatus(
-                updateUserProfileStatusRequestDTO.getUserId(),
-                updateUserProfileStatusRequestDTO.getProfileStatus()
+                updateUserProfileStatusRequestDTO.userId(),
+                updateUserProfileStatusRequestDTO.profileStatus()
         );
 
         AppResponse<String> response = AppResponse.success(
-                "User status updated to " + updateUserProfileStatusRequestDTO.getProfileStatus(),
+                "User status updated to " + updateUserProfileStatusRequestDTO.profileStatus(),
                 "Profile status updated successfully",
                 UserRoutes.UPDATE_USER_PROFILE_STATUS
         );

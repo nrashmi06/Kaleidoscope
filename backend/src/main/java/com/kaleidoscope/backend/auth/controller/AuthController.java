@@ -69,7 +69,7 @@ public class AuthController implements AuthApi {
             @RequestBody UserLoginRequestDTO loginRequest,
             HttpServletResponse response) {
 
-        log.debug("Processing login request for email: {}", loginRequest.getEmail());
+        log.debug("Processing login request for email: {}", loginRequest.email());
         Map<String, Object> loginResponse = authService.loginUser(loginRequest);
 
         String accessToken = (String) loginResponse.get("accessToken");
@@ -123,7 +123,7 @@ public class AuthController implements AuthApi {
     @PostMapping(AuthRoutes.FORGOT_PASSWORD)
     public ResponseEntity<AppResponse<String>> forgotPassword(
             @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        authService.forgotPassword(verifyEmailRequestDTO.getEmail());
+        authService.forgotPassword(verifyEmailRequestDTO.email());
 
         AppResponse<String> response = AppResponse.success(
                 "Password reset email sent successfully",
@@ -138,7 +138,7 @@ public class AuthController implements AuthApi {
     @PostMapping(AuthRoutes.RESET_PASSWORD)
     public ResponseEntity<AppResponse<String>> resetPassword(
             @RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
-        authService.resetPassword(resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
+        authService.resetPassword(resetPasswordRequestDTO.token(), resetPasswordRequestDTO.newPassword());
 
         AppResponse<String> response = AppResponse.success(
                 "Password has been reset successfully",
@@ -154,7 +154,7 @@ public class AuthController implements AuthApi {
     public ResponseEntity<AppResponse<String>> changePassword(
             @RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
         Long userId = Long.valueOf(jwtUtils.getUserIdFromContext());
-        authService.changePasswordById(userId, changePasswordRequestDTO.getOldPassword(), changePasswordRequestDTO.getNewPassword());
+        authService.changePasswordById(userId, changePasswordRequestDTO.oldPassword(), changePasswordRequestDTO.newPassword());
 
         AppResponse<String> response = AppResponse.success(
                 "Password changed successfully",
@@ -200,7 +200,7 @@ public class AuthController implements AuthApi {
     @PreAuthorize("permitAll()")
     public ResponseEntity<AppResponse<String>> sendVerificationEmail(
             @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        authService.sendVerificationEmail(verifyEmailRequestDTO.getEmail());
+        authService.sendVerificationEmail(verifyEmailRequestDTO.email());
 
         AppResponse<String> response = AppResponse.success(
                 "Verification email sent successfully",
@@ -231,4 +231,3 @@ public class AuthController implements AuthApi {
         return ResponseEntity.ok(response);
     }
 }
-

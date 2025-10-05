@@ -1,44 +1,36 @@
 package com.kaleidoscope.backend.users.dto.request;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class UpdateNotificationPreferencesRequestDTO {
-
+public record UpdateNotificationPreferencesRequestDTO(
     @NotNull(message = "Likes email preference is required")
-    private Boolean likesEmail;
+    Boolean likesEmail,
 
     @NotNull(message = "Likes push preference is required")
-    private Boolean likesPush;
+    Boolean likesPush,
 
     @NotNull(message = "Comments email preference is required")
-    private Boolean commentsEmail;
+    Boolean commentsEmail,
 
     @NotNull(message = "Comments push preference is required")
-    private Boolean commentsPush;
+    Boolean commentsPush,
 
     @NotNull(message = "Follows email preference is required")
-    private Boolean followsEmail;
+    Boolean followsEmail,
 
     @NotNull(message = "Follows push preference is required")
-    private Boolean followsPush;
+    Boolean followsPush,
 
     @NotNull(message = "Mentions email preference is required")
-    private Boolean mentionsEmail;
+    Boolean mentionsEmail,
 
     @NotNull(message = "Mentions push preference is required")
-    private Boolean mentionsPush;
+    Boolean mentionsPush,
 
     @NotNull(message = "System email preference is required")
-    private Boolean systemEmail;
+    Boolean systemEmail,
 
     @NotNull(message = "System push preference is required")
-    private Boolean systemPush;
+    Boolean systemPush
+) {
 }

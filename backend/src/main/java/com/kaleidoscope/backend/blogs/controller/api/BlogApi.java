@@ -170,7 +170,7 @@ public interface BlogApi {
     })
     @PutMapping(BlogsRoutes.UPDATE_BLOG_STATUS)
     @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<AppResponse<Object>> updateBlogStatus(
+    ResponseEntity<AppResponse<BlogCreationResponseDTO>> updateBlogStatus(
             @Parameter(description = "ID of the blog to update status for", required = true, example = "123")
             @PathVariable Long blogId,
             @Parameter(description = "Blog status update request containing new status and optional review notes")

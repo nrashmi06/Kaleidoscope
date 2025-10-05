@@ -50,10 +50,10 @@ public class PostMapper {
             return null;
         }
         return Post.builder()
-                .title(dto.getTitle())
-                .body(dto.getBody())
-                .summary(dto.getSummary())
-                .visibility(dto.getVisibility())
+                .title(dto.title())
+                .body(dto.body())
+                .summary(dto.summary())
+                .visibility(dto.visibility())
                 .build();
     }
 
@@ -132,14 +132,14 @@ public class PostMapper {
         }
         AtomicInteger autoPosition = new AtomicInteger(0);
         return mediaDtos.stream().map(mediaDto -> PostMedia.builder()
-                .mediaUrl(mediaDto.getUrl())
-                .mediaType(mediaDto.getMediaType())
-                .position(mediaDto.getPosition() != null ? mediaDto.getPosition() : autoPosition.getAndIncrement())
-                .width(mediaDto.getWidth())
-                .height(mediaDto.getHeight())
-                .fileSizeKb(mediaDto.getFileSizeKb())
-                .durationSeconds(mediaDto.getDurationSeconds())
-                .extraMetadata(mediaDto.getExtraMetadata())
+                .mediaUrl(mediaDto.url())
+                .mediaType(mediaDto.mediaType())
+                .position(mediaDto.position() != null ? mediaDto.position() : autoPosition.getAndIncrement())
+                .width(mediaDto.width())
+                .height(mediaDto.height())
+                .fileSizeKb(mediaDto.fileSizeKb())
+                .durationSeconds(mediaDto.durationSeconds())
+                .extraMetadata(mediaDto.extraMetadata())
                 .build()
         ).collect(Collectors.toList());
     }
@@ -320,3 +320,4 @@ public class PostMapper {
                 .build();
     }
 }
+

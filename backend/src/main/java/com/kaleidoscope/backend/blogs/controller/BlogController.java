@@ -52,7 +52,7 @@ public class BlogController implements BlogApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AppResponse<BlogCreationResponseDTO>> createBlog(
             @Valid @RequestBody BlogCreateRequestDTO blogCreateRequestDTO) {
-        log.info("Creating blog with title: {}", blogCreateRequestDTO != null ? blogCreateRequestDTO.getTitle() : "null request");
+        log.info("Creating blog with title: {}", blogCreateRequestDTO != null ? blogCreateRequestDTO.title() : "null request");
 
         if (blogCreateRequestDTO == null) {
             log.error("Blog creation request is null");
@@ -152,7 +152,7 @@ public class BlogController implements BlogApi {
     public ResponseEntity<AppResponse<BlogCreationResponseDTO>> updateBlogStatus(
             @PathVariable Long blogId,
             @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO) {
-        log.info("Admin updating blog status for blog ID: {} to status: {}", blogId, requestDTO.getStatus());
+        log.info("Admin updating blog status for blog ID: {} to status: {}", blogId, requestDTO.status());
         BlogCreationResponseDTO updatedBlog = blogService.updateBlogStatus(blogId, requestDTO);
         return ResponseEntity.ok(AppResponse.<BlogCreationResponseDTO>builder()
                 .success(true)

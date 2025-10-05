@@ -5,33 +5,31 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
 
 import java.util.List;
 import java.util.Set;
 
-@Data
-public class PostCreateRequestDTO {
+public record PostCreateRequestDTO(
     @NotBlank
     @Size(max = 200)
-    private String title;
+    String title,
 
     @NotNull
-    private String body;
+    String body,
 
     @Size(max = 500)
-    private String summary;
+    String summary,
 
-    private List<MediaUploadRequestDTO> mediaDetails;
+    List<MediaUploadRequestDTO> mediaDetails,
 
     @NotNull
-    private PostVisibility visibility;
+    PostVisibility visibility,
 
-    private Long locationId;
+    Long locationId,
 
     @NotEmpty
-    private Set<Long> categoryIds;
+    Set<Long> categoryIds,
 
-    // New field for user tags
-    private Set<Long> taggedUserIds;
+    Set<Long> taggedUserIds
+) {
 }

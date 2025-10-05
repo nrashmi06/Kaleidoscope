@@ -45,8 +45,8 @@ public class UserTagController implements UserTagApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AppResponse<UserTagResponseDTO>> createUserTag(
             @Valid @RequestBody CreateUserTagRequestDTO requestDTO) {
-        log.info("Creating user tag for user {} on content {}:{}", 
-                requestDTO.getTaggedUserId(), requestDTO.getContentType(), requestDTO.getContentId());
+        log.info("Creating user tag: userId={}, contentType={}, contentId={}",
+                requestDTO.taggedUserId(), requestDTO.contentType(), requestDTO.contentId());
         UserTagResponseDTO response = userTagService.createUserTag(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(AppResponse.<UserTagResponseDTO>builder()

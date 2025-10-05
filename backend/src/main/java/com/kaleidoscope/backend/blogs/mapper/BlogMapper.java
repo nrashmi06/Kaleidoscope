@@ -46,9 +46,9 @@ public class BlogMapper {
             return null;
         }
         return Blog.builder()
-                .title(dto.getTitle())
-                .body(dto.getBody())
-                .summary(dto.getSummary())
+                .title(dto.title())
+                .body(dto.body())
+                .summary(dto.summary())
                 .build();
     }
 
@@ -56,9 +56,9 @@ public class BlogMapper {
         if (blog == null || dto == null) {
             return;
         }
-        blog.setTitle(dto.getTitle());
-        blog.setBody(dto.getBody());
-        blog.setSummary(dto.getSummary());
+        blog.setTitle(dto.title());
+        blog.setBody(dto.body());
+        blog.setSummary(dto.summary());
     }
 
     public BlogCreationResponseDTO toDTO(Blog blog) {
@@ -153,14 +153,14 @@ public class BlogMapper {
         }
         AtomicInteger autoPosition = new AtomicInteger(0);
         return mediaDtos.stream().map(mediaDto -> BlogMedia.builder()
-                .mediaUrl(mediaDto.getUrl())
-                .mediaType(mediaDto.getMediaType())
-                .position(mediaDto.getPosition() != null ? mediaDto.getPosition() : autoPosition.getAndIncrement())
-                .width(mediaDto.getWidth())
-                .height(mediaDto.getHeight())
-                .fileSizeKb(mediaDto.getFileSizeKb())
-                .durationSeconds(mediaDto.getDurationSeconds())
-                .extraMetadata(mediaDto.getExtraMetadata())
+                .mediaUrl(mediaDto.url())
+                .mediaType(mediaDto.mediaType())
+                .position(mediaDto.position() != null ? mediaDto.position() : autoPosition.getAndIncrement())
+                .width(mediaDto.width())
+                .height(mediaDto.height())
+                .fileSizeKb(mediaDto.fileSizeKb())
+                .durationSeconds(mediaDto.durationSeconds())
+                .extraMetadata(mediaDto.extraMetadata())
                 .build()
         ).collect(Collectors.toList());
     }
@@ -235,5 +235,18 @@ public class BlogMapper {
                 .min(Comparator.comparing(BlogMedia::getPosition))
                 .map(BlogMedia::getMediaUrl)
                 .orElse(null);
+    }
+
+    private static BlogMedia createBlogMediaFromDTO(MediaUploadRequestDTO mediaDto) {
+        return BlogMedia.builder()
+                .mediaUrl(mediaDto.url())
+                .mediaType(mediaDto.mediaType())
+                .position(mediaDto.position() != null ? mediaDto.position() : 0)
+                .width(mediaDto.width())
+                .height(mediaDto.height())
+                .fileSizeKb(mediaDto.fileSizeKb())
+                .durationSeconds(mediaDto.durationSeconds())
+                .extraMetadata(mediaDto.extraMetadata())
+                .build();
     }
 }

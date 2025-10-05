@@ -31,7 +31,7 @@ public class UserInterestController implements UserInterestApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AppResponse<Object>> addUserInterest(@Valid @RequestBody AddUserInterestRequestDTO request) {
 
-        userInterestService.addUserInterest(request.getCategoryId());
+        userInterestService.addUserInterest(request.categoryId());
 
         AppResponse<Object> response = AppResponse.success(
                 null,
@@ -75,7 +75,7 @@ public class UserInterestController implements UserInterestApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AppResponse<Object>> addUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
 
-        userInterestService.addUserInterests(request.getCategoryIds());
+        userInterestService.addUserInterests(request.categoryIds());
 
         AppResponse<Object> response = AppResponse.success(
                 null,
@@ -90,7 +90,7 @@ public class UserInterestController implements UserInterestApi {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AppResponse<Object>> removeUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
 
-        userInterestService.removeUserInterests(request.getCategoryIds());
+        userInterestService.removeUserInterests(request.categoryIds());
 
         AppResponse<Object> response = AppResponse.success(
                 null,

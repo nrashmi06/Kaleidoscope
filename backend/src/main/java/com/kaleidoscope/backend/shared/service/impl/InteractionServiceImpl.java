@@ -174,17 +174,17 @@ public class InteractionServiceImpl implements InteractionService {
                 .contentType(contentType)
                 .contentId(contentId)
                 .user(currentUser)
-                .body(requestDTO.getBody())
+                .body(requestDTO.body())
                 .build();
         Comment savedComment = commentRepository.save(comment);
         log.info("[addComment] Saved comment with ID: {} for user: {}", savedComment.getCommentId(), currentUserId);
-        if (requestDTO.getTaggedUserIds() != null && !requestDTO.getTaggedUserIds().isEmpty()) {
-            for (Long taggedUserId : requestDTO.getTaggedUserIds()) {
-                CreateUserTagRequestDTO tagRequest = CreateUserTagRequestDTO.builder()
-                        .taggedUserId(taggedUserId)
-                        .contentId(savedComment.getCommentId())
-                        .contentType(ContentType.COMMENT)
-                        .build();
+        if (requestDTO.taggedUserIds() != null && !requestDTO.taggedUserIds().isEmpty()) {
+            for (Long taggedUserId : requestDTO.taggedUserIds()) {
+                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(
+                        taggedUserId,
+                        ContentType.COMMENT,
+                        savedComment.getCommentId()
+                );
                 userTagService.createUserTag(tagRequest);
                 log.info("[addComment] Tagged user {} in comment {}", taggedUserId, savedComment.getCommentId());
             }

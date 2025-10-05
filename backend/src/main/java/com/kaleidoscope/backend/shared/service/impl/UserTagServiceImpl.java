@@ -67,22 +67,22 @@ public class UserTagServiceImpl implements UserTagService {
     public UserTagResponseDTO createUserTag(CreateUserTagRequestDTO requestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         log.info("Creating user tag by user {} for user {} on content {}:{}",
-                currentUserId, requestDTO.getTaggedUserId(), requestDTO.getContentType(), requestDTO.getContentId());
+                currentUserId, requestDTO.taggedUserId(), requestDTO.contentType(), requestDTO.contentId());
 
         // Validate that users can interact (no blocking)
-        if (userBlockRepository.existsBlockRelationship(currentUserId, requestDTO.getTaggedUserId())) {
+        if (userBlockRepository.existsBlockRelationship(currentUserId, requestDTO.taggedUserId())) {
             throw new UserTaggingException("Cannot tag blocked user");
         }
 
         // Get users
         User taggerUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new UserTaggingException("Tagger user not found"));
-        User taggedUser = userRepository.findById(requestDTO.getTaggedUserId())
+        User taggedUser = userRepository.findById(requestDTO.taggedUserId())
                 .orElseThrow(() -> new UserTaggingException("Tagged user not found"));
 
         // Check if tag already exists
         if (userTagRepository.existsByTaggedUserAndContentTypeAndContentId(
-                taggedUser, requestDTO.getContentType(), requestDTO.getContentId())) {
+                taggedUser, requestDTO.contentType(), requestDTO.contentId())) {
             throw new UserTaggingException("User is already tagged in this content");
         }
 
@@ -90,8 +90,8 @@ public class UserTagServiceImpl implements UserTagService {
         UserTag userTag = UserTag.builder()
                 .taggedUser(taggedUser)
                 .taggerUser(taggerUser)
-                .contentType(requestDTO.getContentType())
-                .contentId(requestDTO.getContentId())
+                .contentType(requestDTO.contentType())
+                .contentId(requestDTO.contentId())
                 .build();
 
         UserTag savedTag = userTagRepository.save(userTag);

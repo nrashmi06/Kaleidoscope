@@ -68,16 +68,16 @@ public class BlogServiceImpl implements BlogService {
         }
 
         // Validate categories early and provide specific error message
-        if (blogCreateRequestDTO.getCategoryIds() == null || blogCreateRequestDTO.getCategoryIds().isEmpty()) {
+        if (blogCreateRequestDTO.categoryIds() == null || blogCreateRequestDTO.categoryIds().isEmpty()) {
             throw new IllegalArgumentException("At least one category must be specified");
         }
 
-        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogCreateRequestDTO.getCategoryIds()));
-        if (categories.size() != blogCreateRequestDTO.getCategoryIds().size()) {
+        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogCreateRequestDTO.categoryIds()));
+        if (categories.size() != blogCreateRequestDTO.categoryIds().size()) {
             Set<Long> foundCategoryIds = categories.stream()
                     .map(Category::getCategoryId)
                     .collect(Collectors.toSet());
-            Set<Long> missingCategoryIds = blogCreateRequestDTO.getCategoryIds().stream()
+            Set<Long> missingCategoryIds = blogCreateRequestDTO.categoryIds().stream()
                     .filter(id -> !foundCategoryIds.contains(id))
                     .collect(Collectors.toSet());
             throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
@@ -87,9 +87,10 @@ public class BlogServiceImpl implements BlogService {
         blog.setUser(currentUser);
         blog.setBlogStatus(BlogStatus.APPROVAL_PENDING);
 
-        if (blogCreateRequestDTO.getLocationId() != null) {
-            Location location = locationRepository.findById(blogCreateRequestDTO.getLocationId())
-                    .orElseThrow(() -> new LocationNotFoundException(blogCreateRequestDTO.getLocationId()));
+        // Handle location if provided
+        if (blogCreateRequestDTO.locationId() != null) {
+            Location location = locationRepository.findById(blogCreateRequestDTO.locationId())
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + blogCreateRequestDTO.locationId()));
             blog.setLocation(location);
         }
 
@@ -102,9 +103,10 @@ public class BlogServiceImpl implements BlogService {
         // Save again to persist the category relationships
         savedBlog = blogRepository.save(savedBlog);
 
-        if (blogCreateRequestDTO.getMediaDetails() != null && !blogCreateRequestDTO.getMediaDetails().isEmpty()) {
-            List<BlogMedia> mediaItems = blogMapper.toBlogMediaEntities(blogCreateRequestDTO.getMediaDetails());
-            for (BlogMedia mediaItem : mediaItems) {
+        // Handle media if provided
+        if (blogCreateRequestDTO.mediaDetails() != null && !blogCreateRequestDTO.mediaDetails().isEmpty()) {
+            List<BlogMedia> blogMediaList = blogMapper.toBlogMediaEntities(blogCreateRequestDTO.mediaDetails());
+            for (BlogMedia mediaItem : blogMediaList) {
                 if (!imageStorageService.validateBlogImageUrl(mediaItem.getMediaUrl())) {
                     throw new IllegalArgumentException("Invalid or untrusted media URL: " + mediaItem.getMediaUrl());
                 }
@@ -144,15 +146,17 @@ public class BlogServiceImpl implements BlogService {
         // Let the mapper handle all DTO-to-entity field updates
         blogMapper.updateEntityFromDTO(blog, blogUpdateRequestDTO);
 
-        updateBlogMedia(blog, blogUpdateRequestDTO.getMediaDetails());
-
-        if (blogUpdateRequestDTO.getCategoryIds() != null) {
-            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogUpdateRequestDTO.getCategoryIds()));
-            if (categories.size() != blogUpdateRequestDTO.getCategoryIds().size()) {
+        // Handle media updates if provided
+        if (blogUpdateRequestDTO.mediaDetails() != null) {
+            updateBlogMedia(blog, blogUpdateRequestDTO.mediaDetails());
+        }
+        if (blogUpdateRequestDTO.categoryIds() != null) {
+            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(blogUpdateRequestDTO.categoryIds()));
+            if (categories.size() != blogUpdateRequestDTO.categoryIds().size()) {
                 Set<Long> foundCategoryIds = categories.stream()
                         .map(Category::getCategoryId)
                         .collect(Collectors.toSet());
-                Set<Long> missingCategoryIds = blogUpdateRequestDTO.getCategoryIds().stream()
+                Set<Long> missingCategoryIds = blogUpdateRequestDTO.categoryIds().stream()
                         .filter(id -> !foundCategoryIds.contains(id))
                         .collect(Collectors.toSet());
                 throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
@@ -161,9 +165,10 @@ public class BlogServiceImpl implements BlogService {
             categories.forEach(blog::addCategory);
         }
 
-        if (blogUpdateRequestDTO.getLocationId() != null) {
-            Location location = locationRepository.findById(blogUpdateRequestDTO.getLocationId())
-                    .orElseThrow(() -> new LocationNotFoundException(blogUpdateRequestDTO.getLocationId()));
+        // Handle location updates
+        if (blogUpdateRequestDTO.locationId() != null) {
+            Location location = locationRepository.findById(blogUpdateRequestDTO.locationId())
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + blogUpdateRequestDTO.locationId()));
             blog.setLocation(location);
         } else {
             blog.setLocation(null);
@@ -304,12 +309,12 @@ public class BlogServiceImpl implements BlogService {
             throw new IllegalArgumentException("Reviewer not found for ID: " + reviewerId);
         }
 
-        blog.setBlogStatus(requestDTO.getStatus());
+        blog.setBlogStatus(requestDTO.status());
         blog.setReviewer(reviewer);
         blog.setReviewedAt(LocalDateTime.now());
 
         Blog savedBlog = blogRepository.save(blog);
-        log.info("Blog {} status updated to {} by admin {}", blogId, requestDTO.getStatus(), reviewerId);
+        log.info("Blog {} status updated to {} by admin {}", blogId, requestDTO.status(), reviewerId);
 
         return blogMapper.toDTO(savedBlog);
     }
@@ -325,9 +330,9 @@ public class BlogServiceImpl implements BlogService {
         List<BlogMedia> finalMediaList = new ArrayList<>();
 
         for (MediaUploadRequestDTO dto : mediaDtos) {
-            if (dto.getMediaId() == null) {
-                log.debug("Adding new media from URL: {}", dto.getUrl());
-                String publicId = imageStorageService.extractPublicIdFromUrl(dto.getUrl());
+            if (dto.mediaId() == null) {
+                log.debug("Adding new media from URL: {}", dto.url());
+                String publicId = imageStorageService.extractPublicIdFromUrl(dto.url());
                 MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
                         .orElseThrow(() -> {
                             log.error("Media asset not tracked for public_id: {}", publicId);
@@ -348,11 +353,11 @@ public class BlogServiceImpl implements BlogService {
                     log.debug("Associated new media with blog");
                 }
             } else {
-                incomingMediaIds.add(dto.getMediaId());
-                BlogMedia existingMedia = existingMediaMap.get(dto.getMediaId());
+                incomingMediaIds.add(dto.mediaId());
+                BlogMedia existingMedia = existingMediaMap.get(dto.mediaId());
                 if (existingMedia != null) {
-                    log.debug("Updating position for existing mediaId: {}", dto.getMediaId());
-                    existingMedia.setPosition(dto.getPosition());
+                    log.debug("Updating position for existing mediaId: {}", dto.mediaId());
+                    existingMedia.setPosition(dto.position());
                     finalMediaList.add(existingMedia);
                 }
             }

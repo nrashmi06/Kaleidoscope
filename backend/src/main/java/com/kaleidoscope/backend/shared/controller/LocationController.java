@@ -58,8 +58,8 @@ public class LocationController implements LocationApi {
     public ResponseEntity<AppResponse<LocationResponseDTO>> createLocation(
             @Valid @RequestBody LocationRequestDTO locationRequestDTO) {
         
-        log.info("Creating new location: {}", locationRequestDTO.getName());
-        
+        log.info("Creating location with name: {}", locationRequestDTO.name());
+
         LocationResponseDTO createdLocation = locationService.createLocation(locationRequestDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(

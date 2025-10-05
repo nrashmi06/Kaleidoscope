@@ -76,20 +76,20 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     @Override
     @Transactional
     public Map<String, Object> loginUser(UserLoginRequestDTO loginRequest) {
-        log.debug("Processing login for user: {}", loginRequest.getEmail());
+        log.debug("Processing login for user: {}", loginRequest.email());
 
         // Check if user exists
-        User user = userRepository.findByEmail(loginRequest.getEmail());
+        User user = userRepository.findByEmail(loginRequest.email());
         if (user == null) {
-            log.warn("Login failed: invalid email {}", loginRequest.getEmail());
+            log.warn("Login failed: invalid email {}", loginRequest.email());
             throw new UsernameNotFoundException("Invalid email");
         }
 
         // Authenticate user - let global exception handler manage AuthenticationException
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail(),
-                        loginRequest.getPassword()
+                        loginRequest.email(),
+                        loginRequest.password()
                 )
         );
 

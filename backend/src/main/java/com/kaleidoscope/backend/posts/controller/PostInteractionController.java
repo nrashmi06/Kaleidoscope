@@ -32,7 +32,7 @@ public class PostInteractionController implements PostInteractionApi {
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
             @Valid @RequestBody(required = false) ReactionRequestDTO body
     ) {
-        ReactionType reactionType = body != null ? body.getReactionType() : null;
+        ReactionType reactionType = body != null ? body.reactionType() : null;
         if (!unreact && reactionType == null) {
             return ResponseEntity.badRequest().body(AppResponse.<ReactionResponseDTO>builder()
                     .success(false)
@@ -106,7 +106,7 @@ public class PostInteractionController implements PostInteractionApi {
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
             @Valid @RequestBody(required = false) ReactionRequestDTO body
     ) {
-        ReactionType reactionType = body != null ? body.getReactionType() : null;
+        ReactionType reactionType = body != null ? body.reactionType() : null;
         if (!unreact && reactionType == null) {
             return ResponseEntity.badRequest().body(AppResponse.<ReactionResponseDTO>builder()
                     .success(false)

@@ -75,9 +75,9 @@ public class UserPreferencesServiceImpl implements UserPreferencesService {
         UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
 
         // Use mapper instance method to update theme
-        UserPreferences updatedPreferences = userPreferencesMapper.updateTheme(userPreferences, requestDTO.getTheme());
+        UserPreferences updatedPreferences = userPreferencesMapper.updateTheme(userPreferences, requestDTO.theme());
         UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
-        log.info("Updated theme to {} for user ID: {}", requestDTO.getTheme(), currentUserId);
+        log.info("Updated theme to {} for user ID: {}", requestDTO.theme(), currentUserId);
 
         return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
@@ -89,9 +89,9 @@ public class UserPreferencesServiceImpl implements UserPreferencesService {
         UserPreferences userPreferences = getOrCreateUserPreferences(currentUserId);
 
         // Use mapper instance method to update language
-        UserPreferences updatedPreferences = userPreferencesMapper.updateLanguage(userPreferences, requestDTO.getLanguage());
+        UserPreferences updatedPreferences = userPreferencesMapper.updateLanguage(userPreferences, requestDTO.language());
         UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
-        log.info("Updated language to {} for user ID: {}", requestDTO.getLanguage(), currentUserId);
+        log.info("Updated language to {} for user ID: {}", requestDTO.language(), currentUserId);
 
         return userPreferencesMapper.toResponseDTO(savedPreferences);
     }

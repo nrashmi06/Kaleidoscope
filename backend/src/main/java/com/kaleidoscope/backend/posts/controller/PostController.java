@@ -53,7 +53,7 @@ public class PostController implements PostApi {
     @Override
     public ResponseEntity<AppResponse<PostCreationResponseDTO>> createPost(
             @Valid @RequestBody PostCreateRequestDTO postCreateRequestDTO) {
-        log.info("Creating post with title: {}", postCreateRequestDTO.getTitle());
+        log.info("Creating post with title: {}", postCreateRequestDTO.title());
         PostCreationResponseDTO createdPost = postService.createPost(postCreateRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(AppResponse.<PostCreationResponseDTO>builder()

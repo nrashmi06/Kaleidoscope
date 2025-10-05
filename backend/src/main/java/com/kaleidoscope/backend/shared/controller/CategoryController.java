@@ -51,7 +51,7 @@ public class CategoryController implements CategoryApi {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<AppResponse<CategoryResponseDTO>> createCategory(
             @Valid @RequestBody CategoryRequestDTO categoryRequestDTO) {
-        log.info("Creating new category: {}", categoryRequestDTO.getName());
+        log.info("Creating category with name: {}", categoryRequestDTO.name());
         CategoryResponseDTO createdCategory = categoryService.createCategory(categoryRequestDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
