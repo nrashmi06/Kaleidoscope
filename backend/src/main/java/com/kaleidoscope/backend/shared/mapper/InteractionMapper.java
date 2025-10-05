@@ -32,13 +32,13 @@ public class InteractionMapper {
     }
     private UserDetailsSummaryResponseDTO toUserDTO(User user) {
         if (user == null) return null;
-        return UserDetailsSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .accountStatus(user.getAccountStatus().name())
-                .profilePictureUrl(user.getProfilePictureUrl())
-                .build();
+        return new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        );
     }
 
     public ReactionResponseDTO toReactionSummary(Long contentId, ContentType contentType, ReactionType currentUserReaction, List<Object[]> countsRaw) {
@@ -52,12 +52,12 @@ public class InteractionMapper {
                 total += count;
             }
         }
-        return ReactionResponseDTO.builder()
-                .contentId(contentId)
-                .contentType(contentType)
-                .currentUserReaction(currentUserReaction)
-                .countsByType(countsByType)
-                .totalReactions(total)
-                .build();
+        return new ReactionResponseDTO(
+                contentId,
+                contentType,
+                currentUserReaction,
+                countsByType,
+                total
+        );
     }
 }

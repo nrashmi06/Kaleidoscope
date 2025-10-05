@@ -126,10 +126,10 @@ public class PostSaveServiceImpl implements PostSaveService {
         Optional<PostSave> userSave = postSaveRepository.findByPostAndUser(post, user);
         long totalSaves = postSaveRepository.countByPost(post);
 
-        return PostSaveResponseDTO.builder()
-                .saved(userSave.isPresent())
-                .totalSaves(totalSaves)
-                .savedAt(userSave.map(PostSave::getCreatedAt).orElse(null))
-                .build();
+        return new PostSaveResponseDTO(
+                userSave.isPresent(),
+                totalSaves,
+                userSave.map(PostSave::getCreatedAt).orElse(null)
+        );
     }
 }

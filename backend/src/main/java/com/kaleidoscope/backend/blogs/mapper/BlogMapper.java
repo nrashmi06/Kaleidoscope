@@ -169,13 +169,13 @@ public class BlogMapper {
         if (user == null) {
             return null;
         }
-        return UserDetailsSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .accountStatus(user.getAccountStatus().name())
-                .profilePictureUrl(user.getProfilePictureUrl())
-                .build();
+        return new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        );
     }
 
     private LocationResponseDTO toLocationResponseDTO(Location location) {
@@ -195,10 +195,10 @@ public class BlogMapper {
         return blog.getCategories().stream()
                 .map(bc -> {
                     Category cat = bc.getCategory();
-                    return CategorySummaryResponseDTO.builder()
-                            .categoryId(cat.getCategoryId())
-                            .name(cat.getName())
-                            .build();
+                    return new CategorySummaryResponseDTO(
+                            cat.getCategoryId(),
+                            cat.getName()
+                    );
                 })
                 .collect(Collectors.toList());
     }
@@ -223,10 +223,10 @@ public class BlogMapper {
 
     private List<BlogTagResponseDTO> mapBlogTags(Blog blog) {
         return blog.getTaggedBlogs().stream()
-                .map(tag -> BlogTagResponseDTO.builder()
-                        .blogId(tag.getTaggedBlog().getBlogId())
-                        .title(tag.getTaggedBlog().getTitle())
-                        .build())
+                .map(tag -> new BlogTagResponseDTO(
+                        tag.getTaggedBlog().getBlogId(),
+                        tag.getTaggedBlog().getTitle()
+                ))
                 .collect(Collectors.toList());
     }
 

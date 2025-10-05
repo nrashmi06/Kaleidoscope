@@ -63,13 +63,13 @@ public class PostMapper {
         }
 
         User user = post.getUser();
-        UserDetailsSummaryResponseDTO authorDto = user != null ? UserDetailsSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .accountStatus(user.getAccountStatus().name())
-                .profilePictureUrl(user.getProfilePictureUrl())
-                .build() : null;
+        UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        ) : null;
 
         Location location = post.getLocation();
         LocationResponseDTO locationDto = null;
@@ -100,10 +100,10 @@ public class PostMapper {
                 .categories(post.getCategories().stream()
                         .map(pc -> {
                             Category cat = pc.getCategory();
-                            return CategorySummaryResponseDTO.builder()
-                                    .categoryId(cat.getCategoryId())
-                                    .name(cat.getName())
-                                    .build();
+                            return new CategorySummaryResponseDTO(
+                                    cat.getCategoryId(),
+                                    cat.getName()
+                            );
                         })
                         .collect(Collectors.toList()))
                 .media(post.getMedia().stream()
@@ -150,13 +150,13 @@ public class PostMapper {
         }
 
         User user = post.getUser();
-        UserDetailsSummaryResponseDTO authorDto = user != null ? UserDetailsSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .accountStatus(user.getAccountStatus().name())
-                .profilePictureUrl(user.getProfilePictureUrl())
-                .build() : null;
+        UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        ) : null;
 
         Location location = post.getLocation();
         LocationResponseDTO locationDto = null;
@@ -193,10 +193,10 @@ public class PostMapper {
                 .categories(post.getCategories().stream()
                         .map(pc -> {
                             Category cat = pc.getCategory();
-                            return CategorySummaryResponseDTO.builder()
-                                    .categoryId(cat.getCategoryId())
-                                    .name(cat.getName())
-                                    .build();
+                            return new CategorySummaryResponseDTO(
+                                    cat.getCategoryId(),
+                                    cat.getName()
+                            );
                         })
                         .collect(Collectors.toList()))
                 .media(post.getMedia().stream()
@@ -229,13 +229,13 @@ public class PostMapper {
         }
 
         User user = post.getUser();
-        UserDetailsSummaryResponseDTO authorDto = user != null ? UserDetailsSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .accountStatus(user.getAccountStatus().name())
-                .profilePictureUrl(user.getProfilePictureUrl())
-                .build() : null;
+        UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        ) : null;
 
         // Find thumbnail URL from media with lowest position
         String thumbnailUrl = post.getMedia().stream()
@@ -258,10 +258,10 @@ public class PostMapper {
                 .categories(post.getCategories().stream()
                         .map(pc -> {
                             Category cat = pc.getCategory();
-                            return CategorySummaryResponseDTO.builder()
-                                    .categoryId(cat.getCategoryId())
-                                    .name(cat.getName())
-                                    .build();
+                            return new CategorySummaryResponseDTO(
+                                    cat.getCategoryId(),
+                                    cat.getName()
+                            );
                         })
                         .collect(Collectors.toList()))
                 .thumbnailUrl(thumbnailUrl)
@@ -284,24 +284,23 @@ public class PostMapper {
         UserDetailsSummaryResponseDTO authorDto = null;
         if (document.getAuthor() != null) {
             PostDocument.Author author = document.getAuthor();
-            authorDto = UserDetailsSummaryResponseDTO.builder()
-                    .userId(author.getUserId())
-                    .username(author.getUsername())
-                    .profilePictureUrl(author.getProfilePictureUrl())
-                    // FIX: Explicitly map email and accountStatus which exist in the PostDocument.Author nested class
-                    .email(author.getEmail())
-                    .accountStatus(author.getAccountStatus())
-                    .build();
+            authorDto = new UserDetailsSummaryResponseDTO(
+                    author.getUserId(),
+                    author.getEmail(),
+                    author.getUsername(),
+                    author.getAccountStatus(),
+                    author.getProfilePictureUrl()
+            );
         }
 
         // Map categories from denormalized document data
         List<CategorySummaryResponseDTO> categoryDtos = List.of();
         if (document.getCategories() != null) {
             categoryDtos = document.getCategories().stream()
-                    .map(cat -> CategorySummaryResponseDTO.builder()
-                            .categoryId(cat.getCategoryId())
-                            .name(cat.getName())
-                            .build())
+                    .map(cat -> new CategorySummaryResponseDTO(
+                            cat.getCategoryId(),
+                            cat.getName()
+                    ))
                     .collect(Collectors.toList());
         }
 
@@ -320,4 +319,3 @@ public class PostMapper {
                 .build();
     }
 }
-

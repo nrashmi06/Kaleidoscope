@@ -85,7 +85,7 @@ public class AuthController implements AuthApi {
                 AuthRoutes.LOGIN
         );
 
-        log.info("User successfully authenticated: {}", userDTO.getEmail());
+        log.info("User successfully authenticated: {}", userDTO.email());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
@@ -218,7 +218,7 @@ public class AuthController implements AuthApi {
 
         UsernameAvailabilityResponseDTO availabilityResponse = authService.checkUsernameAvailability(username);
 
-        String message = availabilityResponse.isAvailable()
+        String message = availabilityResponse.available()
                 ? "Username is available"
                 : "Username is already taken";
 

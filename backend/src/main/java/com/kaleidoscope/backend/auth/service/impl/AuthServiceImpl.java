@@ -311,28 +311,18 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     @Override
     public UsernameAvailabilityResponseDTO checkUsernameAvailability(String username) {
         if (username == null || username.trim().isEmpty()) {
-            return UsernameAvailabilityResponseDTO.builder()
-                    .available(false)
-                    .username("")
-                    .build();
+            return new UsernameAvailabilityResponseDTO(false, "");
         }
 
         String trimmedUsername = username.replaceAll("\\s+", "");
 
         // Basic validation only - detailed validation is in UserRegistrationService
         if (trimmedUsername.length() < 3 || !trimmedUsername.matches("^[a-zA-Z0-9 ._-]+$")) {
-            return UsernameAvailabilityResponseDTO.builder()
-                    .available(false)
-                    .username(trimmedUsername)
-                    .build();
+            return new UsernameAvailabilityResponseDTO(false, trimmedUsername);
         }
 
         boolean isAvailable = !userRepository.existsByUsername(trimmedUsername);
 
-        return UsernameAvailabilityResponseDTO.builder()
-                .available(isAvailable)
-                .username(trimmedUsername)
-                .build();
+        return new UsernameAvailabilityResponseDTO(isAvailable, trimmedUsername);
     }
 }
-

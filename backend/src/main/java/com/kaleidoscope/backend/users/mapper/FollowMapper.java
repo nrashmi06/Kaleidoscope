@@ -9,13 +9,13 @@ import org.springframework.stereotype.Component;
 public class FollowMapper {
 
     public UserDetailsSummaryResponseDTO mapToUserSummary(User user) {
-        return UserDetailsSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .accountStatus(user.getAccountStatus().name())
-                .profilePictureUrl(user.getProfilePictureUrl())
-                .build();
+        return new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        );
     }
 
     public UserDetailsSummaryResponseDTO mapFollowerToUserSummary(Follow follow) {

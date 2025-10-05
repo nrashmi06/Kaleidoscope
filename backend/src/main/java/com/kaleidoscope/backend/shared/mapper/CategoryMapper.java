@@ -34,13 +34,13 @@ public class CategoryMapper {
             return null;
         }
 
-        return CategoryParentResponseDTO.builder()
-                .categoryId(category.getCategoryId())
-                .name(category.getName())
-                .description(category.getDescription())
-                .iconName(category.getIconName())
-                .parentId(category.getParent() != null ? category.getParent().getCategoryId() : null)
-                .build();
+        return new CategoryParentResponseDTO(
+                category.getCategoryId(),
+                category.getName(),
+                category.getDescription(),
+                category.getIconName(),
+                category.getParent() != null ? category.getParent().getCategoryId() : null
+        );
     }
 
     public static List<CategoryParentResponseDTO> toParentDTOList(List<Category> categories) {

@@ -22,15 +22,15 @@ public class UserBlockPaginationMapper {
             Page<UserBlock> userBlocksPage,
             Function<UserBlock, com.kaleidoscope.backend.users.model.User> userExtractor) {
 
-        return BlockedUsersListResponseDTO.builder()
-                .blockedUsers(userBlocksPage.getContent().stream()
+        return new BlockedUsersListResponseDTO(
+                userBlocksPage.getContent().stream()
                         .map(userExtractor)
                         .map(UserMapper::toUserDetailsSummaryResponseDTO)
-                        .toList())
-                .currentPage(userBlocksPage.getNumber())
-                .totalPages(userBlocksPage.getTotalPages())
-                .totalElements(userBlocksPage.getTotalElements())
-                .build();
+                        .toList(),
+                userBlocksPage.getNumber(),
+                userBlocksPage.getTotalPages(),
+                userBlocksPage.getTotalElements()
+        );
     }
 
     /**

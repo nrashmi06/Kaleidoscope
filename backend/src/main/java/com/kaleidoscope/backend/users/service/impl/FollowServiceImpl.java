@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -122,12 +121,12 @@ public class FollowServiceImpl implements FollowService {
                 .map(followMapper::mapFollowerToUserSummary)
                 .collect(Collectors.toList());
 
-        return FollowListResponseDTO.builder()
-                .users(followerDTOs)
-                .currentPage(pageable.getPageNumber())
-                .totalPages(followers.getTotalPages())
-                .totalElements(followers.getTotalElements())
-                .build();
+        return new FollowListResponseDTO(
+                followerDTOs,
+                pageable.getPageNumber(),
+                followers.getTotalPages(),
+                followers.getTotalElements()
+        );
     }
 
 
@@ -154,12 +153,12 @@ public class FollowServiceImpl implements FollowService {
                 .map(followMapper::mapFollowingToUserSummary)
                 .collect(Collectors.toList());
 
-        return FollowListResponseDTO.builder()
-                .users(followingDTOs)
-                .currentPage(pageable.getPageNumber())
-                .totalPages(following.getTotalPages())
-                .totalElements(following.getTotalElements())
-                .build();
+        return new FollowListResponseDTO(
+                followingDTOs,
+                pageable.getPageNumber(),
+                following.getTotalPages(),
+                following.getTotalElements()
+        );
     }
 
 }
