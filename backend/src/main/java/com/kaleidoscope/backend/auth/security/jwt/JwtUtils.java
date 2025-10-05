@@ -68,7 +68,7 @@ public class JwtUtils {
         String language = userPreferences != null ? userPreferences.getLanguage() : "en-US";
 
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtProperties.getExpiration());
+        Date expiryDate = new Date(now.getTime() + jwtProperties.expiration());
 
         logger.debug("Current time: {}", now);
         logger.debug("Token expiration time: {}", expiryDate);
@@ -152,7 +152,7 @@ public class JwtUtils {
     }
 
     private Key key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.secret()));
     }
 
     public boolean validateJwtToken(String authToken) {
@@ -219,4 +219,3 @@ public class JwtUtils {
         return "ROLE_"+ Role.USER; // Default role if none found
     }
 }
-

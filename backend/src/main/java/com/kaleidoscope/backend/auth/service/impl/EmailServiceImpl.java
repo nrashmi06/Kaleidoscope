@@ -68,8 +68,8 @@ public class EmailServiceImpl implements EmailService {
     public void sendVerificationEmail(String email, String code) {
         logger.info("Starting to send verification email to: {}", email);
         String subject = "Verify your email address";
-        String baseUrl = applicationProperties.getBaseUrl();
-        String contextPath = servletProperties.getContextPath();
+        String baseUrl = applicationProperties.baseUrl();
+        String contextPath = servletProperties.contextPath();
         String verificationUrl = baseUrl + contextPath + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
         Context context = new Context();
         context.setVariable("verificationUrl", verificationUrl);
