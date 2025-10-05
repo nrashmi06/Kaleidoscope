@@ -6,7 +6,7 @@ import com.kaleidoscope.backend.shared.exception.categoryException.CategoryAlrea
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.exception.userTags.TagNotFoundException;
 import com.kaleidoscope.backend.shared.exception.userTags.UserTaggingException;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -21,9 +21,9 @@ import org.springframework.web.context.request.WebRequest;
 public class SharedExceptionHandler {
 
     @ExceptionHandler(ImageStorageException.class)
-    public ResponseEntity<ApiResponse<Object>> handleImageStorageException(ImageStorageException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleImageStorageException(ImageStorageException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Image storage error",
                 ex.getMessage(),
                 path
@@ -32,9 +32,9 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(SignatureGenerationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleSignatureGenerationException(SignatureGenerationException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleSignatureGenerationException(SignatureGenerationException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Signature generation error",
                 ex.getMessage(),
                 path
@@ -43,9 +43,9 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(CategoryNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleCategoryNotFoundException(CategoryNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleCategoryNotFoundException(CategoryNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Category not found",
                 ex.getMessage(),
                 path
@@ -54,9 +54,9 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(CategoryAlreadyExistsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleCategoryAlreadyExistsException(CategoryAlreadyExistsException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleCategoryAlreadyExistsException(CategoryAlreadyExistsException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Category already exists",
                 ex.getMessage(),
                 path
@@ -65,9 +65,9 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleLocationNotFoundException(com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleLocationNotFoundException(com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Location not found",
                 ex.getMessage(),
                 path
@@ -76,9 +76,9 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(com.kaleidoscope.backend.shared.exception.locationException.LocationAlreadyExistsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleLocationAlreadyExistsException(com.kaleidoscope.backend.shared.exception.locationException.LocationAlreadyExistsException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleLocationAlreadyExistsException(com.kaleidoscope.backend.shared.exception.locationException.LocationAlreadyExistsException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Location already exists",
                 ex.getMessage(),
                 path
@@ -87,12 +87,12 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         String errorMessage = "Method not allowed: " + ex.getMethod() + " is not supported for this endpoint. Supported methods are: " +
                 String.join(", ", ex.getSupportedMethods());
 
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Method not allowed",
                 errorMessage,
                 path
@@ -101,9 +101,9 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleGenericException(Exception ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "An unexpected error occurred",
                 ex.getMessage(),
                 path
@@ -113,9 +113,9 @@ public class SharedExceptionHandler {
 
     // User Tagging Exception Handlers
     @ExceptionHandler(TagNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleTagNotFoundException(TagNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleTagNotFoundException(TagNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Tag not found",
                 ex.getMessage(),
                 path
@@ -124,9 +124,9 @@ public class SharedExceptionHandler {
     }
 
     @ExceptionHandler(UserTaggingException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserTaggingException(UserTaggingException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserTaggingException(UserTaggingException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User tagging error",
                 ex.getMessage(),
                 path

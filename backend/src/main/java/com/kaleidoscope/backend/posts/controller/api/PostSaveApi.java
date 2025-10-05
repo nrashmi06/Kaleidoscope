@@ -3,7 +3,7 @@ package com.kaleidoscope.backend.posts.controller.api;
 import com.kaleidoscope.backend.posts.dto.response.PostSaveResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.routes.PostInteractionRoutes;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,7 +18,7 @@ public interface PostSaveApi {
     @Operation(summary = "Save or unsave a post")
     @PostMapping(PostInteractionRoutes.SAVE_POST)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostSaveResponseDTO>> saveOrUnsavePost(
+    ResponseEntity<AppResponse<PostSaveResponseDTO>> saveOrUnsavePost(
             @PathVariable Long postId,
             @RequestParam(name = "unsave", defaultValue = "false") boolean unsave
     );
@@ -26,10 +26,10 @@ public interface PostSaveApi {
     @Operation(summary = "Get save status for a post")
     @GetMapping(PostInteractionRoutes.SAVE_POST)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PostSaveResponseDTO>> getPostSaveStatus(@PathVariable Long postId);
+    ResponseEntity<AppResponse<PostSaveResponseDTO>> getPostSaveStatus(@PathVariable Long postId);
 
     @Operation(summary = "Get current user's saved posts")
     @GetMapping(PostInteractionRoutes.SAVED_POSTS)
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<ApiResponse<PaginatedResponse<PostSummaryResponseDTO>>> getSavedPosts(Pageable pageable);
+    ResponseEntity<AppResponse<PaginatedResponse<PostSummaryResponseDTO>>> getSavedPosts(Pageable pageable);
 }

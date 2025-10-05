@@ -4,7 +4,7 @@ import com.kaleidoscope.backend.shared.controller.api.LocationApi;
 import com.kaleidoscope.backend.shared.dto.request.LocationRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.shared.routes.LocationRoutes;
 import com.kaleidoscope.backend.shared.service.LocationService;
 import jakarta.validation.Valid;
@@ -31,7 +31,7 @@ public class LocationController implements LocationApi {
     @Override
     @GetMapping(LocationRoutes.SEARCH_LOCATIONS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<LocationResponseDTO>>> searchLocations(
+    public ResponseEntity<AppResponse<PaginatedResponse<LocationResponseDTO>>> searchLocations(
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "name") Pageable pageable) {
         log.info("Searching locations with term: '{}' and pagination: page {}, size {}",
@@ -39,7 +39,7 @@ public class LocationController implements LocationApi {
         Page<LocationResponseDTO> locations = locationService.searchLocations(search, pageable);
         PaginatedResponse<LocationResponseDTO> paginated = PaginatedResponse.fromPage(locations);
         return ResponseEntity.ok(
-                ApiResponse.<PaginatedResponse<LocationResponseDTO>>builder()
+                AppResponse.<PaginatedResponse<LocationResponseDTO>>builder()
                         .success(true)
                         .message(search != null && !search.trim().isEmpty()
                                 ? "Locations found for search term: '" + search + "'"
@@ -55,7 +55,7 @@ public class LocationController implements LocationApi {
     @Override
     @PostMapping(LocationRoutes.CREATE_LOCATION)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<LocationResponseDTO>> createLocation(
+    public ResponseEntity<AppResponse<LocationResponseDTO>> createLocation(
             @Valid @RequestBody LocationRequestDTO locationRequestDTO) {
         
         log.info("Creating new location: {}", locationRequestDTO.getName());
@@ -63,7 +63,7 @@ public class LocationController implements LocationApi {
         LocationResponseDTO createdLocation = locationService.createLocation(locationRequestDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.<LocationResponseDTO>builder()
+                AppResponse.<LocationResponseDTO>builder()
                         .success(true)
                         .message("Location created successfully")
                         .data(createdLocation)
@@ -77,7 +77,7 @@ public class LocationController implements LocationApi {
     @Override
     @GetMapping(LocationRoutes.GET_LOCATION_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<LocationResponseDTO>> getLocationById(
+    public ResponseEntity<AppResponse<LocationResponseDTO>> getLocationById(
             @PathVariable Long locationId) {
         
         log.info("Getting location by ID: {}", locationId);
@@ -85,7 +85,7 @@ public class LocationController implements LocationApi {
         LocationResponseDTO location = locationService.getLocationById(locationId);
 
         return ResponseEntity.ok(
-                ApiResponse.<LocationResponseDTO>builder()
+                AppResponse.<LocationResponseDTO>builder()
                         .success(true)
                         .message("Location retrieved successfully")
                         .data(location)
@@ -99,7 +99,7 @@ public class LocationController implements LocationApi {
     @Override
     @GetMapping(LocationRoutes.NEARBY_LOCATIONS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<LocationResponseDTO>>> findNearbyLocations(
+    public ResponseEntity<AppResponse<PaginatedResponse<LocationResponseDTO>>> findNearbyLocations(
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam double radiusKm,
@@ -111,7 +111,7 @@ public class LocationController implements LocationApi {
         Page<LocationResponseDTO> nearbyLocations = locationService.findNearbyLocations(latitude, longitude, radiusKm, pageable);
         PaginatedResponse<LocationResponseDTO> paginated = PaginatedResponse.fromPage(nearbyLocations);
         return ResponseEntity.ok(
-                ApiResponse.<PaginatedResponse<LocationResponseDTO>>builder()
+                AppResponse.<PaginatedResponse<LocationResponseDTO>>builder()
                         .success(true)
                         .message(String.format("Found nearby locations within %.1f km of coordinates (%.4f, %.4f)",
                                 radiusKm, latitude, longitude))
@@ -126,11 +126,11 @@ public class LocationController implements LocationApi {
     @Override
     @DeleteMapping(LocationRoutes.DELETE_LOCATION)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deleteLocationById(@PathVariable Long locationId) {
+    public ResponseEntity<AppResponse<Void>> deleteLocationById(@PathVariable Long locationId) {
         log.info("Admin deleting location by ID: {}", locationId);
         locationService.deleteLocationById(locationId);
         return ResponseEntity.ok(
-                ApiResponse.<Void>builder()
+                AppResponse.<Void>builder()
                         .success(true)
                         .message("Location deleted successfully")
                         .data(null)

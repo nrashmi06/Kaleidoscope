@@ -11,7 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ApiResponse<T> {
+public class AppResponse<T> {
     private boolean success;
     private String message;
     private T data;
@@ -19,8 +19,8 @@ public class ApiResponse<T> {
     private long timestamp;
     private String path;
 
-    public static <T> ApiResponse<T> success(T data, String message, String path) {
-        return ApiResponse.<T>builder()
+    public static <T> AppResponse<T> success(T data, String message, String path) {
+        return AppResponse.<T>builder()
                 .success(true)
                 .message(message)
                 .data(data)
@@ -30,8 +30,8 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message, List<String> errors, String path) {
-        return ApiResponse.<T>builder()
+    public static <T> AppResponse<T> error(String message, List<String> errors, String path) {
+        return AppResponse.<T>builder()
                 .success(false)
                 .message(message)
                 .data(null)
@@ -41,7 +41,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(String message, String error, String path) {
+    public static <T> AppResponse<T> error(String message, String error, String path) {
         List<String> errors = new ArrayList<>();
         if (error != null) {
             errors.add(error);

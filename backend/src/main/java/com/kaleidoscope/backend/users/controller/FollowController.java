@@ -1,6 +1,6 @@
 package com.kaleidoscope.backend.users.controller;
 
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.controller.api.FollowApi;
 import com.kaleidoscope.backend.users.dto.response.FollowListResponseDTO;
 import com.kaleidoscope.backend.users.routes.FollowRoutes;
@@ -26,10 +26,10 @@ public class FollowController implements FollowApi {
     @Override
     @PostMapping(FollowRoutes.FOLLOW)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<String>> followUser(@RequestParam Long targetUserId) {
+    public ResponseEntity<AppResponse<String>> followUser(@RequestParam Long targetUserId) {
         followService.followUser(targetUserId);
         return ResponseEntity.ok(
-                ApiResponse.<String>builder()
+                AppResponse.<String>builder()
                         .success(true)
                         .message("Successfully followed user")
                         .data("Followed user " + targetUserId)
@@ -43,10 +43,10 @@ public class FollowController implements FollowApi {
     @Override
     @DeleteMapping(FollowRoutes.FOLLOW)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<String>> unfollowUser(@RequestParam Long targetUserId) {
+    public ResponseEntity<AppResponse<String>> unfollowUser(@RequestParam Long targetUserId) {
         followService.unfollowUser(targetUserId);
         return ResponseEntity.ok(
-                ApiResponse.<String>builder()
+                AppResponse.<String>builder()
                         .success(true)
                         .message("Successfully unfollowed user")
                         .data("Unfollowed user " + targetUserId)
@@ -60,13 +60,13 @@ public class FollowController implements FollowApi {
     @Override
     @GetMapping(FollowRoutes.FOLLOWERS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<FollowListResponseDTO>> getFollowers(
+    public ResponseEntity<AppResponse<FollowListResponseDTO>> getFollowers(
             @RequestParam Long userId,
             @PageableDefault(size = 10) Pageable pageable) {
 
         FollowListResponseDTO response = followService.getFollowers(userId, pageable);
         return ResponseEntity.ok(
-                ApiResponse.<FollowListResponseDTO>builder()
+                AppResponse.<FollowListResponseDTO>builder()
                         .success(true)
                         .message("Followers retrieved successfully")
                         .data(response)
@@ -80,13 +80,13 @@ public class FollowController implements FollowApi {
     @Override
     @GetMapping(FollowRoutes.FOLLOWING)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<FollowListResponseDTO>> getFollowing(
+    public ResponseEntity<AppResponse<FollowListResponseDTO>> getFollowing(
             @RequestParam Long userId,
             @PageableDefault(size = 10) Pageable pageable) {
 
         FollowListResponseDTO response = followService.getFollowing(userId, pageable);
         return ResponseEntity.ok(
-                ApiResponse.<FollowListResponseDTO>builder()
+                AppResponse.<FollowListResponseDTO>builder()
                         .success(true)
                         .message("Following list retrieved successfully")
                         .data(response)

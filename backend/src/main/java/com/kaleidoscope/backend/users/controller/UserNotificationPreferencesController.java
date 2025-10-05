@@ -1,6 +1,6 @@
 package com.kaleidoscope.backend.users.controller;
 
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.controller.api.UserNotificationPreferencesApi;
 import com.kaleidoscope.backend.users.dto.request.*;
 import com.kaleidoscope.backend.users.dto.response.UserNotificationPreferencesResponseDTO;
@@ -26,7 +26,7 @@ public class UserNotificationPreferencesController implements UserNotificationPr
     @GetMapping(value = {UserNotificationPreferencesRoutes.GET_NOTIFICATION_PREFERENCES,
                          UserNotificationPreferencesRoutes.GET_NOTIFICATION_PREFERENCES + "/{userId}"})
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserNotificationPreferencesResponseDTO>> getNotificationPreferences(
+    public ResponseEntity<AppResponse<UserNotificationPreferencesResponseDTO>> getNotificationPreferences(
             @PathVariable(required = false) Long userId) {
 
         UserNotificationPreferencesResponseDTO response;
@@ -41,21 +41,21 @@ public class UserNotificationPreferencesController implements UserNotificationPr
         }
 
         return ResponseEntity.ok(
-                ApiResponse.success(response, "Notification preferences retrieved successfully", responsePath)
+                AppResponse.success(response, "Notification preferences retrieved successfully", responsePath)
         );
     }
 
     @Override
     @GetMapping(UserNotificationPreferencesRoutes.GET_ALL_NOTIFICATION_PREFERENCES)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Page<UserNotificationPreferencesResponseDTO>>> getAllNotificationPreferences(
+    public ResponseEntity<AppResponse<Page<UserNotificationPreferencesResponseDTO>>> getAllNotificationPreferences(
             Pageable pageable) {
 
         Page<UserNotificationPreferencesResponseDTO> response =
                 notificationPreferencesService.getAllNotificationPreferences(pageable);
 
         return ResponseEntity.ok(
-                ApiResponse.success(response, "All notification preferences retrieved successfully",
+                AppResponse.success(response, "All notification preferences retrieved successfully",
                         UserNotificationPreferencesRoutes.GET_ALL_NOTIFICATION_PREFERENCES)
         );
     }
@@ -63,14 +63,14 @@ public class UserNotificationPreferencesController implements UserNotificationPr
     @Override
     @PutMapping(UserNotificationPreferencesRoutes.UPDATE_NOTIFICATION_PREFERENCES)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserNotificationPreferencesResponseDTO>> updateNotificationPreferences(
+    public ResponseEntity<AppResponse<UserNotificationPreferencesResponseDTO>> updateNotificationPreferences(
             @Valid @RequestBody UpdateNotificationPreferencesRequestDTO requestDTO) {
 
         UserNotificationPreferencesResponseDTO response =
                 notificationPreferencesService.updateNotificationPreferences(requestDTO);
 
         return ResponseEntity.ok(
-                ApiResponse.success(response, "Notification preferences updated successfully",
+                AppResponse.success(response, "Notification preferences updated successfully",
                         UserNotificationPreferencesRoutes.UPDATE_NOTIFICATION_PREFERENCES)
         );
     }
@@ -78,14 +78,14 @@ public class UserNotificationPreferencesController implements UserNotificationPr
     @Override
     @PatchMapping(UserNotificationPreferencesRoutes.PARTIAL_UPDATE_NOTIFICATION_PREFERENCES)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserNotificationPreferencesResponseDTO>> partialUpdateNotificationPreferences(
+    public ResponseEntity<AppResponse<UserNotificationPreferencesResponseDTO>> partialUpdateNotificationPreferences(
             @Valid @RequestBody PartialUpdateNotificationPreferencesRequestDTO requestDTO) {
 
         UserNotificationPreferencesResponseDTO response =
                 notificationPreferencesService.partialUpdateNotificationPreferences(requestDTO);
 
         return ResponseEntity.ok(
-                ApiResponse.success(response, "Notification preferences updated successfully",
+                AppResponse.success(response, "Notification preferences updated successfully",
                         UserNotificationPreferencesRoutes.PARTIAL_UPDATE_NOTIFICATION_PREFERENCES)
         );
     }
@@ -93,13 +93,13 @@ public class UserNotificationPreferencesController implements UserNotificationPr
     @Override
     @PostMapping(UserNotificationPreferencesRoutes.RESET_TO_DEFAULTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserNotificationPreferencesResponseDTO>> resetToDefaults() {
+    public ResponseEntity<AppResponse<UserNotificationPreferencesResponseDTO>> resetToDefaults() {
 
         UserNotificationPreferencesResponseDTO response =
                 notificationPreferencesService.resetToDefaults();
 
         return ResponseEntity.ok(
-                ApiResponse.success(response, "Notification preferences reset to defaults successfully",
+                AppResponse.success(response, "Notification preferences reset to defaults successfully",
                         UserNotificationPreferencesRoutes.RESET_TO_DEFAULTS)
         );
     }

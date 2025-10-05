@@ -4,7 +4,7 @@ import com.kaleidoscope.backend.shared.controller.api.CategoryApi;
 import com.kaleidoscope.backend.shared.dto.request.CategoryRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategoryResponseDTO;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.shared.routes.CategoryRoutes;
 import com.kaleidoscope.backend.shared.service.CategoryService;
 import jakarta.validation.Valid;
@@ -30,12 +30,12 @@ public class CategoryController implements CategoryApi {
     @Override
     @GetMapping(CategoryRoutes.GET_ALL_PARENT_CATEGORIES)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<CategoryResponseDTO>>> getAllParentCategories(Pageable pageable) {
+    public ResponseEntity<AppResponse<PaginatedResponse<CategoryResponseDTO>>> getAllParentCategories(Pageable pageable) {
         log.info("Getting all parent categories (paginated)");
         Page<CategoryResponseDTO> parentCategories = categoryService.getAllParentCategories(pageable);
         PaginatedResponse<CategoryResponseDTO> paginated = PaginatedResponse.fromPage(parentCategories);
         return ResponseEntity.ok(
-                ApiResponse.<PaginatedResponse<CategoryResponseDTO>>builder()
+                AppResponse.<PaginatedResponse<CategoryResponseDTO>>builder()
                         .success(true)
                         .message("Parent categories retrieved successfully")
                         .data(paginated)
@@ -49,13 +49,13 @@ public class CategoryController implements CategoryApi {
     @Override
     @PostMapping(CategoryRoutes.CREATE_CATEGORY)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<CategoryResponseDTO>> createCategory(
+    public ResponseEntity<AppResponse<CategoryResponseDTO>> createCategory(
             @Valid @RequestBody CategoryRequestDTO categoryRequestDTO) {
         log.info("Creating new category: {}", categoryRequestDTO.getName());
         CategoryResponseDTO createdCategory = categoryService.createCategory(categoryRequestDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.<CategoryResponseDTO>builder()
+                AppResponse.<CategoryResponseDTO>builder()
                         .success(true)
                         .message("Category created successfully")
                         .data(createdCategory)
@@ -69,14 +69,14 @@ public class CategoryController implements CategoryApi {
     @Override
     @PutMapping(CategoryRoutes.UPDATE_CATEGORY)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<CategoryResponseDTO>> updateCategory(
+    public ResponseEntity<AppResponse<CategoryResponseDTO>> updateCategory(
             @PathVariable Long categoryId,
             @Valid @RequestBody CategoryRequestDTO categoryRequestDTO) {
         log.info("Updating category ID: {}", categoryId);
         CategoryResponseDTO updatedCategory = categoryService.updateCategory(categoryId, categoryRequestDTO);
 
         return ResponseEntity.ok(
-                ApiResponse.<CategoryResponseDTO>builder()
+                AppResponse.<CategoryResponseDTO>builder()
                         .success(true)
                         .message("Category updated successfully")
                         .data(updatedCategory)
@@ -90,12 +90,12 @@ public class CategoryController implements CategoryApi {
     @Override
     @DeleteMapping(CategoryRoutes.DELETE_CATEGORY)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<String>> deleteCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<AppResponse<String>> deleteCategory(@PathVariable Long categoryId) {
         log.info("Deleting category ID: {}", categoryId);
         categoryService.deleteCategory(categoryId);
 
         return ResponseEntity.ok(
-                ApiResponse.<String>builder()
+                AppResponse.<String>builder()
                         .success(true)
                         .message("Category deleted successfully")
                         .data("Category with ID " + categoryId + " deleted successfully")
@@ -109,12 +109,12 @@ public class CategoryController implements CategoryApi {
     @Override
     @GetMapping(CategoryRoutes.GET_CATEGORY_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<CategoryResponseDTO>> getCategoryById(@PathVariable Long categoryId) {
+    public ResponseEntity<AppResponse<CategoryResponseDTO>> getCategoryById(@PathVariable Long categoryId) {
         log.info("Getting category by ID: {}", categoryId);
         CategoryResponseDTO category = categoryService.getCategoryWithChildren(categoryId);
 
         return ResponseEntity.ok(
-                ApiResponse.<CategoryResponseDTO>builder()
+                AppResponse.<CategoryResponseDTO>builder()
                         .success(true)
                         .message("Category retrieved successfully")
                         .data(category)

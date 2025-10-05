@@ -13,7 +13,7 @@ import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import jakarta.validation.Valid;
@@ -35,12 +35,12 @@ public class PostController implements PostApi {
     @Override
     @PostMapping(PostsRoutes.GENERATE_UPLOAD_SIGNATURES)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UploadSignatureResponseDTO>> generateUploadSignatures(
+    public ResponseEntity<AppResponse<UploadSignatureResponseDTO>> generateUploadSignatures(
             @Valid @RequestBody GenerateUploadSignatureRequestDTO requestDTO) {
         log.info("Generating upload signatures for {} files", requestDTO.getFileNames().size());
         requestDTO.setContentType(ContentType.POST.name());
         UploadSignatureResponseDTO response = imageStorageService.generateUploadSignatures(requestDTO);
-        return ResponseEntity.ok(ApiResponse.<UploadSignatureResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<UploadSignatureResponseDTO>builder()
                 .success(true)
                 .message("Signatures generated successfully.")
                 .data(response)
@@ -51,12 +51,12 @@ public class PostController implements PostApi {
     @PostMapping(PostsRoutes.CREATE_POST)
     @PreAuthorize("isAuthenticated()")
     @Override
-    public ResponseEntity<ApiResponse<PostCreationResponseDTO>> createPost(
+    public ResponseEntity<AppResponse<PostCreationResponseDTO>> createPost(
             @Valid @RequestBody PostCreateRequestDTO postCreateRequestDTO) {
         log.info("Creating post with title: {}", postCreateRequestDTO.getTitle());
         PostCreationResponseDTO createdPost = postService.createPost(postCreateRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.<PostCreationResponseDTO>builder()
+                .body(AppResponse.<PostCreationResponseDTO>builder()
                         .success(true)
                         .message("Post created successfully")
                         .data(createdPost)
@@ -66,9 +66,9 @@ public class PostController implements PostApi {
     @PutMapping(PostsRoutes.UPDATE_POST)
     @PreAuthorize("isAuthenticated()")
     @Override
-    public ResponseEntity<ApiResponse<PostCreationResponseDTO>> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDTO requestDTO) {
+    public ResponseEntity<AppResponse<PostCreationResponseDTO>> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDTO requestDTO) {
         PostCreationResponseDTO updatedPost = postService.updatePost(postId, requestDTO);
-        return ResponseEntity.ok(ApiResponse.<PostCreationResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<PostCreationResponseDTO>builder()
                 .success(true)
                 .message("Post updated successfully.")
                 .data(updatedPost)
@@ -76,9 +76,9 @@ public class PostController implements PostApi {
     }
     @DeleteMapping(PostsRoutes.DELETE_POST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> deletePost(@PathVariable Long postId) {
+    public ResponseEntity<AppResponse<Object>> deletePost(@PathVariable Long postId) {
         postService.softDeletePost(postId);
-        return ResponseEntity.ok(ApiResponse.<Object>builder()
+        return ResponseEntity.ok(AppResponse.<Object>builder()
                 .success(true)
                 .message("Post deleted successfully.")
                 .data(null)
@@ -87,9 +87,9 @@ public class PostController implements PostApi {
 
     @DeleteMapping(PostsRoutes.HARD_DELETE_POST)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> hardDeletePost(@PathVariable Long postId) {
+    public ResponseEntity<AppResponse<Object>> hardDeletePost(@PathVariable Long postId) {
         postService.hardDeletePost(postId);
-        return ResponseEntity.ok(ApiResponse.<Object>builder()
+        return ResponseEntity.ok(AppResponse.<Object>builder()
                 .success(true)
                 .message("Post hard deleted successfully.")
                 .data(null)
@@ -98,9 +98,9 @@ public class PostController implements PostApi {
 
     @GetMapping(PostsRoutes.GET_POST_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PostDetailResponseDTO>> getPostById(@PathVariable Long postId) {
+    public ResponseEntity<AppResponse<PostDetailResponseDTO>> getPostById(@PathVariable Long postId) {
         PostDetailResponseDTO post = postService.getPostById(postId);
-        return ResponseEntity.ok(ApiResponse.<PostDetailResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<PostDetailResponseDTO>builder()
                 .success(true)
                 .message("Post retrieved successfully.")
                 .data(post)
@@ -109,7 +109,7 @@ public class PostController implements PostApi {
 
     @GetMapping(PostsRoutes.FILTER_POSTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<PostSummaryResponseDTO>>> filterPosts(
+    public ResponseEntity<AppResponse<PaginatedResponse<PostSummaryResponseDTO>>> filterPosts(
             Pageable pageable,
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long categoryId,
@@ -118,7 +118,7 @@ public class PostController implements PostApi {
             @RequestParam(required = false) String q
     ) {
         PaginatedResponse<PostSummaryResponseDTO> response = postService.filterPosts(pageable, userId, categoryId, status, visibility, q);
-        return ResponseEntity.ok(ApiResponse.<PaginatedResponse<PostSummaryResponseDTO>>builder()
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<PostSummaryResponseDTO>>builder()
                 .success(true)
                 .message("Posts retrieved successfully.")
                 .data(response)

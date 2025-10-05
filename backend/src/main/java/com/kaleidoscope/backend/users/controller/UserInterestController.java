@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.users.controller;
 
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.controller.api.UserInterestApi;
 import com.kaleidoscope.backend.users.dto.request.AddUserInterestRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.BulkUserInterestRequestDTO;
@@ -29,11 +29,11 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @PostMapping(UserInterestRoutes.ADD_USER_INTEREST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> addUserInterest(@Valid @RequestBody AddUserInterestRequestDTO request) {
+    public ResponseEntity<AppResponse<Object>> addUserInterest(@Valid @RequestBody AddUserInterestRequestDTO request) {
 
         userInterestService.addUserInterest(request.getCategoryId());
 
-        ApiResponse<Object> response = ApiResponse.success(
+        AppResponse<Object> response = AppResponse.success(
                 null,
                 "Interest added successfully",
                 UserInterestRoutes.ADD_USER_INTEREST
@@ -44,11 +44,11 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @DeleteMapping(UserInterestRoutes.REMOVE_USER_INTEREST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> removeUserInterest(@PathVariable Long categoryId) {
+    public ResponseEntity<AppResponse<Object>> removeUserInterest(@PathVariable Long categoryId) {
 
         userInterestService.removeUserInterest(categoryId);
 
-        ApiResponse<Object> response = ApiResponse.success(
+        AppResponse<Object> response = AppResponse.success(
                 null,
                 "Interest removed successfully",
                 UserInterestRoutes.REMOVE_USER_INTEREST
@@ -59,10 +59,10 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterests(Pageable pageable) {
+    public ResponseEntity<AppResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterests(Pageable pageable) {
         Page<UserInterestResponseDTO> interests = userInterestService.getUserInterests(pageable);
         PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.fromPage(interests);
-        ApiResponse<PaginatedResponse<UserInterestResponseDTO>> response = ApiResponse.success(
+        AppResponse<PaginatedResponse<UserInterestResponseDTO>> response = AppResponse.success(
             paginated,
             "User interests retrieved successfully",
             UserInterestRoutes.GET_USER_INTERESTS
@@ -73,11 +73,11 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @PostMapping(UserInterestRoutes.ADD_USER_INTERESTS_BULK)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> addUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
+    public ResponseEntity<AppResponse<Object>> addUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
 
         userInterestService.addUserInterests(request.getCategoryIds());
 
-        ApiResponse<Object> response = ApiResponse.success(
+        AppResponse<Object> response = AppResponse.success(
                 null,
                 "Interests added successfully",
                 UserInterestRoutes.ADD_USER_INTERESTS_BULK
@@ -88,11 +88,11 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @DeleteMapping(UserInterestRoutes.REMOVE_USER_INTERESTS_BULK)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> removeUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
+    public ResponseEntity<AppResponse<Object>> removeUserInterestsBulk(@Valid @RequestBody BulkUserInterestRequestDTO request) {
 
         userInterestService.removeUserInterests(request.getCategoryIds());
 
-        ApiResponse<Object> response = ApiResponse.success(
+        AppResponse<Object> response = AppResponse.success(
                 null,
                 "Interests removed successfully",
                 UserInterestRoutes.REMOVE_USER_INTERESTS_BULK
@@ -103,10 +103,10 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterestsByUserId(@PathVariable Long userId, Pageable pageable) {
+    public ResponseEntity<AppResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterestsByUserId(@PathVariable Long userId, Pageable pageable) {
         Page<UserInterestResponseDTO> interests = userInterestService.getUserInterestsByUserId(userId, pageable);
         PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.fromPage(interests);
-        ApiResponse<PaginatedResponse<UserInterestResponseDTO>> response = ApiResponse.success(
+        AppResponse<PaginatedResponse<UserInterestResponseDTO>> response = AppResponse.success(
             paginated,
             "User interests retrieved successfully",
             UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID
@@ -117,11 +117,11 @@ public class UserInterestController implements UserInterestApi {
     @Override
     @GetMapping(UserInterestRoutes.ADMIN_GET_CATEGORY_ANALYTICS)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>>> getCategoryAnalytics(Pageable pageable) {
+    public ResponseEntity<AppResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>>> getCategoryAnalytics(Pageable pageable) {
         CategoryAnalyticsResponseDTO analytics = userInterestService.getCategoryInterestAnalytics(pageable);
         Page<CategoryAnalyticsResponseDTO.CategoryStats> statsPage = analytics.getCategoryStats();
         PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats> paginated = PaginatedResponse.fromPage(statsPage);
-        ApiResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>> response = ApiResponse.success(
+        AppResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>> response = AppResponse.success(
             paginated,
             "Category interest analytics retrieved successfully",
             UserInterestRoutes.ADMIN_GET_CATEGORY_ANALYTICS

@@ -5,7 +5,7 @@ import com.kaleidoscope.backend.posts.dto.response.PostSaveResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.routes.PostInteractionRoutes;
 import com.kaleidoscope.backend.posts.service.PostSaveService;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,13 +24,13 @@ public class PostSaveController implements PostSaveApi {
     @Override
     @PostMapping(PostInteractionRoutes.SAVE_POST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PostSaveResponseDTO>> saveOrUnsavePost(
+    public ResponseEntity<AppResponse<PostSaveResponseDTO>> saveOrUnsavePost(
             @PathVariable Long postId,
             @RequestParam(name = "unsave", defaultValue = "false") boolean unsave
     ) {
         log.info("Processing save/unsave request for postId: {}, unsave: {}", postId, unsave);
         PostSaveResponseDTO result = postSaveService.saveOrUnsavePost(postId, unsave);
-        return ResponseEntity.ok(ApiResponse.<PostSaveResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<PostSaveResponseDTO>builder()
                 .success(true)
                 .message(unsave ? "Post unsaved successfully" : "Post saved successfully")
                 .data(result)
@@ -40,10 +40,10 @@ public class PostSaveController implements PostSaveApi {
     @Override
     @GetMapping(PostInteractionRoutes.SAVE_POST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PostSaveResponseDTO>> getPostSaveStatus(@PathVariable Long postId) {
+    public ResponseEntity<AppResponse<PostSaveResponseDTO>> getPostSaveStatus(@PathVariable Long postId) {
         log.info("Getting save status for postId: {}", postId);
         PostSaveResponseDTO result = postSaveService.getPostSaveStatus(postId);
-        return ResponseEntity.ok(ApiResponse.<PostSaveResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<PostSaveResponseDTO>builder()
                 .success(true)
                 .message("Post save status retrieved successfully")
                 .data(result)
@@ -53,11 +53,11 @@ public class PostSaveController implements PostSaveApi {
     @Override
     @GetMapping(PostInteractionRoutes.SAVED_POSTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<PostSummaryResponseDTO>>> getSavedPosts(Pageable pageable) {
+    public ResponseEntity<AppResponse<PaginatedResponse<PostSummaryResponseDTO>>> getSavedPosts(Pageable pageable) {
         log.info("Getting saved posts for current user with pagination: page={}, size={}",
                 pageable.getPageNumber(), pageable.getPageSize());
         PaginatedResponse<PostSummaryResponseDTO> result = postSaveService.getSavedPosts(pageable);
-        return ResponseEntity.ok(ApiResponse.<PaginatedResponse<PostSummaryResponseDTO>>builder()
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<PostSummaryResponseDTO>>builder()
                 .success(true)
                 .message("Saved posts retrieved successfully")
                 .data(result)

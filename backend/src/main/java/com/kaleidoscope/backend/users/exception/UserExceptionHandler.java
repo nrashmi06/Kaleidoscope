@@ -1,6 +1,6 @@
 package com.kaleidoscope.backend.users.exception;
 
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.exception.follow.FollowRelationshipNotFoundException;
 import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;
 import com.kaleidoscope.backend.users.exception.follow.UserAlreadyFollowedException;
@@ -28,11 +28,11 @@ public class UserExceptionHandler {
 
     // Notification Preferences Exception Handlers
     @ExceptionHandler(UserNotificationPreferencesNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserNotificationPreferencesNotFoundException(
+    public ResponseEntity<AppResponse<Object>> handleUserNotificationPreferencesNotFoundException(
             UserNotificationPreferencesNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("UserNotificationPreferencesNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Notification preferences not found",
                 ex.getMessage(),
                 path
@@ -41,11 +41,11 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(NotificationPreferencesUpdateException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNotificationPreferencesUpdateException(
+    public ResponseEntity<AppResponse<Object>> handleNotificationPreferencesUpdateException(
             NotificationPreferencesUpdateException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("NotificationPreferencesUpdateException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Failed to update notification preferences",
                 ex.getMessage(),
                 path
@@ -55,11 +55,11 @@ public class UserExceptionHandler {
 
     // Access Control Exception Handlers
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(
+    public ResponseEntity<AppResponse<Object>> handleAccessDeniedException(
             org.springframework.security.access.AccessDeniedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("AccessDeniedException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Access denied",
                 ex.getMessage(),
                 path
@@ -69,7 +69,7 @@ public class UserExceptionHandler {
 
     // Validation Exception Handlers
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(
+    public ResponseEntity<AppResponse<Object>> handleMethodArgumentNotValidException(
             org.springframework.web.bind.MethodArgumentNotValidException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("MethodArgumentNotValidException caught by UserExceptionHandler: {}", ex.getMessage());
@@ -80,7 +80,7 @@ public class UserExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(java.util.stream.Collectors.toList());
 
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Validation failed",
                 errors,
                 path
@@ -89,7 +89,7 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleConstraintViolationException(
+    public ResponseEntity<AppResponse<Object>> handleConstraintViolationException(
             jakarta.validation.ConstraintViolationException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("ConstraintViolationException caught by UserExceptionHandler: {}", ex.getMessage());
@@ -99,7 +99,7 @@ public class UserExceptionHandler {
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(java.util.stream.Collectors.toList());
 
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Validation constraint violated",
                 errors,
                 path
@@ -109,10 +109,10 @@ public class UserExceptionHandler {
 
     // UserBlock Exception Handlers - Put these FIRST for highest priority
     @ExceptionHandler(UserBlockNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserBlockNotFoundException(UserBlockNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserBlockNotFoundException(UserBlockNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("UserBlockNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Block relationship not found",
                 ex.getMessage(),
                 path
@@ -121,10 +121,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserAlreadyBlockedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserAlreadyBlockedException(UserAlreadyBlockedException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserAlreadyBlockedException(UserAlreadyBlockedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("UserAlreadyBlockedException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User already blocked",
                 ex.getMessage(),
                 path
@@ -133,10 +133,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(SelfBlockNotAllowedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleSelfBlockNotAllowedException(SelfBlockNotAllowedException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleSelfBlockNotAllowedException(SelfBlockNotAllowedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("SelfBlockNotAllowedException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Self-blocking not allowed",
                 ex.getMessage(),
                 path
@@ -146,10 +146,10 @@ public class UserExceptionHandler {
 
     // User Exception Handlers
     @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserNotFoundException(UserNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserNotFoundException(UserNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("User not found: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User not found",
                 ex.getMessage(),
                 path
@@ -158,10 +158,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserPreferencesNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserPreferencesNotFoundException(UserPreferencesNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserPreferencesNotFoundException(UserPreferencesNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("User preferences not found: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User preferences not found",
                 ex.getMessage(),
                 path
@@ -170,10 +170,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserNotActiveException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserNotActiveException(UserNotActiveException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserNotActiveException(UserNotActiveException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("User account not active: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User account not active",
                 ex.getMessage(),
                 path
@@ -182,10 +182,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UsernameAlreadyInUseException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUsernameAlreadyInUseException(UsernameAlreadyInUseException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUsernameAlreadyInUseException(UsernameAlreadyInUseException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("Username already in use: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Username already in use",
                 ex.getMessage(),
                 path
@@ -194,10 +194,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserAccountSuspendedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserAccountSuspendedException(UserAccountSuspendedException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserAccountSuspendedException(UserAccountSuspendedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("User account suspended: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User account suspended",
                 ex.getMessage(),
                 path
@@ -206,10 +206,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(InvalidUsernameException.class)
-    public ResponseEntity<ApiResponse<Object>> handleInvalidUsernameException(InvalidUsernameException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleInvalidUsernameException(InvalidUsernameException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.warn("Invalid username: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Invalid username",
                 ex.getMessage(),
                 path
@@ -219,10 +219,10 @@ public class UserExceptionHandler {
 
     // Follow Exception Handlers
     @ExceptionHandler(FollowRelationshipNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleFollowRelationshipNotFoundException(FollowRelationshipNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleFollowRelationshipNotFoundException(FollowRelationshipNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("FollowRelationshipNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Follow relationship not found",
                 ex.getMessage(),
                 path
@@ -231,10 +231,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserAlreadyFollowedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserAlreadyFollowedException(UserAlreadyFollowedException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserAlreadyFollowedException(UserAlreadyFollowedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("UserAlreadyFollowedException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User already followed",
                 ex.getMessage(),
                 path
@@ -243,10 +243,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(SelfFollowNotAllowedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleSelfFollowNotAllowedException(SelfFollowNotAllowedException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleSelfFollowNotAllowedException(SelfFollowNotAllowedException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("SelfFollowNotAllowedException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "Self-following not allowed",
                 ex.getMessage(),
                 path
@@ -256,10 +256,10 @@ public class UserExceptionHandler {
 
     // UserInterest Exception Handlers
     @ExceptionHandler(UserInterestNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserInterestNotFoundException(UserInterestNotFoundException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserInterestNotFoundException(UserInterestNotFoundException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("UserInterestNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User interest not found",
                 ex.getMessage(),
                 path
@@ -268,10 +268,10 @@ public class UserExceptionHandler {
     }
 
     @ExceptionHandler(UserInterestAlreadyExistsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUserInterestAlreadyExistsException(UserInterestAlreadyExistsException ex, WebRequest request) {
+    public ResponseEntity<AppResponse<Object>> handleUserInterestAlreadyExistsException(UserInterestAlreadyExistsException ex, WebRequest request) {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         log.error("UserInterestAlreadyExistsException caught by UserExceptionHandler: {}", ex.getMessage());
-        ApiResponse<Object> response = ApiResponse.error(
+        AppResponse<Object> response = AppResponse.error(
                 "User interest already exists",
                 ex.getMessage(),
                 path

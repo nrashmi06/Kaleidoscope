@@ -12,7 +12,7 @@ import com.kaleidoscope.backend.blogs.service.BlogService;
 import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import jakarta.validation.Valid;
@@ -35,12 +35,12 @@ public class BlogController implements BlogApi {
     @Override
     @PostMapping(BlogsRoutes.GENERATE_UPLOAD_SIGNATURES)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UploadSignatureResponseDTO>> generateUploadSignatures(
+    public ResponseEntity<AppResponse<UploadSignatureResponseDTO>> generateUploadSignatures(
             @Valid @RequestBody GenerateUploadSignatureRequestDTO requestDTO) {
         log.info("Generating upload signatures for {} files", requestDTO.getFileNames().size());
         requestDTO.setContentType(ContentType.BLOG.name());
         UploadSignatureResponseDTO response = imageStorageService.generateUploadSignatures(requestDTO);
-        return ResponseEntity.ok(ApiResponse.<UploadSignatureResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<UploadSignatureResponseDTO>builder()
                 .success(true)
                 .message("Signatures generated successfully.")
                 .data(response)
@@ -50,14 +50,14 @@ public class BlogController implements BlogApi {
     @Override
     @PostMapping(BlogsRoutes.CREATE_BLOG)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<BlogCreationResponseDTO>> createBlog(
+    public ResponseEntity<AppResponse<BlogCreationResponseDTO>> createBlog(
             @Valid @RequestBody BlogCreateRequestDTO blogCreateRequestDTO) {
         log.info("Creating blog with title: {}", blogCreateRequestDTO != null ? blogCreateRequestDTO.getTitle() : "null request");
 
         if (blogCreateRequestDTO == null) {
             log.error("Blog creation request is null");
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.<BlogCreationResponseDTO>builder()
+                    .body(AppResponse.<BlogCreationResponseDTO>builder()
                             .success(false)
                             .message("Request body is required")
                             .data(null)
@@ -66,7 +66,7 @@ public class BlogController implements BlogApi {
 
         BlogCreationResponseDTO createdBlog = blogService.createBlog(blogCreateRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.<BlogCreationResponseDTO>builder()
+                .body(AppResponse.<BlogCreationResponseDTO>builder()
                         .success(true)
                         .message("Blog created successfully")
                         .data(createdBlog)
@@ -76,12 +76,12 @@ public class BlogController implements BlogApi {
     @Override
     @PutMapping(BlogsRoutes.UPDATE_BLOG)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<BlogCreationResponseDTO>> updateBlog(
+    public ResponseEntity<AppResponse<BlogCreationResponseDTO>> updateBlog(
             @PathVariable Long blogId, 
             @Valid @RequestBody BlogUpdateRequestDTO requestDTO) {
         log.info("Updating blog with ID: {}", blogId);
         BlogCreationResponseDTO updatedBlog = blogService.updateBlog(blogId, requestDTO);
-        return ResponseEntity.ok(ApiResponse.<BlogCreationResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<BlogCreationResponseDTO>builder()
                 .success(true)
                 .message("Blog updated successfully")
                 .data(updatedBlog)
@@ -91,10 +91,10 @@ public class BlogController implements BlogApi {
     @Override
     @DeleteMapping(BlogsRoutes.DELETE_BLOG)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> deleteBlog(@PathVariable Long blogId) {
+    public ResponseEntity<AppResponse<Object>> deleteBlog(@PathVariable Long blogId) {
         log.info("Soft deleting blog with ID: {}", blogId);
         blogService.softDeleteBlog(blogId);
-        return ResponseEntity.ok(ApiResponse.<Object>builder()
+        return ResponseEntity.ok(AppResponse.<Object>builder()
                 .success(true)
                 .message("Blog deleted successfully")
                 .data(null)
@@ -104,10 +104,10 @@ public class BlogController implements BlogApi {
     @Override
     @DeleteMapping(BlogsRoutes.HARD_DELETE_BLOG)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Object>> hardDeleteBlog(@PathVariable Long blogId) {
+    public ResponseEntity<AppResponse<Object>> hardDeleteBlog(@PathVariable Long blogId) {
         log.info("Hard deleting blog with ID: {}", blogId);
         blogService.hardDeleteBlog(blogId);
-        return ResponseEntity.ok(ApiResponse.<Object>builder()
+        return ResponseEntity.ok(AppResponse.<Object>builder()
                 .success(true)
                 .message("Blog hard deleted successfully")
                 .data(null)
@@ -117,10 +117,10 @@ public class BlogController implements BlogApi {
     @Override
     @GetMapping(BlogsRoutes.GET_BLOG_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<BlogDetailResponseDTO>> getBlogById(@PathVariable Long blogId) {
+    public ResponseEntity<AppResponse<BlogDetailResponseDTO>> getBlogById(@PathVariable Long blogId) {
         log.info("Retrieving blog with ID: {}", blogId);
         BlogDetailResponseDTO blog = blogService.getBlogById(blogId);
-        return ResponseEntity.ok(ApiResponse.<BlogDetailResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<BlogDetailResponseDTO>builder()
                 .success(true)
                 .message("Blog retrieved successfully")
                 .data(blog)
@@ -130,7 +130,7 @@ public class BlogController implements BlogApi {
     @Override
     @GetMapping(BlogsRoutes.FILTER_BLOGS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PaginatedResponse<BlogSummaryResponseDTO>>> filterBlogs(
+    public ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> filterBlogs(
             Pageable pageable,
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long categoryId,
@@ -139,7 +139,7 @@ public class BlogController implements BlogApi {
             @RequestParam(required = false) String q
     ) {
         PaginatedResponse<BlogSummaryResponseDTO> response = blogService.filterBlogs(pageable, userId, categoryId, status, visibility, q);
-        return ResponseEntity.ok(ApiResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
                 .success(true)
                 .message("Blogs retrieved successfully.")
                 .data(response)
@@ -149,12 +149,12 @@ public class BlogController implements BlogApi {
     @Override
     @PutMapping(BlogsRoutes.UPDATE_BLOG_STATUS)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<BlogCreationResponseDTO>> updateBlogStatus(
+    public ResponseEntity<AppResponse<BlogCreationResponseDTO>> updateBlogStatus(
             @PathVariable Long blogId,
             @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO) {
         log.info("Admin updating blog status for blog ID: {} to status: {}", blogId, requestDTO.getStatus());
         BlogCreationResponseDTO updatedBlog = blogService.updateBlogStatus(blogId, requestDTO);
-        return ResponseEntity.ok(ApiResponse.<BlogCreationResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<BlogCreationResponseDTO>builder()
                 .success(true)
                 .message("Blog status updated successfully")
                 .data(updatedBlog)

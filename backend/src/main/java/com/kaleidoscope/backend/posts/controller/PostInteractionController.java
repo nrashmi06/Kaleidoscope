@@ -9,7 +9,7 @@ import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.posts.routes.PostInteractionRoutes;
 import com.kaleidoscope.backend.shared.service.InteractionService;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,21 +27,21 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @PostMapping(PostInteractionRoutes.REACT_TO_POST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<ReactionResponseDTO>> reactOrUnreact(
+    public ResponseEntity<AppResponse<ReactionResponseDTO>> reactOrUnreact(
             @PathVariable Long postId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
             @Valid @RequestBody(required = false) ReactionRequestDTO body
     ) {
         ReactionType reactionType = body != null ? body.getReactionType() : null;
         if (!unreact && reactionType == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.<ReactionResponseDTO>builder()
+            return ResponseEntity.badRequest().body(AppResponse.<ReactionResponseDTO>builder()
                     .success(false)
                     .message("reactionType is required when unreact=false")
                     .data(null)
                     .build());
         }
         ReactionResponseDTO result = interactionService.reactOrUnreact(ContentType.POST, postId, reactionType, unreact);
-        return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message(unreact ? "Reaction removed" : "Reaction updated")
                 .data(result)
@@ -51,9 +51,9 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @GetMapping(PostInteractionRoutes.REACT_TO_POST)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<ReactionResponseDTO>> getReactionSummary(@PathVariable Long postId) {
+    public ResponseEntity<AppResponse<ReactionResponseDTO>> getReactionSummary(@PathVariable Long postId) {
         ReactionResponseDTO result = interactionService.getReactionSummary(ContentType.POST, postId);
-        return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message("Reaction summary fetched")
                 .data(result)
@@ -63,10 +63,10 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @PostMapping(PostInteractionRoutes.COMMENTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<CommentResponseDTO>> addComment(@PathVariable Long postId,
+    public ResponseEntity<AppResponse<CommentResponseDTO>> addComment(@PathVariable Long postId,
                                                                       @Valid @RequestBody CommentCreateRequestDTO requestDTO) {
         CommentResponseDTO result = interactionService.addComment(ContentType.POST, postId, requestDTO);
-        return ResponseEntity.ok(ApiResponse.<CommentResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<CommentResponseDTO>builder()
                 .success(true)
                 .message("Comment added")
                 .data(result)
@@ -76,9 +76,9 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @GetMapping(PostInteractionRoutes.COMMENTS)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Page<CommentResponseDTO>>> listComments(@PathVariable Long postId, Pageable pageable) {
+    public ResponseEntity<AppResponse<Page<CommentResponseDTO>>> listComments(@PathVariable Long postId, Pageable pageable) {
         Page<CommentResponseDTO> page = interactionService.listComments(ContentType.POST, postId, pageable);
-        return ResponseEntity.ok(ApiResponse.<Page<CommentResponseDTO>>builder()
+        return ResponseEntity.ok(AppResponse.<Page<CommentResponseDTO>>builder()
                 .success(true)
                 .message("Comments fetched")
                 .data(page)
@@ -88,9 +88,9 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @DeleteMapping(PostInteractionRoutes.COMMENT_BY_ID)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Object>> deleteComment(@PathVariable Long postId, @PathVariable Long commentId) {
+    public ResponseEntity<AppResponse<Object>> deleteComment(@PathVariable Long postId, @PathVariable Long commentId) {
         interactionService.deleteComment(postId, commentId);
-        return ResponseEntity.ok(ApiResponse.<Object>builder()
+        return ResponseEntity.ok(AppResponse.<Object>builder()
                 .success(true)
                 .message("Comment deleted")
                 .data(null)
@@ -100,7 +100,7 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @PostMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<ReactionResponseDTO>> reactOrUnreactToComment(
+    public ResponseEntity<AppResponse<ReactionResponseDTO>> reactOrUnreactToComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
             @RequestParam(name = "unreact", defaultValue = "false") boolean unreact,
@@ -108,14 +108,14 @@ public class PostInteractionController implements PostInteractionApi {
     ) {
         ReactionType reactionType = body != null ? body.getReactionType() : null;
         if (!unreact && reactionType == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.<ReactionResponseDTO>builder()
+            return ResponseEntity.badRequest().body(AppResponse.<ReactionResponseDTO>builder()
                     .success(false)
                     .message("reactionType is required when unreact=false")
                     .data(null)
                     .build());
         }
         ReactionResponseDTO result = interactionService.reactOrUnreact(ContentType.COMMENT, commentId, reactionType, unreact);
-        return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message(unreact ? "Reaction removed" : "Reaction updated")
                 .data(result)
@@ -125,12 +125,12 @@ public class PostInteractionController implements PostInteractionApi {
     @Override
     @GetMapping(PostInteractionRoutes.REACT_TO_COMMENT)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<ReactionResponseDTO>> getCommentReactionSummary(
+    public ResponseEntity<AppResponse<ReactionResponseDTO>> getCommentReactionSummary(
             @PathVariable Long postId,
             @PathVariable Long commentId
     ) {
         ReactionResponseDTO result = interactionService.getReactionSummary(ContentType.COMMENT, commentId);
-        return ResponseEntity.ok(ApiResponse.<ReactionResponseDTO>builder()
+        return ResponseEntity.ok(AppResponse.<ReactionResponseDTO>builder()
                 .success(true)
                 .message("Reaction summary fetched")
                 .data(result)

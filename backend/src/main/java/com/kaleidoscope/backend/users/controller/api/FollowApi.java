@@ -1,11 +1,12 @@
 package com.kaleidoscope.backend.users.controller.api;
 
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.dto.response.FollowListResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
@@ -18,37 +19,37 @@ public interface FollowApi {
 
     @Operation(summary = "Follow a user", description = "Allows an authenticated user to follow another user.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully followed user",
+            @ApiResponse(responseCode = "200", description = "Successfully followed user",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
-    ResponseEntity<ApiResponse<String>> followUser(
+    ResponseEntity<AppResponse<String>> followUser(
             @Parameter(description = "The ID of the user to follow", required = true)
             @RequestParam Long targetUserId);
 
     @Operation(summary = "Unfollow a user", description = "Allows an authenticated user to unfollow another user.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Successfully unfollowed user",
+            @ApiResponse(responseCode = "200", description = "Successfully unfollowed user",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
-    ResponseEntity<ApiResponse<String>> unfollowUser(
+    ResponseEntity<AppResponse<String>> unfollowUser(
             @Parameter(description = "The ID of the user to unfollow", required = true)
             @RequestParam Long targetUserId);
 
     @Operation(summary = "Get followers", description = "Retrieves a paginated list of followers for a given user.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Followers retrieved successfully",
+            @ApiResponse(responseCode = "200", description = "Followers retrieved successfully",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
-    ResponseEntity<ApiResponse<FollowListResponseDTO>> getFollowers(
+    ResponseEntity<AppResponse<FollowListResponseDTO>> getFollowers(
             @Parameter(description = "The ID of the user whose followers are to be retrieved", required = true)
             @RequestParam Long userId,
             @Parameter(description = "Pagination information")
@@ -56,13 +57,13 @@ public interface FollowApi {
 
     @Operation(summary = "Get following", description = "Retrieves a paginated list of users that a given user is following.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Following list retrieved successfully",
+            @ApiResponse(responseCode = "200", description = "Following list retrieved successfully",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found")
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "User not found")
     })
-    ResponseEntity<ApiResponse<FollowListResponseDTO>> getFollowing(
+    ResponseEntity<AppResponse<FollowListResponseDTO>> getFollowing(
             @Parameter(description = "The ID of the user whose following list is to be retrieved", required = true)
             @RequestParam Long userId,
             @Parameter(description = "Pagination information")
