@@ -1,7 +1,7 @@
 services:
   db:
     image: postgis/postgis:17-3.4
-    container_name: ${POSTG-RES_CONTAINER_NAME:-kaleidoscope-postgres}
+    container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
     env_file:
       - .env
     volumes:
