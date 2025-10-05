@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.ml.dto;
+package com.kaleidoscope.backend.async.dto;
 
 import lombok.Builder;
 import lombok.Data;

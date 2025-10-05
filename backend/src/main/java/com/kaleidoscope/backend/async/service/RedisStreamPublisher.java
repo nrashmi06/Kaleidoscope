@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.ml.service;
+package com.kaleidoscope.backend.async.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

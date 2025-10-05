@@ -2,8 +2,8 @@ package com.kaleidoscope.backend.shared.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
-import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
-import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.shared.dto.request.CommentCreateRequestDTO;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
@@ -129,7 +129,7 @@ public class InteractionServiceImpl implements InteractionService {
                     "changeType", unreact ? "UNREACT" : "REACT"
                 );
 
-                redisStreamPublisher.publish(RedisStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
                 log.debug("[reactOrUnreact] Published POST_INTERACTION_SYNC_STREAM event for post {}", contentId);
 
             } catch (Exception e) {
@@ -203,7 +203,7 @@ public class InteractionServiceImpl implements InteractionService {
                     "changeType", "ADD_COMMENT"
                 );
 
-                redisStreamPublisher.publish(RedisStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
                 log.debug("[addComment] Published POST_INTERACTION_SYNC_STREAM event for post {}", contentId);
 
             } catch (Exception e) {
@@ -270,7 +270,7 @@ public class InteractionServiceImpl implements InteractionService {
                     "changeType", "DELETE_COMMENT"
                 );
 
-                redisStreamPublisher.publish(RedisStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
                 log.debug("[deleteComment] Published POST_INTERACTION_SYNC_STREAM event for post {}", contentId);
 
             } catch (Exception e) {

@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.ml.config;
+package com.kaleidoscope.backend.async.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

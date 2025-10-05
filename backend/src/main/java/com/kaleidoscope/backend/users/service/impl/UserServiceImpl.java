@@ -1,8 +1,8 @@
 package com.kaleidoscope.backend.users.service.impl;
 
-import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
-import com.kaleidoscope.backend.ml.dto.ProfilePictureEventDTO;
-import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
+import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
@@ -153,7 +153,7 @@ public class UserServiceImpl implements UserService {
             // Trigger Elasticsearch sync for denormalized author data in posts
             try {
                 Map<String, Object> profileSyncPayload = Map.of("userId", userId);
-                redisStreamPublisher.publish(RedisStreamConstants.USER_PROFILE_POST_SYNC_STREAM, profileSyncPayload);
+                redisStreamPublisher.publish(ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, profileSyncPayload);
                 log.debug("Published USER_PROFILE_POST_SYNC_STREAM event for user {}", userId);
             } catch (Exception e) {
                 log.error("Failed to publish user profile sync event for user {}: {}",
@@ -169,7 +169,7 @@ public class UserServiceImpl implements UserService {
                     .imageUrl(newProfilePictureUrl)
                     .correlationId(MDC.get("correlationId"))
                     .build();
-                redisStreamPublisher.publish(RedisStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
+                redisStreamPublisher.publish(ProducerStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
             } else {
                 log.debug("Skipping Redis Stream publishing for user {} - no profile picture URL", userId);
             }

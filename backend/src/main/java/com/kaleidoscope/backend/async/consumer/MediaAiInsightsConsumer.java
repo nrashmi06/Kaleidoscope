@@ -1,7 +1,7 @@
-package com.kaleidoscope.backend.ml.consumer;
+package com.kaleidoscope.backend.async.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kaleidoscope.backend.ml.dto.MediaAiInsightsResultDTO;
+import com.kaleidoscope.backend.async.dto.MediaAiInsightsResultDTO;
 import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.Post;

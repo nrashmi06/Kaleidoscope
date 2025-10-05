@@ -1,7 +1,7 @@
-package com.kaleidoscope.backend.ml.consumer;
+package com.kaleidoscope.backend.async.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kaleidoscope.backend.ml.dto.FaceRecognitionResultDTO;
+import com.kaleidoscope.backend.async.dto.FaceRecognitionResultDTO;
 import com.kaleidoscope.backend.posts.enums.FaceDetectionStatus;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;

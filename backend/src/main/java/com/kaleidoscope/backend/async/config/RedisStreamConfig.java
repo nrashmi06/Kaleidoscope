@@ -1,8 +1,11 @@
-package com.kaleidoscope.backend.ml.config;
+package com.kaleidoscope.backend.async.config;
 
-import com.kaleidoscope.backend.ml.consumer.FaceDetectionConsumer;
-import com.kaleidoscope.backend.ml.consumer.FaceRecognitionConsumer;
-import com.kaleidoscope.backend.ml.consumer.MediaAiInsightsConsumer;
+import com.kaleidoscope.backend.async.consumer.FaceDetectionConsumer;
+import com.kaleidoscope.backend.async.consumer.FaceRecognitionConsumer;
+import com.kaleidoscope.backend.async.consumer.MediaAiInsightsConsumer;
+import com.kaleidoscope.backend.async.streaming.ConsumerStreamConstants;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
+import com.kaleidoscope.backend.async.streaming.StreamingConfigConstants;
 import com.kaleidoscope.backend.posts.consumer.PostInteractionSyncConsumer;
 import com.kaleidoscope.backend.posts.consumer.UserProfilePostSyncConsumer;
 import lombok.RequiredArgsConstructor;
@@ -25,14 +28,6 @@ import java.time.Duration;
 @Slf4j
 public class RedisStreamConfig {
 
-    // Stream names - these should match the streams your ML service publishes to
-    private static final String ML_INSIGHTS_STREAM = "ml-insights-results";
-    private static final String FACE_DETECTION_STREAM = "face-detection-results";
-    private static final String FACE_RECOGNITION_STREAM = "face-recognition-results";
-    
-    // Consumer group name
-    private static final String CONSUMER_GROUP = "backend-group";
-
     private final RedisConnectionFactory redisConnectionFactory;
     private final MediaAiInsightsConsumer mediaAiInsightsConsumer;
     private final FaceDetectionConsumer faceDetectionConsumer;
@@ -53,11 +48,11 @@ public class RedisStreamConfig {
         log.info("Configuring Redis Stream Message Listener Container");
 
         // Ensure consumer groups exist before registering listeners
-        ensureConsumerGroupExists(redisTemplate, ML_INSIGHTS_STREAM, CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, FACE_DETECTION_STREAM, CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, FACE_RECOGNITION_STREAM, CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, RedisStreamConstants.POST_INTERACTION_SYNC_STREAM, CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, RedisStreamConstants.USER_PROFILE_POST_SYNC_STREAM, CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.ML_INSIGHTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_DETECTION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_RECOGNITION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         // Create container options with explicit MapRecord type matching our consumers
         StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
@@ -73,44 +68,44 @@ public class RedisStreamConfig {
 
         // Register consumers with proper consumer groups - using ReadOffset.latest() for new groups
         container.receive(
-                Consumer.from(CONSUMER_GROUP, "media-ai-consumer"),
-                StreamOffset.create(ML_INSIGHTS_STREAM, ReadOffset.latest()),
+                Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.MEDIA_AI_CONSUMER),
+                StreamOffset.create(ConsumerStreamConstants.ML_INSIGHTS_STREAM, ReadOffset.latest()),
                 mediaAiInsightsConsumer
         );
         log.info("Registered MediaAiInsightsConsumer for stream: {} with consumer group: {}", 
-                ML_INSIGHTS_STREAM, CONSUMER_GROUP);
+                ConsumerStreamConstants.ML_INSIGHTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         container.receive(
-                Consumer.from(CONSUMER_GROUP, "face-detection-consumer"),
-                StreamOffset.create(FACE_DETECTION_STREAM, ReadOffset.latest()),
+                Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.FACE_DETECTION_CONSUMER),
+                StreamOffset.create(ConsumerStreamConstants.FACE_DETECTION_STREAM, ReadOffset.latest()),
                 faceDetectionConsumer
         );
         log.info("Registered FaceDetectionConsumer for stream: {} with consumer group: {}", 
-                FACE_DETECTION_STREAM, CONSUMER_GROUP);
+                ConsumerStreamConstants.FACE_DETECTION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         container.receive(
-                Consumer.from(CONSUMER_GROUP, "face-recognition-consumer"),
-                StreamOffset.create(FACE_RECOGNITION_STREAM, ReadOffset.latest()),
+                Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.FACE_RECOGNITION_CONSUMER),
+                StreamOffset.create(ConsumerStreamConstants.FACE_RECOGNITION_STREAM, ReadOffset.latest()),
                 faceRecognitionConsumer
         );
         log.info("Registered FaceRecognitionConsumer for stream: {} with consumer group: {}", 
-                FACE_RECOGNITION_STREAM, CONSUMER_GROUP);
+                ConsumerStreamConstants.FACE_RECOGNITION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         container.receive(
-                Consumer.from(CONSUMER_GROUP, "post-interaction-sync-consumer"),
-                StreamOffset.create(RedisStreamConstants.POST_INTERACTION_SYNC_STREAM, ReadOffset.latest()),
+                Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.POST_INTERACTION_SYNC_CONSUMER),
+                StreamOffset.create(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, ReadOffset.latest()),
                 postInteractionSyncConsumer
         );
         log.info("Registered PostInteractionSyncConsumer for stream: {} with consumer group: {}",
-                RedisStreamConstants.POST_INTERACTION_SYNC_STREAM, CONSUMER_GROUP);
+                ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         container.receive(
-                Consumer.from(CONSUMER_GROUP, "user-profile-post-sync-consumer"),
-                StreamOffset.create(RedisStreamConstants.USER_PROFILE_POST_SYNC_STREAM, ReadOffset.latest()),
+                Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.USER_PROFILE_POST_SYNC_CONSUMER),
+                StreamOffset.create(ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, ReadOffset.latest()),
                 userProfilePostSyncConsumer
         );
         log.info("Registered UserProfilePostSyncConsumer for stream: {} with consumer group: {}",
-                RedisStreamConstants.USER_PROFILE_POST_SYNC_STREAM, CONSUMER_GROUP);
+                ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         log.info("Redis Stream Message Listener Container configured successfully with {} consumers", 5);
         return container;

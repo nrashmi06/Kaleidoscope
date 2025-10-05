@@ -1,9 +1,9 @@
 package com.kaleidoscope.backend.posts.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
-import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
-import com.kaleidoscope.backend.ml.dto.PostImageEventDTO;
-import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.dto.PostImageEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
@@ -170,7 +170,7 @@ public class PostServiceImpl implements PostService {
                     .imageUrl(mediaItem.getMediaUrl())
                     .correlationId(MDC.get("correlationId"))
                     .build();
-                redisStreamPublisher.publish(RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
 
             savedPost = finalSavedPost;
@@ -324,7 +324,7 @@ public class PostServiceImpl implements PostService {
                         .imageUrl(firstMedia.getMediaUrl())
                         .correlationId(MDC.get("correlationId"))
                         .build();
-                redisStreamPublisher.publish(RedisStreamConstants.POST_UPDATE_STREAM, event);
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_UPDATE_STREAM, event);
             }
         } else {
             log.debug("Skipping Redis Stream publishing for post update {} - no media present", savedPost.getPostId());
@@ -431,7 +431,6 @@ public class PostServiceImpl implements PostService {
                     .imageUrl(mediaItem.getMediaUrl())
                     .correlationId(MDC.get("correlationId"))
                     .build();
-                redisStreamPublisher.publish(RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
         }
     }
