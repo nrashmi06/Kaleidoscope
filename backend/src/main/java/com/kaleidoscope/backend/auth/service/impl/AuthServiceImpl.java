@@ -12,15 +12,14 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.auth.service.AuthService;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.auth.service.RefreshTokenService;
+import com.kaleidoscope.backend.auth.service.UserRegistrationService;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
 import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
 import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
-import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
-import com.kaleidoscope.backend.auth.service.UserRegistrationService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -78,14 +77,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     public Map<String, Object> loginUser(UserLoginRequestDTO loginRequest) {
         log.debug("Processing login for user: {}", loginRequest.email());
 
-        // Check if user exists
-        User user = userRepository.findByEmail(loginRequest.email());
-        if (user == null) {
-            log.warn("Login failed: invalid email {}", loginRequest.email());
-            throw new UsernameNotFoundException("Invalid email");
-        }
-
-        // Authenticate user - let global exception handler manage AuthenticationException
+        // 1. Authenticate user. This will throw an exception if credentials are bad
+        // or the user does not exist, which is handled by your AuthExceptionHandler.
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.email(),
@@ -93,18 +86,35 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 )
         );
 
+        // 2. Get the full User object after successful authentication.
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        User user = userRepository.findByEmail(userDetails.getUsername());
+        if (user == null) {
+            // This is a safety check, but should theoretically never be reached
+            // if authentication succeeded.
+            throw new UsernameNotFoundException("User not found after authentication");
+        }
+
+
+        // 3. Check account status.
         if (user.getAccountStatus() != AccountStatus.ACTIVE) {
             log.error("User is not active: {}", user.getEmail());
-            throw new UserNotActiveException("User is not active");
+            throw new UserNotActiveException("User is not active. Please verify your email.");
         }
-        user.setLastSeen(LocalDateTime.now());
 
+        // 4. Update last seen timestamp and save.
+        user.setLastSeen(LocalDateTime.now());
         userRepository.save(user);
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        // 5. Generate tokens and prepare the response.
         String accessToken = jwtUtils.generateTokenFromUsername(userDetails, user.getUserId());
         String refreshToken = refreshTokenService.createRefreshToken(user.getEmail()).getToken();
-        UserLoginResponseDTO userDTO = UserMapper.toUserLoginResponseDTO(user);
+        UserLoginResponseDTO userDTO = new UserLoginResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getRole().name()
+        );
 
         Map<String, Object> response = new HashMap<>();
         response.put("user", userDTO);

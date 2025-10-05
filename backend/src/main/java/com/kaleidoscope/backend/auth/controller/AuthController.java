@@ -30,15 +30,15 @@ import java.util.Map;
 public class AuthController implements AuthApi {
 
     private final String baseUrl;
-    private final UserService userService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final JwtUtils jwtUtils;
     private final AuthService authService;
 
     public AuthController(UserService userService,
                           RefreshTokenServiceImpl refreshTokenService,
-                          @Value("${spring.app.base-url}") String baseUrl, JwtUtils jwtUtils, AuthService authService) {
-        this.userService = userService;
+                          @Value("${spring.app.base-url}") String baseUrl,
+                          JwtUtils jwtUtils,
+                          AuthService authService) {
         this.refreshTokenService = refreshTokenService;
         this.baseUrl = baseUrl;
         this.jwtUtils = jwtUtils;
@@ -153,7 +153,7 @@ public class AuthController implements AuthApi {
     @PutMapping(AuthRoutes.CHANGE_PASSWORD)
     public ResponseEntity<AppResponse<String>> changePassword(
             @RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
-        Long userId = Long.valueOf(jwtUtils.getUserIdFromContext());
+        Long userId = jwtUtils.getUserIdFromContext();
         authService.changePasswordById(userId, changePasswordRequestDTO.oldPassword(), changePasswordRequestDTO.newPassword());
 
         AppResponse<String> response = AppResponse.success(

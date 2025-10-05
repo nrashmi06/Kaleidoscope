@@ -4,7 +4,6 @@ import com.kaleidoscope.backend.auth.config.JwtProperties;
 import com.kaleidoscope.backend.auth.exception.token.JwtTokenExpiredException;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.model.UserPreferences;
-import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.repository.UserInterestRepository;
 import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import io.jsonwebtoken.*;
@@ -30,15 +29,14 @@ public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
     private final JwtProperties jwtProperties;
-    private final UserRepository userRepository;
     private final UserInterestRepository userInterestRepository;
     private final UserPreferencesRepository userPreferencesRepository;
 
     @Autowired
-    public JwtUtils(JwtProperties jwtProperties, UserRepository userRepository,
-                    UserInterestRepository userInterestRepository, UserPreferencesRepository userPreferencesRepository) {
+    public JwtUtils(JwtProperties jwtProperties,
+                    UserInterestRepository userInterestRepository,
+                    UserPreferencesRepository userPreferencesRepository) {
         this.jwtProperties = jwtProperties;
-        this.userRepository = userRepository;
         this.userInterestRepository = userInterestRepository;
         this.userPreferencesRepository = userPreferencesRepository;
     }
@@ -57,7 +55,7 @@ public class JwtUtils {
         String role = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .findFirst()
-                .orElse("ROLE_HOUSE_OWNER"); // Default role if not found
+                .orElse("ROLE_" + Role.USER.name());
 
         // Check if user has selected any interests
         boolean isUserInterestSelected = userInterestRepository.existsByUser_UserId(userId);
@@ -115,15 +113,6 @@ public class JwtUtils {
                 .get("userId", Long.class);
     }
 
-    public Long getHouseIdFromJwtToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("houseId", Long.class);
-    }
-
     public Boolean getIsUserInterestSelectedFromJwtToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key())
@@ -131,24 +120,6 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody()
                 .get("isUserInterestSelected", Boolean.class);
-    }
-
-    public String getThemeFromJwtToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("theme", String.class);
-    }
-
-    public String getLanguageFromJwtToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("language", String.class);
     }
 
     private Key key() {
@@ -190,23 +161,12 @@ public class JwtUtils {
         return getUserIdFromJwtToken(jwt);
     }
 
-    public Long getHouseIdFromContext() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String jwt = getJwtFromHeader(request);
-        return getHouseIdFromJwtToken(jwt);
-    }
 
     public boolean isAdminFromContext() {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String jwt = getJwtFromHeader(request);
         String role = getRoleFromJwtToken(jwt);
-        return role.equals("ROLE_ADMIN");
-    }
-
-    public Boolean getIsUserInterestSelectedFromContext() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String jwt = getJwtFromHeader(request);
-        return getIsUserInterestSelectedFromJwtToken(jwt);
+        return role.equals("ROLE_" + Role.ADMIN.name());
     }
 
     public String getRoleFromContext() {
@@ -216,6 +176,6 @@ public class JwtUtils {
                 return authority.getAuthority();
             }
         }
-        return "ROLE_"+ Role.USER; // Default role if none found
+        return "ROLE_"+ Role.USER.name();
     }
 }
