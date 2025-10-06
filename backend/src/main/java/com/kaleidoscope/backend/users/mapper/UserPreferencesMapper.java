@@ -56,16 +56,16 @@ public class UserPreferencesMapper {
 
     // Instance update method (like UserMapper.updateUserFromDTO)
     public UserPreferences updateFromDTO(UserPreferences preferences, UpdateUserPreferencesRequestDTO dto) {
-        preferences.setTheme(dto.getTheme());
-        preferences.setLanguage(dto.getLanguage());
-        preferences.setProfileVisibility(dto.getProfileVisibility());
-        preferences.setAllowMessages(dto.getAllowMessages());
-        preferences.setAllowTagging(dto.getAllowTagging());
-        preferences.setViewActivity(dto.getViewActivity());
-        preferences.setShowEmail(dto.getShowEmail());
-        preferences.setShowPhone(dto.getShowPhone());
-        preferences.setShowOnlineStatus(dto.getShowOnlineStatus());
-        preferences.setSearchDiscoverable(dto.getSearchDiscoverable());
+        preferences.setTheme(dto.theme());
+        preferences.setLanguage(dto.language());
+        preferences.setProfileVisibility(dto.profileVisibility());
+        preferences.setAllowMessages(dto.allowMessages());
+        preferences.setAllowTagging(dto.allowTagging());
+        preferences.setViewActivity(dto.viewActivity());
+        preferences.setShowEmail(dto.showEmail());
+        preferences.setShowPhone(dto.showPhone());
+        preferences.setShowOnlineStatus(dto.showOnlineStatus());
+        preferences.setSearchDiscoverable(dto.searchDiscoverable());
         return preferences;
     }
 
@@ -106,18 +106,18 @@ public class UserPreferencesMapper {
 
     // Instance methods for DTO-based updates
     public UserPreferences updateFromPrivacySettingsDTO(UserPreferences preferences, UpdatePrivacySettingsRequestDTO dto) {
-        preferences.setShowEmail(dto.getShowEmail());
-        preferences.setShowPhone(dto.getShowPhone());
-        preferences.setShowOnlineStatus(dto.getShowOnlineStatus());
-        preferences.setSearchDiscoverable(dto.getSearchDiscoverable());
+        preferences.setShowEmail(dto.showEmail());
+        preferences.setShowPhone(dto.showPhone());
+        preferences.setShowOnlineStatus(dto.showOnlineStatus());
+        preferences.setSearchDiscoverable(dto.searchDiscoverable());
         return preferences;
     }
 
     public UserPreferences updateFromVisibilitySettingsDTO(UserPreferences preferences, UpdateVisibilitySettingsRequestDTO dto) {
-        preferences.setProfileVisibility(dto.getProfileVisibility());
-        preferences.setAllowMessages(dto.getAllowMessages());
-        preferences.setAllowTagging(dto.getAllowTagging());
-        preferences.setViewActivity(dto.getViewActivity());
+        preferences.setProfileVisibility(dto.profileVisibility());
+        preferences.setAllowMessages(dto.allowMessages());
+        preferences.setAllowTagging(dto.allowTagging());
+        preferences.setViewActivity(dto.viewActivity());
         return preferences;
     }
 }

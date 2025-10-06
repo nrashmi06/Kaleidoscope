@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,7 +34,15 @@ public class CorsConfig {
         log.info("Configuring CORS with allowed origins: {}", origins);
         configuration.setAllowedOrigins(origins);
 
-        List<String> methods = Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH");
+        List<String> methods = Arrays.asList(
+                HttpMethod.GET.name(),
+                HttpMethod.POST.name(),
+                HttpMethod.PUT.name(),
+                HttpMethod.DELETE.name(),
+                HttpMethod.OPTIONS.name(),
+                HttpMethod.PATCH.name()
+        );
+
         log.debug("Allowed methods: {}", methods);
         configuration.setAllowedMethods(methods);
 

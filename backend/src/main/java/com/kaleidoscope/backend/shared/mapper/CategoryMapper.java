@@ -34,13 +34,13 @@ public class CategoryMapper {
             return null;
         }
 
-        return CategoryParentResponseDTO.builder()
-                .categoryId(category.getCategoryId())
-                .name(category.getName())
-                .description(category.getDescription())
-                .iconName(category.getIconName())
-                .parentId(category.getParent() != null ? category.getParent().getCategoryId() : null)
-                .build();
+        return new CategoryParentResponseDTO(
+                category.getCategoryId(),
+                category.getName(),
+                category.getDescription(),
+                category.getIconName(),
+                category.getParent() != null ? category.getParent().getCategoryId() : null
+        );
     }
 
     public static List<CategoryParentResponseDTO> toParentDTOList(List<Category> categories) {
@@ -109,23 +109,37 @@ public class CategoryMapper {
 
     public static Category toEntity(CategoryRequestDTO dto) {
         return Category.builder()
-                .name(dto.getName())
-                .description(dto.getDescription())
-                .iconName(dto.getIconName())
+                .name(dto.name())
+                .description(dto.description())
+                .iconName(dto.iconName())
                 .build();
     }
 
     public static void updateEntityFromDTO(Category category, CategoryRequestDTO dto) {
-        if (dto.getName() != null) {
-            category.setName(dto.getName());
-        }
+        category.setName(dto.name());
+        category.setDescription(dto.description());
+        category.setIconName(dto.iconName());
 
-        if (dto.getDescription() != null) {
-            category.setDescription(dto.getDescription());
+        if (dto.name() != null) {
+            if (dto.name().trim().isEmpty()) {
+                category.setName(null);
+            } else {
+                category.setName(dto.name().trim());
+            }
         }
-
-        if (dto.getIconName() != null) {
-            category.setIconName(dto.getIconName());
+        if (dto.description() != null) {
+            if (dto.description().trim().isEmpty()) {
+                category.setDescription(null);
+            } else {
+                category.setDescription(dto.description().trim());
+            }
+        }
+        if (dto.iconName() != null) {
+            if (dto.iconName().trim().isEmpty()) {
+                category.setIconName(null);
+            } else {
+                category.setIconName(dto.iconName().trim());
+            }
         }
     }
 

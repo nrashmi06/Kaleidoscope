@@ -51,16 +51,16 @@ public class UserNotificationPreferencesMapper {
     }
 
     public UserNotificationPreferences updateFromDTO(UserNotificationPreferences preferences, UpdateNotificationPreferencesRequestDTO dto) {
-        preferences.setLikesEmail(dto.getLikesEmail());
-        preferences.setLikesPush(dto.getLikesPush());
-        preferences.setCommentsEmail(dto.getCommentsEmail());
-        preferences.setCommentsPush(dto.getCommentsPush());
-        preferences.setFollowsEmail(dto.getFollowsEmail());
-        preferences.setFollowsPush(dto.getFollowsPush());
-        preferences.setMentionsEmail(dto.getMentionsEmail());
-        preferences.setMentionsPush(dto.getMentionsPush());
-        preferences.setSystemEmail(dto.getSystemEmail());
-        preferences.setSystemPush(dto.getSystemPush());
+        preferences.setLikesEmail(dto.likesEmail());
+        preferences.setLikesPush(dto.likesPush());
+        preferences.setCommentsEmail(dto.commentsEmail());
+        preferences.setCommentsPush(dto.commentsPush());
+        preferences.setFollowsEmail(dto.followsEmail());
+        preferences.setFollowsPush(dto.followsPush());
+        preferences.setMentionsEmail(dto.mentionsEmail());
+        preferences.setMentionsPush(dto.mentionsPush());
+        preferences.setSystemEmail(dto.systemEmail());
+        preferences.setSystemPush(dto.systemPush());
         return preferences;
     }
 

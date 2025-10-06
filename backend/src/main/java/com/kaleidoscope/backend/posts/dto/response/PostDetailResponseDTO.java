@@ -36,5 +36,6 @@ public class PostDetailResponseDTO {
     // Interaction Counts & User-Specific Reaction
     private long reactionCount;
     private long commentCount;
+    private long viewCount;
     private ReactionType currentUserReaction;
 }

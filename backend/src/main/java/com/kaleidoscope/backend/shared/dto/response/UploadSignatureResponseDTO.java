@@ -1,14 +1,5 @@
 package com.kaleidoscope.backend.shared.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.List;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class UploadSignatureResponseDTO {
-    private List<SignatureDataDTO> signatures;
-}
+public record UploadSignatureResponseDTO(List<SignatureDataDTO> signatures) {}

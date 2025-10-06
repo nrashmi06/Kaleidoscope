@@ -1,10 +1,9 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
-import com.kaleidoscope.backend.shared.config.ServletProperties;
-import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.shared.config.ApplicationProperties;
+import com.kaleidoscope.backend.shared.config.ServletProperties;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -22,19 +21,16 @@ public class EmailServiceImpl implements EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailServiceImpl.class);
     private final JavaMailSender javaMailSender;
     private final TemplateEngine templateEngine;
-    private final UserRepository userRepository;
     private final ApplicationProperties applicationProperties;
     private final ServletProperties servletProperties;
 
     @Autowired
     public EmailServiceImpl(JavaMailSender javaMailSender,
                             TemplateEngine templateEngine,
-                            UserRepository userRepository,
                             ApplicationProperties applicationProperties,
                             ServletProperties servletProperties) {
         this.javaMailSender = javaMailSender;
         this.templateEngine = templateEngine;
-        this.userRepository = userRepository;
         this.applicationProperties = applicationProperties;
         this.servletProperties = servletProperties;
     }
@@ -68,8 +64,8 @@ public class EmailServiceImpl implements EmailService {
     public void sendVerificationEmail(String email, String code) {
         logger.info("Starting to send verification email to: {}", email);
         String subject = "Verify your email address";
-        String baseUrl = applicationProperties.getBaseUrl();
-        String contextPath = servletProperties.getContextPath();
+        String baseUrl = applicationProperties.baseUrl();
+        String contextPath = servletProperties.contextPath();
         String verificationUrl = baseUrl + contextPath + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
         Context context = new Context();
         context.setVariable("verificationUrl", verificationUrl);

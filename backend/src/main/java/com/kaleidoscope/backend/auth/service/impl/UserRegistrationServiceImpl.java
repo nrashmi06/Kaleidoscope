@@ -1,5 +1,8 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
+import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
 import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyInUseException;
@@ -8,9 +11,6 @@ import com.kaleidoscope.backend.auth.model.EmailVerification;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.auth.service.UserRegistrationService;
-import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
-import com.kaleidoscope.backend.ml.dto.ProfilePictureEventDTO;
-import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.enums.Theme;
@@ -140,7 +140,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
                     .correlationId(MDC.get("correlationId"))
                     .build();
 
-                redisStreamPublisher.publish(RedisStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
+                redisStreamPublisher.publish(ProducerStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
             } catch (Exception e) {
                 log.error("Failed to publish profile picture event to Redis Stream for user ID: {}", user.getUserId(), e);
             }

@@ -1,9 +1,10 @@
 package com.kaleidoscope.backend.posts.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
-import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
-import com.kaleidoscope.backend.ml.dto.PostImageEventDTO;
-import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.dto.PostImageEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
+import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
@@ -17,11 +18,14 @@ import com.kaleidoscope.backend.posts.mapper.PostMapper;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
-import com.kaleidoscope.backend.posts.repository.specification.PostSpecification;
+import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.posts.service.PostService;
+import com.kaleidoscope.backend.posts.service.PostViewService;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
+import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
+import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
 import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
@@ -38,7 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,13 +66,15 @@ public class PostServiceImpl implements PostService {
     private final UserTagService userTagService;
     private final UserTagRepository userTagRepository;
     private final RedisStreamPublisher redisStreamPublisher;
+    private final PostViewService postViewService;
+    private final PostSearchRepository postSearchRepository;
 
     @Override
     @Transactional
     public PostCreationResponseDTO createPost(PostCreateRequestDTO postCreateRequestDTO) {
         log.info("Starting post creation process for user request with {} categories and {} media items",
-                 postCreateRequestDTO.getCategoryIds().size(),
-                 postCreateRequestDTO.getMediaDetails() != null ? postCreateRequestDTO.getMediaDetails().size() : 0);
+                 postCreateRequestDTO.categoryIds().size(),
+                 postCreateRequestDTO.mediaDetails() != null ? postCreateRequestDTO.mediaDetails().size() : 0);
 
         Long userId = jwtUtils.getUserIdFromContext();
         log.debug("Fetched userId from JWT context: {}", userId);
@@ -82,48 +87,46 @@ public class PostServiceImpl implements PostService {
         log.info("Authenticated user validated: username={}, userId={}", currentUser.getUsername(), userId);
 
         // 1. Map the DTO to a Post entity
-        log.debug("Mapping PostCreateRequestDTO to Post entity with title: '{}'", postCreateRequestDTO.getTitle());
+        log.debug("Mapping PostCreateRequestDTO to Post entity with title: '{}'", postCreateRequestDTO.title());
         Post post = postMapper.toEntity(postCreateRequestDTO);
         post.setUser(currentUser);
 
-        // 2. Set Location and Categories before the first save
-        if (postCreateRequestDTO.getLocationId() != null) {
-            log.debug("Resolving location for post: locationId={}", postCreateRequestDTO.getLocationId());
-            Location location = locationRepository.findById(postCreateRequestDTO.getLocationId())
-                    .orElseThrow(() -> {
-                        log.error("Location resolution failed: locationId={} not found in database", postCreateRequestDTO.getLocationId());
-                        return new PostLocationNotFoundException(postCreateRequestDTO.getLocationId());
-                    });
+        log.info("Post creation initiated by user '{}' with title: '{}'", currentUser.getUsername(), postCreateRequestDTO.title());
+
+        // Handle location if provided
+        if (postCreateRequestDTO.locationId() != null) {
+            Location location = locationRepository.findById(postCreateRequestDTO.locationId())
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + postCreateRequestDTO.locationId()));
             post.setLocation(location);
-            log.info("Location successfully associated with post: locationId={}", location.getLocationId());
-        } else {
-            log.debug("No location specified for post creation");
+            log.debug("Location associated with post: locationId={}, name={}", postCreateRequestDTO.locationId(), location.getName());
         }
 
-        log.debug("Validating and fetching categories: categoryIds={}", postCreateRequestDTO.getCategoryIds());
-        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(postCreateRequestDTO.getCategoryIds()));
-        if (categories.size() != postCreateRequestDTO.getCategoryIds().size()) {
-            log.error("Category validation failed: requested={}, found={}, missingCategories={}",
-                     postCreateRequestDTO.getCategoryIds().size(),
-                     categories.size(),
-                     postCreateRequestDTO.getCategoryIds().stream()
-                             .filter(id -> categories.stream().noneMatch(cat -> cat.getCategoryId().equals(id)))
-                             .collect(Collectors.toList()));
-            throw new PostCategoryNotFoundException();
+        // Validate and process categories
+        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(postCreateRequestDTO.categoryIds()));
+        if (categories.size() != postCreateRequestDTO.categoryIds().size()) {
+            Set<Long> foundCategoryIds = categories.stream()
+                    .map(Category::getCategoryId)
+                    .collect(Collectors.toSet());
+            Set<Long> missingCategoryIds = postCreateRequestDTO.categoryIds().stream()
+                    .filter(id -> !foundCategoryIds.contains(id))
+                    .collect(Collectors.toSet());
+            log.error("Category validation failed: requested={}, found={}, missing={}",
+                      postCreateRequestDTO.categoryIds(), foundCategoryIds, missingCategoryIds);
+            throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
         }
+
         categories.forEach(post::addCategory);
-        log.info("Successfully validated and associated {} categories with post", categories.size());
 
-        log.debug("Persisting post entity to database");
+        // Save the post first to generate its ID
         Post savedPost = postRepository.save(post);
         log.info("Post entity successfully saved: postId={}, title='{}'", savedPost.getPostId(), savedPost.getTitle());
 
-        // 4. Now that savedPost.getPostId() is not null, process the media
-        if (postCreateRequestDTO.getMediaDetails() != null && !postCreateRequestDTO.getMediaDetails().isEmpty()) {
-            log.info("Processing {} media items for post", postCreateRequestDTO.getMediaDetails().size());
-            List<PostMedia> mediaItems = postMapper.toPostMediaEntities(postCreateRequestDTO.getMediaDetails());
+        // Handle media if provided
+        if (postCreateRequestDTO.mediaDetails() != null && !postCreateRequestDTO.mediaDetails().isEmpty()) {
+            log.debug("Processing {} media items for post", postCreateRequestDTO.mediaDetails().size());
+            List<PostMedia> postMediaList = postMapper.toPostMediaEntities(postCreateRequestDTO.mediaDetails());
 
-            for (PostMedia mediaItem : mediaItems) {
+            for (PostMedia mediaItem : postMediaList) {
                 log.debug("Validating media URL: {}", mediaItem.getMediaUrl());
                 if (!imageStorageService.validatePostImageUrl(mediaItem.getMediaUrl())) {
                     log.error("Media validation failed: invalid or untrusted URL={}", mediaItem.getMediaUrl());
@@ -154,36 +157,34 @@ public class PostServiceImpl implements PostService {
                 log.info("Media asset successfully associated: publicId={}, postId={}", publicId, savedPost.getPostId());
             }
 
+            // Save again to persist the new media relationships
+            final Post finalSavedPost = postRepository.save(savedPost);
             log.debug("Persisting post with associated media to database");
-            postRepository.save(savedPost);
-            log.info("Post with {} media items successfully saved", mediaItems.size());
 
             // Iterate through the saved media and publish an event for each one
-            log.info("Publishing {} post image events to Redis Stream for post {}", savedPost.getMedia().size(), savedPost.getPostId());
-            savedPost.getMedia().forEach(mediaItem -> {
+            log.info("Publishing {} post image events to Redis Stream for post {}", finalSavedPost.getMedia().size(), finalSavedPost.getPostId());
+            finalSavedPost.getMedia().forEach(mediaItem -> {
                 PostImageEventDTO event = PostImageEventDTO.builder()
-                    .postId(savedPost.getPostId())
+                    .postId(finalSavedPost.getPostId())
                     .mediaId(mediaItem.getMediaId())
                     .imageUrl(mediaItem.getMediaUrl())
                     .correlationId(MDC.get("correlationId"))
                     .build();
-                redisStreamPublisher.publish(RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
+
+            savedPost = finalSavedPost;
         } else {
             log.debug("No media items to process for this post");
         }
 
-        // 5. Logic for user tagging can now use the generated postId
-        if (postCreateRequestDTO.getTaggedUserIds() != null && !postCreateRequestDTO.getTaggedUserIds().isEmpty()) {
-            log.info("Processing user tags: {} users to be tagged in post", postCreateRequestDTO.getTaggedUserIds().size());
+        // Handle user tagging if provided
+        if (postCreateRequestDTO.taggedUserIds() != null && !postCreateRequestDTO.taggedUserIds().isEmpty()) {
+            log.debug("Processing {} user tags for post", postCreateRequestDTO.taggedUserIds().size());
 
-            for (Long taggedUserId : postCreateRequestDTO.getTaggedUserIds()) {
+            for (Long taggedUserId : postCreateRequestDTO.taggedUserIds()) {
                 try {
-                    CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO();
-                    tagRequest.setTaggedUserId(taggedUserId);
-                    tagRequest.setContentId(savedPost.getPostId());
-                    tagRequest.setContentType(ContentType.POST);
-
+                    CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(taggedUserId, ContentType.POST, savedPost.getPostId());
                     log.debug("Creating user tag: taggedUserId={}, postId={}", taggedUserId, savedPost.getPostId());
                     userTagService.createUserTag(tagRequest);
                     log.info("User tag successfully created: taggedUserId={}, postId={}", taggedUserId, savedPost.getPostId());
@@ -196,6 +197,59 @@ public class PostServiceImpl implements PostService {
             }
         } else {
             log.debug("No user tags to process for this post");
+        }
+
+        // 6. Index the new post to Elasticsearch with initial/default denormalized values
+        try {
+            // Find thumbnail URL from media with lowest position (same logic as PostMapper)
+            String thumbnailUrl = savedPost.getMedia().stream()
+                    .min(Comparator.comparing(PostMedia::getPosition))
+                    .map(PostMedia::getMediaUrl)
+                    .orElse(null);
+
+            // Build author object for denormalized data
+            PostDocument.Author author = PostDocument.Author.builder()
+                    .userId(currentUser.getUserId())
+                    .username(currentUser.getUsername())
+                    .profilePictureUrl(currentUser.getProfilePictureUrl())
+                    .build();
+
+            // Build categories list for denormalized data
+            List<PostDocument.Category> documentCategories = savedPost.getCategories().stream()
+                    .map(pc -> {
+                        Category cat = pc.getCategory();
+                        return PostDocument.Category.builder()
+                                .categoryId(cat.getCategoryId())
+                                .name(cat.getName())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            // Create PostDocument with initial values
+            PostDocument postDocument = PostDocument.builder()
+                    .id(savedPost.getPostId().toString())
+                    .postId(savedPost.getPostId())
+                    .title(savedPost.getTitle())
+                    .body(savedPost.getBody())
+                    .summary(savedPost.getSummary())
+                    .thumbnailUrl(thumbnailUrl)
+                    .visibility(savedPost.getVisibility())
+                    .status(savedPost.getStatus())
+                    .createdAt(savedPost.getCreatedAt())
+                    .author(author)
+                    .categories(documentCategories)
+                    .reactionCount(0L)       // Initial value
+                    .commentCount(0L)        // Initial value
+                    .viewCount(0L)           // Initial value
+                    .build();
+
+            // Index to Elasticsearch
+            postSearchRepository.save(postDocument);
+            log.info("Successfully indexed new post {} to Elasticsearch", savedPost.getPostId());
+
+        } catch (Exception e) {
+            log.error("Failed to index post {} to Elasticsearch: {}", savedPost.getPostId(), e.getMessage(), e);
+            // Continue execution - don't fail post creation if ES indexing fails
         }
 
         log.info("Post creation completed successfully: postId={}, userId={}, username='{}', title='{}'",
@@ -220,33 +274,33 @@ public class PostServiceImpl implements PostService {
         }
 
         log.debug("Updating post fields");
-        post.setTitle(requestDTO.getTitle());
-        post.setBody(requestDTO.getBody());
-        post.setSummary(requestDTO.getSummary());
-        post.setVisibility(requestDTO.getVisibility());
+        post.setTitle(requestDTO.title());
+        post.setBody(requestDTO.body());
+        post.setSummary(requestDTO.summary());
+        post.setVisibility(requestDTO.visibility());
 
         log.debug("Updating post media");
-        updatePostMedia(post, requestDTO.getMediaDetails());
+        updatePostMedia(post, requestDTO.mediaDetails());
         log.debug("Updating post tags");
-        updatePostTags(post, requestDTO.getTaggedUserIds());
+        updatePostTags(post, requestDTO.taggedUserIds());
 
-        if (requestDTO.getCategoryIds() != null) {
-            log.debug("Updating post categories: {}", requestDTO.getCategoryIds());
-            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(requestDTO.getCategoryIds()));
-            if (categories.size() != requestDTO.getCategoryIds().size()) {
-                log.error("Some categories not found for IDs: {}", requestDTO.getCategoryIds());
+        if (requestDTO.categoryIds() != null) {
+            log.debug("Updating post categories: {}", requestDTO.categoryIds());
+            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(requestDTO.categoryIds()));
+            if (categories.size() != requestDTO.categoryIds().size()) {
+                log.error("Some categories not found for IDs: {}", requestDTO.categoryIds());
                 throw new PostCategoryNotFoundException();
             }
             post.getCategories().clear();
             categories.forEach(post::addCategory);
         }
 
-        if (requestDTO.getLocationId() != null) {
-            log.debug("Updating post location: {}", requestDTO.getLocationId());
-            Location location = locationRepository.findById(requestDTO.getLocationId())
+        if (requestDTO.locationId() != null) {
+            log.debug("Updating post location: {}", requestDTO.locationId());
+            Location location = locationRepository.findById(requestDTO.locationId())
                     .orElseThrow(() -> {
-                        log.error("Location not found: {}", requestDTO.getLocationId());
-                        return new PostLocationNotFoundException(requestDTO.getLocationId());
+                        log.error("Location not found: {}", requestDTO.locationId());
+                        return new PostLocationNotFoundException(requestDTO.locationId());
                     });
             post.setLocation(location);
         } else {
@@ -270,7 +324,7 @@ public class PostServiceImpl implements PostService {
                         .imageUrl(firstMedia.getMediaUrl())
                         .correlationId(MDC.get("correlationId"))
                         .build();
-                redisStreamPublisher.publish(RedisStreamConstants.POST_UPDATE_STREAM, event);
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_UPDATE_STREAM, event);
             }
         } else {
             log.debug("Skipping Redis Stream publishing for post update {} - no media present", savedPost.getPostId());
@@ -299,11 +353,7 @@ public class PostServiceImpl implements PostService {
         for (Long incomingId : incomingIds) {
             if (!existingTagsMap.containsKey(incomingId)) {
                 log.debug("Adding new tag for userId: {}", incomingId);
-                CreateUserTagRequestDTO tagRequest = CreateUserTagRequestDTO.builder()
-                        .taggedUserId(incomingId)
-                        .contentId(post.getPostId())
-                        .contentType(ContentType.POST)
-                        .build();
+                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(incomingId, ContentType.POST, post.getPostId());
                 userTagService.createUserTag(tagRequest);
             }
         }
@@ -321,9 +371,9 @@ public class PostServiceImpl implements PostService {
         List<PostMedia> newMediaItems = new ArrayList<>();
 
         for (MediaUploadRequestDTO dto : mediaDtos) {
-            if (dto.getMediaId() == null) {
-                log.debug("Adding new media from URL: {}", dto.getUrl());
-                String publicId = imageStorageService.extractPublicIdFromUrl(dto.getUrl());
+            if (dto.mediaId() == null) {
+                log.debug("Adding new media from URL: {}", dto.url());
+                String publicId = imageStorageService.extractPublicIdFromUrl(dto.url());
                 MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
                         .orElseThrow(() -> {
                             log.error("Media asset not tracked for public_id: {}", publicId);
@@ -344,11 +394,11 @@ public class PostServiceImpl implements PostService {
                 tracker.setContentId(post.getPostId());
                 log.debug("Associated new media with post");
             } else {
-                incomingMediaIds.add(dto.getMediaId());
-                PostMedia existingMedia = existingMediaMap.get(dto.getMediaId());
+                incomingMediaIds.add(dto.mediaId());
+                PostMedia existingMedia = existingMediaMap.get(dto.mediaId());
                 if (existingMedia != null) {
-                    log.debug("Updating position for existing mediaId: {}", dto.getMediaId());
-                    existingMedia.setPosition(dto.getPosition());
+                    log.debug("Updating position for existing mediaId: {}", dto.mediaId());
+                    existingMedia.setPosition(dto.position());
                     finalMediaList.add(existingMedia);
                 }
             }
@@ -381,7 +431,6 @@ public class PostServiceImpl implements PostService {
                     .imageUrl(mediaItem.getMediaUrl())
                     .correlationId(MDC.get("correlationId"))
                     .build();
-                redisStreamPublisher.publish(RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
         }
     }
@@ -451,19 +500,37 @@ public class PostServiceImpl implements PostService {
             log.error("Post not found: {}", postId);
             return new PostNotFoundException(postId);
         });
+
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
         boolean isOwner = post.getUser().getUserId().equals(currentUserId);
+
+        // Access control validation
         if (!isAdmin && !isOwner) {
+            // Non-admin, non-owner users can only see PUBLISHED posts
             if (post.getStatus() != PostStatus.PUBLISHED) {
-                log.error("Not allowed to view post {}: not published", postId);
+                log.error("Access denied: User {} cannot view unpublished post {}", currentUserId, postId);
                 throw new UnauthorizedActionException("Not allowed to view this post");
             }
+
+            // For FOLLOWERS visibility, check if current user follows the author
             if (post.getVisibility() == PostVisibility.FOLLOWERS) {
-                log.error("Not allowed to view post {}: visibility is FOLLOWERS", postId);
-                throw new UnauthorizedActionException("Not allowed to view this post");
+                boolean isFollowing = followRepository.existsByFollower_UserIdAndFollowing_UserId(
+                    currentUserId, post.getUser().getUserId());
+                if (!isFollowing) {
+                    log.error("Access denied: User {} is not following author {} for FOLLOWERS post {}",
+                            currentUserId, post.getUser().getUserId(), postId);
+                    throw new UnauthorizedActionException("Not allowed to view this post");
+                }
             }
         }
+
+        // Track view count using Redis optimization (only for non-owners)
+        if (!isOwner) {
+            postViewService.incrementViewAsync(postId, currentUserId);
+            log.debug("View tracking initiated for post {} by user {}", postId, currentUserId);
+        }
+
         com.kaleidoscope.backend.shared.enums.ReactionType currentUserReaction = null;
         var reactionOpt = reactionRepository.findByContentAndUser(postId, ContentType.POST, currentUserId);
         if (reactionOpt.isPresent()) {
@@ -481,27 +548,37 @@ public class PostServiceImpl implements PostService {
                                                                  PostStatus status,
                                                                  PostVisibility visibility,
                                                                  String query) {
-        log.info("Filtering posts with params: userId={}, categoryId={}, status={}, visibility={}, query={}",
+        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}",
                 userId, categoryId, status, visibility, query);
+
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
 
-        Specification<Post> spec = Specification.where(null);
-        spec = spec.and(PostSpecification.hasAuthor(userId));
-        spec = spec.and(PostSpecification.hasCategory(categoryId));
-        spec = spec.and(PostSpecification.hasStatus(status));
-        spec = spec.and(PostSpecification.hasVisibility(visibility));
-        spec = spec.and(PostSpecification.containsQuery(query));
-
-        if (!isAdmin) {
-            log.debug("Applying visibility rules for non-admin user: {}", currentUserId);
-            Set<Long> followingIds = followRepository.findFollowingIdsByFollowerId(currentUserId);
-            spec = spec.and(PostSpecification.isVisibleToUser(currentUserId, followingIds));
+        // For non-admin users, get following IDs for visibility rules
+        Set<Long> followingIds = null;
+        if (!isAdmin && currentUserId != null) {
+            followingIds = followRepository.findFollowingIdsByFollowerId(currentUserId);
+            log.debug("Retrieved {} following IDs for user {}", followingIds.size(), currentUserId);
         }
 
-        Page<Post> postPage = postRepository.findAll(spec, pageable);
-        Page<PostSummaryResponseDTO> dtoPage = postPage.map(postMapper::toPostSummaryDTO);
-        log.debug("Returning paginated response for filtered posts");
+        // Use the custom Elasticsearch repository method
+        Page<PostDocument> documentPage = postSearchRepository.findVisibleAndFilteredPosts(
+                currentUserId,
+                followingIds,
+                userId,
+                categoryId,
+                status,
+                visibility,
+                query,
+                pageable
+        );
+
+        // Map PostDocument to PostSummaryResponseDTO using the new overloaded mapper method
+        Page<PostSummaryResponseDTO> dtoPage = documentPage.map(postMapper::toPostSummaryDTO);
+
+        log.info("Elasticsearch query returned {} posts out of {} total",
+                dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
+
         return PaginatedResponse.fromPage(dtoPage);
     }
 }

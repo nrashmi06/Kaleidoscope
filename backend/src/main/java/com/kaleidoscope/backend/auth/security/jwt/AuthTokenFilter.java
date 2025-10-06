@@ -29,7 +29,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         this.jwtUtils = jwtUtils;
     }
 
-    private static final String CONTEXT_PATH = "/mental-health";
+    private static final String CONTEXT_PATH = "/kaleidoscope";
     private static final List<String> EXCLUDED_URLS = Arrays.asList(
 
     );

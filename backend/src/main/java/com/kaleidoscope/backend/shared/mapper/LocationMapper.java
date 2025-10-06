@@ -34,14 +34,14 @@ public class LocationMapper {
         }
 
         return Location.builder()
-                .name(requestDTO.getName())
-                .latitude(requestDTO.getLatitude())
-                .longitude(requestDTO.getLongitude())
-                .country(requestDTO.getCountry())
-                .state(requestDTO.getState())
-                .city(requestDTO.getCity())
-                .address(requestDTO.getAddress())
-                .placeId(requestDTO.getPlaceId())
+                .name(requestDTO.name())
+                .latitude(requestDTO.latitude())
+                .longitude(requestDTO.longitude())
+                .country(requestDTO.country())
+                .state(requestDTO.state())
+                .city(requestDTO.city())
+                .address(requestDTO.address())
+                .placeId(requestDTO.placeId())
                 .build();
     }
 

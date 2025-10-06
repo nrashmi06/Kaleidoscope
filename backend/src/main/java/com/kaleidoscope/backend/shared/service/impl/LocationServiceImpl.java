@@ -26,12 +26,12 @@ public class LocationServiceImpl implements LocationService {
     @Override
     @Transactional
     public LocationResponseDTO createLocation(LocationRequestDTO locationRequestDTO) {
-        if (locationRequestDTO.getPlaceId() != null &&
-                locationRepository.findByPlaceId(locationRequestDTO.getPlaceId()).isPresent()) {
-            throw new LocationAlreadyExistsException("place ID", locationRequestDTO.getPlaceId());
+        if (locationRequestDTO.placeId() != null &&
+                locationRepository.findByPlaceId(locationRequestDTO.placeId()).isPresent()) {
+            throw new LocationAlreadyExistsException("place ID", locationRequestDTO.placeId());
         }
-        if (locationRepository.findByCoordinates(locationRequestDTO.getLatitude(), locationRequestDTO.getLongitude()).isPresent()) {
-            throw new LocationAlreadyExistsException("coordinates", locationRequestDTO.getLatitude() + ", " + locationRequestDTO.getLongitude());
+        if (locationRepository.findByCoordinates(locationRequestDTO.latitude(), locationRequestDTO.longitude()).isPresent()) {
+            throw new LocationAlreadyExistsException("coordinates", locationRequestDTO.latitude() + ", " + locationRequestDTO.longitude());
         }
         Location location = locationMapper.toEntity(locationRequestDTO);
         Location savedLocation = locationRepository.save(location);

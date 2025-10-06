@@ -3,7 +3,7 @@ package com.kaleidoscope.backend.auth.service.impl;
 import com.kaleidoscope.backend.auth.config.JwtProperties;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.exception.token.RefreshTokenException;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.auth.model.RefreshToken;
 import com.kaleidoscope.backend.users.model.User;
@@ -154,11 +154,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public void setSecureRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         log.debug("Setting secure refresh token cookie");
 
-        String baseUrl = applicationProperties.getBaseUrl();
+        String baseUrl = applicationProperties.baseUrl();
         boolean isSecure = !baseUrl.contains("localhost");
         String sameSite = isSecure ? "None" : "Strict";
 
-        int maxAgeDays = jwtProperties.getCookieMaxAgeDays();
+        int maxAgeDays = jwtProperties.cookieMaxAgeDays();
         int maxAge = maxAgeDays * 24 * 60 * 60; // Convert days to seconds
 
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);

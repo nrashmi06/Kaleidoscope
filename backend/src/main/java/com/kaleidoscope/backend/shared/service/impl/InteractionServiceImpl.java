@@ -2,6 +2,8 @@ package com.kaleidoscope.backend.shared.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.shared.dto.request.CommentCreateRequestDTO;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
@@ -35,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -53,6 +56,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final UserTagService userTagService;
     private final UserTagRepository userTagRepository;
     private final UserTagMapper userTagMapper;
+    private final RedisStreamPublisher redisStreamPublisher;
 
     private void validateContentExists(ContentType contentType, Long contentId) {
         log.debug("[validateContentExists] Checking existence for contentType: {} and contentId: {}", contentType, contentId);
@@ -115,6 +119,26 @@ public class InteractionServiceImpl implements InteractionService {
                 log.info("[reactOrUnreact] Created new reaction for user {} on content {}:{} to {}", currentUserId, contentType, contentId, reactionType);
             }
         }
+
+        // Trigger Elasticsearch sync for POST interactions only
+        if (contentType == ContentType.POST) {
+            try {
+                // Create a simple event payload with postId for the sync consumer
+                Map<String, Object> eventPayload = Map.of(
+                    "contentId", contentId,
+                    "changeType", unreact ? "UNREACT" : "REACT"
+                );
+
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
+                log.debug("[reactOrUnreact] Published POST_INTERACTION_SYNC_STREAM event for post {}", contentId);
+
+            } catch (Exception e) {
+                log.error("[reactOrUnreact] Failed to publish interaction sync event for post {}: {}",
+                         contentId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
+        }
+
         return getReactionSummary(contentType, contentId);
     }
 
@@ -150,17 +174,17 @@ public class InteractionServiceImpl implements InteractionService {
                 .contentType(contentType)
                 .contentId(contentId)
                 .user(currentUser)
-                .body(requestDTO.getBody())
+                .body(requestDTO.body())
                 .build();
         Comment savedComment = commentRepository.save(comment);
         log.info("[addComment] Saved comment with ID: {} for user: {}", savedComment.getCommentId(), currentUserId);
-        if (requestDTO.getTaggedUserIds() != null && !requestDTO.getTaggedUserIds().isEmpty()) {
-            for (Long taggedUserId : requestDTO.getTaggedUserIds()) {
-                CreateUserTagRequestDTO tagRequest = CreateUserTagRequestDTO.builder()
-                        .taggedUserId(taggedUserId)
-                        .contentId(savedComment.getCommentId())
-                        .contentType(ContentType.COMMENT)
-                        .build();
+        if (requestDTO.taggedUserIds() != null && !requestDTO.taggedUserIds().isEmpty()) {
+            for (Long taggedUserId : requestDTO.taggedUserIds()) {
+                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(
+                        taggedUserId,
+                        ContentType.COMMENT,
+                        savedComment.getCommentId()
+                );
                 userTagService.createUserTag(tagRequest);
                 log.info("[addComment] Tagged user {} in comment {}", taggedUserId, savedComment.getCommentId());
             }
@@ -170,6 +194,25 @@ public class InteractionServiceImpl implements InteractionService {
             .map(userTagMapper::toDTO)
             .collect(Collectors.toSet());
         log.debug("[addComment] Fetched {} tags for comment {}", tags.size(), savedComment.getCommentId());
+
+        // Trigger Elasticsearch sync for POST comments only
+        if (contentType == ContentType.POST) {
+            try {
+                Map<String, Object> eventPayload = Map.of(
+                    "contentId", contentId,
+                    "changeType", "ADD_COMMENT"
+                );
+
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
+                log.debug("[addComment] Published POST_INTERACTION_SYNC_STREAM event for post {}", contentId);
+
+            } catch (Exception e) {
+                log.error("[addComment] Failed to publish interaction sync event for post {}: {}",
+                         contentId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
+        }
+
         return interactionMapper.toCommentDTO(savedComment, tags);
     }
 
@@ -218,5 +261,23 @@ public class InteractionServiceImpl implements InteractionService {
         }
         commentRepository.delete(comment);
         log.info("[deleteComment] Deleted comment with ID: {}", commentId);
+
+        // Trigger Elasticsearch sync for POST comments only
+        if (comment.getContentType() == ContentType.POST) {
+            try {
+                Map<String, Object> eventPayload = Map.of(
+                    "contentId", contentId,
+                    "changeType", "DELETE_COMMENT"
+                );
+
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
+                log.debug("[deleteComment] Published POST_INTERACTION_SYNC_STREAM event for post {}", contentId);
+
+            } catch (Exception e) {
+                log.error("[deleteComment] Failed to publish interaction sync event for post {}: {}",
+                         contentId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
+        }
     }
 }

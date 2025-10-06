@@ -45,7 +45,7 @@ public class UserBlockServiceImpl implements UserBlockService {
     @Override
     public UserBlockResponseDTO blockUser(BlockUserRequestDTO blockUserRequestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        Long userIdToBlock = blockUserRequestDTO.getUserIdToBlock();
+        Long userIdToBlock = blockUserRequestDTO.userIdToBlock();
 
         log.info("User {} attempting to block user {}", currentUserId, userIdToBlock);
 
@@ -80,7 +80,7 @@ public class UserBlockServiceImpl implements UserBlockService {
     @Override
     public String unblockUser(UnblockUserRequestDTO unblockUserRequestDTO) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        Long userIdToUnblock = unblockUserRequestDTO.getUserIdToUnblock();
+        Long userIdToUnblock = unblockUserRequestDTO.userIdToUnblock();
 
         log.info("User {} attempting to unblock user {}", currentUserId, userIdToUnblock);
 

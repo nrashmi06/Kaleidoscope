@@ -23,4 +23,5 @@ public class PostSummaryResponseDTO {
     // Interaction Counts
     private long reactionCount;
     private long commentCount;
+    private long viewCount;
 }
