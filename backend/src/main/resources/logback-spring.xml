@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <springProfile name="!prod">
-        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    </springProfile>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -35,7 +32,6 @@
                 <logger>logger</logger>
             </fieldNames>
         </encoder>
-
         <connectionTimeout>5000</connectionTimeout>
         <reconnectionDelay>1 second</reconnectionDelay>
         <keepAliveDuration>5 minutes</keepAliveDuration>
@@ -65,21 +61,30 @@
         <maxFlushTime>2000</maxFlushTime>
     </appender>
 
-    <springProfile name="dev,development,local,default">
-        <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE"/>
-            <appender-ref ref="ASYNC_LOGSTASH"/>
-        </root>
-        <logger name="com.kaleidoscope.backend" level="DEBUG"/>
-        <logger name="com.kaleidoscope.backend.shared.config.CorrelationIdFilter" level="INFO"/>
-        <logger name="com.kaleidoscope.backend.shared.config.RequestLoggingFilter" level="INFO"/>
-        <logger name="com.kaleidoscope.backend.auth" level="INFO"/>
-        <logger name="com.kaleidoscope.backend.users" level="DEBUG"/>
-        <logger name="com.kaleidoscope.backend.posts" level="DEBUG"/>
-    </springProfile>
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
+    <logger name="org.jboss.logging" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.apache.catalina" level="INFO"/>
+    <logger name="org.eclipse.jetty" level="INFO"/>
+    <logger name="net.logstash.logback.appender.LogstashTcpSocketAppender" level="WARN"/>
 
-    <springProfile name="prod,production">
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ASYNC_LOGSTASH"/>
+    </root>
+
+    <logger name="com.kaleidoscope.backend" level="DEBUG"/>
+    <logger name="com.kaleidoscope.backend.shared.config.CorrelationIdFilter" level="INFO"/>
+    <logger name="com.kaleidoscope.backend.shared.config.RequestLoggingFilter" level="INFO"/>
+    <logger name="com.kaleidoscope.backend.auth" level="INFO"/>
+    <logger name="com.kaleidoscope.backend.users" level="DEBUG"/>
+    <logger name="com.kaleidoscope.backend.posts" level="DEBUG"/>
+
+    <springProfile name="prod, production">
         <root level="INFO">
             <appender-ref ref="ASYNC_LOGSTASH"/>
             <appender-ref ref="FILE"/>
@@ -88,12 +93,4 @@
         <logger name="com.kaleidoscope.backend.shared.config" level="INFO"/>
         <logger name="com.kaleidoscope.backend.auth" level="INFO"/>
     </springProfile>
-
-    <logger name="org.springframework" level="WARN"/>
-    <logger name="org.hibernate" level="WARN"/>
-    <logger name="com.zaxxer.hikari" level="WARN"/>
-    <logger name="org.apache.catalina" level="INFO"/>
-    <logger name="org.eclipse.jetty" level="INFO"/>
-
-    <logger name="net.logstash.logback.appender.LogstashTcpSocketAppender" level="WARN"/>
 </configuration>
