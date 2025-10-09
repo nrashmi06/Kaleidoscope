@@ -55,7 +55,7 @@ services:
       # redis:
       #   condition: service_started
       elasticsearch:
-        condition: service_started
+        condition: service_healthy
       logstash:
         condition: service_started
     env_file:
@@ -64,8 +64,7 @@ services:
     environment:
       - LOGSTASH_HOST=logstash
       - ELASTICSEARCH_HOST=elasticsearch
-      - ELASTIC_SEARCH_URL=http://elasticsearch:9200
-      - SPRING_DATA_ELASTICSEARCH_CLIENT_REACTIVE_ENDPOINTS=elasticsearch:9200
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
     ports:
       - "${APP_PORT:-8080}:8080"
     networks:
@@ -87,6 +86,12 @@ services:
       - app-network
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     restart: always
     deploy:
       resources:
