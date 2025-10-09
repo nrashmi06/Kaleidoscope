@@ -1,14 +1,14 @@
 package com.kaleidoscope.backend.users.service.impl;
 
-import com.kaleidoscope.backend.ml.config.RedisStreamConstants;
-import com.kaleidoscope.backend.ml.dto.ProfilePictureEventDTO;
-import com.kaleidoscope.backend.ml.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
+import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -149,6 +150,17 @@ public class UserServiceImpl implements UserService {
 
             user = userRepository.save(user);
 
+            // Trigger Elasticsearch sync for denormalized author data in posts
+            try {
+                Map<String, Object> profileSyncPayload = Map.of("userId", userId);
+                redisStreamPublisher.publish(ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, profileSyncPayload);
+                log.debug("Published USER_PROFILE_POST_SYNC_STREAM event for user {}", userId);
+            } catch (Exception e) {
+                log.error("Failed to publish user profile sync event for user {}: {}",
+                         userId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
+
             if (newProfilePictureUrl != null && !newProfilePictureUrl.trim().isEmpty()) {
                 // Publish to Redis Stream for ML processing - only when image URL exists
                 log.info("Publishing profile picture event for user {}: imageUrl={}", userId, newProfilePictureUrl);
@@ -157,7 +169,7 @@ public class UserServiceImpl implements UserService {
                     .imageUrl(newProfilePictureUrl)
                     .correlationId(MDC.get("correlationId"))
                     .build();
-                redisStreamPublisher.publish(RedisStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
+                redisStreamPublisher.publish(ProducerStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
             } else {
                 log.debug("Skipping Redis Stream publishing for user {} - no profile picture URL", userId);
             }

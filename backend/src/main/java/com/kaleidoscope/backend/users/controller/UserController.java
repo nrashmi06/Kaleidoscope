@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.users.controller;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.controller.api.UserApi;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileStatusRequestDTO;
@@ -33,7 +33,7 @@ public class UserController implements UserApi {
     @Override
     @PutMapping(value = UserRoutes.UPDATE_USER_PROFILE, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UpdateUserProfileResponseDTO>> updateUserProfile(
+    public ResponseEntity<AppResponse<UpdateUserProfileResponseDTO>> updateUserProfile(
             @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
             @RequestPart(value = "coverPhoto", required = false) MultipartFile coverPhoto,
             @RequestPart("userData") UpdateUserProfileRequestDTO userProfileData) throws Exception {
@@ -47,7 +47,7 @@ public class UserController implements UserApi {
 
         UpdateUserProfileResponseDTO updatedUser = userService.updateUserProfile(userId, userProfileData);
 
-        ApiResponse<UpdateUserProfileResponseDTO> response = ApiResponse.success(
+        AppResponse<UpdateUserProfileResponseDTO> response = AppResponse.success(
                 updatedUser,
                 "Profile updated successfully",
                 UserRoutes.UPDATE_USER_PROFILE
@@ -59,7 +59,7 @@ public class UserController implements UserApi {
     @Override
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping(UserRoutes.GET_ALL_USERS_BY_PROFILE_STATUS)
-    public ResponseEntity<ApiResponse<Page<UserDetailsSummaryResponseDTO>>> getAllUsers(
+    public ResponseEntity<AppResponse<Page<UserDetailsSummaryResponseDTO>>> getAllUsers(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             Pageable pageable) {
@@ -67,7 +67,7 @@ public class UserController implements UserApi {
         Page<User> users = userService.getUsersByFilters(status, search, pageable);
         Page<UserDetailsSummaryResponseDTO> usersResponse = users.map(UserMapper::toUserDetailsSummaryResponseDTO);
 
-        ApiResponse<Page<UserDetailsSummaryResponseDTO>> response = ApiResponse.success(
+        AppResponse<Page<UserDetailsSummaryResponseDTO>> response = AppResponse.success(
                 usersResponse,
                 "Users retrieved successfully",
                 UserRoutes.GET_ALL_USERS_BY_PROFILE_STATUS
@@ -79,16 +79,16 @@ public class UserController implements UserApi {
     @Override
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping(UserRoutes.UPDATE_USER_PROFILE_STATUS)
-    public ResponseEntity<ApiResponse<String>> updateUserProfileStatus(
+    public ResponseEntity<AppResponse<String>> updateUserProfileStatus(
             @RequestBody UpdateUserProfileStatusRequestDTO updateUserProfileStatusRequestDTO) {
 
         userService.updateUserProfileStatus(
-                updateUserProfileStatusRequestDTO.getUserId(),
-                updateUserProfileStatusRequestDTO.getProfileStatus()
+                updateUserProfileStatusRequestDTO.userId(),
+                updateUserProfileStatusRequestDTO.profileStatus()
         );
 
-        ApiResponse<String> response = ApiResponse.success(
-                "User status updated to " + updateUserProfileStatusRequestDTO.getProfileStatus(),
+        AppResponse<String> response = AppResponse.success(
+                "User status updated to " + updateUserProfileStatusRequestDTO.profileStatus(),
                 "Profile status updated successfully",
                 UserRoutes.UPDATE_USER_PROFILE_STATUS
         );

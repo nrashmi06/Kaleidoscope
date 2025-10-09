@@ -1,0 +1,17 @@
+meta {
+  name: get saved posts
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{base_url}}/api/posts/saved
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 10
+  sort: createdAt,desc
+}

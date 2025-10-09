@@ -14,12 +14,12 @@ public class UserInterestMapper {
     private final CategoryService categoryService;
 
     public UserInterestResponseDTO toResponseDTO(UserInterest userInterest) {
-        return UserInterestResponseDTO.builder()
-                .interestId(userInterest.getInterestId())
-                .userId(userInterest.getUser().getUserId())
-                .category(categoryService.getCategoryWithChildren(userInterest.getCategory().getCategoryId()))
-                .createdAt(userInterest.getCreatedAt())
-                .build();
+        return new UserInterestResponseDTO(
+                userInterest.getInterestId(),
+                userInterest.getUser().getUserId(),
+                categoryService.getCategoryWithChildren(userInterest.getCategory().getCategoryId()),
+                userInterest.getCreatedAt()
+        );
     }
 
     public Page<UserInterestResponseDTO> toResponseDTOPage(Page<UserInterest> userInterests) {

@@ -25,12 +25,12 @@ public class UserMapper {
     }
 
     public static UserLoginResponseDTO toUserLoginResponseDTO(User user) {
-        return UserLoginResponseDTO.builder()
-                .userId(user.getUserId())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .role(user.getRole().name())
-                .build();
+        return new UserLoginResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getRole().name()
+        );
     }
 
     public User toEntity(UserRegistrationRequestDTO dto, String encodedPassword, String profilePictureUrl) {
@@ -47,13 +47,13 @@ public class UserMapper {
     }
 
     public static UserDetailsSummaryResponseDTO toUserDetailsSummaryResponseDTO(User user) {
-        return UserDetailsSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .accountStatus(user.getAccountStatus().name())
-                .profilePictureUrl(user.getProfilePictureUrl()) // <-- ADD THIS LINE
-                .build();
+        return new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        );
     }
 
     public static UserRegistrationResponseDTO toRegistrationResponseDTO(User user) {

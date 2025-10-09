@@ -4,7 +4,7 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.users.dto.request.*;
 import com.kaleidoscope.backend.users.dto.response.UserNotificationPreferencesResponseDTO;
 import com.kaleidoscope.backend.users.exception.notification.UserNotificationPreferencesNotFoundException;
-import com.kaleidoscope.backend.users.exception.user.UserNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserNotificationPreferencesMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserNotificationPreferences;
@@ -82,16 +82,16 @@ public class UserNotificationPreferencesServiceImpl implements UserNotificationP
         Long currentUserId = jwtUtils.getUserIdFromContext();
         UserNotificationPreferences preferences = getOrCreateNotificationPreferences(currentUserId);
 
-        if (requestDTO.getLikesEmail() != null) preferences.setLikesEmail(requestDTO.getLikesEmail());
-        if (requestDTO.getLikesPush() != null) preferences.setLikesPush(requestDTO.getLikesPush());
-        if (requestDTO.getCommentsEmail() != null) preferences.setCommentsEmail(requestDTO.getCommentsEmail());
-        if (requestDTO.getCommentsPush() != null) preferences.setCommentsPush(requestDTO.getCommentsPush());
-        if (requestDTO.getFollowsEmail() != null) preferences.setFollowsEmail(requestDTO.getFollowsEmail());
-        if (requestDTO.getFollowsPush() != null) preferences.setFollowsPush(requestDTO.getFollowsPush());
-        if (requestDTO.getMentionsEmail() != null) preferences.setMentionsEmail(requestDTO.getMentionsEmail());
-        if (requestDTO.getMentionsPush() != null) preferences.setMentionsPush(requestDTO.getMentionsPush());
-        if (requestDTO.getSystemEmail() != null) preferences.setSystemEmail(requestDTO.getSystemEmail());
-        if (requestDTO.getSystemPush() != null) preferences.setSystemPush(requestDTO.getSystemPush());
+        if (requestDTO.likesEmail() != null) preferences.setLikesEmail(requestDTO.likesEmail());
+        if (requestDTO.likesPush() != null) preferences.setLikesPush(requestDTO.likesPush());
+        if (requestDTO.commentsEmail() != null) preferences.setCommentsEmail(requestDTO.commentsEmail());
+        if (requestDTO.commentsPush() != null) preferences.setCommentsPush(requestDTO.commentsPush());
+        if (requestDTO.followsEmail() != null) preferences.setFollowsEmail(requestDTO.followsEmail());
+        if (requestDTO.followsPush() != null) preferences.setFollowsPush(requestDTO.followsPush());
+        if (requestDTO.mentionsEmail() != null) preferences.setMentionsEmail(requestDTO.mentionsEmail());
+        if (requestDTO.mentionsPush() != null) preferences.setMentionsPush(requestDTO.mentionsPush());
+        if (requestDTO.systemEmail() != null) preferences.setSystemEmail(requestDTO.systemEmail());
+        if (requestDTO.systemPush() != null) preferences.setSystemPush(requestDTO.systemPush());
 
         UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(preferences);
         log.info("Notification preferences partially updated for user ID: {}", currentUserId);

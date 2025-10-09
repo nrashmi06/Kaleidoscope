@@ -1,7 +1,7 @@
 package com.kaleidoscope.backend.users.controller;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.controller.api.UserPreferencesApi;
 import com.kaleidoscope.backend.users.dto.request.*;
 import com.kaleidoscope.backend.users.dto.response.UserPreferencesResponseDTO;
@@ -28,7 +28,7 @@ public class UserPreferencesController implements UserPreferencesApi {
     @Override
     @GetMapping(value = {UserPreferencesRoutes.GET_PREFERENCES, UserPreferencesRoutes.GET_PREFERENCES + "/{userId}"})
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserPreferencesResponseDTO>> getUserPreferences(
+    public ResponseEntity<AppResponse<UserPreferencesResponseDTO>> getUserPreferences(
             @PathVariable(required = false) Long userId) {
 
         UserPreferencesResponseDTO response;
@@ -45,7 +45,7 @@ public class UserPreferencesController implements UserPreferencesApi {
         }
 
         return ResponseEntity.ok(
-                ApiResponse.<UserPreferencesResponseDTO>builder()
+                AppResponse.<UserPreferencesResponseDTO>builder()
                         .success(true)
                         .message("User preferences retrieved successfully")
                         .data(response)
@@ -59,11 +59,11 @@ public class UserPreferencesController implements UserPreferencesApi {
     @Override
     @PutMapping(UserPreferencesRoutes.UPDATE_PREFERENCES)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserPreferencesResponseDTO>> updateUserPreferences(
+    public ResponseEntity<AppResponse<UserPreferencesResponseDTO>> updateUserPreferences(
             @Valid @RequestBody UpdateUserPreferencesRequestDTO requestDTO) {
         UserPreferencesResponseDTO response = userPreferencesService.updateUserPreferences(requestDTO);
         return ResponseEntity.ok(
-                ApiResponse.<UserPreferencesResponseDTO>builder()
+                AppResponse.<UserPreferencesResponseDTO>builder()
                         .success(true)
                         .message("User preferences updated successfully")
                         .data(response)
@@ -77,11 +77,11 @@ public class UserPreferencesController implements UserPreferencesApi {
     @Override
     @PatchMapping(UserPreferencesRoutes.UPDATE_THEME)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserPreferencesResponseDTO>> updateTheme(
+    public ResponseEntity<AppResponse<UserPreferencesResponseDTO>> updateTheme(
             @Valid @RequestBody UpdateThemeRequestDTO requestDTO) {
         UserPreferencesResponseDTO response = userPreferencesService.updateTheme(requestDTO);
         return ResponseEntity.ok(
-                ApiResponse.<UserPreferencesResponseDTO>builder()
+                AppResponse.<UserPreferencesResponseDTO>builder()
                         .success(true)
                         .message("Theme updated successfully")
                         .data(response)
@@ -95,11 +95,11 @@ public class UserPreferencesController implements UserPreferencesApi {
     @Override
     @PatchMapping(UserPreferencesRoutes.UPDATE_LANGUAGE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserPreferencesResponseDTO>> updateLanguage(
+    public ResponseEntity<AppResponse<UserPreferencesResponseDTO>> updateLanguage(
             @Valid @RequestBody UpdateLanguageRequestDTO requestDTO) {
         UserPreferencesResponseDTO response = userPreferencesService.updateLanguage(requestDTO);
         return ResponseEntity.ok(
-                ApiResponse.<UserPreferencesResponseDTO>builder()
+                AppResponse.<UserPreferencesResponseDTO>builder()
                         .success(true)
                         .message("Language updated successfully")
                         .data(response)
@@ -113,11 +113,11 @@ public class UserPreferencesController implements UserPreferencesApi {
     @Override
     @PatchMapping(UserPreferencesRoutes.UPDATE_PRIVACY)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserPreferencesResponseDTO>> updatePrivacySettings(
+    public ResponseEntity<AppResponse<UserPreferencesResponseDTO>> updatePrivacySettings(
             @Valid @RequestBody UpdatePrivacySettingsRequestDTO requestDTO) {
         UserPreferencesResponseDTO response = userPreferencesService.updatePrivacySettings(requestDTO);
         return ResponseEntity.ok(
-                ApiResponse.<UserPreferencesResponseDTO>builder()
+                AppResponse.<UserPreferencesResponseDTO>builder()
                         .success(true)
                         .message("Privacy settings updated successfully")
                         .data(response)
@@ -131,11 +131,11 @@ public class UserPreferencesController implements UserPreferencesApi {
     @Override
     @PatchMapping(UserPreferencesRoutes.UPDATE_VISIBILITY)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<UserPreferencesResponseDTO>> updateVisibilitySettings(
+    public ResponseEntity<AppResponse<UserPreferencesResponseDTO>> updateVisibilitySettings(
             @Valid @RequestBody UpdateVisibilitySettingsRequestDTO requestDTO) {
         UserPreferencesResponseDTO response = userPreferencesService.updateVisibilitySettings(requestDTO);
         return ResponseEntity.ok(
-                ApiResponse.<UserPreferencesResponseDTO>builder()
+                AppResponse.<UserPreferencesResponseDTO>builder()
                         .success(true)
                         .message("Visibility settings updated successfully")
                         .data(response)

@@ -8,12 +8,25 @@ import jakarta.persistence.criteria.JoinType;
 
 import java.util.Set;
 
+/**
+ * @deprecated This class has been deprecated as part of the Elite Migration from JPA to Elasticsearch.
+ * All filtering and security logic has been migrated to PostSearchRepositoryImpl for better performance
+ * and search capabilities. Use PostSearchRepository.findVisibleAndFilteredPosts() instead.
+ *
+ * Migration completed: The filterPosts endpoint now uses Elasticsearch with advanced query DSL
+ * that replicates all the security and filtering logic previously implemented here.
+ */
+@Deprecated(since = "2025-09-30", forRemoval = true)
 public class PostSpecification {
 
     private PostSpecification() {
         // Private constructor to prevent instantiation
     }
 
+    /**
+     * @deprecated Use Elasticsearch author filtering in PostSearchRepositoryImpl instead
+     */
+    @Deprecated(since = "2025-09-30", forRemoval = true)
     public static Specification<Post> hasAuthor(Long userId) {
         if (userId == null) {
             return null;
@@ -21,6 +34,10 @@ public class PostSpecification {
         return (root, query, cb) -> cb.equal(root.get("user").get("userId"), userId);
     }
 
+    /**
+     * @deprecated Use Elasticsearch category filtering in PostSearchRepositoryImpl instead
+     */
+    @Deprecated(since = "2025-09-30", forRemoval = true)
     public static Specification<Post> hasCategory(Long categoryId) {
         if (categoryId == null) {
             return null;
@@ -32,6 +49,10 @@ public class PostSpecification {
         };
     }
 
+    /**
+     * @deprecated Use Elasticsearch status filtering in PostSearchRepositoryImpl instead
+     */
+    @Deprecated(since = "2025-09-30", forRemoval = true)
     public static Specification<Post> hasStatus(PostStatus status) {
         if (status == null) {
             return null;
@@ -39,6 +60,10 @@ public class PostSpecification {
         return (root, query, cb) -> cb.equal(root.get("status"), status);
     }
 
+    /**
+     * @deprecated Use Elasticsearch visibility filtering in PostSearchRepositoryImpl instead
+     */
+    @Deprecated(since = "2025-09-30", forRemoval = true)
     public static Specification<Post> hasVisibility(PostVisibility visibility) {
         if (visibility == null) {
             return null;
@@ -46,6 +71,10 @@ public class PostSpecification {
         return (root, query, cb) -> cb.equal(root.get("visibility"), visibility);
     }
 
+    /**
+     * @deprecated Use Elasticsearch full-text search in PostSearchRepositoryImpl instead
+     */
+    @Deprecated(since = "2025-09-30", forRemoval = true)
     public static Specification<Post> containsQuery(String searchTerm) {
         if (searchTerm == null || searchTerm.isBlank()) {
             return null;
@@ -58,18 +87,25 @@ public class PostSpecification {
         );
     }
 
+    /**
+     * @deprecated Use Elasticsearch visibility rules in PostSearchRepositoryImpl instead
+     */
+    @Deprecated(since = "2025-09-30", forRemoval = true)
     public static Specification<Post> isVisibleToUser(Long currentUserId, Set<Long> followingIds) {
         // This specification handles the complex visibility rules for non-admin users.
         return (root, query, cb) -> cb.or(
-                // Rule 1: Post is PUBLISHED and PUBLIC
+                // Rule 1: The user is the author of the post (author can see all their posts regardless of status)
+                cb.equal(root.get("user").get("userId"), currentUserId),
+
+                // Rule 2: Post is PUBLISHED and PUBLIC (everyone can see)
                 cb.and(
                         cb.equal(root.get("status"), PostStatus.PUBLISHED),
                         cb.equal(root.get("visibility"), PostVisibility.PUBLIC)
                 ),
-                // Rule 2: The user is the author of the post
-                cb.equal(root.get("user").get("userId"), currentUserId),
-                // Rule 3: Post is for FOLLOWERS and the user is in the author's following list
+
+                // Rule 3: Post is PUBLISHED, for FOLLOWERS, and current user follows the author
                 cb.and(
+                        cb.equal(root.get("status"), PostStatus.PUBLISHED),
                         cb.equal(root.get("visibility"), PostVisibility.FOLLOWERS),
                         root.get("user").get("userId").in(followingIds)
                 )

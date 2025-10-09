@@ -27,16 +27,16 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public CategoryResponseDTO createCategory(CategoryRequestDTO categoryRequestDTO) {
         // Check if a category with the same name already exists
-        if (categoryRepository.findByName(categoryRequestDTO.getName()).isPresent()) {
-            throw new CategoryAlreadyExistsException(categoryRequestDTO.getName());
+        if (categoryRepository.findByName(categoryRequestDTO.name()).isPresent()) {
+            throw new CategoryAlreadyExistsException(categoryRequestDTO.name());
         }
 
         // Create new category
         Category category = CategoryMapper.toEntity(categoryRequestDTO);
 
         // Set parent if specified
-        if (categoryRequestDTO.getParentId() != null) {
-            Category parent = getCategoryById(categoryRequestDTO.getParentId());
+        if (categoryRequestDTO.parentId() != null) {
+            Category parent = getCategoryById(categoryRequestDTO.parentId());
             category.setParent(parent);
         }
 
@@ -53,22 +53,22 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = getCategoryById(categoryId);
 
         // Check if name change would cause a duplicate
-        if (categoryRequestDTO.getName() != null &&
-            !categoryRequestDTO.getName().equals(category.getName()) &&
-            categoryRepository.findByName(categoryRequestDTO.getName()).isPresent()) {
-            throw new CategoryAlreadyExistsException(categoryRequestDTO.getName());
+        if (categoryRequestDTO.name() != null &&
+            !categoryRequestDTO.name().equals(category.getName()) &&
+            categoryRepository.findByName(categoryRequestDTO.name()).isPresent()) {
+            throw new CategoryAlreadyExistsException(categoryRequestDTO.name());
         }
 
         // Update fields from DTO
         CategoryMapper.updateEntityFromDTO(category, categoryRequestDTO);
 
         // Update parent if specified
-        if (categoryRequestDTO.getParentId() != null) {
+        if (categoryRequestDTO.parentId() != null) {
             // Prevent circular reference
-            if (categoryId.equals(categoryRequestDTO.getParentId())) {
+            if (categoryId.equals(categoryRequestDTO.parentId())) {
                 throw new IllegalArgumentException("A category cannot be its own parent");
             }
-            Category parent = getCategoryById(categoryRequestDTO.getParentId());
+            Category parent = getCategoryById(categoryRequestDTO.parentId());
             category.setParent(parent);
         }
 

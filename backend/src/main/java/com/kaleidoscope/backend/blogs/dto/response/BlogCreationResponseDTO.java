@@ -2,7 +2,7 @@ package com.kaleidoscope.backend.blogs.dto.response;
 
 import com.kaleidoscope.backend.blogs.enums.BlogStatus;
 import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +26,7 @@ public class BlogCreationResponseDTO {
     private BlogStatus blogStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private UserSummaryResponseDTO author;
+    private UserDetailsSummaryResponseDTO author;
     private List<CategorySummaryResponseDTO> categories;
     private List<BlogMediaResponseDTO> media;
     private LocationResponseDTO location;

@@ -48,6 +48,10 @@ public class Post {
     @Column(length = 500)
     private String summary;
 
+    @Column(name = "view_count", nullable = false)
+    @Builder.Default
+    private Long viewCount = 0L;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;
@@ -60,7 +64,7 @@ public class Post {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private PostStatus status = PostStatus.ARCHIVED;
+    private PostStatus status = PostStatus.PUBLISHED;
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;

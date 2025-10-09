@@ -21,6 +21,11 @@ spring:
       pool-name: KaleidoscopeHikariCP
       auto-commit: true
 
+  # Redis Configuration for Upstash
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
   # Elasticsearch Configuration
   elasticsearch:
     uris: http://localhost:9200

@@ -26,10 +26,10 @@ public class UserBlockStatusMapper {
             }
         }
 
-        return BlockStatusResponseDTO.builder()
-                .isBlocked(currentUserBlocksTarget != null)
-                .isBlockedBy(targetUserBlocksCurrent != null)
-                .blockId(currentUserBlocksTarget != null ? currentUserBlocksTarget.getBlockId() : null)
-                .build();
+        return new BlockStatusResponseDTO(
+                currentUserBlocksTarget != null,
+                targetUserBlocksCurrent != null,
+                currentUserBlocksTarget != null ? currentUserBlocksTarget.getBlockId() : null
+        );
     }
 }

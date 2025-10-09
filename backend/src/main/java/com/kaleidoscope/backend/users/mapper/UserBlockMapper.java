@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
 public class UserBlockMapper {
 
     public UserBlockResponseDTO toUserBlockResponseDTO(UserBlock userBlock) {
-        return UserBlockResponseDTO.builder()
-                .blockId(userBlock.getBlockId())
-                .blocker(UserMapper.toUserDetailsSummaryResponseDTO(userBlock.getBlocker()))
-                .blocked(UserMapper.toUserDetailsSummaryResponseDTO(userBlock.getBlocked()))
-                .createdAt(userBlock.getCreatedAt())
-                .build();
+        return new UserBlockResponseDTO(
+                userBlock.getBlockId(),
+                UserMapper.toUserDetailsSummaryResponseDTO(userBlock.getBlocker()),
+                UserMapper.toUserDetailsSummaryResponseDTO(userBlock.getBlocked()),
+                userBlock.getCreatedAt()
+        );
     }
 }

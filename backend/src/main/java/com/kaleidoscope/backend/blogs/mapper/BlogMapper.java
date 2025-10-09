@@ -12,7 +12,7 @@ import com.kaleidoscope.backend.blogs.model.BlogMedia;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
-import com.kaleidoscope.backend.posts.dto.response.UserSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.shared.dto.response.LocationResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
@@ -46,9 +46,9 @@ public class BlogMapper {
             return null;
         }
         return Blog.builder()
-                .title(dto.getTitle())
-                .body(dto.getBody())
-                .summary(dto.getSummary())
+                .title(dto.title())
+                .body(dto.body())
+                .summary(dto.summary())
                 .build();
     }
 
@@ -56,9 +56,9 @@ public class BlogMapper {
         if (blog == null || dto == null) {
             return;
         }
-        blog.setTitle(dto.getTitle());
-        blog.setBody(dto.getBody());
-        blog.setSummary(dto.getSummary());
+        blog.setTitle(dto.title());
+        blog.setBody(dto.body());
+        blog.setSummary(dto.summary());
     }
 
     public BlogCreationResponseDTO toDTO(Blog blog) {
@@ -66,7 +66,7 @@ public class BlogMapper {
             return null;
         }
 
-        UserSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
+        UserDetailsSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
         LocationResponseDTO locationDto = toLocationResponseDTO(blog.getLocation());
 
         return BlogCreationResponseDTO.builder()
@@ -92,8 +92,8 @@ public class BlogMapper {
             return null;
         }
 
-        UserSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
-        UserSummaryResponseDTO reviewerDto = toUserSummaryDTO(blog.getReviewer());
+        UserDetailsSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
+        UserDetailsSummaryResponseDTO reviewerDto = toUserSummaryDTO(blog.getReviewer());
         LocationResponseDTO locationDto = toLocationResponseDTO(blog.getLocation());
 
         long reactionCount = reactionRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
@@ -127,7 +127,7 @@ public class BlogMapper {
             return null;
         }
 
-        UserSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
+        UserDetailsSummaryResponseDTO authorDto = toUserSummaryDTO(blog.getUser());
         String thumbnailUrl = getThumbnailUrl(blog);
 
         long reactionCount = reactionRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
@@ -153,26 +153,29 @@ public class BlogMapper {
         }
         AtomicInteger autoPosition = new AtomicInteger(0);
         return mediaDtos.stream().map(mediaDto -> BlogMedia.builder()
-                .mediaUrl(mediaDto.getUrl())
-                .mediaType(mediaDto.getMediaType())
-                .position(mediaDto.getPosition() != null ? mediaDto.getPosition() : autoPosition.getAndIncrement())
-                .width(mediaDto.getWidth())
-                .height(mediaDto.getHeight())
-                .fileSizeKb(mediaDto.getFileSizeKb())
-                .durationSeconds(mediaDto.getDurationSeconds())
-                .extraMetadata(mediaDto.getExtraMetadata())
+                .mediaUrl(mediaDto.url())
+                .mediaType(mediaDto.mediaType())
+                .position(mediaDto.position() != null ? mediaDto.position() : autoPosition.getAndIncrement())
+                .width(mediaDto.width())
+                .height(mediaDto.height())
+                .fileSizeKb(mediaDto.fileSizeKb())
+                .durationSeconds(mediaDto.durationSeconds())
+                .extraMetadata(mediaDto.extraMetadata())
                 .build()
         ).collect(Collectors.toList());
     }
 
-    private UserSummaryResponseDTO toUserSummaryDTO(User user) {
+    private UserDetailsSummaryResponseDTO toUserSummaryDTO(User user) {
         if (user == null) {
             return null;
         }
-        return UserSummaryResponseDTO.builder()
-                .userId(user.getUserId())
-                .username(user.getUsername())
-                .build();
+        return new UserDetailsSummaryResponseDTO(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getAccountStatus().name(),
+                user.getProfilePictureUrl()
+        );
     }
 
     private LocationResponseDTO toLocationResponseDTO(Location location) {
@@ -192,10 +195,10 @@ public class BlogMapper {
         return blog.getCategories().stream()
                 .map(bc -> {
                     Category cat = bc.getCategory();
-                    return CategorySummaryResponseDTO.builder()
-                            .categoryId(cat.getCategoryId())
-                            .name(cat.getName())
-                            .build();
+                    return new CategorySummaryResponseDTO(
+                            cat.getCategoryId(),
+                            cat.getName()
+                    );
                 })
                 .collect(Collectors.toList());
     }
@@ -220,10 +223,10 @@ public class BlogMapper {
 
     private List<BlogTagResponseDTO> mapBlogTags(Blog blog) {
         return blog.getTaggedBlogs().stream()
-                .map(tag -> BlogTagResponseDTO.builder()
-                        .blogId(tag.getTaggedBlog().getBlogId())
-                        .title(tag.getTaggedBlog().getTitle())
-                        .build())
+                .map(tag -> new BlogTagResponseDTO(
+                        tag.getTaggedBlog().getBlogId(),
+                        tag.getTaggedBlog().getTitle()
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -232,5 +235,18 @@ public class BlogMapper {
                 .min(Comparator.comparing(BlogMedia::getPosition))
                 .map(BlogMedia::getMediaUrl)
                 .orElse(null);
+    }
+
+    private static BlogMedia createBlogMediaFromDTO(MediaUploadRequestDTO mediaDto) {
+        return BlogMedia.builder()
+                .mediaUrl(mediaDto.url())
+                .mediaType(mediaDto.mediaType())
+                .position(mediaDto.position() != null ? mediaDto.position() : 0)
+                .width(mediaDto.width())
+                .height(mediaDto.height())
+                .fileSizeKb(mediaDto.fileSizeKb())
+                .durationSeconds(mediaDto.durationSeconds())
+                .extraMetadata(mediaDto.extraMetadata())
+                .build();
     }
 }

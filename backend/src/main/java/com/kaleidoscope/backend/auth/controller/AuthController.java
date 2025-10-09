@@ -5,7 +5,7 @@ import com.kaleidoscope.backend.auth.dto.request.*;
 import com.kaleidoscope.backend.auth.dto.response.*;
 import com.kaleidoscope.backend.auth.exception.token.MissingRequestCookieException;
 import com.kaleidoscope.backend.auth.service.AuthService;
-import com.kaleidoscope.backend.shared.response.ApiResponse;
+import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.users.service.UserService;
@@ -30,15 +30,15 @@ import java.util.Map;
 public class AuthController implements AuthApi {
 
     private final String baseUrl;
-    private final UserService userService;
     private final RefreshTokenServiceImpl refreshTokenService;
     private final JwtUtils jwtUtils;
     private final AuthService authService;
 
     public AuthController(UserService userService,
                           RefreshTokenServiceImpl refreshTokenService,
-                          @Value("${spring.app.base-url}") String baseUrl, JwtUtils jwtUtils, AuthService authService) {
-        this.userService = userService;
+                          @Value("${spring.app.base-url}") String baseUrl,
+                          JwtUtils jwtUtils,
+                          AuthService authService) {
         this.refreshTokenService = refreshTokenService;
         this.baseUrl = baseUrl;
         this.jwtUtils = jwtUtils;
@@ -47,14 +47,14 @@ public class AuthController implements AuthApi {
 
     @Override
     @PostMapping(value = AuthRoutes.REGISTER, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<UserRegistrationResponseDTO>> registerUser(
+    public ResponseEntity<AppResponse<UserRegistrationResponseDTO>> registerUser(
             @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
             @RequestPart("userData") UserRegistrationRequestDTO userRegistrationDTO) {
 
         userRegistrationDTO.setProfilePicture(profilePicture);
         UserRegistrationResponseDTO userDTO = authService.registerUser(userRegistrationDTO);
 
-        ApiResponse<UserRegistrationResponseDTO> response = ApiResponse.success(
+        AppResponse<UserRegistrationResponseDTO> response = AppResponse.success(
                 userDTO,
                 "User registered successfully",
                 AuthRoutes.REGISTER
@@ -65,11 +65,11 @@ public class AuthController implements AuthApi {
 
     @Override
     @PostMapping(AuthRoutes.LOGIN)
-    public ResponseEntity<ApiResponse<UserLoginResponseDTO>> authenticateUser(
+    public ResponseEntity<AppResponse<UserLoginResponseDTO>> authenticateUser(
             @RequestBody UserLoginRequestDTO loginRequest,
             HttpServletResponse response) {
 
-        log.debug("Processing login request for email: {}", loginRequest.getEmail());
+        log.debug("Processing login request for email: {}", loginRequest.email());
         Map<String, Object> loginResponse = authService.loginUser(loginRequest);
 
         String accessToken = (String) loginResponse.get("accessToken");
@@ -79,22 +79,22 @@ public class AuthController implements AuthApi {
         refreshTokenService.setSecureRefreshTokenCookie(response, refreshToken);
         String bearerToken = "Bearer " + accessToken;
 
-        ApiResponse<UserLoginResponseDTO> apiResponse = ApiResponse.success(
+        AppResponse<UserLoginResponseDTO> appResponse = AppResponse.success(
                 userDTO,
                 "Login successful",
                 AuthRoutes.LOGIN
         );
 
-        log.info("User successfully authenticated: {}", userDTO.getEmail());
+        log.info("User successfully authenticated: {}", userDTO.email());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                .body(apiResponse);
+                .body(appResponse);
     }
 
     @Override
     @PostMapping(AuthRoutes.LOGOUT)
-    public ResponseEntity<ApiResponse<String>> logoutUser(
+    public ResponseEntity<AppResponse<String>> logoutUser(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             HttpServletResponse response) {
@@ -110,22 +110,22 @@ public class AuthController implements AuthApi {
         SecurityContextHolder.clearContext();
         authService.clearCookies(response, baseUrl);
 
-        ApiResponse<String> apiResponse = ApiResponse.success(
+        AppResponse<String> appResponse = AppResponse.success(
                 "User logged out successfully",
                 "Logout successful",
                 AuthRoutes.LOGOUT
         );
 
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(appResponse);
     }
 
     @Override
     @PostMapping(AuthRoutes.FORGOT_PASSWORD)
-    public ResponseEntity<ApiResponse<String>> forgotPassword(
+    public ResponseEntity<AppResponse<String>> forgotPassword(
             @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        authService.forgotPassword(verifyEmailRequestDTO.getEmail());
+        authService.forgotPassword(verifyEmailRequestDTO.email());
 
-        ApiResponse<String> response = ApiResponse.success(
+        AppResponse<String> response = AppResponse.success(
                 "Password reset email sent successfully",
                 "Email sent",
                 AuthRoutes.FORGOT_PASSWORD
@@ -136,11 +136,11 @@ public class AuthController implements AuthApi {
 
     @Override
     @PostMapping(AuthRoutes.RESET_PASSWORD)
-    public ResponseEntity<ApiResponse<String>> resetPassword(
+    public ResponseEntity<AppResponse<String>> resetPassword(
             @RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
-        authService.resetPassword(resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
+        authService.resetPassword(resetPasswordRequestDTO.token(), resetPasswordRequestDTO.newPassword());
 
-        ApiResponse<String> response = ApiResponse.success(
+        AppResponse<String> response = AppResponse.success(
                 "Password has been reset successfully",
                 "Password reset",
                 AuthRoutes.RESET_PASSWORD
@@ -151,12 +151,12 @@ public class AuthController implements AuthApi {
 
     @Override
     @PutMapping(AuthRoutes.CHANGE_PASSWORD)
-    public ResponseEntity<ApiResponse<String>> changePassword(
+    public ResponseEntity<AppResponse<String>> changePassword(
             @RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
-        Long userId = Long.valueOf(jwtUtils.getUserIdFromContext());
-        authService.changePasswordById(userId, changePasswordRequestDTO.getOldPassword(), changePasswordRequestDTO.getNewPassword());
+        Long userId = jwtUtils.getUserIdFromContext();
+        authService.changePasswordById(userId, changePasswordRequestDTO.oldPassword(), changePasswordRequestDTO.newPassword());
 
-        ApiResponse<String> response = ApiResponse.success(
+        AppResponse<String> response = AppResponse.success(
                 "Password changed successfully",
                 "Password updated",
                 AuthRoutes.CHANGE_PASSWORD
@@ -167,7 +167,7 @@ public class AuthController implements AuthApi {
 
     @Override
     @PostMapping(AuthRoutes.RENEW_TOKEN)
-    public ResponseEntity<ApiResponse<UserLoginResponseDTO>> renewToken(
+    public ResponseEntity<AppResponse<UserLoginResponseDTO>> renewToken(
             @CookieValue("refreshToken") String refreshToken,
             HttpServletResponse response) {
 
@@ -184,7 +184,7 @@ public class AuthController implements AuthApi {
         refreshTokenService.setSecureRefreshTokenCookie(response, newRefreshToken);
         String bearerToken = "Bearer " + newAccessToken;
 
-        ApiResponse<UserLoginResponseDTO> apiResponse = ApiResponse.success(
+        AppResponse<UserLoginResponseDTO> appResponse = AppResponse.success(
                 userDTO,
                 "Token renewed successfully",
                 AuthRoutes.RENEW_TOKEN
@@ -192,17 +192,17 @@ public class AuthController implements AuthApi {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                .body(apiResponse);
+                .body(appResponse);
     }
 
     @Override
     @PostMapping(AuthRoutes.VERIFY_EMAIL)
     @PreAuthorize("permitAll()")
-    public ResponseEntity<ApiResponse<String>> sendVerificationEmail(
+    public ResponseEntity<AppResponse<String>> sendVerificationEmail(
             @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
-        authService.sendVerificationEmail(verifyEmailRequestDTO.getEmail());
+        authService.sendVerificationEmail(verifyEmailRequestDTO.email());
 
-        ApiResponse<String> response = ApiResponse.success(
+        AppResponse<String> response = AppResponse.success(
                 "Verification email sent successfully",
                 "Email sent",
                 AuthRoutes.VERIFY_EMAIL
@@ -213,16 +213,16 @@ public class AuthController implements AuthApi {
 
     @Override
     @GetMapping(AuthRoutes.CHECK_USERNAME_AVAILABILITY)
-    public ResponseEntity<ApiResponse<UsernameAvailabilityResponseDTO>> checkUsernameAvailability(
+    public ResponseEntity<AppResponse<UsernameAvailabilityResponseDTO>> checkUsernameAvailability(
             @RequestParam String username) {
 
         UsernameAvailabilityResponseDTO availabilityResponse = authService.checkUsernameAvailability(username);
 
-        String message = availabilityResponse.isAvailable()
+        String message = availabilityResponse.available()
                 ? "Username is available"
                 : "Username is already taken";
 
-        ApiResponse<UsernameAvailabilityResponseDTO> response = ApiResponse.success(
+        AppResponse<UsernameAvailabilityResponseDTO> response = AppResponse.success(
                 availabilityResponse,
                 message,
                 AuthRoutes.CHECK_USERNAME_AVAILABILITY
@@ -231,4 +231,3 @@ public class AuthController implements AuthApi {
         return ResponseEntity.ok(response);
     }
 }
-
