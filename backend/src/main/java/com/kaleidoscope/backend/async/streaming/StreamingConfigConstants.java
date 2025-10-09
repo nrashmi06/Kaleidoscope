@@ -5,7 +5,6 @@ package com.kaleidoscope.backend.async.streaming;
  * Contains consumer groups, consumer names, and other consumer-related settings
  */
 public final class StreamingConfigConstants {
-    
     // Consumer group names
     public static final String BACKEND_CONSUMER_GROUP = "backend-group";
     

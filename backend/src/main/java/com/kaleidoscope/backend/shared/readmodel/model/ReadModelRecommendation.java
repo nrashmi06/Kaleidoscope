@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.readmodel.model;
+package com.kaleidoscope.backend.shared.readmodel.model;
 
 import jakarta.persistence.*;
 import lombok.*;
