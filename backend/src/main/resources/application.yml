@@ -28,7 +28,7 @@ spring:
 
   # Elasticsearch Configuration
   elasticsearch:
-    uris: http://localhost:9200
+    uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}
 
   # JPA Configuration
   jpa:
