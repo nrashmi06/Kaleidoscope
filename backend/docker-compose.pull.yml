@@ -1,61 +1,64 @@
 services:
-  db:
-    image: postgis/postgis:17-3.4
-    container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
+  # --- POSTGRES DATABASE (db) - COMMENTED OUT ---
+  # db:
+  #   image: postgis/postgis:17-3.4
+  #   container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "${POSTGRES_PORT:-5432}:5432"
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: always
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M
 
-  redis:
-    image: redis:7-alpine
-    container_name: kaleidoscope-redis
-    ports:
-      - "6379:6379"
-    networks:
-      - app-network
-    volumes:
-      - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
+  # --- REDIS CACHE (redis) - COMMENTED OUT ---
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: kaleidoscope-redis
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - app-network
+  #   volumes:
+  #     - redis_data:/data
+  #     - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+  #   command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+  #   restart: always
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 256M
 
   app:
     image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      # --- Dependencies on local services (COMMENTED OUT) ---
+      # db:
+      #   condition: service_healthy
+      # redis:
+      #   condition: service_started
       elasticsearch:
         condition: service_started
       logstash:
         condition: service_started
     env_file:
       - .env
+    # The SPRING_DATA_REDIS_HOST is no longer needed here if you use spring.data.redis.url in your application.yml
     environment:
-      - SPRING_DATA_REDIS_HOST=redis
       - LOGSTASH_HOST=logstash
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTIC_SEARCH_URL=http://elasticsearch:9200
@@ -129,9 +132,10 @@ services:
           memory: 1G
 
 volumes:
-  postgres_data:
+  # --- Volumes for local services (COMMENTED OUT) ---
+  # postgres_data:
   elasticsearch_data:
-  redis_data:
+  # redis_data:
 
 networks:
   app-network:

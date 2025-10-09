@@ -77,17 +77,8 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
             MDC.put("responseTimeMs", String.valueOf(duration.toMillis()));
 
         } finally {
-            // Critical: Clean up all MDC entries to prevent memory leaks and incorrect context
-            MDC.remove(CORRELATION_ID_MDC_KEY);
-            MDC.remove("requestMethod");
-            MDC.remove("requestUri");
-            MDC.remove("requestUrl");
-            MDC.remove("clientIp");
-            MDC.remove("userAgent");
-            MDC.remove("referer");
-            MDC.remove("sessionId");
-            MDC.remove("responseStatus");
-            MDC.remove("responseTimeMs");
+            // **THE FIX:** Use MDC.clear() for robust cleanup
+            MDC.clear();
         }
     }
 

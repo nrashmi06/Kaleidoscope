@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 @EnableAsync
@@ -20,7 +21,7 @@ public class PostAsyncConfig {
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("ViewCount-");
-        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;
     }
