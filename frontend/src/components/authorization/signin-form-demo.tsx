@@ -32,7 +32,7 @@ export default function SigninForm() {
   };
 
   return (
-    <div className=" mx-auto w-full max-w-md ">
+    <div className=" mx-auto w-full max-w-md  p-4">
       <h2 className="text-2xl text-center font-bold text-indigo-900 dark:text-indigo-300">
         Welcome to KaleidoScope
       </h2>
