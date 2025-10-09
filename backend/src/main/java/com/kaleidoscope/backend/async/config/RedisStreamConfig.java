@@ -66,34 +66,34 @@ public class RedisStreamConfig {
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(redisConnectionFactory, options);
 
-        // Register consumers with proper consumer groups - using ReadOffset.latest() for new groups
+        // Register consumers with proper consumer groups - using ReadOffset.lastConsumed()
         container.receive(
                 Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.MEDIA_AI_CONSUMER),
-                StreamOffset.create(ConsumerStreamConstants.ML_INSIGHTS_STREAM, ReadOffset.latest()),
+                StreamOffset.create(ConsumerStreamConstants.ML_INSIGHTS_STREAM, ReadOffset.lastConsumed()),
                 mediaAiInsightsConsumer
         );
-        log.info("Registered MediaAiInsightsConsumer for stream: {} with consumer group: {}", 
+        log.info("Registered MediaAiInsightsConsumer for stream: {} with consumer group: {}",
                 ConsumerStreamConstants.ML_INSIGHTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         container.receive(
                 Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.FACE_DETECTION_CONSUMER),
-                StreamOffset.create(ConsumerStreamConstants.FACE_DETECTION_STREAM, ReadOffset.latest()),
+                StreamOffset.create(ConsumerStreamConstants.FACE_DETECTION_STREAM, ReadOffset.lastConsumed()),
                 faceDetectionConsumer
         );
-        log.info("Registered FaceDetectionConsumer for stream: {} with consumer group: {}", 
+        log.info("Registered FaceDetectionConsumer for stream: {} with consumer group: {}",
                 ConsumerStreamConstants.FACE_DETECTION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         container.receive(
                 Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.FACE_RECOGNITION_CONSUMER),
-                StreamOffset.create(ConsumerStreamConstants.FACE_RECOGNITION_STREAM, ReadOffset.latest()),
+                StreamOffset.create(ConsumerStreamConstants.FACE_RECOGNITION_STREAM, ReadOffset.lastConsumed()),
                 faceRecognitionConsumer
         );
-        log.info("Registered FaceRecognitionConsumer for stream: {} with consumer group: {}", 
+        log.info("Registered FaceRecognitionConsumer for stream: {} with consumer group: {}",
                 ConsumerStreamConstants.FACE_RECOGNITION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         container.receive(
                 Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.POST_INTERACTION_SYNC_CONSUMER),
-                StreamOffset.create(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, ReadOffset.latest()),
+                StreamOffset.create(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, ReadOffset.lastConsumed()),
                 postInteractionSyncConsumer
         );
         log.info("Registered PostInteractionSyncConsumer for stream: {} with consumer group: {}",
@@ -101,11 +101,12 @@ public class RedisStreamConfig {
 
         container.receive(
                 Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.USER_PROFILE_POST_SYNC_CONSUMER),
-                StreamOffset.create(ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, ReadOffset.latest()),
+                StreamOffset.create(ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, ReadOffset.lastConsumed()),
                 userProfilePostSyncConsumer
         );
         log.info("Registered UserProfilePostSyncConsumer for stream: {} with consumer group: {}",
                 ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+
 
         log.info("Redis Stream Message Listener Container configured successfully with {} consumers", 5);
         return container;
@@ -115,13 +116,13 @@ public class RedisStreamConfig {
         try {
             // Check if stream exists first
             Boolean exists = redisTemplate.hasKey(streamName);
-            if (!exists) {
+            if (Boolean.FALSE.equals(exists)) {
                 log.info("Stream '{}' does not exist yet. Consumer group will be created when stream is first used.", streamName);
                 return;
             }
 
             // Try to create consumer group (this will fail if it already exists, which is fine)
-            redisTemplate.opsForStream().createGroup(streamName, groupName);
+            redisTemplate.opsForStream().createGroup(streamName, ReadOffset.from("0-0"), groupName);
             log.info("Created consumer group '{}' for stream '{}'", groupName, streamName);
 
         } catch (Exception e) {

@@ -21,6 +21,11 @@ spring:
       pool-name: KaleidoscopeHikariCP
       auto-commit: true
 
+  # Redis Configuration for Upstash
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+
   # Elasticsearch Configuration
   elasticsearch:
     uris: http://localhost:9200
@@ -79,4 +84,3 @@ cloudinary:
   api-key: ${CLOUDINARY_API_KEY:test-api-key}
   api-secret: ${CLOUDINARY_API_SECRET:test-api-secret}
   url: ${CLOUDINARY_URL:cloudinary://test-api-key:test-api-secret@test-cloud}
-

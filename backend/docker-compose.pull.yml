@@ -1,29 +1,74 @@
 services:
-  # 1. REDIS CACHE (redis)
-  redis:
-    image: redis:7-alpine
-    container_name: kaleidoscope-redis
+  # --- POSTGRES DATABASE (db) - COMMENTED OUT ---
+  # db:
+  #   image: postgis/postgis:17-3.4
+  #   container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "${POSTGRES_PORT:-5432}:5432"
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: always
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M
+
+  # --- REDIS CACHE (redis) - COMMENTED OUT ---
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: kaleidoscope-redis
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - app-network
+  #   volumes:
+  #     - redis_data:/data
+  #     - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+  #   command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+  #   restart: always
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 256M
+
+  app:
+    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
+    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
+    depends_on:
+      # --- Dependencies on local services (COMMENTED OUT) ---
+      # db:
+      #   condition: service_healthy
+      # redis:
+      #   condition: service_started
+      elasticsearch:
+        condition: service_started
+      logstash:
+        condition: service_started
+    env_file:
+      - .env
+    # The SPRING_DATA_REDIS_HOST is no longer needed here if you use spring.data.redis.url in your application.yml
+    environment:
+      - LOGSTASH_HOST=logstash
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTIC_SEARCH_URL=http://elasticsearch:9200
+      - SPRING_DATA_ELASTICSEARCH_CLIENT_REACTIVE_ENDPOINTS=elasticsearch:9200
     ports:
-      - "6379:6379"
+      - "${APP_PORT:-8080}:8080"
     networks:
       - app-network
-    volumes:
-      - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 1s
-      timeout: 3s
-      retries: 5
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
+    restart: unless-stopped
 
-  # 2. ELASTICSEARCH (elasticsearch)
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: kaleidoscope-elasticsearch
@@ -37,12 +82,6 @@ services:
       - app-network
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
     restart: always
     deploy:
       resources:
@@ -50,7 +89,6 @@ services:
           cpus: '1.0'
           memory: 2G
 
-  # 3. LOGSTASH (logstash)
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
     container_name: kaleidoscope-logstash
@@ -68,13 +106,7 @@ services:
       - "xpack.monitoring.enabled=false"
       - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
     depends_on:
-      elasticsearch:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9600"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - elasticsearch
     restart: always
     deploy:
       resources:
@@ -82,7 +114,6 @@ services:
           cpus: '0.5'
           memory: 1G
 
-  # 4. KIBANA (kibana)
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
     container_name: kaleidoscope-kibana
@@ -91,10 +122,8 @@ services:
     networks:
       - app-network
     depends_on:
-      elasticsearch:
-        condition: service_healthy
-      logstash:
-        condition: service_started
+      - elasticsearch
+      - logstash
     restart: always
     deploy:
       resources:
@@ -102,37 +131,11 @@ services:
           cpus: '0.5'
           memory: 1G
 
-  # 5. BACKEND APPLICATION (app)
-  app:
-    # Using the image name from your original pull file
-    image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
-    container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
-    depends_on:
-      # KEY CHANGE: App now waits for services to be HEALTHY (DB dependency removed)
-      redis:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
-      logstash:
-        condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      # The SPRING_DATASOURCE_URL should be in your .env file now
-      - SPRING_DATA_REDIS_HOST=redis
-      - LOGSTASH_HOST=logstash
-      - ELASTICSEARCH_HOST=elasticsearch
-      - ELASTIC_SEARCH_URL=http://elasticsearch:9200
-      - SPRING_DATA_ELASTICSEARCH_CLIENT_REACTIVE_ENDPOINTS=elasticsearch:9200
-    ports:
-      - "${APP_PORT:-8080}:8080"
-    networks:
-      - app-network
-    restart: unless-stopped
-
 volumes:
+  # --- Volumes for local services (COMMENTED OUT) ---
+  # postgres_data:
   elasticsearch_data:
-  redis_data:
+  # redis_data:
 
 networks:
   app-network:
