@@ -14,6 +14,7 @@ import com.kaleidoscope.backend.users.model.UserBlock;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
 import com.kaleidoscope.backend.users.service.FollowService;
+import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowRepository followRepository;
     private final FollowMapper followMapper;
     private final UserBlockRepository userBlockRepository;
+    private final UserDocumentSyncService userDocumentSyncService;
 
     /**
      * Get users that the current user has blocked (unidirectional blocking)
@@ -86,6 +88,8 @@ public class FollowServiceImpl implements FollowService {
                 .build();
 
         followRepository.save(follow);
+
+        userDocumentSyncService.syncOnFollowChange(currentUserId, targetUserId, true);
     }
 
     @Override
@@ -96,6 +100,8 @@ public class FollowServiceImpl implements FollowService {
                 .orElseThrow(() -> new FollowRelationshipNotFoundException("Follow relationship not found"));
 
         followRepository.delete(follow);
+
+        userDocumentSyncService.syncOnFollowChange(currentUserId, targetUserId, false);
     }
 
     @Override

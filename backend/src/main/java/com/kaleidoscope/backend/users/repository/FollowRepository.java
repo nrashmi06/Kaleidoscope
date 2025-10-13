@@ -31,4 +31,9 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     // Method to check if a user follows another user (for post access control)
     boolean existsByFollower_UserIdAndFollowing_UserId(Long followerId, Long followingId);
+
+    // Count methods for Elasticsearch sync
+    long countByFollowing_UserId(Long userId);
+
+    long countByFollower_UserId(Long userId);
 }

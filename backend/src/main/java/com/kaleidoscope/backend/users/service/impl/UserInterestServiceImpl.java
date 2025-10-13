@@ -43,6 +43,7 @@ public class UserInterestServiceImpl implements UserInterestService {
     private final UserInterestFilterMapper filterMapper;
     private final UserInterestBulkOperationsMapper bulkOperationsMapper;
     private final CategoryAnalyticsMapper analyticsMapper;
+    private final com.kaleidoscope.backend.users.service.UserDocumentSyncService userDocumentSyncService;
 
     @Override
     @Transactional
@@ -60,6 +61,9 @@ public class UserInterestServiceImpl implements UserInterestService {
 
         userInterestRepository.save(userInterest);
         log.info("Added interest for user ID: {} with category ID: {}", currentUserId, categoryId);
+
+        // Sync to Elasticsearch
+        userDocumentSyncService.syncOnInterestChange(currentUserId);
     }
 
     @Override
@@ -73,6 +77,9 @@ public class UserInterestServiceImpl implements UserInterestService {
 
         userInterestRepository.delete(userInterest);
         log.info("Removed interest for user ID: {} with category ID: {}", currentUserId, categoryId);
+
+        // Sync to Elasticsearch
+        userDocumentSyncService.syncOnInterestChange(currentUserId);
     }
 
     @Override
@@ -106,6 +113,9 @@ public class UserInterestServiceImpl implements UserInterestService {
 
         userInterestRepository.saveAll(userInterests);
         log.info("Added {} interests for user ID: {}", newCategoryIds.size(), currentUserId);
+
+        // Sync to Elasticsearch
+        userDocumentSyncService.syncOnInterestChange(currentUserId);
     }
 
     @Override
@@ -124,6 +134,9 @@ public class UserInterestServiceImpl implements UserInterestService {
 
         userInterestRepository.deleteAll(interestsToRemove);
         log.info("Removed {} interests for user ID: {}", interestsToRemove.size(), currentUserId);
+
+        // Sync to Elasticsearch
+        userDocumentSyncService.syncOnInterestChange(currentUserId);
     }
 
     @Override

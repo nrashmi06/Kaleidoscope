@@ -8,6 +8,7 @@ import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.async.streaming.StreamingConfigConstants;
 import com.kaleidoscope.backend.posts.consumer.PostInteractionSyncConsumer;
 import com.kaleidoscope.backend.posts.consumer.UserProfilePostSyncConsumer;
+import com.kaleidoscope.backend.users.consumer.UserProfileFaceEmbeddingConsumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +35,7 @@ public class RedisStreamConfig {
     private final FaceRecognitionConsumer faceRecognitionConsumer;
     private final PostInteractionSyncConsumer postInteractionSyncConsumer;
     private final UserProfilePostSyncConsumer userProfilePostSyncConsumer;
+    private final UserProfileFaceEmbeddingConsumer userProfileFaceEmbeddingConsumer;
 
     @Bean
     public RedisTemplate<String, String> redisTemplate() {
@@ -51,6 +53,7 @@ public class RedisStreamConfig {
         ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.ML_INSIGHTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_DETECTION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_RECOGNITION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
@@ -107,8 +110,16 @@ public class RedisStreamConfig {
         log.info("Registered UserProfilePostSyncConsumer for stream: {} with consumer group: {}",
                 ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
+        container.receive(
+                Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.USER_PROFILE_FACE_EMBEDDING_CONSUMER),
+                StreamOffset.create(ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, ReadOffset.lastConsumed()),
+                userProfileFaceEmbeddingConsumer
+        );
+        log.info("Registered UserProfileFaceEmbeddingConsumer for stream: {} with consumer group: {}",
+                ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
-        log.info("Redis Stream Message Listener Container configured successfully with {} consumers", 5);
+
+        log.info("Redis Stream Message Listener Container configured successfully with {} consumers", 6);
         return container;
     }
 

@@ -1,17 +1,18 @@
 package com.kaleidoscope.backend.users.service.impl;
 
-import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
-import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
+import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -35,13 +36,16 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ImageStorageService imageStorageService;
     private final RedisStreamPublisher redisStreamPublisher;
+    private final UserDocumentSyncService userDocumentSyncService;
 
     public UserServiceImpl(UserRepository userRepository,
                            ImageStorageService imageStorageService,
-                           RedisStreamPublisher redisStreamPublisher) {
+                           RedisStreamPublisher redisStreamPublisher,
+                           UserDocumentSyncService userDocumentSyncService) {
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
         this.redisStreamPublisher = redisStreamPublisher;
+        this.userDocumentSyncService = userDocumentSyncService;
     }
 
     @Override
@@ -181,6 +185,9 @@ public class UserServiceImpl implements UserService {
             if (newCoverPhotoUrl != null && oldCoverPhotoUrl != null && !oldCoverPhotoUrl.isEmpty()) {
                 imageStorageService.deleteImage(oldCoverPhotoUrl).join();
             }
+
+            // Sync user document after profile update
+            userDocumentSyncService.syncOnProfileUpdate(userId);
 
             return UserMapper.toUpdateUserProfileResponseDTO(user);
 
