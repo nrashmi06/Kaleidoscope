@@ -1,4 +1,4 @@
-package com.kaleidoscope.backend.shared.readmodel.model;
+package com.kaleidoscope.backend.shared.read_store_backup.model;
 
 import com.kaleidoscope.backend.posts.model.Post;
 import jakarta.persistence.*;

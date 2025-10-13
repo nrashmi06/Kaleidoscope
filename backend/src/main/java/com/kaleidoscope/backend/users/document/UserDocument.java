@@ -11,12 +11,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @Document(indexName = "users")
 public class UserDocument {
 
     @Id
-    private String id; // Elasticsearch internal ID
+    private String id; // Should be the String representation of the userId
 
     @Field(type = FieldType.Long)
     private Long userId;
@@ -40,41 +40,32 @@ public class UserDocument {
     private String coverPhotoUrl;
 
     @Field(type = FieldType.Keyword)
-    private String accountStatus; // AccountStatus enum as string
+    private String accountStatus;
 
     @Field(type = FieldType.Keyword)
-    private String role; // Role enum as string
+    private String role;
 
     @Field(type = FieldType.Boolean)
     private Boolean isVerified;
+
+    // --- Social Graph Counts ---
+    @Field(type = FieldType.Integer)
+    private Integer followerCount;
+
+    @Field(type = FieldType.Integer)
+    private Integer followingCount;
+
+    // --- User Interests (Optimized for Filtering) ---
+    @Field(type = FieldType.Long) // Correct type to match Category ID
+    private List<Long> interests;
+
+    // --- Face Embedding for ML Similarity Search ---
+    @Field(type = FieldType.Dense_Vector, dims = 1024) // Crucial for vector search
+    private float[] faceEmbedding;
 
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime createdAt;
 
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime lastSeen;
-
-    // --- User-specific fields only ---
-    @Field(type = FieldType.Keyword)
-    private String faceEmbedding; // For face-based user search/matching
-
-    // --- User Interests as simple category IDs for fast filtering ---
-    @Field(type = FieldType.Integer)
-    private List<Integer> interests; // Just category IDs for fast filtering by interests
-
-    // --- Nested Objects for Rich Data (if we need category names for display) ---
-    @Field(type = FieldType.Nested)
-    private List<Interest> interestDetails;
-
-    // --- Supporting Nested Classes ---
-
-    @Data
-    @Builder
-    public static class Interest {
-        @Field(type = FieldType.Long)
-        private Long categoryId;
-
-        @Field(type = FieldType.Keyword)
-        private String name;
-    }
 }
