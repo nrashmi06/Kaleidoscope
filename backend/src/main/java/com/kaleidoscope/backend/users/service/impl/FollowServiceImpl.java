@@ -3,31 +3,49 @@ package com.kaleidoscope.backend.users.service.impl;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
+import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.response.FollowListResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.users.exception.follow.FollowRelationshipNotFoundException;
 import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;
 import com.kaleidoscope.backend.users.exception.follow.UserAlreadyFollowedException;
 import com.kaleidoscope.backend.users.mapper.FollowMapper;
+import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.Follow;
 import com.kaleidoscope.backend.users.model.UserBlock;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
+import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
+import com.kaleidoscope.backend.users.service.FollowDocumentSyncService;
 import com.kaleidoscope.backend.users.service.FollowService;
 import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FollowServiceImpl implements FollowService {
 
     private final JwtUtils jwtUtils;
@@ -36,6 +54,9 @@ public class FollowServiceImpl implements FollowService {
     private final FollowMapper followMapper;
     private final UserBlockRepository userBlockRepository;
     private final UserDocumentSyncService userDocumentSyncService;
+    private final FollowDocumentSyncService followDocumentSyncService;
+    private final ElasticsearchTemplate elasticsearchTemplate;
+    private final UserSearchRepository userSearchRepository;
 
     /**
      * Get users that the current user has blocked (unidirectional blocking)
@@ -87,9 +108,11 @@ public class FollowServiceImpl implements FollowService {
                 .following(userService.getUserById(targetUserId))
                 .build();
 
-        followRepository.save(follow);
+        follow = followRepository.save(follow);
 
+        // Sync to Elasticsearch
         userDocumentSyncService.syncOnFollowChange(currentUserId, targetUserId, true);
+        followDocumentSyncService.syncOnFollow(follow);
     }
 
     @Override
@@ -101,7 +124,9 @@ public class FollowServiceImpl implements FollowService {
 
         followRepository.delete(follow);
 
+        // Sync to Elasticsearch
         userDocumentSyncService.syncOnFollowChange(currentUserId, targetUserId, false);
+        followDocumentSyncService.syncOnUnfollow(currentUserId, targetUserId);
     }
 
     @Override
@@ -165,6 +190,106 @@ public class FollowServiceImpl implements FollowService {
                 following.getTotalPages(),
                 following.getTotalElements()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponse<UserDetailsSummaryResponseDTO> getFollowSuggestions(Long userId, Pageable pageable) {
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        Long targetUserId = (userId == null) ? currentUserId : userId;
+
+        // Security Check: Only admins can view suggestions for other users
+        if (!targetUserId.equals(currentUserId) && !jwtUtils.isAdminFromContext()) {
+            throw new AccessDeniedException("You are not authorized to view suggestions for this user.");
+        }
+
+        // --- 1. Gather Inputs ---
+        UserDocument targetUserDoc = userSearchRepository.findById(targetUserId.toString()).orElse(null);
+        if (targetUserDoc == null) {
+            log.warn("UserDocument not found for target user {}, cannot generate suggestions.", targetUserId);
+            return PaginatedResponse.fromPage(Page.empty());
+        }
+
+        List<Long> targetUserInterests = targetUserDoc.getInterests();
+        String targetUserDesignation = targetUserDoc.getDesignation();
+        Set<Long> alreadyFollowingIds = followRepository.findFollowingIdsByFollowerId(targetUserId);
+        Set<Long> exclusions = new HashSet<>(alreadyFollowingIds);
+        exclusions.add(targetUserId);
+
+        Set<Long> friendsOfFriendsIds = alreadyFollowingIds.isEmpty() ? Collections.emptySet()
+                : followRepository.findFollowingIdsByFollowerIds(alreadyFollowingIds);
+
+        // --- 2. Build the Function Score Query ---
+        List<FunctionScore.Builder> functions = new ArrayList<>();
+
+        // Function 1: Followers of Followers (Weight: 10.0)
+        if (!friendsOfFriendsIds.isEmpty()) {
+            functions.add(new FunctionScore.Builder()
+                .filter(TermsQuery.of(t -> t
+                    .field("userId")
+                    .terms(ts -> ts.value(friendsOfFriendsIds.stream().map(FieldValue::of).collect(Collectors.toList())))
+                )._toQuery())
+                .weight(10.0)
+            );
+        }
+
+        // Function 2: Shared Interests (Weight: 5.0)
+        if (targetUserInterests != null && !targetUserInterests.isEmpty()) {
+            functions.add(new FunctionScore.Builder()
+                .filter(TermsQuery.of(t -> t
+                    .field("interests")
+                    .terms(ts -> ts.value(targetUserInterests.stream().map(FieldValue::of).collect(Collectors.toList())))
+                )._toQuery())
+                .weight(5.0)
+            );
+        }
+
+        // Function 3: Similar Designation (Weight: 2.0)
+        if (targetUserDesignation != null && !targetUserDesignation.isBlank()) {
+            functions.add(new FunctionScore.Builder()
+                .filter(MatchQuery.of(m -> m
+                    .field("designation")
+                    .query(targetUserDesignation)
+                )._toQuery())
+                .weight(2.0)
+            );
+        }
+
+        Query mainQuery = BoolQuery.of(b -> b
+            // Filter for ACTIVE users only
+            .must(TermQuery.of(t -> t
+                .field("accountStatus")
+                .value(AccountStatus.ACTIVE.name())
+            )._toQuery())
+            // Exclude already followed users and self
+            .mustNot(TermsQuery.of(t -> t
+                .field("userId")
+                .terms(ts -> ts.value(exclusions.stream().map(FieldValue::of).collect(Collectors.toList())))
+            )._toQuery())
+        )._toQuery();
+
+        FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
+            .query(mainQuery)
+            .functions(functions.stream().map(FunctionScore.Builder::build).collect(Collectors.toList()))
+            .scoreMode(FunctionScoreMode.Sum)
+        );
+
+        // --- 3. Execute and Return ---
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(functionScoreQuery._toQuery())
+                .withPageable(pageable)
+                .build();
+
+        SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
+
+        List<UserDocument> userDocuments = searchHits.getSearchHits().stream()
+            .map(SearchHit::getContent)
+            .collect(Collectors.toList());
+
+        Page<UserDocument> userDocumentPage = new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
+        Page<UserDetailsSummaryResponseDTO> dtoPage = userDocumentPage.map(UserMapper::toUserDetailsSummaryResponseDTO);
+
+        return PaginatedResponse.fromPage(dtoPage);
     }
 
 }

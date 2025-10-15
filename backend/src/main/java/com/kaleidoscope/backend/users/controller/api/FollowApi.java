@@ -1,7 +1,9 @@
 package com.kaleidoscope.backend.users.controller.api;
 
 import com.kaleidoscope.backend.shared.response.AppResponse;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.users.dto.response.FollowListResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -66,6 +68,20 @@ public interface FollowApi {
     ResponseEntity<AppResponse<FollowListResponseDTO>> getFollowing(
             @Parameter(description = "The ID of the user whose following list is to be retrieved", required = true)
             @RequestParam Long userId,
+            @Parameter(description = "Pagination information")
+            @PageableDefault(size = 10) Pageable pageable);
+
+    @Operation(summary = "Get follow suggestions", description = "Retrieves a paginated list of suggested users to follow, ranked by social connections, shared interests, and similar designations.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Suggestions retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
+    })
+    ResponseEntity<AppResponse<PaginatedResponse<UserDetailsSummaryResponseDTO>>> getFollowSuggestions(
+            @Parameter(description = "User ID to get suggestions for (admin only). If null, returns suggestions for the authenticated user.")
+            @RequestParam(required = false) Long userId,
             @Parameter(description = "Pagination information")
             @PageableDefault(size = 10) Pageable pageable);
 }
