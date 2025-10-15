@@ -3,6 +3,7 @@ package com.kaleidoscope.backend.users.mapper;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
+import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
@@ -53,6 +54,16 @@ public class UserMapper {
                 user.getUsername(),
                 user.getAccountStatus().name(),
                 user.getProfilePictureUrl()
+        );
+    }
+
+    public static UserDetailsSummaryResponseDTO toUserDetailsSummaryResponseDTO(UserDocument userDocument) {
+        return new UserDetailsSummaryResponseDTO(
+                userDocument.getUserId(),
+                userDocument.getEmail(),
+                userDocument.getUsername(),
+                userDocument.getAccountStatus(),
+                userDocument.getProfilePictureUrl()
         );
     }
 

@@ -1,6 +1,6 @@
-package com.kaleidoscope.backend.shared.readmodel.repository;
+package com.kaleidoscope.backend.shared.read_store_backup.repository;
 
-import com.kaleidoscope.backend.shared.readmodel.model.ReadModelSearchAsset;
+import com.kaleidoscope.backend.shared.read_store_backup.model.ReadModelSearchAsset;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

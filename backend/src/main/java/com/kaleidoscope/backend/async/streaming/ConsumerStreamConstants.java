@@ -10,6 +10,7 @@ public final class ConsumerStreamConstants {
     public static final String ML_INSIGHTS_STREAM = "ml-insights-results";
     public static final String FACE_DETECTION_STREAM = "face-detection-results";
     public static final String FACE_RECOGNITION_STREAM = "face-recognition-results";
+    public static final String USER_PROFILE_FACE_EMBEDDING_STREAM = "user-profile-face-embedding-results";
 
     private ConsumerStreamConstants() {
         // Utility class - prevent instantiation

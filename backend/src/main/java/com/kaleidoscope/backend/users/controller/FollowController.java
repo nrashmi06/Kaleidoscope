@@ -1,8 +1,10 @@
 package com.kaleidoscope.backend.users.controller;
 
 import com.kaleidoscope.backend.shared.response.AppResponse;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.users.controller.api.FollowApi;
 import com.kaleidoscope.backend.users.dto.response.FollowListResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.users.routes.FollowRoutes;
 import com.kaleidoscope.backend.users.service.FollowService;
 import lombok.RequiredArgsConstructor;
@@ -94,6 +96,19 @@ public class FollowController implements FollowApi {
                         .timestamp(Instant.now().toEpochMilli())
                         .path(FollowRoutes.FOLLOWING)
                         .build()
+        );
+    }
+
+    @Override
+    @GetMapping(FollowRoutes.BASE + "/suggestions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AppResponse<PaginatedResponse<UserDetailsSummaryResponseDTO>>> getFollowSuggestions(
+            @RequestParam(required = false) Long userId,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        PaginatedResponse<UserDetailsSummaryResponseDTO> response = followService.getFollowSuggestions(userId, pageable);
+        return ResponseEntity.ok(
+                AppResponse.success(response, "Follow suggestions retrieved successfully", FollowRoutes.BASE + "/suggestions")
         );
     }
 }

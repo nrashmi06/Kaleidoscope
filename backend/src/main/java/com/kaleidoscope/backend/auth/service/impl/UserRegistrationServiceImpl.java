@@ -51,6 +51,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     private final ImageStorageService imageStorageService;
     private final EmailService emailService;
     private final RedisStreamPublisher redisStreamPublisher;
+    private final com.kaleidoscope.backend.users.service.UserDocumentSyncService userDocumentSyncService;
 
     @Override
     @Transactional
@@ -69,7 +70,10 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
         // Step 4: Create default preferences
         createDefaultPreferences(user);
 
-        // Step 5: Send verification email (don't let email failures break registration)
+        // Step 5: Sync to Elasticsearch
+        userDocumentSyncService.syncOnUserCreation(user);
+
+        // Step 6: Send verification email (don't let email failures break registration)
         sendVerificationEmailSafely(user);
 
         log.info("User registration completed successfully for email: {}", user.getEmail());

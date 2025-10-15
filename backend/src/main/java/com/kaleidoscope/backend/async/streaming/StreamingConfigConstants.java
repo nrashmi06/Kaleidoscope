@@ -14,6 +14,7 @@ public final class StreamingConfigConstants {
     public static final String FACE_RECOGNITION_CONSUMER = "face-recognition-consumer";
     public static final String POST_INTERACTION_SYNC_CONSUMER = "post-interaction-sync-consumer";
     public static final String USER_PROFILE_POST_SYNC_CONSUMER = "user-profile-post-sync-consumer";
+    public static final String USER_PROFILE_FACE_EMBEDDING_CONSUMER = "user-profile-face-embedding-consumer";
 
     private StreamingConfigConstants() {
         // Utility class - prevent instantiation
