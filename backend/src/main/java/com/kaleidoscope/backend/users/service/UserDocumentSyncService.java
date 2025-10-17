@@ -53,4 +53,11 @@ public interface UserDocumentSyncService {
      * @param isBlock true for block, false for unblock
      */
     void syncOnBlockChange(Long blockerId, Long blockedId, boolean isBlock);
+
+    /**
+     * Sync user document on preference change, specifically for tagging and potentially other relevant fields.
+     *
+     * @param userId The user ID whose preferences changed.
+     */
+    void syncOnPreferenceChange(Long userId);
 }

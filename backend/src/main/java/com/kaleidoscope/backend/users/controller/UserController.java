@@ -7,8 +7,6 @@ import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileStatusRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
-import com.kaleidoscope.backend.users.mapper.UserMapper;
-import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.routes.UserRoutes;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -64,8 +62,7 @@ public class UserController implements UserApi {
             @RequestParam(required = false) String search,
             Pageable pageable) {
 
-        Page<User> users = userService.getUsersByFilters(status, search, pageable);
-        Page<UserDetailsSummaryResponseDTO> usersResponse = users.map(UserMapper::toUserDetailsSummaryResponseDTO);
+        Page<UserDetailsSummaryResponseDTO> usersResponse = userService.getUsersByFilters(status, search, pageable);
 
         AppResponse<Page<UserDetailsSummaryResponseDTO>> response = AppResponse.success(
                 usersResponse,

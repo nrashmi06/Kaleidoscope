@@ -1,5 +1,7 @@
 package com.kaleidoscope.backend.users.service.impl;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
@@ -7,17 +9,25 @@ import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
+import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
+import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -37,15 +48,21 @@ public class UserServiceImpl implements UserService {
     private final ImageStorageService imageStorageService;
     private final RedisStreamPublisher redisStreamPublisher;
     private final UserDocumentSyncService userDocumentSyncService;
+    private final ElasticsearchOperations elasticsearchOperations;
+    private final UserSearchRepository userSearchRepository;
 
     public UserServiceImpl(UserRepository userRepository,
                            ImageStorageService imageStorageService,
                            RedisStreamPublisher redisStreamPublisher,
-                           UserDocumentSyncService userDocumentSyncService) {
+                           UserDocumentSyncService userDocumentSyncService,
+                           ElasticsearchOperations elasticsearchOperations,
+                           UserSearchRepository userSearchRepository) {
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
         this.redisStreamPublisher = redisStreamPublisher;
         this.userDocumentSyncService = userDocumentSyncService;
+        this.elasticsearchOperations = elasticsearchOperations;
+        this.userSearchRepository = userSearchRepository;
     }
 
     @Override
@@ -65,28 +82,93 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<User> getUsersByFilters(String status, String searchTerm, Pageable pageable) {
-        AccountStatus profileStatus = null;
-        if (status != null && !status.isEmpty()) {
-            try {
-                profileStatus = AccountStatus.valueOf(status.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid profile status: " + status);
+    public Page<UserDetailsSummaryResponseDTO> getUsersByFilters(String status, String searchTerm, Pageable pageable) {
+        try {
+            log.info("Fetching users with filters - status: {}, searchTerm: {}, page: {}", status, searchTerm, pageable.getPageNumber());
+
+            // Validate status parameter if provided
+            if (status != null && !status.trim().isEmpty()) {
+                try {
+                    AccountStatus.valueOf(status.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Invalid account status: " + status);
+                }
             }
-        }
 
-        String normalizedSearch = searchTerm != null ? searchTerm.trim() : null;
-        if (normalizedSearch != null && normalizedSearch.isEmpty()) {
-            normalizedSearch = null;
-        }
+            // Build Elasticsearch query
+            BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        Page<User> users;
-        if (normalizedSearch == null) {
-            users = userRepository.findUsersWithFilters(profileStatus, pageable);
-        } else {
-            users = userRepository.findUsersWithFilters(profileStatus, normalizedSearch, pageable);
+            // Must match: role = USER
+            boolQueryBuilder.must(Query.of(q -> q.term(t -> t
+                    .field("role")
+                    .value(Role.USER.name())
+            )));
+
+            // Filter by status if provided
+            if (status != null && !status.trim().isEmpty()) {
+                boolQueryBuilder.must(Query.of(q -> q.term(t -> t
+                        .field("accountStatus")
+                        .value(status.toUpperCase())
+                )));
+            }
+
+            // Filter by search term if provided
+            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+                String normalizedSearch = searchTerm.trim();
+
+                BoolQuery.Builder searchQueryBuilder = new BoolQuery.Builder();
+                searchQueryBuilder.minimumShouldMatch("1");
+
+                // Search in username field
+                searchQueryBuilder.should(Query.of(q -> q.wildcard(w -> w
+                        .field("username")
+                        .value("*" + normalizedSearch.toLowerCase() + "*")
+                        .caseInsensitive(true)
+                )));
+
+                // Search in email field
+                searchQueryBuilder.should(Query.of(q -> q.wildcard(w -> w
+                        .field("email")
+                        .value("*" + normalizedSearch.toLowerCase() + "*")
+                        .caseInsensitive(true)
+                )));
+
+                boolQueryBuilder.must(Query.of(q -> q.bool(searchQueryBuilder.build())));
+            }
+
+            // Build the native query with pagination
+            NativeQuery nativeQuery = NativeQuery.builder()
+                    .withQuery(Query.of(q -> q.bool(boolQueryBuilder.build())))
+                    .withPageable(pageable)
+                    .build();
+
+            // Execute search
+            SearchHits<UserDocument> searchHits = elasticsearchOperations.search(nativeQuery, UserDocument.class);
+
+            // Convert SearchHits to Page<UserDocument>
+            List<UserDocument> userDocuments = searchHits.getSearchHits().stream()
+                    .map(SearchHit::getContent)
+                    .collect(Collectors.toList());
+
+            Page<UserDocument> userDocumentPage = new PageImpl<>(
+                    userDocuments,
+                    pageable,
+                    searchHits.getTotalHits()
+            );
+
+            // Map to DTOs
+            Page<UserDetailsSummaryResponseDTO> result = userDocumentPage.map(UserMapper::toUserDetailsSummaryResponseDTO);
+
+            log.info("Successfully fetched {} users from Elasticsearch", result.getTotalElements());
+            return result;
+
+        } catch (IllegalArgumentException e) {
+            // Re-throw validation exceptions
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to fetch users from Elasticsearch, returning empty page", e);
+            return Page.empty(pageable);
         }
-        return users;
     }
 
     @Override

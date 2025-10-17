@@ -12,6 +12,7 @@ import com.kaleidoscope.backend.users.model.UserPreferences;
 import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.service.UserPreferencesService;
+import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class UserPreferencesServiceImpl implements UserPreferencesService {
     private final UserRepository userRepository;
     private final UserPreferencesMapper userPreferencesMapper;
     private final JwtUtils jwtUtils;
+    private final UserDocumentSyncService userDocumentSyncService;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,6 +66,9 @@ public class UserPreferencesServiceImpl implements UserPreferencesService {
         UserPreferences updatedPreferences = userPreferencesMapper.updateFromDTO(userPreferences, requestDTO);
         UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated user preferences for user ID: {}", currentUserId);
+
+        // Sync user document after preference change
+        userDocumentSyncService.syncOnPreferenceChange(currentUserId);
 
         return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
@@ -120,6 +125,9 @@ public class UserPreferencesServiceImpl implements UserPreferencesService {
         UserPreferences updatedPreferences = userPreferencesMapper.updateFromVisibilitySettingsDTO(userPreferences, requestDTO);
         UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated visibility settings for user ID: {}", currentUserId);
+
+        // Sync user document after visibility settings change
+        userDocumentSyncService.syncOnPreferenceChange(currentUserId);
 
         return userPreferencesMapper.toResponseDTO(savedPreferences);
     }

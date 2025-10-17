@@ -1,12 +1,15 @@
 package com.kaleidoscope.backend.users.service.impl;
 
 import com.kaleidoscope.backend.users.document.UserDocument;
+import com.kaleidoscope.backend.users.enums.Visibility;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserInterest;
+import com.kaleidoscope.backend.users.model.UserPreferences;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserInterestRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
+import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
     private final UserInterestRepository userInterestRepository;
     private final FollowRepository followRepository;
     private final UserBlockRepository userBlockRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
 
     @Override
     @Transactional
@@ -54,6 +58,7 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                     .interests(new ArrayList<>())  // Initialize empty list
                     .blockedUserIds(new ArrayList<>())  // Initialize empty list
                     .blockedByUserIds(new ArrayList<>())  // Initialize empty list
+                    .allowTagging(Visibility.PUBLIC.name())  // Initialize with default value
                     .faceEmbedding(null)  // Will be updated later by ML service
                     .createdAt(user.getCreatedAt())
                     .lastSeen(user.getLastSeen())
@@ -217,6 +222,43 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
         }
     }
 
+    @Override
+    @Transactional
+    public void syncOnPreferenceChange(Long userId) {
+        try {
+            log.info("Syncing UserDocument on preference change for user ID: {}", userId);
+
+            Optional<UserDocument> existingDocOpt = userSearchRepository.findById(userId.toString());
+            Optional<UserPreferences> userPreferencesOpt = userPreferencesRepository.findByUser_UserId(userId);
+
+            if (existingDocOpt.isPresent() && userPreferencesOpt.isPresent()) {
+                UserDocument userDocument = existingDocOpt.get();
+                UserPreferences userPreferences = userPreferencesOpt.get();
+
+                // Update allowTagging field based on user preferences
+                userDocument.setAllowTagging(userPreferences.getAllowTagging().name());
+                userSearchRepository.save(userDocument);
+
+                log.info("Successfully synced allowTagging preference to {} for user ID: {}",
+                        userPreferences.getAllowTagging().name(), userId);
+            } else {
+                if (!existingDocOpt.isPresent()) {
+                    log.warn("UserDocument not found for user ID: {} during preference sync, creating full document", userId);
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+                    UserDocument newDocument = buildCompleteUserDocument(user);
+                    userSearchRepository.save(newDocument);
+                }
+                if (!userPreferencesOpt.isPresent()) {
+                    log.warn("UserPreferences not found for user ID: {} during preference sync", userId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to sync UserDocument on preference change for user ID: {}", userId, e);
+            // Don't throw exception - we don't want to break preference updates if ES fails
+        }
+    }
+
     // Helper methods
 
     private void updateFollowingCountIncremental(Long userId, int increment) {
@@ -353,6 +395,11 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 .map(block -> block.getBlocker().getUserId())
                 .collect(Collectors.toList());
 
+        // Fetch user preferences for allowTagging
+        String allowTagging = userPreferencesRepository.findByUser_UserId(user.getUserId())
+                .map(prefs -> prefs.getAllowTagging().name())
+                .orElse(Visibility.PUBLIC.name());
+
         return UserDocument.builder()
                 .id(user.getUserId().toString())
                 .userId(user.getUserId())
@@ -371,6 +418,7 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 .faceEmbedding(null)  // Face embedding will be set separately
                 .blockedUserIds(blockedUserIds)
                 .blockedByUserIds(blockedByUserIds)
+                .allowTagging(allowTagging)
                 .createdAt(user.getCreatedAt())
                 .lastSeen(user.getLastSeen())
                 .build();
