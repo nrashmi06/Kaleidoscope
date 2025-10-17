@@ -59,6 +59,13 @@ public class UserDocument {
     @Field(type = FieldType.Long) // Correct type to match Category ID
     private List<Long> interests;
 
+    // --- User Block Information ---
+    @Field(type = FieldType.Long)
+    private List<Long> blockedByUserIds; // IDs of users who have blocked this user
+
+    @Field(type = FieldType.Long)
+    private List<Long> blockedUserIds; // IDs of users this user has blocked
+
     // --- Face Embedding for ML Similarity Search ---
     @Field(type = FieldType.Dense_Vector, dims = 1024) // Crucial for vector search
     private float[] faceEmbedding;

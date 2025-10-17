@@ -16,6 +16,7 @@ import com.kaleidoscope.backend.users.model.UserBlock;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
 import com.kaleidoscope.backend.users.service.UserBlockService;
+import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ public class UserBlockServiceImpl implements UserBlockService {
     private final UserBlockPaginationMapper paginationMapper;
     private final UserBlockStatusMapper statusMapper;
     private final FollowRepository followRepository; // Add this dependency
+    private final UserDocumentSyncService userDocumentSyncService;
 
     @Override
     public UserBlockResponseDTO blockUser(BlockUserRequestDTO blockUserRequestDTO) {
@@ -68,6 +70,9 @@ public class UserBlockServiceImpl implements UserBlockService {
             followRepository.findByFollower_UserIdAndFollowing_UserId(userIdToBlock, currentUserId)
                     .ifPresent(followRepository::delete);
 
+            // Sync Elasticsearch UserDocument with block information
+            userDocumentSyncService.syncOnBlockChange(currentUserId, userIdToBlock, true);
+
             log.info("User {} successfully blocked user {} and removed follow relationships", currentUserId, userIdToBlock);
             return userBlockMapper.toUserBlockResponseDTO(savedBlock);
 
@@ -89,6 +94,10 @@ public class UserBlockServiceImpl implements UserBlockService {
         UserBlock userBlock = entityMapper.getExistingBlockOrThrow(blockOptional, currentUserId, userIdToUnblock);
 
         userBlockRepository.delete(userBlock);
+
+        // Sync Elasticsearch UserDocument with unblock information
+        userDocumentSyncService.syncOnBlockChange(currentUserId, userIdToUnblock, false);
+
         log.info("User {} successfully unblocked user {}", currentUserId, userIdToUnblock);
 
         return "User successfully unblocked";
@@ -145,7 +154,15 @@ public class UserBlockServiceImpl implements UserBlockService {
         UserBlock userBlock = userBlockRepository.findById(blockId)
                 .orElseThrow(() -> new UserBlockNotFoundException("Block not found with ID: " + blockId));
 
+        // Store blocker and blocked IDs before deleting
+        Long blockerId = userBlock.getBlocker().getUserId();
+        Long blockedId = userBlock.getBlocked().getUserId();
+
         userBlockRepository.delete(userBlock);
+
+        // Sync Elasticsearch UserDocument with unblock information
+        userDocumentSyncService.syncOnBlockChange(blockerId, blockedId, false);
+
         log.info("Block with ID {} successfully removed by admin", blockId);
 
         return "Block relationship successfully removed";

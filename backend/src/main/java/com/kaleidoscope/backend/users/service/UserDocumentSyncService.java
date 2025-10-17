@@ -44,5 +44,13 @@ public interface UserDocumentSyncService {
      * @param faceEmbedding The face embedding vector from ML service
      */
     void syncOnFaceEmbeddingGeneration(Long userId, float[] faceEmbedding);
-}
 
+    /**
+     * Sync block lists after block/unblock action.
+     *
+     * @param blockerId The blocker's user ID
+     * @param blockedId The blocked user's ID
+     * @param isBlock true for block, false for unblock
+     */
+    void syncOnBlockChange(Long blockerId, Long blockedId, boolean isBlock);
+}
