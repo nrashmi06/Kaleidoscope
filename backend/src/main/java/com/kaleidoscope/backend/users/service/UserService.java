@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.users.service;
 
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.users.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,7 +37,7 @@ public interface UserService {
      * @param pageable Pagination parameters
      * @return Page of users
      */
-    Page<User> getUsersByFilters(String status, String searchTerm, Pageable pageable);
+    Page<UserDetailsSummaryResponseDTO> getUsersByFilters(String status, String searchTerm, Pageable pageable);
 
     /**
      * Update user's account status
