@@ -92,8 +92,8 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
                 followingIds.size(), interestIds.size(), blockedUserIds.size(), blockedByUserIds.size(),
                 viewedPostIds != null ? viewedPostIds.size() : 0);
 
-        // Build filter query (must_not and must conditions) - now includes viewed posts
-        BoolQuery filterQuery = buildSuggestionFilters(currentUserId, blockedUserIds, blockedByUserIds, viewedPostIds);
+        // Build filter query (must_not and must conditions) - now includes viewed posts and followingIds for visibility
+        BoolQuery filterQuery = buildSuggestionFilters(currentUserId, blockedUserIds, blockedByUserIds, viewedPostIds, followingIds);
 
         // Build scoring functions
         List<co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore> scoringFunctions =
@@ -132,7 +132,7 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
     /**
      * Build filter conditions for post suggestions (excluding user's own posts, blocked users, etc.)
      */
-    private BoolQuery buildSuggestionFilters(Long currentUserId, List<Long> blockedUserIds, List<Long> blockedByUserIds, Set<String> viewedPostIds) {
+    private BoolQuery buildSuggestionFilters(Long currentUserId, List<Long> blockedUserIds, List<Long> blockedByUserIds, Set<String> viewedPostIds, Set<Long> followingIds) {
         BoolQuery.Builder filterBuilder = new BoolQuery.Builder();
 
         // Must NOT be the current user's own posts
@@ -188,6 +188,14 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
         filterBuilder.must(TermQuery.of(t -> t
                 .field("status")
                 .value(PostStatus.PUBLISHED.toString()))._toQuery());
+
+        // NEW: If user is not following anyone, only show PUBLIC posts
+        if (followingIds == null || followingIds.isEmpty()) {
+            log.info("User {} is not following anyone - restricting suggestions to PUBLIC visibility only", currentUserId);
+            filterBuilder.must(TermQuery.of(t -> t
+                    .field("visibility")
+                    .value(PostVisibility.PUBLIC.toString()))._toQuery());
+        }
 
         return filterBuilder.build();
     }
