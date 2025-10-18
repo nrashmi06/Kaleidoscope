@@ -1,7 +1,5 @@
 package com.kaleidoscope.backend.users.service.impl;
 
-import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.query_dsl.TermsQuery;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.request.BlockUserRequestDTO;
@@ -24,10 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,7 +46,6 @@ public class UserBlockServiceImpl implements UserBlockService {
     private final FollowRepository followRepository;
     private final UserDocumentSyncService userDocumentSyncService;
     private final UserSearchRepository userSearchRepository;
-    private final ElasticsearchTemplate elasticsearchTemplate;
 
     @Override
     public UserBlockResponseDTO blockUser(BlockUserRequestDTO blockUserRequestDTO) {
@@ -139,28 +132,16 @@ public class UserBlockServiceImpl implements UserBlockService {
 
             log.debug("User {} has blocked {} users, querying Elasticsearch", currentUserId, blockedUserIds.size());
 
-            // Build Elasticsearch query to find UserDocuments with matching userIds
-            NativeQuery nativeQuery = NativeQuery.builder()
-                    .withQuery(TermsQuery.of(t -> t
-                            .field("userId")
-                            .terms(ts -> ts.value(blockedUserIds.stream()
-                                    .map(FieldValue::of)
-                                    .collect(Collectors.toList())))
-                    )._toQuery())
-                    .withPageable(pageable)
-                    .build();
+            // Use custom repository method
+            Page<UserDocument> userDocumentPage = userSearchRepository.findBlockedUsersByIds(blockedUserIds, pageable);
 
-            // Execute search
-            SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
-
-            // Map UserDocuments to DTOs
-            List<UserDetailsSummaryResponseDTO> blockedUsers = searchHits.getSearchHits().stream()
-                    .map(SearchHit::getContent)
+            // Map to DTOs
+            List<UserDetailsSummaryResponseDTO> blockedUsers = userDocumentPage.getContent().stream()
                     .map(UserMapper::toUserDetailsSummaryResponseDTO)
                     .collect(Collectors.toList());
 
-            long totalElements = searchHits.getTotalHits();
-            int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+            long totalElements = userDocumentPage.getTotalElements();
+            int totalPages = userDocumentPage.getTotalPages();
 
             log.info("Retrieved {} blocked users for user {} (page {}/{})",
                     blockedUsers.size(), currentUserId, pageable.getPageNumber(), totalPages);
@@ -206,28 +187,16 @@ public class UserBlockServiceImpl implements UserBlockService {
 
             log.debug("User {} is blocked by {} users, querying Elasticsearch", currentUserId, blockedByUserIds.size());
 
-            // Build Elasticsearch query to find UserDocuments with matching userIds
-            NativeQuery nativeQuery = NativeQuery.builder()
-                    .withQuery(TermsQuery.of(t -> t
-                            .field("userId")
-                            .terms(ts -> ts.value(blockedByUserIds.stream()
-                                    .map(FieldValue::of)
-                                    .collect(Collectors.toList())))
-                    )._toQuery())
-                    .withPageable(pageable)
-                    .build();
+            // Use custom repository method
+            Page<UserDocument> userDocumentPage = userSearchRepository.findBlockingUsersByIds(blockedByUserIds, pageable);
 
-            // Execute search
-            SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
-
-            // Map UserDocuments to DTOs
-            List<UserDetailsSummaryResponseDTO> blockerUsers = searchHits.getSearchHits().stream()
-                    .map(SearchHit::getContent)
+            // Map to DTOs
+            List<UserDetailsSummaryResponseDTO> blockerUsers = userDocumentPage.getContent().stream()
                     .map(UserMapper::toUserDetailsSummaryResponseDTO)
                     .collect(Collectors.toList());
 
-            long totalElements = searchHits.getTotalHits();
-            int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+            long totalElements = userDocumentPage.getTotalElements();
+            int totalPages = userDocumentPage.getTotalPages();
 
             log.info("Retrieved {} users who blocked user {} (page {}/{})",
                     blockerUsers.size(), currentUserId, pageable.getPageNumber(), totalPages);

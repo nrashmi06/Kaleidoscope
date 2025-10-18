@@ -1,12 +1,9 @@
 package com.kaleidoscope.backend.users.service.impl;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
-import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.document.UserDocument;
@@ -22,12 +19,7 @@ import com.kaleidoscope.backend.users.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -38,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -48,20 +39,17 @@ public class UserServiceImpl implements UserService {
     private final ImageStorageService imageStorageService;
     private final RedisStreamPublisher redisStreamPublisher;
     private final UserDocumentSyncService userDocumentSyncService;
-    private final ElasticsearchOperations elasticsearchOperations;
     private final UserSearchRepository userSearchRepository;
 
     public UserServiceImpl(UserRepository userRepository,
                            ImageStorageService imageStorageService,
                            RedisStreamPublisher redisStreamPublisher,
                            UserDocumentSyncService userDocumentSyncService,
-                           ElasticsearchOperations elasticsearchOperations,
                            UserSearchRepository userSearchRepository) {
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
         this.redisStreamPublisher = redisStreamPublisher;
         this.userDocumentSyncService = userDocumentSyncService;
-        this.elasticsearchOperations = elasticsearchOperations;
         this.userSearchRepository = userSearchRepository;
     }
 
@@ -95,71 +83,13 @@ public class UserServiceImpl implements UserService {
                 }
             }
 
-            // Build Elasticsearch query
-            BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
-
-            // Must match: role = USER
-            boolQueryBuilder.must(Query.of(q -> q.term(t -> t
-                    .field("role")
-                    .value(Role.USER.name())
-            )));
-
-            // Filter by status if provided
-            if (status != null && !status.trim().isEmpty()) {
-                boolQueryBuilder.must(Query.of(q -> q.term(t -> t
-                        .field("accountStatus")
-                        .value(status.toUpperCase())
-                )));
-            }
-
-            // Filter by search term if provided
-            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-                String normalizedSearch = searchTerm.trim();
-
-                BoolQuery.Builder searchQueryBuilder = new BoolQuery.Builder();
-                searchQueryBuilder.minimumShouldMatch("1");
-
-                // Search in username field
-                searchQueryBuilder.should(Query.of(q -> q.wildcard(w -> w
-                        .field("username")
-                        .value("*" + normalizedSearch.toLowerCase() + "*")
-                        .caseInsensitive(true)
-                )));
-
-                // Search in email field
-                searchQueryBuilder.should(Query.of(q -> q.wildcard(w -> w
-                        .field("email")
-                        .value("*" + normalizedSearch.toLowerCase() + "*")
-                        .caseInsensitive(true)
-                )));
-
-                boolQueryBuilder.must(Query.of(q -> q.bool(searchQueryBuilder.build())));
-            }
-
-            // Build the native query with pagination
-            NativeQuery nativeQuery = NativeQuery.builder()
-                    .withQuery(Query.of(q -> q.bool(boolQueryBuilder.build())))
-                    .withPageable(pageable)
-                    .build();
-
-            // Execute search
-            SearchHits<UserDocument> searchHits = elasticsearchOperations.search(nativeQuery, UserDocument.class);
-
-            // Convert SearchHits to Page<UserDocument>
-            List<UserDocument> userDocuments = searchHits.getSearchHits().stream()
-                    .map(SearchHit::getContent)
-                    .collect(Collectors.toList());
-
-            Page<UserDocument> userDocumentPage = new PageImpl<>(
-                    userDocuments,
-                    pageable,
-                    searchHits.getTotalHits()
-            );
+            // Use custom repository method
+            Page<UserDocument> userDocumentPage = userSearchRepository.findFilteredUsers(status, searchTerm, pageable);
 
             // Map to DTOs
             Page<UserDetailsSummaryResponseDTO> result = userDocumentPage.map(UserMapper::toUserDetailsSummaryResponseDTO);
 
-            log.info("Successfully fetched {} users from Elasticsearch", result.getTotalElements());
+            log.info("Successfully fetched {} users using custom repository", result.getTotalElements());
             return result;
 
         } catch (IllegalArgumentException e) {
@@ -202,7 +132,7 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-    private static List<GrantedAuthority> createAuthorities(Role role) {
+    private static List<GrantedAuthority> createAuthorities(com.kaleidoscope.backend.shared.enums.Role role) {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 

@@ -1,12 +1,8 @@
 package com.kaleidoscope.backend.shared.service.impl;
 
-import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
-import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.exception.userTags.TagNotFoundException;
 import com.kaleidoscope.backend.shared.exception.userTags.UserTaggingException;
@@ -17,23 +13,16 @@ import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.UserTagService;
 import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
-import com.kaleidoscope.backend.users.enums.Visibility;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
 import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
-import com.kaleidoscope.backend.shared.enums.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -54,7 +42,6 @@ public class UserTagServiceImpl implements UserTagService {
     private final UserPreferencesRepository userPreferencesRepository;
     private final UserTagMapper userTagMapper;
     private final JwtUtils jwtUtils;
-    private final ElasticsearchOperations elasticsearchOperations;
     private final UserSearchRepository userSearchRepository;
 
     @Override
@@ -80,101 +67,19 @@ public class UserTagServiceImpl implements UserTagService {
                 blockedByUserIds = new ArrayList<>();
             }
 
-            // Build Elasticsearch query
-            BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
-
-            // Must NOT be the current user
-            boolQueryBuilder.mustNot(Query.of(q -> q.term(t -> t
-                    .field("userId")
-                    .value(currentUserId)
-            )));
-
-            // Must be ACTIVE account
-            boolQueryBuilder.must(Query.of(q -> q.term(t -> t
-                    .field("accountStatus")
-                    .value(AccountStatus.ACTIVE.name())
-            )));
-
-            // Must be USER role (not ADMIN)
-            boolQueryBuilder.must(Query.of(q -> q.term(t -> t
-                    .field("role")
-                    .value(Role.USER.name())
-            )));
-
-            // Must have PUBLIC tagging preference (using .keyword sub-field)
-            boolQueryBuilder.must(Query.of(q -> q.term(t -> t
-                    .field("allowTagging.keyword")
-                    .value(Visibility.PUBLIC.name())
-            )));
-
-            // Exclude users blocked by current user
-            if (!blockedUserIds.isEmpty()) {
-                boolQueryBuilder.mustNot(Query.of(q -> q.terms(t -> t
-                        .field("userId")
-                        .terms(ts -> ts.value(blockedUserIds.stream()
-                                .map(FieldValue::of)
-                                .collect(Collectors.toList())))
-                )));
-            }
-
-            // Exclude users who blocked current user
-            if (!blockedByUserIds.isEmpty()) {
-                boolQueryBuilder.mustNot(Query.of(q -> q.terms(t -> t
-                        .field("userId")
-                        .terms(ts -> ts.value(blockedByUserIds.stream()
-                                .map(FieldValue::of)
-                                .collect(Collectors.toList())))
-                )));
-            }
-
-            // Filter by search query if provided
-            if (query != null && !query.trim().isEmpty()) {
-                String normalizedSearch = query.trim();
-
-                BoolQuery.Builder searchQueryBuilder = new BoolQuery.Builder();
-                searchQueryBuilder.minimumShouldMatch("1");
-
-                // Search in username field
-                searchQueryBuilder.should(Query.of(q -> q.wildcard(w -> w
-                        .field("username")
-                        .value("*" + normalizedSearch.toLowerCase() + "*")
-                        .caseInsensitive(true)
-                )));
-
-                // Search in email field
-                searchQueryBuilder.should(Query.of(q -> q.wildcard(w -> w
-                        .field("email")
-                        .value("*" + normalizedSearch.toLowerCase() + "*")
-                        .caseInsensitive(true)
-                )));
-
-                boolQueryBuilder.must(Query.of(q -> q.bool(searchQueryBuilder.build())));
-            }
-
-            // Build the native query with pagination
-            NativeQuery nativeQuery = NativeQuery.builder()
-                    .withQuery(Query.of(q -> q.bool(boolQueryBuilder.build())))
-                    .withPageable(pageable)
-                    .build();
-
-            // Execute search
-            SearchHits<UserDocument> searchHits = elasticsearchOperations.search(nativeQuery, UserDocument.class);
-
-            // Convert SearchHits to Page<UserDocument>
-            List<UserDocument> userDocuments = searchHits.getSearchHits().stream()
-                    .map(SearchHit::getContent)
-                    .collect(Collectors.toList());
-
-            Page<UserDocument> userDocumentPage = new PageImpl<>(
-                    userDocuments,
-                    pageable,
-                    searchHits.getTotalHits()
+            // Use custom repository method
+            Page<UserDocument> userDocumentPage = userSearchRepository.findTaggableUsers(
+                    currentUserId,
+                    blockedUserIds,
+                    blockedByUserIds,
+                    query,
+                    pageable
             );
 
             // Map to DTOs
             Page<UserDetailsSummaryResponseDTO> dtoPage = userDocumentPage.map(UserMapper::toUserDetailsSummaryResponseDTO);
 
-            log.info("Successfully found {} taggable users for user {}", dtoPage.getTotalElements(), currentUserId);
+            log.info("Successfully found {} taggable users using custom repository for user {}", dtoPage.getTotalElements(), currentUserId);
             return PaginatedResponse.fromPage(dtoPage);
 
         } catch (Exception e) {

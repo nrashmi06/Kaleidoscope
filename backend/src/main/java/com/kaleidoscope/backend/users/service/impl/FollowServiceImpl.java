@@ -24,17 +24,10 @@ import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.query_dsl.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,7 +48,6 @@ public class FollowServiceImpl implements FollowService {
     private final UserBlockRepository userBlockRepository;
     private final UserDocumentSyncService userDocumentSyncService;
     private final FollowDocumentSyncService followDocumentSyncService;
-    private final ElasticsearchTemplate elasticsearchTemplate;
     private final UserSearchRepository userSearchRepository;
 
     /**
@@ -229,124 +221,22 @@ public class FollowServiceImpl implements FollowService {
             Set<Long> friendsOfFriendsIds = alreadyFollowingIds.isEmpty() ? Collections.emptySet()
                     : followRepository.findFollowingIdsByFollowerIds(alreadyFollowingIds);
 
-            // --- 2. Build the Function Score Query ---
-            List<FunctionScore.Builder> functions = new ArrayList<>();
-
-            // Function 1: Followers of Followers (Weight: 10.0)
-            log.debug("Adding Friends-of-Friends scoring function with {} candidates", friendsOfFriendsIds.size());
-            if (!friendsOfFriendsIds.isEmpty()) {
-                functions.add(new FunctionScore.Builder()
-                    .filter(TermsQuery.of(t -> t
-                        .field("userId")
-                        .terms(ts -> ts.value(friendsOfFriendsIds.stream().map(FieldValue::of).collect(Collectors.toList())))
-                    )._toQuery())
-                    .weight(10.0)
-                );
-            }
-
-            // Function 2: Shared Interests (Weight: 5.0)
-            log.debug("Adding Interest-based scoring function");
-            if (targetUserInterests != null && !targetUserInterests.isEmpty()) {
-                functions.add(new FunctionScore.Builder()
-                    .filter(TermsQuery.of(t -> t
-                        .field("interests")
-                        .terms(ts -> ts.value(targetUserInterests.stream().map(FieldValue::of).collect(Collectors.toList())))
-                    )._toQuery())
-                    .weight(5.0)
-                );
-            }
-
-            // Function 3: Similar Designation (Weight: 2.0)
-            log.debug("Adding Designation-based scoring function");
-            if (targetUserDesignation != null && !targetUserDesignation.isBlank()) {
-                functions.add(new FunctionScore.Builder()
-                    .filter(MatchQuery.of(m -> m
-                        .field("designation")
-                        .query(targetUserDesignation)
-                    )._toQuery())
-                    .weight(2.0)
-                );
-            }
-
-            // Function 4: Popularity Boost for Cold Start (Follower Count)
-            // Helps new users or users with few connections by gently boosting popular users
-            // Using an exists query to boost users who have follower count data
-            log.debug("Adding Follower Count boost for cold start scenarios");
-            functions.add(new FunctionScore.Builder()
-                .filter(ExistsQuery.of(e -> e
-                    .field("followerCount")
-                )._toQuery())
-                .weight(0.75)  // Small weight to provide gentle boost without overriding main signals
+            // Use custom repository method
+            Page<UserDocument> userDocumentPage = userSearchRepository.findFollowSuggestions(
+                    targetUserId,
+                    exclusions,
+                    blockedUserIds,
+                    blockedByUserIds,
+                    friendsOfFriendsIds,
+                    targetUserInterests,
+                    targetUserDesignation,
+                    pageable
             );
 
-            // Function 5: Recently Active Users Boost (for Diversity)
-            // Boosts users who have been seen recently to promote diverse, engaged suggestions
-            log.debug("Adding Recent Activity boost for diversity");
-            functions.add(new FunctionScore.Builder()
-                .filter(ExistsQuery.of(e -> e
-                    .field("lastSeen")
-                )._toQuery())
-                .weight(1.5)  // Moderate weight to influence but not dominate
-            );
-
-            // Build main query with blocking filters
-            log.debug("Building main query with blocking filters");
-            BoolQuery.Builder mainQueryBuilder = new BoolQuery.Builder()
-                // Filter for ACTIVE users only
-                .must(TermQuery.of(t -> t
-                    .field("accountStatus")
-                    .value(AccountStatus.ACTIVE.name())
-                )._toQuery())
-                // Exclude already followed users and self
-                .mustNot(TermsQuery.of(t -> t
-                    .field("userId")
-                    .terms(ts -> ts.value(exclusions.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery());
-
-            // Exclude users blocked by target user
-            if (!blockedUserIds.isEmpty()) {
-                log.debug("Adding filter to exclude {} users blocked by target user", blockedUserIds.size());
-                mainQueryBuilder.mustNot(TermsQuery.of(t -> t
-                    .field("userId")
-                    .terms(ts -> ts.value(blockedUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery());
-            }
-
-            // Exclude users who have blocked the target user
-            if (!blockedByUserIds.isEmpty()) {
-                log.debug("Adding filter to exclude {} users who blocked target user", blockedByUserIds.size());
-                mainQueryBuilder.mustNot(TermsQuery.of(t -> t
-                    .field("userId")
-                    .terms(ts -> ts.value(blockedByUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery());
-            }
-
-            Query mainQuery = mainQueryBuilder.build()._toQuery();
-
-            FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
-                .query(mainQuery)
-                .functions(functions.stream().map(FunctionScore.Builder::build).collect(Collectors.toList()))
-                .scoreMode(FunctionScoreMode.Sum)  // Sum all function scores for comprehensive ranking
-            );
-
-            // --- 3. Execute and Return ---
-            log.debug("Executing Elasticsearch query for user {} with {} scoring functions", targetUserId, functions.size());
-            NativeQuery nativeQuery = NativeQuery.builder()
-                    .withQuery(functionScoreQuery._toQuery())
-                    .withPageable(pageable)
-                    .build();
-
-            SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
-
-            List<UserDocument> userDocuments = searchHits.getSearchHits().stream()
-                .map(SearchHit::getContent)
-                .collect(Collectors.toList());
-
-            log.info("Returned {} suggestions for user {}", userDocuments.size(), targetUserId);
-
-            Page<UserDocument> userDocumentPage = new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
+            // Map to DTOs
             Page<UserDetailsSummaryResponseDTO> dtoPage = userDocumentPage.map(UserMapper::toUserDetailsSummaryResponseDTO);
 
+            log.info("Returned {} suggestions using custom repository for user {}", userDocumentPage.getNumberOfElements(), targetUserId);
             return PaginatedResponse.fromPage(dtoPage);
 
         } catch (Exception e) {
