@@ -18,6 +18,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -74,6 +75,194 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
                 postDocuments.size(), searchHits.getTotalHits());
 
         return new PageImpl<>(postDocuments, pageable, searchHits.getTotalHits());
+    }
+
+    @Override
+    public Page<PostDocument> findPostSuggestions(
+            Long currentUserId,
+            Set<Long> followingIds,
+            List<Long> interestIds,
+            List<Long> blockedUserIds,
+            List<Long> blockedByUserIds,
+            Set<String> viewedPostIds,
+            Pageable pageable) {
+
+        log.info("Executing post suggestions query for user: {}", currentUserId);
+        log.debug("Context - Following: {}, Interests: {}, Blocked: {}, BlockedBy: {}, ViewedPosts: {}",
+                followingIds.size(), interestIds.size(), blockedUserIds.size(), blockedByUserIds.size(),
+                viewedPostIds != null ? viewedPostIds.size() : 0);
+
+        // Build filter query (must_not and must conditions) - now includes viewed posts
+        BoolQuery filterQuery = buildSuggestionFilters(currentUserId, blockedUserIds, blockedByUserIds, viewedPostIds);
+
+        // Build scoring functions
+        List<co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore> scoringFunctions =
+                buildScoringFunctions(followingIds, interestIds);
+
+        // Build the function_score query
+        FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
+                .query(filterQuery._toQuery())
+                .functions(scoringFunctions)
+                .scoreMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode.Sum)
+                .boostMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode.Multiply)
+        );
+
+        // Build native query with pagination
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(functionScoreQuery._toQuery())
+                .withPageable(pageable)
+                .build();
+
+        log.debug("Executing Elasticsearch function_score query with pagination: page={}, size={}",
+                pageable.getPageNumber(), pageable.getPageSize());
+
+        SearchHits<PostDocument> searchHits = elasticsearchTemplate.search(nativeQuery, PostDocument.class);
+
+        List<PostDocument> postDocuments = searchHits.getSearchHits()
+                .stream()
+                .map(SearchHit::getContent)
+                .toList();
+
+        log.info("Post suggestions query returned {} results out of {} total hits",
+                postDocuments.size(), searchHits.getTotalHits());
+
+        return new PageImpl<>(postDocuments, pageable, searchHits.getTotalHits());
+    }
+
+    /**
+     * Build filter conditions for post suggestions (excluding user's own posts, blocked users, etc.)
+     */
+    private BoolQuery buildSuggestionFilters(Long currentUserId, List<Long> blockedUserIds, List<Long> blockedByUserIds, Set<String> viewedPostIds) {
+        BoolQuery.Builder filterBuilder = new BoolQuery.Builder();
+
+        // Must NOT be the current user's own posts
+        if (currentUserId != null) {
+            filterBuilder.mustNot(TermQuery.of(t -> t
+                    .field("author.userId")
+                    .value(currentUserId))._toQuery());
+        }
+
+        // Must NOT be from blocked users
+        if (blockedUserIds != null && !blockedUserIds.isEmpty()) {
+            filterBuilder.mustNot(TermsQuery.of(ts -> ts
+                    .field("author.userId")
+                    .terms(t -> t.value(blockedUserIds.stream()
+                            .map(id -> FieldValue.of(id))
+                            .toList())))._toQuery());
+        }
+
+        // Must NOT be from users who blocked the current user
+        if (blockedByUserIds != null && !blockedByUserIds.isEmpty()) {
+            filterBuilder.mustNot(TermsQuery.of(ts -> ts
+                    .field("author.userId")
+                    .terms(t -> t.value(blockedByUserIds.stream()
+                            .map(id -> FieldValue.of(id))
+                            .toList())))._toQuery());
+        }
+
+        // Must NOT be recently viewed posts (NEW: filter out viewed posts)
+        if (viewedPostIds != null && !viewedPostIds.isEmpty()) {
+            log.debug("Adding filter to exclude {} recently viewed post IDs", viewedPostIds.size());
+            // Convert String IDs from Redis to Long for the query
+            List<FieldValue> viewedIdsAsFieldValue = viewedPostIds.stream()
+                    .map(idStr -> {
+                        try {
+                            return FieldValue.of(Long.parseLong(idStr));
+                        } catch (NumberFormatException e) {
+                            log.warn("Invalid post ID in viewed set: {}", idStr);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            if (!viewedIdsAsFieldValue.isEmpty()) {
+                filterBuilder.mustNot(TermsQuery.of(ts -> ts
+                        .field("postId") // Use postId field from PostDocument
+                        .terms(t -> t.value(viewedIdsAsFieldValue)))._toQuery());
+                log.debug("Successfully added filter for {} valid viewed post IDs", viewedIdsAsFieldValue.size());
+            }
+        }
+
+        // Must be PUBLISHED
+        filterBuilder.must(TermQuery.of(t -> t
+                .field("status")
+                .value(PostStatus.PUBLISHED.toString()))._toQuery());
+
+        return filterBuilder.build();
+    }
+
+    /**
+     * Build scoring functions for personalized ranking
+     */
+    private List<co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore> buildScoringFunctions(
+            Set<Long> followingIds, List<Long> interestIds) {
+
+        List<co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore> functions = new ArrayList<>();
+
+        // Function 1: Boost posts from followed users (weight: 10.0)
+        if (followingIds != null && !followingIds.isEmpty()) {
+            List<Long> followingList = new ArrayList<>(followingIds);
+            functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
+                    .filter(TermsQuery.of(ts -> ts
+                            .field("author.userId")
+                            .terms(t -> t.value(followingList.stream()
+                                    .map(FieldValue::of)
+                                    .toList())))._toQuery())
+                    .weight(10.0)
+            ));
+            log.debug("Added following boost function for {} users", followingIds.size());
+        }
+
+        // Function 2: Boost posts in user's interest categories (weight: 5.0)
+        if (interestIds != null && !interestIds.isEmpty()) {
+            functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
+                    .filter(NestedQuery.of(n -> n
+                            .path("categories")
+                            .query(TermsQuery.of(ts -> ts
+                                    .field("categories.categoryId")
+                                    .terms(t -> t.value(interestIds.stream()
+                                            .map(FieldValue::of)
+                                            .toList())))._toQuery()))._toQuery())
+                    .weight(5.0)
+            ));
+            log.debug("Added interest boost function for {} categories", interestIds.size());
+        }
+
+        // Function 3: Popularity boost based on reaction count (weight: 2.0)
+        functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
+                .fieldValueFactor(fvf -> fvf
+                        .field("reactionCount")
+                        .factor(1.2)
+                        .modifier(co.elastic.clients.elasticsearch._types.query_dsl.FieldValueFactorModifier.Log1p)
+                        .missing(0.0))
+                .weight(2.0)
+        ));
+        log.debug("Added popularity boost function based on reactions");
+
+        // Function 4: Engagement boost based on comment count (weight: 1.5)
+        functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
+                .fieldValueFactor(fvf -> fvf
+                        .field("commentCount")
+                        .factor(1.5)
+                        .modifier(co.elastic.clients.elasticsearch._types.query_dsl.FieldValueFactorModifier.Log1p)
+                        .missing(0.0))
+                .weight(1.5)
+        ));
+        log.debug("Added engagement boost function based on comments");
+
+        // Function 5: View count boost (weight: 1.0)
+        functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
+                .fieldValueFactor(fvf -> fvf
+                        .field("viewCount")
+                        .factor(0.1)
+                        .modifier(co.elastic.clients.elasticsearch._types.query_dsl.FieldValueFactorModifier.Log1p)
+                        .missing(0.0))
+                .weight(1.0)
+        ));
+        log.debug("Added view count boost function");
+
+        return functions;
     }
 
     /**
@@ -194,7 +383,7 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
             followersPostBuilder.must(TermsQuery.of(ts -> ts
                     .field("author.userId")
                     .terms(t -> t.value(followingList.stream()
-                            .map(id -> FieldValue.of(id))
+                            .map(FieldValue::of)
                             .toList())))._toQuery());
             
             visibilityBuilder.should(followersPostBuilder.build()._toQuery());
