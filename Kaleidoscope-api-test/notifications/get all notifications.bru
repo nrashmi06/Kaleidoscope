@@ -1,0 +1,61 @@
+meta {
+  name: get all notifications
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/notifications?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 20
+  ~isRead: false
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Get All Notifications (Paginated)
+
+  Retrieves paginated list of notifications for the authenticated user.
+
+  ## Query Parameters
+  - `page` (optional): Page number (0-indexed), default: 0
+  - `size` (optional): Page size, default: 20
+  - `isRead` (optional): Filter by read status (true/false). If not provided, returns all notifications
+
+  ## Sorting
+  - Default: Sorted by `createdAt` DESC (newest first)
+
+  ## Response
+  Returns both the paginated notifications and current unread count:
+  ```json
+  {
+    "success": true,
+    "message": "Notifications retrieved successfully",
+    "data": {
+      "notifications": {
+        "content": [...],
+        "page": 0,
+        "size": 20,
+        "totalPages": 3,
+        "totalElements": 45,
+        "first": true,
+        "last": false
+      },
+      "unreadCount": 12
+    }
+  }
+  ```
+}
+

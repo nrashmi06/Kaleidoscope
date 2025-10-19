@@ -1,0 +1,41 @@
+meta {
+  name: get read notifications
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/notifications?isRead=true&page=0&size=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  isRead: true
+  page: 0
+  size: 20
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Get Read Notifications
+
+  Retrieves only read notifications for the authenticated user.
+
+  ## Query Parameters
+  - `isRead`: Set to `true` to get only read notifications
+  - `page` (optional): Page number (0-indexed)
+  - `size` (optional): Page size
+
+  ## Use Case
+  - Display notification history
+  - Show past notifications user has already seen
+}
+

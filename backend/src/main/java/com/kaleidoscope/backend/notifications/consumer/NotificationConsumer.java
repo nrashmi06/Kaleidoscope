@@ -6,11 +6,12 @@ import com.kaleidoscope.backend.async.exception.async.StreamDeserializationExcep
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.notifications.model.Notification;
 import com.kaleidoscope.backend.notifications.repository.NotificationRepository;
+import com.kaleidoscope.backend.notifications.service.NotificationSseService;
+import com.kaleidoscope.backend.shared.config.ApplicationProperties;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.NotificationType;
 import com.kaleidoscope.backend.shared.model.Comment;
 import com.kaleidoscope.backend.shared.repository.CommentRepository;
-import com.kaleidoscope.backend.shared.config.ApplicationProperties;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserNotificationPreferences;
 import com.kaleidoscope.backend.users.repository.UserNotificationPreferencesRepository;
@@ -18,6 +19,7 @@ import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,11 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
     private final EmailService emailService;
     private final ApplicationProperties applicationProperties;
     private final CommentRepository commentRepository;
+    private final NotificationSseService notificationSseService;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    private static final String UNREAD_COUNT_KEY_PATTERN = "user:%d:notifications:unseen_count";
+    private static final long REDIS_TTL_HOURS = 24;
 
     @Override
     @Transactional
@@ -102,6 +109,21 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
             notificationRepository.save(notification);
             log.info("Saved notification to database - notificationId: {}, recipientUserId: {}",
                     notification.getNotificationId(), event.recipientUserId());
+
+            // Increment unread count in Redis and send SSE update
+            String countKey = String.format(UNREAD_COUNT_KEY_PATTERN, event.recipientUserId());
+            Long newCount = stringRedisTemplate.opsForValue().increment(countKey);
+
+            if (newCount != null) {
+                // Set TTL on the key if this is the first increment
+                if (newCount == 1) {
+                    stringRedisTemplate.expire(countKey, REDIS_TTL_HOURS, java.util.concurrent.TimeUnit.HOURS);
+                }
+
+                // Send count update via SSE
+                notificationSseService.sendCountUpdate(event.recipientUserId(), newCount);
+                log.debug("Incremented unread count to {} for userId: {}", newCount, event.recipientUserId());
+            }
 
             // Send email notification if enabled
             if (emailEnabled) {
