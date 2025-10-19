@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.async.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.kaleidoscope.backend.async.exception.async.StreamPublishException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,14 +39,22 @@ public class RedisStreamPublisher {
                     applicationName, streamName, eventDto.getClass().getSimpleName());
 
             // Convert the DTO to a Map with proper String conversion
+            // Use TypeReference for robust conversion of generic types
             Map<String, Object> rawMap = objectMapper.convertValue(eventDto, new TypeReference<Map<String, Object>>() {});
 
-            // Convert all values to Strings to ensure Redis compatibility
+            // CRITICAL FIX: Convert complex objects (like Map/List) to JSON string
             Map<String, String> messagePayload = new HashMap<>();
             for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
-                String key = entry.getKey();
                 Object value = entry.getValue();
-                messagePayload.put(key, value != null ? value.toString() : null);
+                if (value == null) {
+                    messagePayload.put(entry.getKey(), null);
+                } else if (value instanceof Map || value instanceof List) {
+                    // Use ObjectMapper to serialize complex objects into a valid JSON string
+                    messagePayload.put(entry.getKey(), objectMapper.writeValueAsString(value));
+                } else {
+                    // Simple types (Long, String, Enum) can use toString()
+                    messagePayload.put(entry.getKey(), value.toString());
+                }
             }
 
             MapRecord<String, String, String> record = MapRecord.create(streamName, messagePayload);
@@ -52,6 +62,13 @@ public class RedisStreamPublisher {
 
             log.info("[{}] Successfully published event to Redis Stream '{}': messageId={}, payload={}",
                     applicationName, streamName, messageId, messagePayload);
+        } catch (JsonProcessingException e) {
+            log.error("[{}] Failed to serialize event to JSON for Redis Stream '{}': eventType={}, error={}",
+                     applicationName, streamName, eventDto.getClass().getSimpleName(), e.getMessage(), e);
+
+            if (CRITICAL_STREAMS.contains(streamName)) {
+                throw new StreamPublishException(streamName, "Critical event serialization failed", e);
+            }
         } catch (Exception e) {
             log.error("[{}] Failed to publish event to Redis Stream '{}': eventType={}, error={}",
                      applicationName, streamName, eventDto.getClass().getSimpleName(), e.getMessage(), e);
