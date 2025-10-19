@@ -244,5 +244,4 @@ public class FollowServiceImpl implements FollowService {
             return PaginatedResponse.fromPage(Page.empty(pageable));
         }
     }
-
 }

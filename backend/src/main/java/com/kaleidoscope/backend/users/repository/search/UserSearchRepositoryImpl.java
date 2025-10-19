@@ -5,7 +5,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.document.UserDocument;
-import com.kaleidoscope.backend.users.enums.Visibility;
+import com.kaleidoscope.backend.users.enums.Visibility; // Added import
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -92,7 +92,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .map(SearchHit::getContent)
                 .collect(Collectors.toList());
 
-        log.info("Elasticsearch query returned {} results out of {} total hits", 
+        log.info("Elasticsearch query returned {} results out of {} total hits",
                 userDocuments.size(), searchHits.getTotalHits());
 
         return new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
@@ -124,8 +124,9 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         )));
 
         // Must have PUBLIC tagging preference (using .keyword sub-field)
+        // Assuming allowTagging is mapped as 'keyword' or you might need .keyword
         boolQueryBuilder.must(Query.of(q -> q.term(t -> t
-                .field("allowTagging.keyword")
+                .field("allowTagging")
                 .value(Visibility.PUBLIC.name())
         )));
 
@@ -187,7 +188,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .map(SearchHit::getContent)
                 .collect(Collectors.toList());
 
-        log.info("Elasticsearch query returned {} taggable users out of {} total hits", 
+        log.info("Elasticsearch query returned {} taggable users out of {} total hits",
                 userDocuments.size(), searchHits.getTotalHits());
 
         return new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
@@ -216,7 +217,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .map(SearchHit::getContent)
                 .collect(Collectors.toList());
 
-        log.info("Retrieved {} blocked users out of {} total hits", 
+        log.info("Retrieved {} blocked users out of {} total hits",
                 userDocuments.size(), searchHits.getTotalHits());
 
         return new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
@@ -245,7 +246,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .map(SearchHit::getContent)
                 .collect(Collectors.toList());
 
-        log.info("Retrieved {} users who blocked current user out of {} total hits", 
+        log.info("Retrieved {} users who blocked current user out of {} total hits",
                 userDocuments.size(), searchHits.getTotalHits());
 
         return new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
@@ -261,7 +262,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
             List<Long> targetUserInterests,
             String targetUserDesignation,
             Pageable pageable) {
-        
+
         log.info("Executing Elasticsearch query for follow suggestions - targetUserId: {}", targetUserId);
         log.debug("Context - Exclusions: {}, Blocked: {}, BlockedBy: {}, FriendsOfFriends: {}",
                 exclusions.size(), blockedUserIds.size(), blockedByUserIds.size(), friendsOfFriendsIds.size());
@@ -273,11 +274,11 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         log.debug("Adding Friends-of-Friends scoring function with {} candidates", friendsOfFriendsIds.size());
         if (friendsOfFriendsIds != null && !friendsOfFriendsIds.isEmpty()) {
             functions.add(new FunctionScore.Builder()
-                .filter(TermsQuery.of(t -> t
-                    .field("userId")
-                    .terms(ts -> ts.value(friendsOfFriendsIds.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery())
-                .weight(10.0)
+                    .filter(TermsQuery.of(t -> t
+                            .field("userId")
+                            .terms(ts -> ts.value(friendsOfFriendsIds.stream().map(FieldValue::of).collect(Collectors.toList())))
+                    )._toQuery())
+                    .weight(10.0)
             );
         }
 
@@ -285,11 +286,11 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         log.debug("Adding Interest-based scoring function");
         if (targetUserInterests != null && !targetUserInterests.isEmpty()) {
             functions.add(new FunctionScore.Builder()
-                .filter(TermsQuery.of(t -> t
-                    .field("interests")
-                    .terms(ts -> ts.value(targetUserInterests.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery())
-                .weight(5.0)
+                    .filter(TermsQuery.of(t -> t
+                            .field("interests")
+                            .terms(ts -> ts.value(targetUserInterests.stream().map(FieldValue::of).collect(Collectors.toList())))
+                    )._toQuery())
+                    .weight(5.0)
             );
         }
 
@@ -297,52 +298,58 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         log.debug("Adding Designation-based scoring function");
         if (targetUserDesignation != null && !targetUserDesignation.isBlank()) {
             functions.add(new FunctionScore.Builder()
-                .filter(MatchQuery.of(m -> m
-                    .field("designation")
-                    .query(targetUserDesignation)
-                )._toQuery())
-                .weight(2.0)
+                    .filter(MatchQuery.of(m -> m
+                            .field("designation")
+                            .query(targetUserDesignation)
+                    )._toQuery())
+                    .weight(2.0)
             );
         }
 
         // Function 4: Popularity Boost for Cold Start (Follower Count)
         log.debug("Adding Follower Count boost for cold start scenarios");
         functions.add(new FunctionScore.Builder()
-            .filter(ExistsQuery.of(e -> e
-                .field("followerCount")
-            )._toQuery())
-            .weight(0.75)
+                .filter(ExistsQuery.of(e -> e
+                        .field("followerCount")
+                )._toQuery())
+                .weight(0.75)
         );
 
         // Function 5: Recently Active Users Boost (for Diversity)
         log.debug("Adding Recent Activity boost for diversity");
         functions.add(new FunctionScore.Builder()
-            .filter(ExistsQuery.of(e -> e
-                .field("lastSeen")
-            )._toQuery())
-            .weight(1.5)
+                .filter(ExistsQuery.of(e -> e
+                        .field("lastSeen")
+                )._toQuery())
+                .weight(1.5)
         );
 
-        // Build main query with blocking filters
-        log.debug("Building main query with blocking filters");
+        // Build main query with blocking and visibility filters
+        log.debug("Building main query with blocking and visibility filters");
         BoolQuery.Builder mainQueryBuilder = new BoolQuery.Builder()
-            // Filter for ACTIVE users only
-            .must(TermQuery.of(t -> t
-                .field("accountStatus")
-                .value(AccountStatus.ACTIVE.name())
-            )._toQuery())
-            // Exclude already followed users and self
-            .mustNot(TermsQuery.of(t -> t
-                .field("userId")
-                .terms(ts -> ts.value(exclusions.stream().map(FieldValue::of).collect(Collectors.toList())))
-            )._toQuery());
+                // Filter for ACTIVE users only
+                .must(TermQuery.of(t -> t
+                        .field("accountStatus")
+                        .value(AccountStatus.ACTIVE.name())
+                )._toQuery())
+                // Exclude already followed users and self
+                .mustNot(TermsQuery.of(t -> t
+                        .field("userId")
+                        .terms(ts -> ts.value(exclusions.stream().map(FieldValue::of).collect(Collectors.toList())))
+                )._toQuery())
+                // ******* ADDED FILTER: Must NOT have profileVisibility = NO_ONE *******
+                .mustNot(TermQuery.of(t -> t
+                        .field("profileVisibility") // Assuming profileVisibility is indexed as keyword in UserDocument
+                        .value(Visibility.NO_ONE.name())
+                )._toQuery());
+
 
         // Exclude users blocked by target user
         if (blockedUserIds != null && !blockedUserIds.isEmpty()) {
             log.debug("Adding filter to exclude {} users blocked by target user", blockedUserIds.size());
             mainQueryBuilder.mustNot(TermsQuery.of(t -> t
-                .field("userId")
-                .terms(ts -> ts.value(blockedUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
+                    .field("userId")
+                    .terms(ts -> ts.value(blockedUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
             )._toQuery());
         }
 
@@ -350,17 +357,17 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         if (blockedByUserIds != null && !blockedByUserIds.isEmpty()) {
             log.debug("Adding filter to exclude {} users who blocked target user", blockedByUserIds.size());
             mainQueryBuilder.mustNot(TermsQuery.of(t -> t
-                .field("userId")
-                .terms(ts -> ts.value(blockedByUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
+                    .field("userId")
+                    .terms(ts -> ts.value(blockedByUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
             )._toQuery());
         }
 
         Query mainQuery = mainQueryBuilder.build()._toQuery();
 
         FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
-            .query(mainQuery)
-            .functions(functions.stream().map(FunctionScore.Builder::build).collect(Collectors.toList()))
-            .scoreMode(FunctionScoreMode.Sum)
+                .query(mainQuery)
+                .functions(functions.stream().map(FunctionScore.Builder::build).collect(Collectors.toList()))
+                .scoreMode(FunctionScoreMode.Sum)
         );
 
         // Build the native query with pagination
@@ -373,13 +380,12 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
 
         List<UserDocument> userDocuments = searchHits.getSearchHits().stream()
-            .map(SearchHit::getContent)
-            .collect(Collectors.toList());
+                .map(SearchHit::getContent)
+                .collect(Collectors.toList());
 
-        log.info("Returned {} suggestions for user {} out of {} total hits", 
+        log.info("Returned {} suggestions for user {} out of {} total hits",
                 userDocuments.size(), targetUserId, searchHits.getTotalHits());
 
         return new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
     }
 }
-
