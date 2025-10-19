@@ -1,0 +1,19 @@
+meta {
+  name: follow /unfollow user
+  type: http
+  seq: 4
+}
+
+delete {
+  url: http://localhost:8080/kaleidoscope/api/follows?targetUserId=3
+  body: none
+  auth: inherit
+}
+
+params:query {
+  targetUserId: 3
+}
+
+settings {
+  encodeUrl: true
+}
