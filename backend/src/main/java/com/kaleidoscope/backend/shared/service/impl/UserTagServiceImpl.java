@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.shared.service.impl;
 
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.UserTagResponseDTO;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -43,6 +45,7 @@ public class UserTagServiceImpl implements UserTagService {
     private final UserTagMapper userTagMapper;
     private final JwtUtils jwtUtils;
     private final UserSearchRepository userSearchRepository;
+    private final RedisStreamPublisher redisStreamPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -123,6 +126,40 @@ public class UserTagServiceImpl implements UserTagService {
         UserTag savedTag = userTagRepository.save(userTag);
         log.info("Created user tag with ID: {}", savedTag.getTagId());
 
+        // Publish notification event for MENTION
+        try {
+            // Determine if this is a post or comment mention
+            com.kaleidoscope.backend.shared.enums.NotificationType notifType =
+                    (requestDTO.contentType() == ContentType.COMMENT)
+                            ? com.kaleidoscope.backend.shared.enums.NotificationType.MENTION_COMMENT
+                            : com.kaleidoscope.backend.shared.enums.NotificationType.MENTION_POST;
+
+            // Only publish if tagger is not the same as tagged user
+            if (!currentUserId.equals(requestDTO.taggedUserId())) {
+                Map<String, String> additionalData = Map.of(
+                        "taggerUsername", taggerUser.getUsername(),
+                        "contentType", requestDTO.contentType().name()
+                );
+
+                com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                        new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                                notifType,
+                                requestDTO.taggedUserId(),
+                                currentUserId,
+                                requestDTO.contentId(),
+                                requestDTO.contentType(),
+                                additionalData,
+                                org.slf4j.MDC.get("correlationId")
+                        );
+
+                redisStreamPublisher.publish("notification-events", notificationEvent);
+                log.debug("[createUserTag] Published {} notification event for tagged user {}", notifType, requestDTO.taggedUserId());
+            }
+        } catch (Exception e) {
+            log.error("[createUserTag] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
         return userTagMapper.toDTO(savedTag);
     }
 
@@ -175,4 +212,3 @@ public class UserTagServiceImpl implements UserTagService {
         log.info("Successfully deleted tag with ID: {}", tagId);
     }
 }
-

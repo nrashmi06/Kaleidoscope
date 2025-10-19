@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.users.service.impl;
 
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
@@ -50,6 +51,7 @@ public class FollowServiceImpl implements FollowService {
     private final UserSearchRepository userSearchRepository;
     private final FollowRequestRepository followRequestRepository;
     private final UserPreferencesRepository userPreferencesRepository;
+    private final RedisStreamPublisher redisStreamPublisher;
 
     /**
      * Get users that the current user has blocked (unidirectional blocking)
@@ -89,6 +91,32 @@ public class FollowServiceImpl implements FollowService {
         followDocumentSyncService.syncOnFollow(follow);
 
         log.info("Direct follow created: User {} is now following User {}", follower.getUserId(), following.getUserId());
+
+        // Publish notification event for NEW_FOLLOWER
+        try {
+            Map<String, String> additionalData = Map.of(
+                "followerUsername", follower.getUsername(),
+                "followerProfilePicture", follower.getProfilePictureUrl() != null ? follower.getProfilePictureUrl() : ""
+            );
+
+            com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                    com.kaleidoscope.backend.shared.enums.NotificationType.NEW_FOLLOWER,
+                    following.getUserId(),
+                    follower.getUserId(),
+                    null,
+                    null,
+                    additionalData,
+                    org.slf4j.MDC.get("correlationId")
+                );
+
+            redisStreamPublisher.publish("notification-events", notificationEvent);
+            log.debug("[createDirectFollow] Published NEW_FOLLOWER notification event for user {}", following.getUserId());
+        } catch (Exception e) {
+            log.error("[createDirectFollow] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
         return follow;
     }
 
@@ -108,8 +136,33 @@ public class FollowServiceImpl implements FollowService {
 
         followRequest = followRequestRepository.save(followRequest);
 
-        // TODO: Send notification to requestee
         log.info("Follow request created: User {} sent follow request to User {}", requester.getUserId(), requestee.getUserId());
+
+        // Publish notification event for FOLLOW_REQUEST
+        try {
+            Map<String, String> additionalData = Map.of(
+                "requesterUsername", requester.getUsername(),
+                "requesterProfilePicture", requester.getProfilePictureUrl() != null ? requester.getProfilePictureUrl() : ""
+            );
+
+            com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                    com.kaleidoscope.backend.shared.enums.NotificationType.FOLLOW_REQUEST,
+                    requestee.getUserId(),
+                    requester.getUserId(),
+                    null,
+                    null,
+                    additionalData,
+                    org.slf4j.MDC.get("correlationId")
+                );
+
+            redisStreamPublisher.publish("notification-events", notificationEvent);
+            log.debug("[createFollowRequest] Published FOLLOW_REQUEST notification event for user {}", requestee.getUserId());
+        } catch (Exception e) {
+            log.error("[createFollowRequest] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
         return followRequest;
     }
 
@@ -225,7 +278,31 @@ public class FollowServiceImpl implements FollowService {
         // Create the follow relationship with ES sync
         createDirectFollow(requester, requestee);
 
-        // TODO: Send notification to requester about approval
+        // Publish notification event for FOLLOW_ACCEPT
+        try {
+            Map<String, String> additionalData = Map.of(
+                "requesteeUsername", requestee.getUsername(),
+                "requesteeProfilePicture", requestee.getProfilePictureUrl() != null ? requestee.getProfilePictureUrl() : ""
+            );
+
+            com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                    com.kaleidoscope.backend.shared.enums.NotificationType.FOLLOW_ACCEPT,
+                    requester.getUserId(),
+                    requestee.getUserId(),
+                    null,
+                    null,
+                    additionalData,
+                    org.slf4j.MDC.get("correlationId")
+                );
+
+            redisStreamPublisher.publish("notification-events", notificationEvent);
+            log.debug("[approveFollowRequest] Published FOLLOW_ACCEPT notification event for requester {}", requester.getUserId());
+        } catch (Exception e) {
+            log.error("[approveFollowRequest] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
         log.info("Follow request approved: User {} approved request from User {}", currentUserId, requesterUserId);
     }
 

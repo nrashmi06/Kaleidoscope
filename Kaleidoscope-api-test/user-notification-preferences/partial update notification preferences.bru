@@ -18,7 +18,8 @@ headers {
 body:json {
   {
     "likesEmail": true,
-    "commentsPush": true
+    "commentsPush": true,
+    "followRequestPush": false
   }
 }
 
@@ -34,6 +35,7 @@ tests {
   test("Partial fields updated", function () {
     const data = res.getBody().data;
     expect(data.likesEmail).to.equal(true);
-    expect(data.commentsPush).to.equal(false);
+    expect(data.commentsPush).to.equal(true);
+    expect(data.followRequestPush).to.equal(false);
   });
 }
