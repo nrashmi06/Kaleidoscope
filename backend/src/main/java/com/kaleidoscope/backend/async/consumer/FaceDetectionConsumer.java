@@ -15,14 +15,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Service
+@Component // Changed from @Service for injection into RedisStreamConfig
 @RequiredArgsConstructor
 @Slf4j
 public class FaceDetectionConsumer implements StreamListener<String, MapRecord<String, String, String>> {
@@ -34,9 +34,11 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
+        // Retrieve the message ID for logging/XACK reference
+        String messageId = record.getId().getValue();
         try {
             log.info("Received face detection message from Redis Stream: streamKey={}, messageId={}", 
-                    record.getStream(), record.getId());
+                    record.getStream(), messageId);
 
             // Deserialization: Convert the incoming MapRecord message into FaceDetectionResultDTO
             FaceDetectionResultDTO resultDTO = convertMapRecordToDTO(record);
@@ -58,17 +60,17 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}", 
                     mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
 
-            log.info("Successfully processed face detection for mediaId: {} - created face record with ID: {}", 
-                    resultDTO.getMediaId(), savedFace.getId());
+            log.info("Successfully processed face detection for mediaId: {} and messageId: {} - created face record with ID: {}",
+                    resultDTO.getMediaId(), messageId, savedFace.getId());
 
         } catch (MediaAiInsightsNotFoundException | StreamDeserializationException | BboxParsingException e) {
-            log.error("Error processing face detection message from Redis Stream: streamKey={}, messageId={}, error={}",
-                    record.getStream(), record.getId(), e.getMessage(), e);
-            throw e; // Re-throw specific exceptions
+            log.error("Error processing face detection message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw e; // Re-throw specific exceptions to prevent XACK
         } catch (Exception e) {
-            log.error("Unexpected error processing face detection message from Redis Stream: streamKey={}, messageId={}, error={}",
-                    record.getStream(), record.getId(), e.getMessage(), e);
-            throw new StreamMessageProcessingException(record.getStream(), record.getId().getValue(),
+            log.error("Unexpected error processing face detection message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw new StreamMessageProcessingException(record.getStream(), messageId,
                     "Unexpected error during face detection processing", e);
         }
     }

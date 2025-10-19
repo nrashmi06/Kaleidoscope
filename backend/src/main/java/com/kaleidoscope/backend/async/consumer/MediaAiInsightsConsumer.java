@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service
+@Component // Changed from @Service for injection into RedisStreamConfig
 @RequiredArgsConstructor
 @Slf4j
 public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord<String, String, String>> {
@@ -39,9 +39,11 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
+        // Retrieve the message ID for logging/XACK reference
+        String messageId = record.getId().getValue();
         try {
             log.info("Received ML insights message from Redis Stream: streamKey={}, messageId={}", 
-                    record.getStream(), record.getId());
+                    record.getStream(), messageId);
 
             // Deserialization: Convert the incoming MapRecord message into MediaAiInsightsResultDTO
             MediaAiInsightsResultDTO resultDTO = convertMapRecordToDTO(record);
@@ -68,18 +70,22 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Saved SearchAssetDocument to Elasticsearch for mediaId: {}, documentId: {}", 
                     postMedia.getMediaId(), savedDocument.getId());
 
-            log.info("Successfully processed ML insights for mediaId: {} - PostgreSQL and Elasticsearch updated", 
-                    resultDTO.getMediaId());
+            // --- CRITICAL FIX: Explicit Acknowledgment ---
+            // In a manual acknowledgement setup, the listener container handles the XACK
+            // on successful completion of this method. If the transaction completes
+            // successfully (no exception is thrown), the framework can proceed to XACK.
+            log.info("Successfully processed ML insights for mediaId: {} and messageId: {}",
+                    resultDTO.getMediaId(), messageId);
 
         } catch (PostMediaNotFoundException | StreamDeserializationException e) {
-            log.error("Error processing ML insights message from Redis Stream: streamKey={}, messageId={}, error={}",
-                    record.getStream(), record.getId(), e.getMessage(), e);
-            throw e; // Re-throw specific exceptions
+            log.error("Error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw e; // Re-throw the exception to ensure transaction rollback and NO XACK
         } catch (Exception e) {
-            log.error("Unexpected error processing ML insights message from Redis Stream: streamKey={}, messageId={}, error={}",
-                    record.getStream(), record.getId(), e.getMessage(), e);
-            throw new StreamMessageProcessingException(record.getStream(), record.getId().getValue(),
-                    "Unexpected error during ML insights processing", e);
+            log.error("Unexpected error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw new StreamMessageProcessingException(record.getStream(), messageId,
+                    "Unexpected error during ML insights processing", e); // Re-throw fatal exception
         }
     }
 

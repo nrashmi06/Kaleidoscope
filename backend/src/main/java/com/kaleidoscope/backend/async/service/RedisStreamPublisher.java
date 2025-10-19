@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.exception.async.StreamPublishException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,10 @@ public class RedisStreamPublisher {
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
 
+    // Inject application name for logging clarity
+    @Value("${spring.application.name:kaleidoscope-backend}")
+    private String applicationName;
+
     // Add configuration for critical vs non-critical events
     private static final Set<String> CRITICAL_STREAMS = Set.of(
         "media-ai-insights", "face-detection", "face-recognition"
@@ -28,7 +33,8 @@ public class RedisStreamPublisher {
 
     public void publish(String streamName, Object eventDto) {
         try {
-            log.info("Publishing event to Redis Stream '{}': eventType={}", streamName, eventDto.getClass().getSimpleName());
+            log.info("[{}] Publishing event to Redis Stream '{}': eventType={}",
+                    applicationName, streamName, eventDto.getClass().getSimpleName());
 
             // Convert the DTO to a Map with proper String conversion
             Map<String, Object> rawMap = objectMapper.convertValue(eventDto, new TypeReference<Map<String, Object>>() {});
@@ -44,11 +50,11 @@ public class RedisStreamPublisher {
             MapRecord<String, String, String> record = MapRecord.create(streamName, messagePayload);
             String messageId = stringRedisTemplate.opsForStream().add(record).getValue();
 
-            log.info("Successfully published event to Redis Stream '{}': messageId={}, payload={}",
-                    streamName, messageId, messagePayload);
+            log.info("[{}] Successfully published event to Redis Stream '{}': messageId={}, payload={}",
+                    applicationName, streamName, messageId, messagePayload);
         } catch (Exception e) {
-            log.error("Failed to publish event to Redis Stream '{}': eventType={}, error={}",
-                     streamName, eventDto.getClass().getSimpleName(), e.getMessage(), e);
+            log.error("[{}] Failed to publish event to Redis Stream '{}': eventType={}, error={}",
+                     applicationName, streamName, eventDto.getClass().getSimpleName(), e.getMessage(), e);
 
             // For critical streams, rethrow to ensure caller handles the failure
             if (CRITICAL_STREAMS.contains(streamName)) {

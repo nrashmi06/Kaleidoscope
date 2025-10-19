@@ -19,13 +19,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Service
+@Component // Changed from @Service for injection into RedisStreamConfig
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationConsumer implements StreamListener<String, MapRecord<String, String, String>> {
@@ -41,8 +41,10 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
+        // Retrieve the message ID for logging/XACK reference
+        String messageId = record.getId().getValue();
         try {
-            log.info("Received notification event from stream: {}, messageId: {}", record.getStream(), record.getId());
+            log.info("Received notification event from stream: {}, messageId: {}", record.getStream(), messageId);
 
             // Deserialize the event
             NotificationEventDTO event = convertMapRecordToDTO(record);
@@ -125,11 +127,11 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
 
         } catch (StreamDeserializationException e) {
             log.error("Error deserializing notification event from stream: {}, messageId: {}, error: {}",
-                    record.getStream(), record.getId(), e.getMessage(), e);
+                    record.getStream(), messageId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
             log.error("Error processing notification event from stream: {}, messageId: {}", 
-                    record.getStream(), record.getId(), e);
+                    record.getStream(), messageId, e);
         }
     }
 

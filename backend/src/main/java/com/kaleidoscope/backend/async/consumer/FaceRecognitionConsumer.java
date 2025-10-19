@@ -1,6 +1,5 @@
 package com.kaleidoscope.backend.async.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.FaceRecognitionResultDTO;
 import com.kaleidoscope.backend.async.exception.async.MediaDetectedFaceNotFoundException;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
@@ -15,26 +14,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class FaceRecognitionConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
-    private final ObjectMapper objectMapper;
     private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
     private final UserRepository userRepository;
 
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
+        // Retrieve the message ID for logging/XACK reference
+        String messageId = record.getId().getValue();
         try {
             log.info("Received face recognition message from Redis Stream: streamKey={}, messageId={}", 
-                    record.getStream(), record.getId());
+                    record.getStream(), messageId);
 
             // Deserialization: Convert the incoming MapRecord message into FaceRecognitionResultDTO
             FaceRecognitionResultDTO resultDTO = convertMapRecordToDTO(record);
@@ -66,17 +66,17 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                     updatedFace.getId(), updatedFace.getStatus(), updatedFace.getSuggestedUser().getUsername(), 
                     updatedFace.getConfidenceScore());
 
-            log.info("Successfully processed face recognition for faceId: {} - updated with suggested user: {}", 
-                    resultDTO.getFaceId(), suggestedUser.getUsername());
+            log.info("Successfully processed face recognition for faceId: {} and messageId: {} - updated with suggested user: {}",
+                    resultDTO.getFaceId(), messageId, suggestedUser.getUsername());
 
         } catch (MediaDetectedFaceNotFoundException | UserNotFoundException | StreamDeserializationException e) {
-            log.error("Error processing face recognition message from Redis Stream: streamKey={}, messageId={}, error={}",
-                    record.getStream(), record.getId(), e.getMessage(), e);
-            throw e; // Re-throw specific exceptions
+            log.error("Error processing face recognition message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw e; // Re-throw specific exceptions to prevent XACK
         } catch (Exception e) {
-            log.error("Unexpected error processing face recognition message from Redis Stream: streamKey={}, messageId={}, error={}",
-                    record.getStream(), record.getId(), e.getMessage(), e);
-            throw new StreamMessageProcessingException(record.getStream(), record.getId().getValue(),
+            log.error("Unexpected error processing face recognition message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw new StreamMessageProcessingException(record.getStream(), messageId,
                     "Unexpected error during face recognition processing", e);
         }
     }
