@@ -1,0 +1,61 @@
+meta {
+  name: mark notification as read
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{base_url}}/api/notifications/1/read
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Mark Notification as Read
+
+  Marks a specific notification as read and updates the unread count.
+
+  ## Path Parameters
+  - `notificationId`: ID of the notification to mark as read
+
+  ## Behavior
+  - Sets `isRead` to `true` for the notification
+  - Decrements unread count in Redis
+  - Broadcasts updated count via SSE to connected clients
+  - If notification is already read, no changes are made
+
+  ## Authorization
+  - Only the notification owner can mark it as read
+  - Returns 403 Forbidden if user doesn't own the notification
+
+  ## Response
+  Returns the updated notification:
+  ```json
+  {
+    "success": true,
+    "message": "Notification marked as read",
+    "data": {
+      "notificationId": 1,
+      "type": "NEW_COMMENT",
+      "message": "John commented on your post.",
+      "link": "/posts/123",
+      "isRead": true,
+      "createdAt": "2025-10-19T12:30:00",
+      "actorUserId": 2,
+      "actorUsername": "john_doe",
+      "actorProfilePictureUrl": "https://...",
+      "contentId": 123,
+      "contentType": "POST"
+    }
+  }
+  ```
+}
+

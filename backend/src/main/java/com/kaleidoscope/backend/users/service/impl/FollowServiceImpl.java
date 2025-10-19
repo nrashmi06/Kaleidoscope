@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.users.service.impl;
 
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
@@ -7,15 +8,18 @@ import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.response.FollowListResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
-import com.kaleidoscope.backend.users.exception.follow.FollowRelationshipNotFoundException;
+import com.kaleidoscope.backend.users.enums.Visibility;
+import com.kaleidoscope.backend.users.exception.follow.FollowRequestAlreadyExistsException;
+import com.kaleidoscope.backend.users.exception.follow.FollowRequestNotFoundException;
 import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;
 import com.kaleidoscope.backend.users.exception.follow.UserAlreadyFollowedException;
 import com.kaleidoscope.backend.users.mapper.FollowMapper;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
-import com.kaleidoscope.backend.users.model.Follow;
-import com.kaleidoscope.backend.users.model.UserBlock;
+import com.kaleidoscope.backend.users.model.*;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
+import com.kaleidoscope.backend.users.repository.FollowRequestRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
+import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import com.kaleidoscope.backend.users.service.FollowDocumentSyncService;
 import com.kaleidoscope.backend.users.service.FollowService;
@@ -24,23 +28,12 @@ import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.query_dsl.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -55,8 +48,10 @@ public class FollowServiceImpl implements FollowService {
     private final UserBlockRepository userBlockRepository;
     private final UserDocumentSyncService userDocumentSyncService;
     private final FollowDocumentSyncService followDocumentSyncService;
-    private final ElasticsearchTemplate elasticsearchTemplate;
     private final UserSearchRepository userSearchRepository;
+    private final FollowRequestRepository followRequestRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
+    private final RedisStreamPublisher redisStreamPublisher;
 
     /**
      * Get users that the current user has blocked (unidirectional blocking)
@@ -80,9 +75,100 @@ public class FollowServiceImpl implements FollowService {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Helper method to create a direct follow relationship with Elasticsearch sync
+     */
+    private Follow createDirectFollow(User follower, User following) {
+        Follow follow = Follow.builder()
+                .follower(follower)
+                .following(following)
+                .build();
+
+        follow = followRepository.save(follow);
+
+        // Sync to Elasticsearch
+        userDocumentSyncService.syncOnFollowChange(follower.getUserId(), following.getUserId(), true);
+        followDocumentSyncService.syncOnFollow(follow);
+
+        log.info("Direct follow created: User {} is now following User {}", follower.getUserId(), following.getUserId());
+
+        // Publish notification event for NEW_FOLLOWER
+        try {
+            Map<String, String> additionalData = Map.of(
+                "followerUsername", follower.getUsername(),
+                "followerProfilePicture", follower.getProfilePictureUrl() != null ? follower.getProfilePictureUrl() : ""
+            );
+
+            com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                    com.kaleidoscope.backend.shared.enums.NotificationType.NEW_FOLLOWER,
+                    following.getUserId(),
+                    follower.getUserId(),
+                    null,
+                    null,
+                    additionalData,
+                    org.slf4j.MDC.get("correlationId")
+                );
+
+            redisStreamPublisher.publish("notification-events", notificationEvent);
+            log.debug("[createDirectFollow] Published NEW_FOLLOWER notification event for user {}", following.getUserId());
+        } catch (Exception e) {
+            log.error("[createDirectFollow] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
+        return follow;
+    }
+
+    /**
+     * Helper method to create a follow request without Elasticsearch sync
+     */
+    private FollowRequest createFollowRequest(User requester, User requestee) {
+        // Check if request already exists
+        if (followRequestRepository.existsByRequester_UserIdAndRequestee_UserId(requester.getUserId(), requestee.getUserId())) {
+            throw new FollowRequestAlreadyExistsException("Follow request already sent to this user");
+        }
+
+        FollowRequest followRequest = FollowRequest.builder()
+                .requester(requester)
+                .requestee(requestee)
+                .build();
+
+        followRequest = followRequestRepository.save(followRequest);
+
+        log.info("Follow request created: User {} sent follow request to User {}", requester.getUserId(), requestee.getUserId());
+
+        // Publish notification event for FOLLOW_REQUEST
+        try {
+            Map<String, String> additionalData = Map.of(
+                "requesterUsername", requester.getUsername(),
+                "requesterProfilePicture", requester.getProfilePictureUrl() != null ? requester.getProfilePictureUrl() : ""
+            );
+
+            com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                    com.kaleidoscope.backend.shared.enums.NotificationType.FOLLOW_REQUEST,
+                    requestee.getUserId(),
+                    requester.getUserId(),
+                    null,
+                    null,
+                    additionalData,
+                    org.slf4j.MDC.get("correlationId")
+                );
+
+            redisStreamPublisher.publish("notification-events", notificationEvent);
+            log.debug("[createFollowRequest] Published FOLLOW_REQUEST notification event for user {}", requestee.getUserId());
+        } catch (Exception e) {
+            log.error("[createFollowRequest] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
+        return followRequest;
+    }
+
     @Override
     @Transactional
-    public void followUser(Long targetUserId) {
+    public String followUser(Long targetUserId) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
 
         // Prevent self-following
@@ -98,35 +184,143 @@ public class FollowServiceImpl implements FollowService {
             throw new IllegalStateException("Cannot follow user due to blocking relationship");
         }
 
-        // Check if already following
-        if (followRepository.findByFollower_UserIdAndFollowing_UserId(currentUserId, targetUserId).isPresent()) {
-            throw new UserAlreadyFollowedException("Already following this user");
+        // Get current user and target user
+        User currentUser = userService.getUserById(currentUserId);
+        User targetUser = userService.getUserById(targetUserId);
+
+        // Fetch target user's preferences
+        UserPreferences targetPreferences = userPreferencesRepository.findByUser_UserId(targetUserId)
+                .orElseGet(() -> {
+                    // Return default preferences if not found
+                    UserPreferences defaultPrefs = new UserPreferences();
+                    defaultPrefs.setProfileVisibility(Visibility.PUBLIC);
+                    return defaultPrefs;
+                });
+
+        Visibility profileVisibility = targetPreferences.getProfileVisibility();
+
+        // Handle based on profile visibility
+        if (profileVisibility == Visibility.PUBLIC) {
+            // Check if already following
+            if (followRepository.existsByFollower_UserIdAndFollowing_UserId(currentUserId, targetUserId)) {
+                throw new UserAlreadyFollowedException("Already following this user");
+            }
+
+            // Clean up any existing follow request (in case profile visibility changed from FRIENDS_ONLY to PUBLIC)
+            followRequestRepository.deleteByRequester_UserIdAndRequestee_UserId(currentUserId, targetUserId);
+            log.debug("Cleaned up any existing follow request from User {} to User {} before creating direct follow",
+                    currentUserId, targetUserId);
+
+            // Create direct follow relationship
+            createDirectFollow(currentUser, targetUser);
+            return "FOLLOWED"; // Immediate follow
+        } else if (profileVisibility == Visibility.FRIENDS_ONLY) {
+            // Check if already following (shouldn't happen, but safety check)
+            if (followRepository.existsByFollower_UserIdAndFollowing_UserId(currentUserId, targetUserId)) {
+                throw new UserAlreadyFollowedException("Already following this user");
+            }
+            // Create follow request
+            createFollowRequest(currentUser, targetUser);
+            return "REQUEST_SENT"; // Follow request created
+        } else if (profileVisibility == Visibility.NO_ONE) {
+            throw new IllegalStateException("This user is not accepting follow requests");
         }
 
-        Follow follow = Follow.builder()
-                .follower(userService.getUserById(currentUserId))
-                .following(userService.getUserById(targetUserId))
-                .build();
-
-        follow = followRepository.save(follow);
-
-        // Sync to Elasticsearch
-        userDocumentSyncService.syncOnFollowChange(currentUserId, targetUserId, true);
-        followDocumentSyncService.syncOnFollow(follow);
+        return "FOLLOWED"; // Default case
     }
 
     @Override
     @Transactional
     public void unfollowUser(Long targetUserId) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
+
+        // Try to delete follow relationship
         Follow follow = followRepository.findByFollower_UserIdAndFollowing_UserId(currentUserId, targetUserId)
-                .orElseThrow(() -> new FollowRelationshipNotFoundException("Follow relationship not found"));
+                .orElse(null);
 
-        followRepository.delete(follow);
+        if (follow != null) {
+            followRepository.delete(follow);
 
-        // Sync to Elasticsearch
-        userDocumentSyncService.syncOnFollowChange(currentUserId, targetUserId, false);
-        followDocumentSyncService.syncOnUnfollow(currentUserId, targetUserId);
+            // Sync to Elasticsearch
+            userDocumentSyncService.syncOnFollowChange(currentUserId, targetUserId, false);
+            followDocumentSyncService.syncOnUnfollow(currentUserId, targetUserId);
+            log.info("User {} unfollowed User {}", currentUserId, targetUserId);
+        }
+
+        // Also delete any pending follow request
+        followRequestRepository.deleteByRequester_UserIdAndRequestee_UserId(currentUserId, targetUserId);
+        log.info("Deleted any pending follow request from User {} to User {}", currentUserId, targetUserId);
+    }
+
+    @Override
+    @Transactional
+    public void approveFollowRequest(Long requesterUserId) {
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+
+        // Find the follow request
+        FollowRequest followRequest = followRequestRepository
+                .findByRequester_UserIdAndRequestee_UserId(requesterUserId, currentUserId)
+                .orElseThrow(() -> new FollowRequestNotFoundException("Follow request not found"));
+
+        User requester = followRequest.getRequester();
+        User requestee = followRequest.getRequestee();
+
+        // Delete the request first
+        followRequestRepository.delete(followRequest);
+
+        // Check if follow relationship already exists (data inconsistency edge case)
+        if (followRepository.existsByFollower_UserIdAndFollowing_UserId(requesterUserId, currentUserId)) {
+            log.warn("Follow relationship already exists for User {} -> User {}. Skipping creation but request was deleted.",
+                    requesterUserId, currentUserId);
+            return;
+        }
+
+        // Create the follow relationship with ES sync
+        createDirectFollow(requester, requestee);
+
+        // Publish notification event for FOLLOW_ACCEPT
+        try {
+            Map<String, String> additionalData = Map.of(
+                "requesteeUsername", requestee.getUsername(),
+                "requesteeProfilePicture", requestee.getProfilePictureUrl() != null ? requestee.getProfilePictureUrl() : ""
+            );
+
+            com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                    com.kaleidoscope.backend.shared.enums.NotificationType.FOLLOW_ACCEPT,
+                    requester.getUserId(),
+                    requestee.getUserId(),
+                    null,
+                    null,
+                    additionalData,
+                    org.slf4j.MDC.get("correlationId")
+                );
+
+            redisStreamPublisher.publish("notification-events", notificationEvent);
+            log.debug("[approveFollowRequest] Published FOLLOW_ACCEPT notification event for requester {}", requester.getUserId());
+        } catch (Exception e) {
+            log.error("[approveFollowRequest] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
+        log.info("Follow request approved: User {} approved request from User {}", currentUserId, requesterUserId);
+    }
+
+    @Override
+    @Transactional
+    public void rejectFollowRequest(Long requesterUserId) {
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+
+        // Find the follow request
+        FollowRequest followRequest = followRequestRepository
+                .findByRequester_UserIdAndRequestee_UserId(requesterUserId, currentUserId)
+                .orElseThrow(() -> new FollowRequestNotFoundException("Follow request not found"));
+
+        // Delete the request
+        followRequestRepository.delete(followRequest);
+
+        // TODO: Send notification to requester about rejection (optional)
+        log.info("Follow request rejected: User {} rejected request from User {}", currentUserId, requesterUserId);
     }
 
     @Override
@@ -194,6 +388,23 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     @Transactional(readOnly = true)
+    public PaginatedResponse<UserDetailsSummaryResponseDTO> listPendingFollowRequests(Pageable pageable) {
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+
+        // Fetch pending requests where current user is the requestee (receiver)
+        Page<FollowRequest> requests = followRequestRepository
+                .findByRequestee_UserIdOrderByCreatedAtDesc(currentUserId, pageable);
+
+        // Map to UserDetailsSummaryResponseDTO (the requesters)
+        Page<UserDetailsSummaryResponseDTO> requesterPage = requests.map(request ->
+                UserMapper.toUserDetailsSummaryResponseDTO(request.getRequester())
+        );
+
+        return PaginatedResponse.fromPage(requesterPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PaginatedResponse<UserDetailsSummaryResponseDTO> getFollowSuggestions(Long userId, Pageable pageable) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         Long targetUserId = (userId == null) ? currentUserId : userId;
@@ -229,124 +440,22 @@ public class FollowServiceImpl implements FollowService {
             Set<Long> friendsOfFriendsIds = alreadyFollowingIds.isEmpty() ? Collections.emptySet()
                     : followRepository.findFollowingIdsByFollowerIds(alreadyFollowingIds);
 
-            // --- 2. Build the Function Score Query ---
-            List<FunctionScore.Builder> functions = new ArrayList<>();
-
-            // Function 1: Followers of Followers (Weight: 10.0)
-            log.debug("Adding Friends-of-Friends scoring function with {} candidates", friendsOfFriendsIds.size());
-            if (!friendsOfFriendsIds.isEmpty()) {
-                functions.add(new FunctionScore.Builder()
-                    .filter(TermsQuery.of(t -> t
-                        .field("userId")
-                        .terms(ts -> ts.value(friendsOfFriendsIds.stream().map(FieldValue::of).collect(Collectors.toList())))
-                    )._toQuery())
-                    .weight(10.0)
-                );
-            }
-
-            // Function 2: Shared Interests (Weight: 5.0)
-            log.debug("Adding Interest-based scoring function");
-            if (targetUserInterests != null && !targetUserInterests.isEmpty()) {
-                functions.add(new FunctionScore.Builder()
-                    .filter(TermsQuery.of(t -> t
-                        .field("interests")
-                        .terms(ts -> ts.value(targetUserInterests.stream().map(FieldValue::of).collect(Collectors.toList())))
-                    )._toQuery())
-                    .weight(5.0)
-                );
-            }
-
-            // Function 3: Similar Designation (Weight: 2.0)
-            log.debug("Adding Designation-based scoring function");
-            if (targetUserDesignation != null && !targetUserDesignation.isBlank()) {
-                functions.add(new FunctionScore.Builder()
-                    .filter(MatchQuery.of(m -> m
-                        .field("designation")
-                        .query(targetUserDesignation)
-                    )._toQuery())
-                    .weight(2.0)
-                );
-            }
-
-            // Function 4: Popularity Boost for Cold Start (Follower Count)
-            // Helps new users or users with few connections by gently boosting popular users
-            // Using an exists query to boost users who have follower count data
-            log.debug("Adding Follower Count boost for cold start scenarios");
-            functions.add(new FunctionScore.Builder()
-                .filter(ExistsQuery.of(e -> e
-                    .field("followerCount")
-                )._toQuery())
-                .weight(0.75)  // Small weight to provide gentle boost without overriding main signals
+            // Use custom repository method
+            Page<UserDocument> userDocumentPage = userSearchRepository.findFollowSuggestions(
+                    targetUserId,
+                    exclusions,
+                    blockedUserIds,
+                    blockedByUserIds,
+                    friendsOfFriendsIds,
+                    targetUserInterests,
+                    targetUserDesignation,
+                    pageable
             );
 
-            // Function 5: Recently Active Users Boost (for Diversity)
-            // Boosts users who have been seen recently to promote diverse, engaged suggestions
-            log.debug("Adding Recent Activity boost for diversity");
-            functions.add(new FunctionScore.Builder()
-                .filter(ExistsQuery.of(e -> e
-                    .field("lastSeen")
-                )._toQuery())
-                .weight(1.5)  // Moderate weight to influence but not dominate
-            );
-
-            // Build main query with blocking filters
-            log.debug("Building main query with blocking filters");
-            BoolQuery.Builder mainQueryBuilder = new BoolQuery.Builder()
-                // Filter for ACTIVE users only
-                .must(TermQuery.of(t -> t
-                    .field("accountStatus")
-                    .value(AccountStatus.ACTIVE.name())
-                )._toQuery())
-                // Exclude already followed users and self
-                .mustNot(TermsQuery.of(t -> t
-                    .field("userId")
-                    .terms(ts -> ts.value(exclusions.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery());
-
-            // Exclude users blocked by target user
-            if (!blockedUserIds.isEmpty()) {
-                log.debug("Adding filter to exclude {} users blocked by target user", blockedUserIds.size());
-                mainQueryBuilder.mustNot(TermsQuery.of(t -> t
-                    .field("userId")
-                    .terms(ts -> ts.value(blockedUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery());
-            }
-
-            // Exclude users who have blocked the target user
-            if (!blockedByUserIds.isEmpty()) {
-                log.debug("Adding filter to exclude {} users who blocked target user", blockedByUserIds.size());
-                mainQueryBuilder.mustNot(TermsQuery.of(t -> t
-                    .field("userId")
-                    .terms(ts -> ts.value(blockedByUserIds.stream().map(FieldValue::of).collect(Collectors.toList())))
-                )._toQuery());
-            }
-
-            Query mainQuery = mainQueryBuilder.build()._toQuery();
-
-            FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
-                .query(mainQuery)
-                .functions(functions.stream().map(FunctionScore.Builder::build).collect(Collectors.toList()))
-                .scoreMode(FunctionScoreMode.Sum)  // Sum all function scores for comprehensive ranking
-            );
-
-            // --- 3. Execute and Return ---
-            log.debug("Executing Elasticsearch query for user {} with {} scoring functions", targetUserId, functions.size());
-            NativeQuery nativeQuery = NativeQuery.builder()
-                    .withQuery(functionScoreQuery._toQuery())
-                    .withPageable(pageable)
-                    .build();
-
-            SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
-
-            List<UserDocument> userDocuments = searchHits.getSearchHits().stream()
-                .map(SearchHit::getContent)
-                .collect(Collectors.toList());
-
-            log.info("Returned {} suggestions for user {}", userDocuments.size(), targetUserId);
-
-            Page<UserDocument> userDocumentPage = new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
+            // Map to DTOs
             Page<UserDetailsSummaryResponseDTO> dtoPage = userDocumentPage.map(UserMapper::toUserDetailsSummaryResponseDTO);
 
+            log.info("Returned {} suggestions using custom repository for user {}", userDocumentPage.getNumberOfElements(), targetUserId);
             return PaginatedResponse.fromPage(dtoPage);
 
         } catch (Exception e) {
@@ -354,5 +463,4 @@ public class FollowServiceImpl implements FollowService {
             return PaginatedResponse.fromPage(Page.empty(pageable));
         }
     }
-
 }

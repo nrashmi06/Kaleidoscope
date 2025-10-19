@@ -70,6 +70,10 @@ public class UserDocument {
     @Field(type = FieldType.Keyword)
     private String allowTagging; // Visibility setting for tagging (PUBLIC, FRIENDS_ONLY, NO_ONE)
 
+    // --- Profile Visibility Preference ---
+    @Field(type = FieldType.Keyword)
+    private String profileVisibility; // Visibility setting (PUBLIC, FRIENDS_ONLY, NO_ONE)
+
     // --- Face Embedding for ML Similarity Search ---
     @Field(type = FieldType.Dense_Vector, dims = 1024) // Crucial for vector search
     private float[] faceEmbedding;

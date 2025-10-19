@@ -1,0 +1,57 @@
+meta {
+  name: delete notification
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{base_url}}/api/notifications/1
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Delete Notification
+
+  Permanently deletes a notification from the system.
+
+  ## Path Parameters
+  - `notificationId`: ID of the notification to delete
+
+  ## Behavior
+  - Permanently removes the notification from the database
+  - If notification was unread, decrements the unread count
+  - Broadcasts updated count via SSE to connected clients
+  - Prevents count from going negative (ensures minimum of 0)
+
+  ## Authorization
+  - Only the notification owner can delete it
+  - Returns 403 Forbidden if user doesn't own the notification
+  - Returns 404 Not Found if notification doesn't exist
+
+  ## Response
+  ```json
+  {
+    "success": true,
+    "message": "Notification deleted successfully",
+    "data": null
+  }
+  ```
+
+  ## Use Case
+  - User dismissing/removing individual notifications
+  - Cleaning up notification history
+}
+meta {
+  name: Notifications
+  seq: 9
+}
+

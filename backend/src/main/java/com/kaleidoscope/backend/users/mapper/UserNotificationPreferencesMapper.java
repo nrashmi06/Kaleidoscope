@@ -18,16 +18,18 @@ public class UserNotificationPreferencesMapper {
     public UserNotificationPreferences toEntity(User user) {
         return UserNotificationPreferences.builder()
                 .user(user)
-                .likesEmail(true)
-                .likesPush(true)
-                .commentsEmail(true)
+                .likesEmail(false)
+                .likesPush(false)
+                .commentsEmail(false)
                 .commentsPush(true)
-                .followsEmail(true)
+                .followsEmail(false)
                 .followsPush(true)
-                .mentionsEmail(true)
+                .mentionsEmail(false)
                 .mentionsPush(true)
-                .systemEmail(true)
+                .systemEmail(false)
                 .systemPush(true)
+                .followRequestPush(true)
+                .followAcceptPush(true)
                 .build();
     }
 
@@ -45,6 +47,8 @@ public class UserNotificationPreferencesMapper {
                 .mentionsPush(preferences.getMentionsPush())
                 .systemEmail(preferences.getSystemEmail())
                 .systemPush(preferences.getSystemPush())
+                .followRequestPush(preferences.getFollowRequestPush())
+                .followAcceptPush(preferences.getFollowAcceptPush())
                 .createdAt(preferences.getCreatedAt().format(FORMATTER))
                 .updatedAt(preferences.getUpdatedAt().format(FORMATTER))
                 .build();
@@ -88,6 +92,8 @@ public class UserNotificationPreferencesMapper {
         preferences.setFollowsPush(true);
         preferences.setMentionsPush(true);
         preferences.setSystemPush(true);
+        preferences.setFollowRequestPush(true);
+        preferences.setFollowAcceptPush(true);
         return preferences;
     }
 
@@ -101,16 +107,18 @@ public class UserNotificationPreferencesMapper {
     }
 
     public UserNotificationPreferences resetToDefaults(UserNotificationPreferences preferences) {
-        preferences.setLikesEmail(true);
-        preferences.setLikesPush(true);
-        preferences.setCommentsEmail(true);
+        preferences.setLikesEmail(false);
+        preferences.setLikesPush(false);
+        preferences.setCommentsEmail(false);
         preferences.setCommentsPush(true);
-        preferences.setFollowsEmail(true);
+        preferences.setFollowsEmail(false);
         preferences.setFollowsPush(true);
-        preferences.setMentionsEmail(true);
+        preferences.setMentionsEmail(false);
         preferences.setMentionsPush(true);
-        preferences.setSystemEmail(true);
+        preferences.setSystemEmail(false);
         preferences.setSystemPush(true);
+        preferences.setFollowRequestPush(true);
+        preferences.setFollowAcceptPush(true);
         return preferences;
     }
 }

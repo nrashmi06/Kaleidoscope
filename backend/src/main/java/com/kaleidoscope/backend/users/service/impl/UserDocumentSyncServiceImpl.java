@@ -59,6 +59,7 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                     .blockedUserIds(new ArrayList<>())  // Initialize empty list
                     .blockedByUserIds(new ArrayList<>())  // Initialize empty list
                     .allowTagging(Visibility.PUBLIC.name())  // Initialize with default value
+                    .profileVisibility(Visibility.PUBLIC.name())  // Initialize with default value
                     .faceEmbedding(null)  // Will be updated later by ML service
                     .createdAt(user.getCreatedAt())
                     .lastSeen(user.getLastSeen())
@@ -235,12 +236,13 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 UserDocument userDocument = existingDocOpt.get();
                 UserPreferences userPreferences = userPreferencesOpt.get();
 
-                // Update allowTagging field based on user preferences
+                // Update allowTagging and profileVisibility fields based on user preferences
                 userDocument.setAllowTagging(userPreferences.getAllowTagging().name());
+                userDocument.setProfileVisibility(userPreferences.getProfileVisibility().name());
                 userSearchRepository.save(userDocument);
 
-                log.info("Successfully synced allowTagging preference to {} for user ID: {}",
-                        userPreferences.getAllowTagging().name(), userId);
+                log.info("Successfully synced preferences (allowTagging={}, profileVisibility={}) for user ID: {}",
+                        userPreferences.getAllowTagging().name(), userPreferences.getProfileVisibility().name(), userId);
             } else {
                 if (!existingDocOpt.isPresent()) {
                     log.warn("UserDocument not found for user ID: {} during preference sync, creating full document", userId);
@@ -395,10 +397,10 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 .map(block -> block.getBlocker().getUserId())
                 .collect(Collectors.toList());
 
-        // Fetch user preferences for allowTagging
-        String allowTagging = userPreferencesRepository.findByUser_UserId(user.getUserId())
-                .map(prefs -> prefs.getAllowTagging().name())
-                .orElse(Visibility.PUBLIC.name());
+        // Fetch user preferences for allowTagging and profileVisibility
+        UserPreferences userPreferences = userPreferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
+        String allowTagging = userPreferences != null ? userPreferences.getAllowTagging().name() : Visibility.PUBLIC.name();
+        String profileVisibility = userPreferences != null ? userPreferences.getProfileVisibility().name() : Visibility.PUBLIC.name();
 
         return UserDocument.builder()
                 .id(user.getUserId().toString())
@@ -419,6 +421,7 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 .blockedUserIds(blockedUserIds)
                 .blockedByUserIds(blockedByUserIds)
                 .allowTagging(allowTagging)
+                .profileVisibility(profileVisibility)
                 .createdAt(user.getCreatedAt())
                 .lastSeen(user.getLastSeen())
                 .build();

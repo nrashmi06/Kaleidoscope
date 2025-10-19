@@ -10,6 +10,8 @@ public record PartialUpdateNotificationPreferencesRequestDTO(
     Boolean mentionsEmail,
     Boolean mentionsPush,
     Boolean systemEmail,
-    Boolean systemPush
+    Boolean systemPush,
+    Boolean followRequestPush,
+    Boolean followAcceptPush
 ) {
 }

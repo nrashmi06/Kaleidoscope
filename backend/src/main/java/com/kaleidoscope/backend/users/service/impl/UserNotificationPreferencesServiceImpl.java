@@ -92,6 +92,8 @@ public class UserNotificationPreferencesServiceImpl implements UserNotificationP
         if (requestDTO.mentionsPush() != null) preferences.setMentionsPush(requestDTO.mentionsPush());
         if (requestDTO.systemEmail() != null) preferences.setSystemEmail(requestDTO.systemEmail());
         if (requestDTO.systemPush() != null) preferences.setSystemPush(requestDTO.systemPush());
+        if (requestDTO.followRequestPush() != null) preferences.setFollowRequestPush(requestDTO.followRequestPush());
+        if (requestDTO.followAcceptPush() != null) preferences.setFollowAcceptPush(requestDTO.followAcceptPush());
 
         UserNotificationPreferences savedPreferences = notificationPreferencesRepository.save(preferences);
         log.info("Notification preferences partially updated for user ID: {}", currentUserId);

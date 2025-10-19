@@ -55,6 +55,12 @@ public class UserNotificationPreferences {
     @Column(name = "system_push")
     private Boolean systemPush = true;
 
+    @Column(name = "follow_request_push")
+    private Boolean followRequestPush = true;
+
+    @Column(name = "follow_accept_push")
+    private Boolean followAcceptPush = true;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

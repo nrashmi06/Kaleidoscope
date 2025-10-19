@@ -23,6 +23,8 @@ public class UserNotificationPreferencesResponseDTO {
     private Boolean mentionsPush;
     private Boolean systemEmail;
     private Boolean systemPush;
+    private Boolean followRequestPush;
+    private Boolean followAcceptPush;
     private String createdAt;
     private String updatedAt;
 }

@@ -2,8 +2,11 @@ package com.kaleidoscope.backend.auth.config;
 
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.CustomAccessDeniedHandler;
+import com.kaleidoscope.backend.auth.security.filter.SseAuthenticationFilter;
 import com.kaleidoscope.backend.auth.security.jwt.AuthEntryPointJwt;
 import com.kaleidoscope.backend.auth.security.jwt.AuthTokenFilter;
+import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
+import com.kaleidoscope.backend.notifications.routes.NotificationRoutes;
 import com.kaleidoscope.backend.shared.config.CorrelationIdFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +23,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.header.HeaderWriterFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -28,26 +31,38 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 @Slf4j
 public class SecurityConfig {
     private final AuthEntryPointJwt unauthorizedHandler;
-    private final AuthTokenFilter authTokenFilter;
     private final CorrelationIdFilter correlationIdFilter;
     private final CorsConfig corsConfig;
 
     public SecurityConfig(
             AuthEntryPointJwt unauthorizedHandler,
-            AuthTokenFilter authTokenFilter,
             CorrelationIdFilter correlationIdFilter,
             CorsConfig corsConfig
     ) {
         this.unauthorizedHandler = unauthorizedHandler;
-        this.authTokenFilter = authTokenFilter;
         this.correlationIdFilter = correlationIdFilter;
         this.corsConfig = corsConfig;
 
-        log.info("SecurityConfig initialized with CorrelationIdFilter and AuthTokenFilter");
+        log.info("SecurityConfig initialized with CorrelationIdFilter");
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomAccessDeniedHandler customAccessDeniedHandler) throws Exception {
+    public AuthTokenFilter authTokenFilter(JwtUtils jwtUtils) {
+        return new AuthTokenFilter(jwtUtils);
+    }
+
+    @Bean
+    public SseAuthenticationFilter sseAuthenticationFilter(JwtUtils jwtUtils) {
+        return new SseAuthenticationFilter(jwtUtils);
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            CustomAccessDeniedHandler customAccessDeniedHandler,
+            AuthTokenFilter authTokenFilter,
+            SseAuthenticationFilter sseAuthenticationFilter
+    ) throws Exception {
         log.debug("Configuring security filter chain with correlation ID and authentication filters");
 
         return http
@@ -72,6 +87,7 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/actuator/info"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, NotificationRoutes.STREAM).authenticated()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -80,10 +96,9 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .csrf(AbstractHttpConfigurer::disable)
-                // Add CorrelationIdFilter before SecurityContextHolderFilter (modern replacement for SecurityContextPersistenceFilter)
-                .addFilterBefore(correlationIdFilter, SecurityContextHolderFilter.class)
-                // Add AuthTokenFilter before UsernamePasswordAuthenticationFilter (as originally configured)
-                .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(correlationIdFilter, HeaderWriterFilter.class) // Run correlation ID very early
+                .addFilterBefore(sseAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // SSE auth check
+                .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class) // Standard JWT auth check
                 .build();
     }
 
