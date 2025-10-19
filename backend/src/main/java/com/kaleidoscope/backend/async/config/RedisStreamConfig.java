@@ -36,6 +36,7 @@ public class RedisStreamConfig {
     private final PostInteractionSyncConsumer postInteractionSyncConsumer;
     private final UserProfilePostSyncConsumer userProfilePostSyncConsumer;
     private final UserProfileFaceEmbeddingConsumer userProfileFaceEmbeddingConsumer;
+    private final com.kaleidoscope.backend.notifications.consumer.NotificationConsumer notificationConsumer;
 
     @Bean
     public RedisTemplate<String, String> redisTemplate() {
@@ -56,6 +57,7 @@ public class RedisStreamConfig {
         ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         // Create container options with explicit MapRecord type matching our consumers
         StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
@@ -118,8 +120,15 @@ public class RedisStreamConfig {
         log.info("Registered UserProfileFaceEmbeddingConsumer for stream: {} with consumer group: {}",
                 ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
+        container.receive(
+                Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, StreamingConfigConstants.NOTIFICATION_CONSUMER),
+                StreamOffset.create(ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, ReadOffset.lastConsumed()),
+                notificationConsumer
+        );
+        log.info("Registered NotificationConsumer for stream: {} with consumer group: {}",
+                ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
-        log.info("Redis Stream Message Listener Container configured successfully with {} consumers", 6);
+        log.info("Redis Stream Message Listener Container configured successfully with {} consumers", 7);
         return container;
     }
 
