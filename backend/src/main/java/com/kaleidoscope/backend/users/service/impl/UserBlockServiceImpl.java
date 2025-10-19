@@ -1,31 +1,40 @@
 package com.kaleidoscope.backend.users.service.impl;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermsQuery;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
+import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.request.BlockUserRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.UnblockUserRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.BlockStatusResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.BlockedUsersListResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserBlockResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.users.exception.userblock.UserBlockNotFoundException;
-import com.kaleidoscope.backend.users.mapper.UserBlockEntityMapper;
-import com.kaleidoscope.backend.users.mapper.UserBlockMapper;
-import com.kaleidoscope.backend.users.mapper.UserBlockPaginationMapper;
-import com.kaleidoscope.backend.users.mapper.UserBlockStatusMapper;
+import com.kaleidoscope.backend.users.mapper.*;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserBlock;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserBlockRepository;
+import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import com.kaleidoscope.backend.users.service.UserBlockService;
+import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +49,10 @@ public class UserBlockServiceImpl implements UserBlockService {
     private final UserBlockEntityMapper entityMapper;
     private final UserBlockPaginationMapper paginationMapper;
     private final UserBlockStatusMapper statusMapper;
-    private final FollowRepository followRepository; // Add this dependency
+    private final FollowRepository followRepository;
+    private final UserDocumentSyncService userDocumentSyncService;
+    private final UserSearchRepository userSearchRepository;
+    private final ElasticsearchTemplate elasticsearchTemplate;
 
     @Override
     public UserBlockResponseDTO blockUser(BlockUserRequestDTO blockUserRequestDTO) {
@@ -68,6 +80,9 @@ public class UserBlockServiceImpl implements UserBlockService {
             followRepository.findByFollower_UserIdAndFollowing_UserId(userIdToBlock, currentUserId)
                     .ifPresent(followRepository::delete);
 
+            // Sync Elasticsearch UserDocument with block information
+            userDocumentSyncService.syncOnBlockChange(currentUserId, userIdToBlock, true);
+
             log.info("User {} successfully blocked user {} and removed follow relationships", currentUserId, userIdToBlock);
             return userBlockMapper.toUserBlockResponseDTO(savedBlock);
 
@@ -89,6 +104,10 @@ public class UserBlockServiceImpl implements UserBlockService {
         UserBlock userBlock = entityMapper.getExistingBlockOrThrow(blockOptional, currentUserId, userIdToUnblock);
 
         userBlockRepository.delete(userBlock);
+
+        // Sync Elasticsearch UserDocument with unblock information
+        userDocumentSyncService.syncOnBlockChange(currentUserId, userIdToUnblock, false);
+
         log.info("User {} successfully unblocked user {}", currentUserId, userIdToUnblock);
 
         return "User successfully unblocked";
@@ -98,37 +117,173 @@ public class UserBlockServiceImpl implements UserBlockService {
     @Transactional(readOnly = true)
     public BlockedUsersListResponseDTO getBlockedUsers(Pageable pageable) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        log.info("Getting blocked users for user {}", currentUserId);
+        log.info("Getting blocked users for user {} using Elasticsearch", currentUserId);
 
-        Page<UserBlock> blockedUsersPage = userBlockRepository.findByBlocker_UserIdWithBlocked(currentUserId, pageable);
+        try {
+            // Fetch UserDocument for current user from Elasticsearch
+            Optional<UserDocument> userDocOpt = userSearchRepository.findById(currentUserId.toString());
 
-        // Use pagination mapper to eliminate duplication
-        return paginationMapper.buildBlockedUsersResponse(blockedUsersPage, UserBlockPaginationMapper::extractBlockedUser);
+            if (userDocOpt.isEmpty()) {
+                log.warn("UserDocument not found for user {} in Elasticsearch, returning empty list", currentUserId);
+                return new BlockedUsersListResponseDTO(new ArrayList<>(), pageable.getPageNumber(), 0, 0L);
+            }
+
+            UserDocument currentUserDoc = userDocOpt.get();
+            List<Long> blockedUserIds = currentUserDoc.getBlockedUserIds();
+
+            // If no blocked users, return empty response
+            if (blockedUserIds == null || blockedUserIds.isEmpty()) {
+                log.debug("User {} has not blocked any users", currentUserId);
+                return new BlockedUsersListResponseDTO(new ArrayList<>(), pageable.getPageNumber(), 0, 0L);
+            }
+
+            log.debug("User {} has blocked {} users, querying Elasticsearch", currentUserId, blockedUserIds.size());
+
+            // Build Elasticsearch query to find UserDocuments with matching userIds
+            NativeQuery nativeQuery = NativeQuery.builder()
+                    .withQuery(TermsQuery.of(t -> t
+                            .field("userId")
+                            .terms(ts -> ts.value(blockedUserIds.stream()
+                                    .map(FieldValue::of)
+                                    .collect(Collectors.toList())))
+                    )._toQuery())
+                    .withPageable(pageable)
+                    .build();
+
+            // Execute search
+            SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
+
+            // Map UserDocuments to DTOs
+            List<UserDetailsSummaryResponseDTO> blockedUsers = searchHits.getSearchHits().stream()
+                    .map(SearchHit::getContent)
+                    .map(UserMapper::toUserDetailsSummaryResponseDTO)
+                    .collect(Collectors.toList());
+
+            long totalElements = searchHits.getTotalHits();
+            int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+
+            log.info("Retrieved {} blocked users for user {} (page {}/{})",
+                    blockedUsers.size(), currentUserId, pageable.getPageNumber(), totalPages);
+
+            return new BlockedUsersListResponseDTO(
+                    blockedUsers,
+                    pageable.getPageNumber(),
+                    totalPages,
+                    totalElements
+            );
+
+        } catch (Exception e) {
+            log.error("Error retrieving blocked users for user {} from Elasticsearch: {}",
+                    currentUserId, e.getMessage(), e);
+            // Return empty response on error
+            return new BlockedUsersListResponseDTO(new ArrayList<>(), pageable.getPageNumber(), 0, 0L);
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public BlockedUsersListResponseDTO getUsersWhoBlockedMe(Pageable pageable) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        log.info("Getting users who blocked user {}", currentUserId);
+        log.info("Getting users who blocked user {} using Elasticsearch", currentUserId);
 
-        Page<UserBlock> blockersPage = userBlockRepository.findByBlocked_UserIdWithBlocker(currentUserId, pageable);
+        try {
+            // Fetch UserDocument for current user from Elasticsearch
+            Optional<UserDocument> userDocOpt = userSearchRepository.findById(currentUserId.toString());
 
-        // Use pagination mapper to eliminate duplication
-        return paginationMapper.buildBlockedUsersResponse(blockersPage, UserBlockPaginationMapper::extractBlockerUser);
+            if (userDocOpt.isEmpty()) {
+                log.warn("UserDocument not found for user {} in Elasticsearch, returning empty list", currentUserId);
+                return new BlockedUsersListResponseDTO(new ArrayList<>(), pageable.getPageNumber(), 0, 0L);
+            }
+
+            UserDocument currentUserDoc = userDocOpt.get();
+            List<Long> blockedByUserIds = currentUserDoc.getBlockedByUserIds();
+
+            // If no users have blocked current user, return empty response
+            if (blockedByUserIds == null || blockedByUserIds.isEmpty()) {
+                log.debug("No users have blocked user {}", currentUserId);
+                return new BlockedUsersListResponseDTO(new ArrayList<>(), pageable.getPageNumber(), 0, 0L);
+            }
+
+            log.debug("User {} is blocked by {} users, querying Elasticsearch", currentUserId, blockedByUserIds.size());
+
+            // Build Elasticsearch query to find UserDocuments with matching userIds
+            NativeQuery nativeQuery = NativeQuery.builder()
+                    .withQuery(TermsQuery.of(t -> t
+                            .field("userId")
+                            .terms(ts -> ts.value(blockedByUserIds.stream()
+                                    .map(FieldValue::of)
+                                    .collect(Collectors.toList())))
+                    )._toQuery())
+                    .withPageable(pageable)
+                    .build();
+
+            // Execute search
+            SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
+
+            // Map UserDocuments to DTOs
+            List<UserDetailsSummaryResponseDTO> blockerUsers = searchHits.getSearchHits().stream()
+                    .map(SearchHit::getContent)
+                    .map(UserMapper::toUserDetailsSummaryResponseDTO)
+                    .collect(Collectors.toList());
+
+            long totalElements = searchHits.getTotalHits();
+            int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+
+            log.info("Retrieved {} users who blocked user {} (page {}/{})",
+                    blockerUsers.size(), currentUserId, pageable.getPageNumber(), totalPages);
+
+            return new BlockedUsersListResponseDTO(
+                    blockerUsers,
+                    pageable.getPageNumber(),
+                    totalPages,
+                    totalElements
+            );
+
+        } catch (Exception e) {
+            log.error("Error retrieving users who blocked user {} from Elasticsearch: {}",
+                    currentUserId, e.getMessage(), e);
+            // Return empty response on error
+            return new BlockedUsersListResponseDTO(new ArrayList<>(), pageable.getPageNumber(), 0, 0L);
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public BlockStatusResponseDTO checkBlockStatus(Long targetUserId) {
         Long currentUserId = jwtUtils.getUserIdFromContext();
-        log.info("Checking block status between user {} and user {}", currentUserId, targetUserId);
+        log.info("Checking block status between user {} and user {} using Elasticsearch", currentUserId, targetUserId);
 
-        // Single optimized query to check both directions at once
-        List<UserBlock> blocks = userBlockRepository.findBlocksBetweenUsers(currentUserId, targetUserId);
+        try {
+            // Fetch UserDocument for current user from Elasticsearch
+            Optional<UserDocument> userDocOpt = userSearchRepository.findById(currentUserId.toString());
 
-        // Use status mapper to analyze blocks and build response
-        return statusMapper.buildBlockStatusResponse(blocks, currentUserId);
+            if (userDocOpt.isEmpty()) {
+                log.warn("UserDocument not found for user {} in Elasticsearch, returning default false status", currentUserId);
+                return new BlockStatusResponseDTO(false, false, null);
+            }
+
+            UserDocument currentUserDoc = userDocOpt.get();
+
+            // Check if current user has blocked target user
+            List<Long> blockedUserIds = currentUserDoc.getBlockedUserIds();
+            boolean isBlocked = blockedUserIds != null && blockedUserIds.contains(targetUserId);
+
+            // Check if target user has blocked current user
+            List<Long> blockedByUserIds = currentUserDoc.getBlockedByUserIds();
+            boolean isBlockedBy = blockedByUserIds != null && blockedByUserIds.contains(targetUserId);
+
+            log.info("Block status for user {} and target {}: isBlocked={}, isBlockedBy={}",
+                    currentUserId, targetUserId, isBlocked, isBlockedBy);
+
+            // Return status without blockId (not readily available from Elasticsearch)
+            return new BlockStatusResponseDTO(isBlocked, isBlockedBy, null);
+
+        } catch (Exception e) {
+            log.error("Error checking block status for user {} and target {} from Elasticsearch: {}",
+                    currentUserId, targetUserId, e.getMessage(), e);
+            // Return default false status on error
+            return new BlockStatusResponseDTO(false, false, null);
+        }
     }
 
     @Override
@@ -145,7 +300,15 @@ public class UserBlockServiceImpl implements UserBlockService {
         UserBlock userBlock = userBlockRepository.findById(blockId)
                 .orElseThrow(() -> new UserBlockNotFoundException("Block not found with ID: " + blockId));
 
+        // Store blocker and blocked IDs before deleting
+        Long blockerId = userBlock.getBlocker().getUserId();
+        Long blockedId = userBlock.getBlocked().getUserId();
+
         userBlockRepository.delete(userBlock);
+
+        // Sync Elasticsearch UserDocument with unblock information
+        userDocumentSyncService.syncOnBlockChange(blockerId, blockedId, false);
+
         log.info("Block with ID {} successfully removed by admin", blockId);
 
         return "Block relationship successfully removed";
@@ -157,3 +320,4 @@ public class UserBlockServiceImpl implements UserBlockService {
         return userBlockRepository.findByBlocker_UserIdAndBlocked_UserId(blockerUserId, blockedUserId).isPresent();
     }
 }
+

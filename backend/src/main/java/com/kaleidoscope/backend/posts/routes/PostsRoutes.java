@@ -18,4 +18,6 @@ public class PostsRoutes {
     public static final String HARD_DELETE_POST = POSTS + "/{postId}/hard";
     public static final String GET_POST_BY_ID = POSTS + "/{postId}";
     public static final String FILTER_POSTS = POSTS;
+    // --- Post Suggestions ---
+    public static final String SUGGESTIONS = POSTS + "/suggestions";
 }

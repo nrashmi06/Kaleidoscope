@@ -1,9 +1,9 @@
 package com.kaleidoscope.backend.posts.service.impl;
 
-import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.async.dto.PostImageEventDTO;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
+import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
@@ -42,10 +42,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,6 +70,7 @@ public class PostServiceImpl implements PostService {
     private final RedisStreamPublisher redisStreamPublisher;
     private final PostViewService postViewService;
     private final PostSearchRepository postSearchRepository;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     @Transactional
@@ -529,6 +532,9 @@ public class PostServiceImpl implements PostService {
         if (!isOwner) {
             postViewService.incrementViewAsync(postId, currentUserId);
             log.debug("View tracking initiated for post {} by user {}", postId, currentUserId);
+
+            // Track this post as viewed for suggestions filtering
+            trackPostViewAsync(currentUserId, postId);
         }
 
         com.kaleidoscope.backend.shared.enums.ReactionType currentUserReaction = null;
@@ -538,6 +544,26 @@ public class PostServiceImpl implements PostService {
         }
         log.debug("Returning post detail DTO for postId: {}", postId);
         return postMapper.toPostDetailDTO(post, currentUserReaction);
+    }
+
+    /**
+     * Asynchronously track a post view for filtering in suggestions
+     * Stores the viewed post ID in a Redis Set with 7-day expiry
+     *
+     * @param userId The ID of the user who viewed the post
+     * @param postId The ID of the post that was viewed
+     */
+    @org.springframework.scheduling.annotation.Async("taskExecutor")
+    public void trackPostViewAsync(Long userId, Long postId) {
+        try {
+            String viewedKey = "viewed_posts:" + userId;
+            stringRedisTemplate.opsForSet().add(viewedKey, postId.toString());
+            stringRedisTemplate.expire(viewedKey, 7, TimeUnit.DAYS);
+            log.debug("Tracked viewed post {} for user {} in Redis with 7-day expiry", postId, userId);
+        } catch (Exception e) {
+            log.error("Failed to track viewed post {} for user {} in Redis: {}", postId, userId, e.getMessage());
+            // Don't throw - this is a non-critical feature
+        }
     }
 
     @Override

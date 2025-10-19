@@ -1,19 +1,18 @@
 meta {
-  name: get taggable users
+  name: post suggestion(feed)
   type: http
-  seq: 1
+  seq: 8
 }
 
 get {
-  url: {{base_url}}/api/users/taggable-users?q=&page=0&size=10
+  url: {{base_url}}/api/posts/suggestions?page=0&size=1
   body: none
   auth: inherit
 }
 
 params:query {
-  q: 
   page: 0
-  size: 10
+  size: 1
 }
 
 settings {

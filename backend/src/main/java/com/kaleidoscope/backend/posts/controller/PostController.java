@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 public class PostController implements PostApi {
     private final PostService postService;
     private final ImageStorageService imageStorageService;
+    private final com.kaleidoscope.backend.posts.service.PostSuggestionService postSuggestionService;
 
     @Override
     @PostMapping(PostsRoutes.GENERATE_UPLOAD_SIGNATURES)
@@ -122,6 +123,19 @@ public class PostController implements PostApi {
                 .success(true)
                 .message("Posts retrieved successfully.")
                 .data(response)
+                .build());
+    }
+
+    @Override
+    @GetMapping(PostsRoutes.SUGGESTIONS)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AppResponse<PaginatedResponse<PostSummaryResponseDTO>>> getPostSuggestions(Pageable pageable) {
+        log.info("Fetching post suggestions for current user");
+        PaginatedResponse<PostSummaryResponseDTO> suggestions = postSuggestionService.getPostSuggestions(pageable);
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<PostSummaryResponseDTO>>builder()
+                .success(true)
+                .message("Post suggestions retrieved successfully.")
+                .data(suggestions)
                 .build());
     }
 }

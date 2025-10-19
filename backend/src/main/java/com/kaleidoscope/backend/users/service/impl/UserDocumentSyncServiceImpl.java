@@ -1,11 +1,15 @@
 package com.kaleidoscope.backend.users.service.impl;
 
 import com.kaleidoscope.backend.users.document.UserDocument;
+import com.kaleidoscope.backend.users.enums.Visibility;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserInterest;
+import com.kaleidoscope.backend.users.model.UserPreferences;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserInterestRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
+import com.kaleidoscope.backend.users.repository.UserBlockRepository;
+import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -27,6 +32,8 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
     private final UserRepository userRepository;
     private final UserInterestRepository userInterestRepository;
     private final FollowRepository followRepository;
+    private final UserBlockRepository userBlockRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
 
     @Override
     @Transactional
@@ -48,7 +55,10 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                     .isVerified(user.getIsVerified())
                     .followerCount(0)  // Initialize to 0 for new users
                     .followingCount(0)  // Initialize to 0 for new users
-                    .interests(List.of())  // Initialize empty list
+                    .interests(new ArrayList<>())  // Initialize empty list
+                    .blockedUserIds(new ArrayList<>())  // Initialize empty list
+                    .blockedByUserIds(new ArrayList<>())  // Initialize empty list
+                    .allowTagging(Visibility.PUBLIC.name())  // Initialize with default value
                     .faceEmbedding(null)  // Will be updated later by ML service
                     .createdAt(user.getCreatedAt())
                     .lastSeen(user.getLastSeen())
@@ -191,6 +201,64 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
         }
     }
 
+    @Override
+    @Transactional
+    public void syncOnBlockChange(Long blockerId, Long blockedId, boolean isBlock) {
+        try {
+            log.info("Syncing UserDocument on block change: blocker={}, blocked={}, isBlock={}",
+                    blockerId, blockedId, isBlock);
+
+            // Update blocker's document (add/remove blockedId from blockedUserIds)
+            updateBlockedUsersList(blockerId, blockedId, isBlock);
+
+            // Update blocked user's document (add/remove blockerId from blockedByUserIds)
+            updateBlockedByUsersList(blockedId, blockerId, isBlock);
+
+            log.info("Successfully synced UserDocument on block change for users {} and {}", blockerId, blockedId);
+        } catch (Exception e) {
+            log.error("Failed to sync UserDocument on block change for blocker {} and blocked {}",
+                    blockerId, blockedId, e);
+            // Don't throw exception - we don't want to break block/unblock if ES fails
+        }
+    }
+
+    @Override
+    @Transactional
+    public void syncOnPreferenceChange(Long userId) {
+        try {
+            log.info("Syncing UserDocument on preference change for user ID: {}", userId);
+
+            Optional<UserDocument> existingDocOpt = userSearchRepository.findById(userId.toString());
+            Optional<UserPreferences> userPreferencesOpt = userPreferencesRepository.findByUser_UserId(userId);
+
+            if (existingDocOpt.isPresent() && userPreferencesOpt.isPresent()) {
+                UserDocument userDocument = existingDocOpt.get();
+                UserPreferences userPreferences = userPreferencesOpt.get();
+
+                // Update allowTagging field based on user preferences
+                userDocument.setAllowTagging(userPreferences.getAllowTagging().name());
+                userSearchRepository.save(userDocument);
+
+                log.info("Successfully synced allowTagging preference to {} for user ID: {}",
+                        userPreferences.getAllowTagging().name(), userId);
+            } else {
+                if (!existingDocOpt.isPresent()) {
+                    log.warn("UserDocument not found for user ID: {} during preference sync, creating full document", userId);
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+                    UserDocument newDocument = buildCompleteUserDocument(user);
+                    userSearchRepository.save(newDocument);
+                }
+                if (!userPreferencesOpt.isPresent()) {
+                    log.warn("UserPreferences not found for user ID: {} during preference sync", userId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to sync UserDocument on preference change for user ID: {}", userId, e);
+            // Don't throw exception - we don't want to break preference updates if ES fails
+        }
+    }
+
     // Helper methods
 
     private void updateFollowingCountIncremental(Long userId, int increment) {
@@ -227,6 +295,68 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
         }
     }
 
+    private void updateBlockedUsersList(Long userId, Long blockedUserId, boolean isBlock) {
+        Optional<UserDocument> docOpt = userSearchRepository.findById(userId.toString());
+
+        if (docOpt.isPresent()) {
+            UserDocument userDocument = docOpt.get();
+            List<Long> blockedUserIds = userDocument.getBlockedUserIds() != null ? userDocument.getBlockedUserIds() : new ArrayList<>();
+
+            if (isBlock) {
+                // Add to blocked users
+                if (!blockedUserIds.contains(blockedUserId)) {
+                    blockedUserIds.add(blockedUserId);
+                    userDocument.setBlockedUserIds(blockedUserIds);
+                    userSearchRepository.save(userDocument);
+                    log.info("Added user ID: {} to blockedUserIds for user ID: {}", blockedUserId, userId);
+                }
+            } else {
+                // Remove from blocked users
+                if (blockedUserIds.contains(blockedUserId)) {
+                    blockedUserIds.remove(blockedUserId);
+                    userDocument.setBlockedUserIds(blockedUserIds);
+                    userSearchRepository.save(userDocument);
+                    log.info("Removed user ID: {} from blockedUserIds for user ID: {}", blockedUserId, userId);
+                }
+            }
+        } else {
+            log.warn("UserDocument not found for user ID: {} while updating blocked users, recreating document", userId);
+            // Recreate the document with accurate blocked users list from PostgreSQL
+            recreateUserDocument(userId);
+        }
+    }
+
+    private void updateBlockedByUsersList(Long userId, Long blockerUserId, boolean isBlock) {
+        Optional<UserDocument> docOpt = userSearchRepository.findById(userId.toString());
+
+        if (docOpt.isPresent()) {
+            UserDocument userDocument = docOpt.get();
+            List<Long> blockedByUserIds = userDocument.getBlockedByUserIds() != null ? userDocument.getBlockedByUserIds() : new ArrayList<>();
+
+            if (isBlock) {
+                // Add to blocked by users
+                if (!blockedByUserIds.contains(blockerUserId)) {
+                    blockedByUserIds.add(blockerUserId);
+                    userDocument.setBlockedByUserIds(blockedByUserIds);
+                    userSearchRepository.save(userDocument);
+                    log.info("Added user ID: {} to blockedByUserIds for user ID: {}", blockerUserId, userId);
+                }
+            } else {
+                // Remove from blocked by users
+                if (blockedByUserIds.contains(blockerUserId)) {
+                    blockedByUserIds.remove(blockerUserId);
+                    userDocument.setBlockedByUserIds(blockedByUserIds);
+                    userSearchRepository.save(userDocument);
+                    log.info("Removed user ID: {} from blockedByUserIds for user ID: {}", blockerUserId, userId);
+                }
+            }
+        } else {
+            log.warn("UserDocument not found for user ID: {} while updating blocked by users, recreating document", userId);
+            // Recreate the document with accurate blocked by users list from PostgreSQL
+            recreateUserDocument(userId);
+        }
+    }
+
     private void recreateUserDocument(Long userId) {
         try {
             User user = userRepository.findById(userId)
@@ -253,6 +383,23 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 .map(interest -> interest.getCategory().getCategoryId())
                 .collect(Collectors.toList());
 
+        // Fetch blocked users
+        List<Long> blockedUserIds = userBlockRepository.findByBlocker_UserId(user.getUserId())
+                .stream()
+                .map(block -> block.getBlocked().getUserId())
+                .collect(Collectors.toList());
+
+        // Fetch users who blocked this user
+        List<Long> blockedByUserIds = userBlockRepository.findByBlocked_UserId(user.getUserId())
+                .stream()
+                .map(block -> block.getBlocker().getUserId())
+                .collect(Collectors.toList());
+
+        // Fetch user preferences for allowTagging
+        String allowTagging = userPreferencesRepository.findByUser_UserId(user.getUserId())
+                .map(prefs -> prefs.getAllowTagging().name())
+                .orElse(Visibility.PUBLIC.name());
+
         return UserDocument.builder()
                 .id(user.getUserId().toString())
                 .userId(user.getUserId())
@@ -269,6 +416,9 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 .followingCount((int) followingCount)
                 .interests(categoryIds)
                 .faceEmbedding(null)  // Face embedding will be set separately
+                .blockedUserIds(blockedUserIds)
+                .blockedByUserIds(blockedByUserIds)
+                .allowTagging(allowTagging)
                 .createdAt(user.getCreatedAt())
                 .lastSeen(user.getLastSeen())
                 .build();

@@ -129,4 +129,18 @@ public interface PostApi {
             @RequestParam(required = false) PostVisibility visibility,
             @RequestParam(required = false) String q
     );
+
+    @Operation(summary = "Get post suggestions",
+               description = "Returns personalized post suggestions based on user's interests, follows, and post popularity. Uses Elasticsearch function_score query for intelligent ranking.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Post suggestions retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    @GetMapping(PostsRoutes.SUGGESTIONS)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<AppResponse<PaginatedResponse<PostSummaryResponseDTO>>> getPostSuggestions(
+            @Parameter(hidden = true) Pageable pageable
+    );
 }
