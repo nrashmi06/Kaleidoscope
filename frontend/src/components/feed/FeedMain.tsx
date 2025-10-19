@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import StoryCircles from "@/components/feed/StoryCircles";
-import { PostCreationInput } from "@/components/feed/PostCreationInput";
+import { PostCreationInput } from "@/components/feed/socialMediaPostCardComponents/PostCreationInput";
 import { MessagesComponent } from "@/components/feed/MessagesComponent";
 import { LiveEvents } from "@/components/feed/LiveEvents";
 import FeedHeader from "@/components/feed/FeedHeader";

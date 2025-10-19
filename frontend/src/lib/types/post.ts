@@ -8,14 +8,14 @@ export interface MediaUploadRequestDTO {
   height: number;
   fileSizeKb: number;
   durationSeconds?: number | null;
-  extraMetadata?: Record<string, any>;
+  extraMetadata?: Record<string, unknown>;
 }
 
 export interface PostCreateRequestDTO {
   title: string;
   body: string;
   summary: string;
-  visibility: "PUBLIC" | "PRIVATE" | "FOLLOWERS_ONLY";
+  visibility: "PUBLIC" | "FOLLOWERS";
   locationId?: number | null;
   categoryIds: number[];
   mediaDetails?: MediaUploadRequestDTO[];
@@ -35,13 +35,13 @@ export interface CategorySummaryResponseDTO {
 export interface PostMediaResponseDTO {
   mediaId: number;
   mediaUrl: string;
-  mediaType: "IMAGE" | "VIDEO";
+  mediaType: "IMAGE";
   position: number;
   width: number;
   height: number;
   fileSizeKb: number;
   durationSeconds?: number | null;
-  extraMetadata?: Record<string, any>;
+  extraMetadata?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -149,7 +149,7 @@ export type CreateLocationResponse = StandardAPIResponse<Location>;
 export interface User {
   userId: number;
   username: string;
-  email: string;
+  email?: string;
   accountStatus?: string;
 }
 
