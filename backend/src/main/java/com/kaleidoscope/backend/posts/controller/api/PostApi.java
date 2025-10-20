@@ -128,6 +128,8 @@ public interface PostApi {
             @RequestParam(required = false) PostStatus status,
             @RequestParam(required = false) PostVisibility visibility,
             @RequestParam(required = false) String q,
+            @Parameter(description = "Filter by hashtag name")
+            @RequestParam(required = false) String hashtag,
             @Parameter(description = "Filter by specific location ID")
             @RequestParam(required = false) Long locationId,
             @Parameter(description = "Find posts near this location ID using geo-distance query")

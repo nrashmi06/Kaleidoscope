@@ -633,11 +633,12 @@ public class PostServiceImpl implements PostService {
                                                                  PostStatus status,
                                                                  PostVisibility visibility,
                                                                  String query,
+                                                                 String hashtag,
                                                                  Long locationId,
                                                                  Long nearbyLocationId,
                                                                  Double radiusKm) {
-        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}, locationId={}, nearbyLocationId={}, radiusKm={}",
-                userId, categoryId, status, visibility, query, locationId, nearbyLocationId, radiusKm);
+        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, nearbyLocationId={}, radiusKm={}",
+                userId, categoryId, status, visibility, query, hashtag, locationId, nearbyLocationId, radiusKm);
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -675,6 +676,7 @@ public class PostServiceImpl implements PostService {
                 status,
                 visibility,
                 query,
+                hashtag,
                 locationId,
                 latitude,
                 longitude,

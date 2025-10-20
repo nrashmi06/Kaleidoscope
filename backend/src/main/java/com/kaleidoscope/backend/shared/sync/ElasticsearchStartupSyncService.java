@@ -302,6 +302,12 @@ public class ElasticsearchStartupSyncService {
                 .map(PostMedia::getMediaUrl)
                 .orElse(null);
 
+        // Extract hashtag names from post
+        List<String> hashtagNames = post.getPostHashtags().stream()
+                .map(ph -> ph.getHashtag().getName())
+                .collect(Collectors.toList());
+        log.debug("Synced {} hashtags for post {}", hashtagNames.size(), post.getPostId());
+
         // Build PostDocument
         PostDocument postDocument = PostDocument.builder()
                 .id(post.getPostId().toString())
@@ -321,6 +327,7 @@ public class ElasticsearchStartupSyncService {
                 .viewCount(0L) // Initial value, will be updated by view tracking
                 .mlImageTags(new ArrayList<>()) // Will be updated by ML service
                 .peopleCount(null) // Will be updated by ML service
+                .hashtags(hashtagNames) // Add hashtags to document
                 .build();
 
         postSearchRepository.save(postDocument);

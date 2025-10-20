@@ -37,6 +37,7 @@ public class PostSuggestionServiceImpl implements PostSuggestionService {
     private final PostSearchRepository postSearchRepository;
     private final PostMapper postMapper;
     private final StringRedisTemplate stringRedisTemplate;
+    private final com.kaleidoscope.backend.shared.service.HashtagService hashtagService;
 
     @Override
     public PaginatedResponse<PostSummaryResponseDTO> getPostSuggestions(Pageable pageable) {
@@ -80,7 +81,20 @@ public class PostSuggestionServiceImpl implements PostSuggestionService {
             viewedPostIds = Collections.emptySet();
         }
 
-        // 6. Call repository method to find post suggestions with viewed posts filter
+        // 6. Fetch trending hashtags to boost in suggestions
+        List<String> trendingHashtagNames;
+        try {
+            trendingHashtagNames = hashtagService.getTrendingHashtags(org.springframework.data.domain.PageRequest.of(0, 10))
+                    .stream()
+                    .map(com.kaleidoscope.backend.shared.model.Hashtag::getName)
+                    .collect(java.util.stream.Collectors.toList());
+            log.info("Retrieved {} trending hashtags for boosting suggestions", trendingHashtagNames.size());
+        } catch (Exception e) {
+            log.error("Failed to fetch trending hashtags: {}", e.getMessage());
+            trendingHashtagNames = Collections.emptyList();
+        }
+
+        // 7. Call repository method to find post suggestions with viewed posts filter and trending hashtags
         Page<PostDocument> postDocuments = postSearchRepository.findPostSuggestions(
                 currentUserId,
                 followingIds,
@@ -88,15 +102,16 @@ public class PostSuggestionServiceImpl implements PostSuggestionService {
                 blockedUserIds,
                 blockedByUserIds,
                 viewedPostIds,
+                trendingHashtagNames,
                 pageable
         );
 
         log.info("Found {} post suggestions for user {}", postDocuments.getTotalElements(), currentUserId);
 
-        // 7. Map PostDocument to PostSummaryResponseDTO
+        // 8. Map PostDocument to PostSummaryResponseDTO
         Page<PostSummaryResponseDTO> postSummaries = postDocuments.map(postMapper::toPostSummaryDTO);
 
-        // 8. Return paginated response
+        // 9. Return paginated response
         return PaginatedResponse.fromPage(postSummaries);
     }
 }

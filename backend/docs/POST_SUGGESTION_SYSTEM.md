@@ -267,7 +267,44 @@ FunctionScore.of(f -> f
 - Post categories: Photography, Landscape → +5.0 boost
 - Post categories: Cooking, Food → 0 boost
 
-#### 3. Popularity Boost (Weight: 2.0)
+#### 3. Trending Hashtag Boost (Weight: 3.0) ⭐ NEW
+**Purpose:** Boost posts containing currently trending hashtags
+
+**Implementation:**
+```java
+FunctionScore.of(f -> f
+    .filter(TermsQuery.of(ts -> ts
+        .field("hashtags")
+        .terms(trendingHashtagNames)))
+    .weight(3.0)
+)
+```
+
+**How It Works:**
+1. System fetches top 10 trending hashtags from database (ordered by usage count)
+2. Extracts hashtag names: `["travel", "photography", "nature", ...]`
+3. Posts containing any of these hashtags receive +3.0 score boost
+4. Multiple trending hashtags = cumulative boost
+
+**Example:**
+- Trending: `["travel", "photography", "food"]`
+- Post A has hashtags: `["travel", "photography"]` → +6.0 boost (3.0 × 2)
+- Post B has hashtags: `["cooking", "recipe"]` → 0 boost
+- Post C has hashtags: `["travel"]` → +3.0 boost
+
+**Data Source:**
+```java
+// In PostSuggestionServiceImpl
+List<String> trendingHashtagNames = hashtagService
+    .getTrendingHashtags(PageRequest.of(0, 10))
+    .stream()
+    .map(Hashtag::getName)
+    .collect(Collectors.toList());
+```
+
+**See Also:** [HASHTAG_SYSTEM.md](./HASHTAG_SYSTEM.md) for detailed hashtag implementation
+
+#### 4. Popularity Boost (Weight: 2.0)
 **Purpose:** Boost posts with high reaction engagement
 
 **Implementation:**
@@ -289,7 +326,7 @@ FunctionScore.of(f -> f
 - Post with 10 reactions → 2.0 × log(13) ≈ 5.1
 - Post with 0 reactions → 2.0 × log(1) = 0
 
-#### 4. Engagement Boost (Weight: 1.5)
+#### 5. Engagement Boost (Weight: 1.5)
 **Purpose:** Boost posts with high comment activity
 
 **Implementation:**
@@ -306,7 +343,7 @@ FunctionScore.of(f -> f
 
 **Formula:** `1.5 × log(1 + commentCount × 1.5)`
 
-#### 5. View Count Boost (Weight: 1.0)
+#### 6. View Count Boost (Weight: 1.0)
 **Purpose:** Boost trending posts with high view counts
 
 **Implementation:**
@@ -397,6 +434,10 @@ filterBuilder.must(TermQuery.of(t -> t
             }
           },
           "weight": 5.0
+        },
+        {
+          "filter": { "terms": { "hashtags": [trending_hashtag_names] } },
+          "weight": 3.0
         },
         {
           "field_value_factor": {
@@ -972,4 +1013,3 @@ spring:
 ## Conclusion
 
 The Post Suggestion System provides a sophisticated, performant, and scalable solution for personalized content discovery. By combining Elasticsearch's powerful scoring capabilities with Redis-based view tracking, it delivers relevant suggestions while preventing content fatigue. The system is designed with fault tolerance and graceful degradation to ensure a reliable user experience even under failure conditions.
-

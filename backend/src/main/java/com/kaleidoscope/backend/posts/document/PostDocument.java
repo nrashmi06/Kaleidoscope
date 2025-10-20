@@ -74,6 +74,10 @@ public class PostDocument {
     @Field(type = FieldType.Integer)
     private Integer peopleCount;
 
+    // --- Hashtags ---
+    @Field(type = FieldType.Keyword)
+    private List<String> hashtags;
+
     // --- Supporting Nested Classes ---
 
     @Data

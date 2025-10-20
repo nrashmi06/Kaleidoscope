@@ -25,6 +25,9 @@ spring:
   data:
     redis:
       url: ${REDIS_URL:redis://localhost:6379}
+      streams:
+        consumer:
+          poll-timeout-ms: 10000
 
   # Elasticsearch Configuration
   elasticsearch:

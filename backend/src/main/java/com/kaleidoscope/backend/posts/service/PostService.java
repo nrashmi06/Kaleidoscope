@@ -22,6 +22,7 @@ public interface PostService {
                                                            PostStatus status,
                                                            PostVisibility visibility,
                                                            String query,
+                                                           String hashtag,
                                                            Long locationId,
                                                            Long nearbyLocationId,
                                                            Double radiusKm);

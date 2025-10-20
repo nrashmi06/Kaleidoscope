@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.async.consumer;
 
 import com.kaleidoscope.backend.shared.repository.HashtagRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class HashtagUsageSyncConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
     private final HashtagRepository hashtagRepository;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -36,6 +38,10 @@ public class HashtagUsageSyncConsumer implements StreamListener<String, MapRecor
             // Update the hashtag usage count using the bulk update method
             int rowsUpdated = hashtagRepository.updateUsageCount(hashtagName, change);
 
+            // Flush and clear to ensure the update is executed immediately
+            entityManager.flush();
+            entityManager.clear();
+
             if (rowsUpdated > 0) {
                 log.info("Successfully updated usage count for hashtag '{}' by {}", hashtagName, change);
             } else {
@@ -52,4 +58,3 @@ public class HashtagUsageSyncConsumer implements StreamListener<String, MapRecor
         }
     }
 }
-

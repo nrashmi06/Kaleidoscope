@@ -319,6 +319,9 @@ public class PostMapper {
                     .collect(Collectors.toList());
         }
 
+        // Map hashtags from denormalized document data
+        List<String> hashtags = document.getHashtags() != null ? document.getHashtags() : List.of();
+
         return PostSummaryResponseDTO.builder()
                 .postId(document.getPostId())
                 .title(document.getTitle())
@@ -328,6 +331,7 @@ public class PostMapper {
                 .author(authorDto)
                 .categories(categoryDtos)
                 .thumbnailUrl(document.getThumbnailUrl())
+                .hashtags(hashtags)
                 .reactionCount(document.getReactionCount())
                 .commentCount(document.getCommentCount())
                 .viewCount(document.getViewCount()) // Use denormalized view count directly

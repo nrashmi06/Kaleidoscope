@@ -208,7 +208,44 @@ The system supports filtering posts by:
 - Category ID
 - Post Status
 - Post Visibility
-- Search query
+- Search query (text search across title, summary, body)
+- **Hashtag** (filter by specific hashtag)
+- Location ID (exact location match)
+- Nearby Location (geo-distance search within radius)
+
+**Search Implementation:** Uses Elasticsearch for high-performance filtering and full-text search
+
+**Hashtag Filtering Example:**
+```http
+GET /api/posts?hashtag=travel&page=0&size=20
+```
+
+**Combined Filtering Example:**
+```http
+GET /api/posts?userId=123&categoryId=5&hashtag=photography&q=sunset&page=0&size=20
+```
+
+### Post Feed and Suggestions
+The system provides intelligent post suggestions using Elasticsearch function_score queries:
+
+**Endpoint:** `GET /api/posts/suggestions`
+
+**Scoring Factors (in order of priority):**
+1. **Following Boost (10.0x)** - Posts from followed users
+2. **Interest Boost (5.0x)** - Posts matching user's interests
+3. **Trending Hashtag Boost (3.0x)** - Posts with trending hashtags ⭐ NEW
+4. **Popularity Boost (2.0x)** - Posts with high reaction counts
+5. **Engagement Boost (1.5x)** - Posts with high comment counts
+6. **View Count Boost (1.0x)** - Posts with high view counts
+
+**Filtering:**
+- Excludes user's own posts
+- Excludes posts from blocked users
+- Excludes recently viewed posts (tracked in Redis for 7 days)
+- Only shows PUBLISHED posts
+- Respects visibility settings (PUBLIC/FOLLOWERS)
+
+**See:** [POST_SUGGESTION_SYSTEM.md](./POST_SUGGESTION_SYSTEM.md) for detailed algorithm documentation
 
 ## Post Categories
 
@@ -225,69 +262,50 @@ public class PostCategory {
 }
 ```
 
-## Saved Posts Feature
+## Hashtag Integration ⭐ NEW
 
-### PostSave Entity
-Users can save posts for later viewing:
+### Overview
+Posts automatically extract and associate hashtags from post body content. Hashtags are used for:
+- Post filtering and search
+- Trending content discovery
+- Intelligent content boosting in suggestions feed
 
+### Hashtag Association
+When a post is created or updated:
+1. **Parsing**: Hashtags are automatically extracted from post body (e.g., `#travel`, `#photography`)
+2. **Creation**: New hashtags are created in database, existing ones are reused
+3. **Association**: Post-hashtag relationships stored in junction table
+4. **Indexing**: Hashtag names synchronized to Elasticsearch for fast searching
+5. **Usage Tracking**: Hashtag usage counts updated asynchronously via Redis Streams
+
+### PostHashtag Junction Entity
 ```java
 @Entity
-public class PostSave {
-    private Long postSaveId;
-    private Post post;                    // Saved post
-    private User user;                    // User who saved
-    private LocalDateTime savedAt;        // When post was saved
+public class PostHashtag {
+    private PostHashtagId id;             // Composite key (postId, hashtagId)
+    private Post post;                    // The post
+    private Hashtag hashtag;              // The hashtag
+    private LocalDateTime createdAt;      // Association timestamp
 }
 ```
 
-## Security and Access Control
+### Hashtag Features
+- **Automatic Parsing**: Hashtags detected with `#` prefix (e.g., `#nature`, `#travel2024`)
+- **Case Insensitive**: `#Travel` and `#travel` are treated as same hashtag
+- **Usage Tracking**: Each hashtag maintains a usage count for trending analysis
+- **Fast Search**: Indexed in Elasticsearch for O(1) lookup performance
+- **Trending Discovery**: Top hashtags by usage count exposed via API
 
-### Post Access Control
-The system implements security checks to ensure users can only:
-- View posts based on visibility settings
-- Edit their own posts
-- Delete their own posts
-- Access appropriate content based on permissions
+### API Endpoints
+```http
+# Filter posts by hashtag
+GET /api/posts?hashtag=travel
 
-## Media File Handling
+# Get trending hashtags
+GET /api/hashtags/trending?page=0&size=10
 
-### Upload Signature Generation
-The system generates secure upload signatures for media files, allowing direct uploads to cloud storage while maintaining security.
+# Search hashtags by prefix
+GET /api/hashtags/suggestions?prefix=trav
+```
 
-### File Storage
-- Original media files stored in cloud storage
-- Thumbnail generation for images
-- File validation and security checks
-- Support for multiple media types (IMAGE, VIDEO, AUDIO)
-
-## Integration Points
-
-### With ML System
-- Post media triggers ML processing pipeline
-- AI insights stored and associated with media
-- Face detection results linked to posts
-- Content moderation through AI analysis
-
-### With User System
-- Posts linked to user accounts
-- User tagging in posts
-- Visibility controls based on user relationships
-
-### With Category System
-- Posts can be categorized for organization
-- Category-based filtering and discovery
-
-## Database Schema
-
-### Key Relationships
-- Post → User (many-to-one)
-- Post → PostMedia (one-to-many)
-- PostMedia → MediaAiInsights (one-to-one)
-- PostMedia → MediaDetectedFace (one-to-many)
-- Post → PostCategory (one-to-many)
-- Post → PostSave (one-to-many)
-
-### Soft Delete Implementation
-Posts use soft delete with `deletedAt` timestamp, allowing for data recovery and audit trails.
-
-This documentation covers the implemented Posts Management System features in the Kaleidoscope platform.
+**See:** [HASHTAG_SYSTEM.md](./HASHTAG_SYSTEM.md) for comprehensive hashtag documentation
