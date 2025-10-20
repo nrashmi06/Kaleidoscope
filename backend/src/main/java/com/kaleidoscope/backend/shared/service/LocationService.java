@@ -29,17 +29,6 @@ public interface LocationService {
     Page<LocationResponseDTO> searchLocations(String searchTerm, Pageable pageable);
 
     /**
-     * Find nearby locations within a specified radius
-     *
-     * @param latitude the latitude of the center point
-     * @param longitude the longitude of the center point
-     * @param radiusKm the search radius in kilometers
-     * @param pageable pagination parameters
-     * @return paginated list of nearby locations
-     */
-    Page<LocationResponseDTO> findNearbyLocations(double latitude, double longitude, double radiusKm, Pageable pageable);
-
-    /**
      * Get location by ID
      *
      * @param locationId the ID of the location to retrieve

@@ -41,16 +41,23 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
             PostStatus status,
             PostVisibility visibility,
             String query,
+            Long locationId,
+            Double latitude,
+            Double longitude,
+            Double radiusKm,
             Pageable pageable) {
         
-        log.info("Executing Elasticsearch query for posts with filters: userId={}, categoryId={}, status={}, visibility={}, query={}",
-                userId, categoryId, status, visibility, query);
+        log.info("Executing Elasticsearch query for posts with filters: userId={}, categoryId={}, status={}, visibility={}, query={}, locationId={}, lat={}, lon={}, radiusKm={}",
+                userId, categoryId, status, visibility, query, locationId, latitude, longitude, radiusKm);
 
         // Build the main query combining filters and security rules
         BoolQuery.Builder mainQueryBuilder = new BoolQuery.Builder();
 
         // Add filtering clauses (MUST conditions)
         addFilterClauses(mainQueryBuilder, userId, categoryId, status, visibility, query);
+
+        // Add location filtering clauses
+        addLocationFilterClauses(mainQueryBuilder, locationId, latitude, longitude, radiusKm);
 
         // Add security clauses based on user role and visibility rules
         addSecurityClauses(mainQueryBuilder, currentUserId, followingIds);
@@ -404,5 +411,29 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
         queryBuilder.must(visibilityBuilder.build()._toQuery());
         
         log.debug("Security clauses added successfully");
+    }
+
+    /**
+     * Add location-based filtering clauses to the query (MUST conditions)
+     */
+    private void addLocationFilterClauses(BoolQuery.Builder queryBuilder, Long locationId,
+                                          Double latitude, Double longitude, Double radiusKm) {
+        // If both locationId and geo-distance params are provided, use OR logic (at least one matches)
+        // If only one type is provided, just use that filter
+
+        if (latitude != null && longitude != null && radiusKm != null && radiusKm > 0) {
+            // Geo-distance query to find posts within radius
+            log.debug("Adding geo-distance filter: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
+            queryBuilder.filter(GeoDistanceQuery.of(g -> g
+                    .field("location.point")
+                    .location(l -> l.latlon(ll -> ll.lat(latitude).lon(longitude)))
+                    .distance(radiusKm + "km"))._toQuery());
+        } else if (locationId != null) {
+            // Exact location ID match
+            log.debug("Adding exact location ID filter: locationId={}", locationId);
+            queryBuilder.filter(TermQuery.of(t -> t
+                    .field("location.id")
+                    .value(locationId))._toQuery());
+        }
     }
 }

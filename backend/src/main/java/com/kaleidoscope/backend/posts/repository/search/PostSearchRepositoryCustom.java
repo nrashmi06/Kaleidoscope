@@ -26,6 +26,10 @@ public interface PostSearchRepositoryCustom {
      * @param status Filter by post status (optional)
      * @param visibility Filter by post visibility (optional)
      * @param query Text search query across title, summary, and body (optional)
+     * @param locationId Filter by specific location ID (optional)
+     * @param latitude Latitude for geo-distance query (optional)
+     * @param longitude Longitude for geo-distance query (optional)
+     * @param radiusKm Radius in kilometers for geo-distance query (optional)
      * @param pageable Pagination and sorting parameters
      * @return Page of PostDocument matching the criteria and visible to the user
      */
@@ -37,6 +41,10 @@ public interface PostSearchRepositoryCustom {
             PostStatus status,
             PostVisibility visibility,
             String query,
+            Long locationId,
+            Double latitude,
+            Double longitude,
+            Double radiusKm,
             Pageable pageable
     );
 

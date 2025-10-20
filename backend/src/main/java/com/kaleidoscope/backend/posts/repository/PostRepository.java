@@ -30,6 +30,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
            "LEFT JOIN FETCH p.user " +
            "LEFT JOIN FETCH p.media " +
            "LEFT JOIN FETCH p.categories pc " +
-           "LEFT JOIN FETCH pc.category")
+           "LEFT JOIN FETCH pc.category " +
+           "LEFT JOIN FETCH p.location")
     Page<Post> findAllWithRelations(Pageable pageable);
 }

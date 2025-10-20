@@ -228,6 +228,35 @@ public class PostServiceImpl implements PostService {
                     })
                     .collect(Collectors.toList());
 
+            // Build location info for denormalized data
+            PostDocument.LocationInfo locationInfo = null;
+            Location location = savedPost.getLocation();
+            if (location != null) {
+                Long locationId = location.getLocationId();
+                String locationName = location.getName();
+                if (location.getLatitude() != null && location.getLongitude() != null) {
+                    org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
+                        new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                            location.getLatitude().doubleValue(),
+                            location.getLongitude().doubleValue()
+                        );
+                    locationInfo = PostDocument.LocationInfo.builder()
+                            .id(locationId)
+                            .name(locationName)
+                            .point(geoPoint)
+                            .build();
+                } else {
+                    // Location exists but has no coordinates
+                    locationInfo = PostDocument.LocationInfo.builder()
+                            .id(locationId)
+                            .name(locationName)
+                            .point(null)
+                            .build();
+                }
+                log.debug("Including location in ES index for post {}: locationId={}, name={}, hasCoordinates={}",
+                         savedPost.getPostId(), locationId, locationName, locationInfo.getPoint() != null);
+            }
+
             // Create PostDocument with initial values
             PostDocument postDocument = PostDocument.builder()
                     .id(savedPost.getPostId().toString())
@@ -241,6 +270,7 @@ public class PostServiceImpl implements PostService {
                     .createdAt(savedPost.getCreatedAt())
                     .author(author)
                     .categories(documentCategories)
+                    .location(locationInfo)
                     .reactionCount(0L)       // Initial value
                     .commentCount(0L)        // Initial value
                     .viewCount(0L)           // Initial value
@@ -566,6 +596,7 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+
     @Override
     @Transactional(readOnly = true)
     public PaginatedResponse<PostSummaryResponseDTO> filterPosts(Pageable pageable,
@@ -573,9 +604,12 @@ public class PostServiceImpl implements PostService {
                                                                  Long categoryId,
                                                                  PostStatus status,
                                                                  PostVisibility visibility,
-                                                                 String query) {
-        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}",
-                userId, categoryId, status, visibility, query);
+                                                                 String query,
+                                                                 Long locationId,
+                                                                 Long nearbyLocationId,
+                                                                 Double radiusKm) {
+        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}, locationId={}, nearbyLocationId={}, radiusKm={}",
+                userId, categoryId, status, visibility, query, locationId, nearbyLocationId, radiusKm);
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -587,6 +621,23 @@ public class PostServiceImpl implements PostService {
             log.debug("Retrieved {} following IDs for user {}", followingIds.size(), currentUserId);
         }
 
+        // Handle nearbyLocationId - fetch coordinates for geo-distance query
+        Double latitude = null;
+        Double longitude = null;
+        if (nearbyLocationId != null) {
+            log.debug("Fetching coordinates for nearbyLocationId: {}", nearbyLocationId);
+            Location location = locationRepository.findById(nearbyLocationId)
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + nearbyLocationId));
+
+            if (location.getLatitude() != null && location.getLongitude() != null) {
+                latitude = location.getLatitude().doubleValue();
+                longitude = location.getLongitude().doubleValue();
+                log.info("Using geo-distance query: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
+            } else {
+                log.warn("Location {} exists but has no coordinates. Geo-distance query will be skipped.", nearbyLocationId);
+            }
+        }
+
         // Use the custom Elasticsearch repository method
         Page<PostDocument> documentPage = postSearchRepository.findVisibleAndFilteredPosts(
                 currentUserId,
@@ -596,6 +647,10 @@ public class PostServiceImpl implements PostService {
                 status,
                 visibility,
                 query,
+                locationId,
+                latitude,
+                longitude,
+                radiusKm,
                 pageable
         );
 
@@ -608,4 +663,3 @@ public class PostServiceImpl implements PostService {
         return PaginatedResponse.fromPage(dtoPage);
     }
 }
-

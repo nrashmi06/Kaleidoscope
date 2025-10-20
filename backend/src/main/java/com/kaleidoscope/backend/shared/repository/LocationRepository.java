@@ -27,16 +27,4 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
             "l.address ILIKE %:searchTerm% " +
             "ORDER BY l.name")
     Page<Location> search(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    @Query(value = "SELECT * FROM locations WHERE " +
-            "ST_DWithin(" +
-            "    ST_MakePoint(longitude, latitude)::geography, " +
-            "    ST_MakePoint(:longitude, :latitude)::geography, " +
-            "    :radiusMeters" +
-            ")",
-            nativeQuery = true)
-    Page<Location> findNearbyLocations(@Param("latitude") double latitude,
-                                       @Param("longitude") double longitude,
-                                       @Param("radiusMeters") double radiusMeters,
-                                       Pageable pageable);
 }

@@ -59,23 +59,6 @@ public interface LocationApi {
             @Parameter(description = "The ID of the location to retrieve", required = true)
             @PathVariable Long locationId);
 
-    @Operation(summary = "Find nearby locations", description = "Find locations within a specified radius from given coordinates.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Nearby locations retrieved successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = AppResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid coordinates or radius"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
-    ResponseEntity<AppResponse<PaginatedResponse<LocationResponseDTO>>> findNearbyLocations(
-            @Parameter(description = "Latitude of the center point", example = "37.7749", required = true)
-            @RequestParam double latitude,
-            @Parameter(description = "Longitude of the center point", example = "-122.4194", required = true)
-            @RequestParam double longitude,
-            @Parameter(description = "Search radius in kilometers", example = "10.0", required = true)
-            @RequestParam double radiusKm,
-            @Parameter(description = "Pagination parameters") Pageable pageable);
-
     @Operation(summary = "Delete location by ID", description = "Deletes a location by its ID. Admin only.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Location deleted successfully",
