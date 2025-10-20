@@ -26,12 +26,10 @@ import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
-import com.kaleidoscope.backend.shared.model.Category;
-import com.kaleidoscope.backend.shared.model.Location;
-import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
-import com.kaleidoscope.backend.shared.model.UserTag;
+import com.kaleidoscope.backend.shared.model.*;
 import com.kaleidoscope.backend.shared.repository.*;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
+import com.kaleidoscope.backend.shared.service.HashtagService;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.shared.service.UserTagService;
 import com.kaleidoscope.backend.users.model.User;
@@ -71,6 +69,7 @@ public class PostServiceImpl implements PostService {
     private final PostViewService postViewService;
     private final PostSearchRepository postSearchRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    private final HashtagService hashtagService;
 
     @Override
     @Transactional
@@ -123,6 +122,19 @@ public class PostServiceImpl implements PostService {
         // Save the post first to generate its ID
         Post savedPost = postRepository.save(post);
         log.info("Post entity successfully saved: postId={}, title='{}'", savedPost.getPostId(), savedPost.getTitle());
+
+        // Handle hashtags: parse, find/create, and associate with post
+        log.debug("Processing hashtags for post body");
+        Set<String> hashtagNames = hashtagService.parseHashtags(postCreateRequestDTO.body());
+        if (!hashtagNames.isEmpty()) {
+            log.info("Found {} hashtags in post body", hashtagNames.size());
+            List<Hashtag> hashtags = hashtagService.findOrCreateHashtags(hashtagNames);
+            hashtagService.associateHashtagsWithPost(savedPost, new HashSet<>(hashtags));
+            hashtagService.triggerHashtagUsageUpdate(new HashSet<>(hashtags), Collections.emptySet());
+            log.info("Successfully associated and updated usage for {} hashtags", hashtags.size());
+        } else {
+            log.debug("No hashtags found in post body");
+        }
 
         // Handle media if provided
         if (postCreateRequestDTO.mediaDetails() != null && !postCreateRequestDTO.mediaDetails().isEmpty()) {
@@ -483,6 +495,14 @@ public class PostServiceImpl implements PostService {
             throw new UnauthorizedActionException("User is not authorized to delete this post.");
         }
 
+        // Before deleting, get associated hashtags and trigger usage count decrement
+        log.debug("Retrieving hashtags for post {} before deletion", postId);
+        Set<Hashtag> hashtags = post.getHashtags();
+        if (!hashtags.isEmpty()) {
+            log.info("Triggering usage count decrement for {} hashtags", hashtags.size());
+            hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
+        }
+
         List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
         if (!tagsToDelete.isEmpty()) {
             log.debug("Soft deleting {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
@@ -501,6 +521,14 @@ public class PostServiceImpl implements PostService {
             log.error("Post not found for hard delete: {}", postId);
             return new PostNotFoundException(postId);
         });
+
+        // Before deleting, get associated hashtags and trigger usage count decrement
+        log.debug("Retrieving hashtags for post {} before hard deletion", postId);
+        Set<Hashtag> hashtags = post.getHashtags();
+        if (!hashtags.isEmpty()) {
+            log.info("Triggering usage count decrement for {} hashtags", hashtags.size());
+            hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
+        }
 
         List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
         if (!tagsToDelete.isEmpty()) {

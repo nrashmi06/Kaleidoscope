@@ -17,6 +17,7 @@ import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.mapper.UserTagMapper;
 import com.kaleidoscope.backend.shared.model.Category;
+import com.kaleidoscope.backend.shared.model.Hashtag;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.repository.CommentRepository;
 import com.kaleidoscope.backend.shared.repository.ReactionRepository;
@@ -175,6 +176,12 @@ public class PostMapper {
                 .map(userTagMapper::toDTO)
                 .collect(Collectors.toList());
 
+        // Extract hashtag names from post
+        List<String> hashtagNames = post.getHashtags().stream()
+                .map(Hashtag::getName)
+                .sorted()
+                .collect(Collectors.toList());
+
         // Get reaction and comment counts
         long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
         long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
@@ -216,6 +223,7 @@ public class PostMapper {
                         .collect(Collectors.toList()))
                 .location(locationDto)
                 .taggedUsers(taggedUsers)
+                .hashtags(hashtagNames)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
                 .viewCount(viewCount) // Add view count to response
@@ -243,6 +251,12 @@ public class PostMapper {
                 .map(PostMedia::getMediaUrl)
                 .orElse(null);
 
+        // Extract hashtag names from post
+        List<String> hashtagNames = post.getHashtags().stream()
+                .map(Hashtag::getName)
+                .sorted()
+                .collect(Collectors.toList());
+
         // Get reaction and comment counts
         long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
         long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
@@ -265,6 +279,7 @@ public class PostMapper {
                         })
                         .collect(Collectors.toList()))
                 .thumbnailUrl(thumbnailUrl)
+                .hashtags(hashtagNames)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
                 .viewCount(viewCount) // Add view count to response

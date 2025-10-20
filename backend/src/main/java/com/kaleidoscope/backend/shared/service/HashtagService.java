@@ -27,23 +27,24 @@ public interface HashtagService {
     /**
      * Associate hashtags with a post
      * @param post The post to associate hashtags with
-     * @param hashtags List of hashtag entities
+     * @param hashtags Set of hashtag entities to associate
      */
-    void associateHashtagsWithPost(Post post, List<Hashtag> hashtags);
-    
+    void associateHashtagsWithPost(Post post, Set<Hashtag> hashtags);
+
     /**
-     * Disassociate hashtags from a post (when post is deleted)
+     * Disassociate specific hashtags from a post
      * @param post The post to disassociate hashtags from
+     * @param hashtags Set of hashtag entities to disassociate
      */
-    void disassociateHashtagsFromPost(Post post);
-    
+    void disassociateHashtagsFromPost(Post post, Set<Hashtag> hashtags);
+
     /**
      * Trigger asynchronous update of hashtag usage counts
-     * @param hashtagNames Set of hashtag names
-     * @param increment true to increment, false to decrement
+     * @param addedHashtags Set of hashtags to increment usage count
+     * @param removedHashtags Set of hashtags to decrement usage count
      */
-    void triggerHashtagUsageUpdate(Set<String> hashtagNames, boolean increment);
-    
+    void triggerHashtagUsageUpdate(Set<Hashtag> addedHashtags, Set<Hashtag> removedHashtags);
+
     /**
      * Get trending hashtags ordered by usage count
      * @param pageable Pagination parameters

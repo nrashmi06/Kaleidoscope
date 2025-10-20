@@ -99,7 +99,7 @@ public class HashtagServiceImpl implements HashtagService {
 
     @Override
     @Transactional
-    public void associateHashtagsWithPost(Post post, List<Hashtag> hashtags) {
+    public void associateHashtagsWithPost(Post post, Set<Hashtag> hashtags) {
         if (post == null || hashtags == null || hashtags.isEmpty()) {
             return;
         }
@@ -119,36 +119,53 @@ public class HashtagServiceImpl implements HashtagService {
 
     @Override
     @Transactional
-    public void disassociateHashtagsFromPost(Post post) {
-        if (post == null) {
+    public void disassociateHashtagsFromPost(Post post, Set<Hashtag> hashtags) {
+        if (post == null || hashtags == null || hashtags.isEmpty()) {
             return;
         }
 
-        log.info("Disassociating hashtags from post {}", post.getPostId());
-        postHashtagRepository.deleteAllByPost(post);
-        log.info("Successfully disassociated hashtags from post {}", post.getPostId());
+        log.info("Disassociating {} hashtags from post {}", hashtags.size(), post.getPostId());
+
+        for (Hashtag hashtag : hashtags) {
+            postHashtagRepository.deleteByPostAndHashtag(post, hashtag);
+        }
+
+        log.info("Successfully disassociated {} hashtags from post {}", hashtags.size(), post.getPostId());
     }
 
     @Override
-    public void triggerHashtagUsageUpdate(Set<String> hashtagNames, boolean increment) {
-        if (hashtagNames == null || hashtagNames.isEmpty()) {
-            return;
+    public void triggerHashtagUsageUpdate(Set<Hashtag> addedHashtags, Set<Hashtag> removedHashtags) {
+        // Process added hashtags (increment)
+        if (addedHashtags != null && !addedHashtags.isEmpty()) {
+            log.info("Triggering async hashtag usage increment for {} hashtags", addedHashtags.size());
+            for (Hashtag hashtag : addedHashtags) {
+                Map<String, Object> event = new HashMap<>();
+                event.put("hashtagName", hashtag.getName().toLowerCase());
+                event.put("change", 1);
+                event.put("timestamp", System.currentTimeMillis());
+
+                try {
+                    redisStreamPublisher.publish(HASHTAG_USAGE_SYNC_STREAM, event);
+                } catch (Exception e) {
+                    log.error("Failed to publish hashtag usage increment event for hashtag: {}", hashtag.getName(), e);
+                }
+            }
         }
 
-        log.info("Triggering async hashtag usage update for {} hashtags (increment: {})", 
-                hashtagNames.size(), increment);
+        // Process removed hashtags (decrement)
+        if (removedHashtags != null && !removedHashtags.isEmpty()) {
+            log.info("Triggering async hashtag usage decrement for {} hashtags", removedHashtags.size());
+            for (Hashtag hashtag : removedHashtags) {
+                Map<String, Object> event = new HashMap<>();
+                event.put("hashtagName", hashtag.getName().toLowerCase());
+                event.put("change", -1);
+                event.put("timestamp", System.currentTimeMillis());
 
-        // Publish events to Redis Stream for async processing
-        for (String hashtagName : hashtagNames) {
-            Map<String, Object> event = new HashMap<>();
-            event.put("hashtagName", hashtagName.toLowerCase());
-            event.put("change", increment ? 1 : -1);
-            event.put("timestamp", System.currentTimeMillis());
-
-            try {
-                redisStreamPublisher.publish(HASHTAG_USAGE_SYNC_STREAM, event);
-            } catch (Exception e) {
-                log.error("Failed to publish hashtag usage update event for hashtag: {}", hashtagName, e);
+                try {
+                    redisStreamPublisher.publish(HASHTAG_USAGE_SYNC_STREAM, event);
+                } catch (Exception e) {
+                    log.error("Failed to publish hashtag usage decrement event for hashtag: {}", hashtag.getName(), e);
+                }
             }
         }
     }

@@ -12,5 +12,6 @@ public interface PostHashtagRepository extends JpaRepository<PostHashtag, Long> 
     void deleteAllByHashtag(Hashtag hashtag);
     
     void deleteAllByPost(Post post);
-}
 
+    void deleteByPostAndHashtag(Post post, Hashtag hashtag);
+}
