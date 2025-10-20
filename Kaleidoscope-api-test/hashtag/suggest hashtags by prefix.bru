@@ -1,0 +1,37 @@
+meta {
+  name: suggest hashtags by prefix
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/hashtags/suggest?prefix=java&page=0&size=10
+  body: none
+  auth: inherit
+}
+
+params:query {
+  prefix: java
+  page: 0
+  size: 10
+}
+
+docs {
+  Get hashtag suggestions based on a prefix search.
+  Useful for autocomplete functionality when users type hashtags.
+  
+  Query Parameters:
+  - prefix: The prefix to search for (e.g., "jav" will match "java", "javascript")
+  - page: Page number (default: 0)
+  - size: Page size (default: 10)
+  
+  Response includes:
+  - hashtagId: Unique identifier
+  - name: Hashtag name (without #)
+  - usageCount: Number of times used (suggestions are ordered by popularity)
+  - createdAt: Creation timestamp
+  
+  Example use cases:
+  - prefix="ja" -> returns ["java", "javascript", "jamstack"]
+  - prefix="spri" -> returns ["spring", "springboot"]
+}
