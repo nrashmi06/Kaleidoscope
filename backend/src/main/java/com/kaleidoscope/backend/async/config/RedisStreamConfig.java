@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.async.config;
 
 import com.kaleidoscope.backend.async.consumer.FaceDetectionConsumer;
 import com.kaleidoscope.backend.async.consumer.FaceRecognitionConsumer;
+import com.kaleidoscope.backend.async.consumer.HashtagUsageSyncConsumer;
 import com.kaleidoscope.backend.async.consumer.MediaAiInsightsConsumer;
 import com.kaleidoscope.backend.async.streaming.ConsumerStreamConstants;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
@@ -42,6 +43,7 @@ public class RedisStreamConfig {
     private final UserProfilePostSyncConsumer userProfilePostSyncConsumer;
     private final UserProfileFaceEmbeddingConsumer userProfileFaceEmbeddingConsumer;
     private final NotificationConsumer notificationConsumer;
+    private final HashtagUsageSyncConsumer hashtagUsageSyncConsumer;
 
     // 1. CRITICAL FIX: Inject application name and create a unique instance ID
     @Value("${spring.application.name:kaleidoscope}")
@@ -75,6 +77,7 @@ public class RedisStreamConfig {
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.HASHTAG_USAGE_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
 
         // 3. Configure Container Options for Manual Acknowledgment
         StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
@@ -97,6 +100,7 @@ public class RedisStreamConfig {
         registerConsumer(container, consumerName, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, postInteractionSyncConsumer);
         registerConsumer(container, consumerName, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, userProfilePostSyncConsumer);
         registerConsumer(container, consumerName, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, notificationConsumer);
+        registerConsumer(container, consumerName, ProducerStreamConstants.HASHTAG_USAGE_SYNC_STREAM, hashtagUsageSyncConsumer);
 
         log.info("Redis Stream Message Listener Container configured successfully with unique consumer name: {}", consumerName);
         return container;

@@ -1,50 +1,49 @@
 package com.kaleidoscope.backend.shared.model;
 
+import com.kaleidoscope.backend.posts.model.Post;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
-@Table(name = "hashtags")
+@Table(
+    name = "post_hashtags",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "hashtag_id"})
+)
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Hashtag {
+public class PostHashtag {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "hashtag_id")
-    private Long hashtagId;
+    @Column(name = "id")
+    private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
-    @Column(name = "usage_count", nullable = false)
-    @Builder.Default
-    private Integer usageCount = 0;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hashtag_id", nullable = false)
+    private Hashtag hashtag;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "hashtag", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<PostHashtag> postHashtags = new HashSet<>();
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Hashtag hashtag = (Hashtag) o;
-        return hashtagId != null && hashtagId.equals(hashtag.hashtagId);
+        PostHashtag that = (PostHashtag) o;
+        return id != null && id.equals(that.id);
     }
 
     @Override
@@ -52,3 +51,4 @@ public class Hashtag {
         return getClass().hashCode();
     }
 }
+
