@@ -19,8 +19,11 @@ public interface PostService {
     PaginatedResponse<PostSummaryResponseDTO> filterPosts(Pageable pageable,
                                                            Long userId,
                                                            Long categoryId,
-                                                           // --- REMOVED PostType type ---
                                                            PostStatus status,
                                                            PostVisibility visibility,
-                                                           String query);
+                                                           String query,
+                                                           String hashtag,
+                                                           Long locationId,
+                                                           Long nearbyLocationId,
+                                                           Double radiusKm);
 }

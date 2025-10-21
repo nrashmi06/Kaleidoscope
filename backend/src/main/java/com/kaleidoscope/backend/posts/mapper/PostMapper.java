@@ -17,6 +17,7 @@ import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.mapper.UserTagMapper;
 import com.kaleidoscope.backend.shared.model.Category;
+import com.kaleidoscope.backend.shared.model.Hashtag;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.repository.CommentRepository;
 import com.kaleidoscope.backend.shared.repository.ReactionRepository;
@@ -175,6 +176,12 @@ public class PostMapper {
                 .map(userTagMapper::toDTO)
                 .collect(Collectors.toList());
 
+        // Extract hashtag names from post
+        List<String> hashtagNames = post.getHashtags().stream()
+                .map(Hashtag::getName)
+                .sorted()
+                .collect(Collectors.toList());
+
         // Get reaction and comment counts
         long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
         long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
@@ -216,6 +223,7 @@ public class PostMapper {
                         .collect(Collectors.toList()))
                 .location(locationDto)
                 .taggedUsers(taggedUsers)
+                .hashtags(hashtagNames)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
                 .viewCount(viewCount) // Add view count to response
@@ -243,6 +251,12 @@ public class PostMapper {
                 .map(PostMedia::getMediaUrl)
                 .orElse(null);
 
+        // Extract hashtag names from post
+        List<String> hashtagNames = post.getHashtags().stream()
+                .map(Hashtag::getName)
+                .sorted()
+                .collect(Collectors.toList());
+
         // Get reaction and comment counts
         long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
         long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
@@ -265,6 +279,7 @@ public class PostMapper {
                         })
                         .collect(Collectors.toList()))
                 .thumbnailUrl(thumbnailUrl)
+                .hashtags(hashtagNames)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
                 .viewCount(viewCount) // Add view count to response
@@ -304,6 +319,9 @@ public class PostMapper {
                     .collect(Collectors.toList());
         }
 
+        // Map hashtags from denormalized document data
+        List<String> hashtags = document.getHashtags() != null ? document.getHashtags() : List.of();
+
         return PostSummaryResponseDTO.builder()
                 .postId(document.getPostId())
                 .title(document.getTitle())
@@ -313,9 +331,91 @@ public class PostMapper {
                 .author(authorDto)
                 .categories(categoryDtos)
                 .thumbnailUrl(document.getThumbnailUrl())
+                .hashtags(hashtags)
                 .reactionCount(document.getReactionCount())
                 .commentCount(document.getCommentCount())
                 .viewCount(document.getViewCount()) // Use denormalized view count directly
+                .build();
+    }
+
+    /**
+     * Create PostDocument from Post entity with denormalized data for Elasticsearch indexing
+     * Migrated from PostServiceImpl.createPost
+     */
+    public PostDocument toPostDocument(Post post) {
+        if (post == null) {
+            return null;
+        }
+
+        // Find thumbnail URL from media with lowest position
+        String thumbnailUrl = post.getMedia().stream()
+                .min(Comparator.comparing(PostMedia::getPosition))
+                .map(PostMedia::getMediaUrl)
+                .orElse(null);
+
+        // Build author object for denormalized data
+        User currentUser = post.getUser();
+        PostDocument.Author author = PostDocument.Author.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .profilePictureUrl(currentUser.getProfilePictureUrl())
+                .build();
+
+        // Build categories list for denormalized data
+        List<PostDocument.Category> documentCategories = post.getCategories().stream()
+                .map(pc -> {
+                    Category cat = pc.getCategory();
+                    return PostDocument.Category.builder()
+                            .categoryId(cat.getCategoryId())
+                            .name(cat.getName())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // Build location info for denormalized data
+        PostDocument.LocationInfo locationInfo = null;
+        Location location = post.getLocation();
+        if (location != null) {
+            Long locationId = location.getLocationId();
+            String locationName = location.getName();
+            if (location.getLatitude() != null && location.getLongitude() != null) {
+                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
+                    new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                        location.getLatitude().doubleValue(),
+                        location.getLongitude().doubleValue()
+                    );
+                locationInfo = PostDocument.LocationInfo.builder()
+                        .id(locationId)
+                        .name(locationName)
+                        .point(geoPoint)
+                        .build();
+            } else {
+                // Location exists but has no coordinates
+                locationInfo = PostDocument.LocationInfo.builder()
+                        .id(locationId)
+                        .name(locationName)
+                        .point(null)
+                        .build();
+            }
+        }
+
+        // Create PostDocument with initial values
+        return PostDocument.builder()
+                .id(post.getPostId().toString())
+                .postId(post.getPostId())
+                .title(post.getTitle())
+                .body(post.getBody())
+                .summary(post.getSummary())
+                .thumbnailUrl(thumbnailUrl)
+                .visibility(post.getVisibility())
+                .status(post.getStatus())
+                .createdAt(post.getCreatedAt())
+                .author(author)
+                .categories(documentCategories)
+                .location(locationInfo)
+                .reactionCount(0L)       // Initial value
+                .commentCount(0L)        // Initial value
+                .viewCount(0L)           // Initial value
                 .build();
     }
 }

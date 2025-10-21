@@ -6,6 +6,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "hashtags")
@@ -32,6 +34,10 @@ public class Hashtag {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "hashtag", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<PostHashtag> postHashtags = new HashSet<>();
 
     @Override
     public boolean equals(Object o) {

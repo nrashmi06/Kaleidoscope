@@ -115,13 +115,13 @@ public class UserTagServiceImpl implements UserTagService {
             throw new UserTaggingException("User is already tagged in this content");
         }
 
-        // Create and save tag
-        UserTag userTag = UserTag.builder()
-                .taggedUser(taggedUser)
-                .taggerUser(taggerUser)
-                .contentType(requestDTO.contentType())
-                .contentId(requestDTO.contentId())
-                .build();
+        // Create and save tag using mapper
+        UserTag userTag = UserTagMapper.toEntity(
+                taggedUser,
+                taggerUser,
+                requestDTO.contentType(),
+                requestDTO.contentId()
+        );
 
         UserTag savedTag = userTagRepository.save(userTag);
         log.info("Created user tag with ID: {}", savedTag.getTagId());

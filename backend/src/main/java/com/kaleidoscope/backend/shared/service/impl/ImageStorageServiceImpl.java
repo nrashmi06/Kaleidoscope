@@ -7,9 +7,10 @@ import com.kaleidoscope.backend.shared.dto.request.GenerateUploadSignatureReques
 import com.kaleidoscope.backend.shared.dto.response.SignatureDataDTO;
 import com.kaleidoscope.backend.shared.dto.response.UploadSignatureResponseDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
-import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
+import com.kaleidoscope.backend.shared.mapper.MediaAssetTrackerMapper;
+import com.kaleidoscope.backend.shared.mapper.SignatureMapper;
 import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
 import com.kaleidoscope.backend.shared.repository.MediaAssetTrackerRepository;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
@@ -166,17 +167,13 @@ public class ImageStorageServiceImpl implements ImageStorageService {
 
                 String signature = cloudinary.apiSignRequest(params, cloudinary.config.apiSecret);
 
-                MediaAssetTracker tracker = MediaAssetTracker.builder()
-                        .publicId(publicId)
-                        .user(currentUser)
-                        .contentType(request.getContentType())
-                        .contentId(null)
-                        .status(MediaAssetStatus.PENDING)
-                        .build();
+                // Use mapper to create MediaAssetTracker
+                MediaAssetTracker tracker = MediaAssetTrackerMapper.toEntity(publicId, currentUser, request.getContentType());
                 mediaAssetTrackerRepository.save(tracker);
                 log.debug("[generateUploadSignatures] Saved MediaAssetTracker for publicId: {}", publicId);
 
-                SignatureDataDTO signatureData = new SignatureDataDTO(
+                // Use mapper to create SignatureDataDTO
+                SignatureDataDTO signatureData = SignatureMapper.toSignatureDataDTO(
                         signature,
                         timestamp,
                         publicId,
@@ -188,7 +185,9 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                 log.debug("[generateUploadSignatures] Generated signature for file: {} publicId: {}", fileName, publicId);
             }
             log.info("[generateUploadSignatures] Successfully generated {} signatures", signatures.size());
-            return new UploadSignatureResponseDTO(signatures);
+
+            // Use mapper to create response DTO
+            return SignatureMapper.toUploadSignatureResponseDTO(signatures);
         } catch (Exception e) {
             log.error("[generateUploadSignatures] Unexpected error generating upload signatures for files: {}", request.getFileNames(), e);
             throw new SignatureGenerationException("Failed to generate upload signatures", e);
@@ -237,3 +236,4 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         return valid;
     }
 }
+

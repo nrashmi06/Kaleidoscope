@@ -41,16 +41,24 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
             PostStatus status,
             PostVisibility visibility,
             String query,
+            String hashtag,
+            Long locationId,
+            Double latitude,
+            Double longitude,
+            Double radiusKm,
             Pageable pageable) {
         
-        log.info("Executing Elasticsearch query for posts with filters: userId={}, categoryId={}, status={}, visibility={}, query={}",
-                userId, categoryId, status, visibility, query);
+        log.info("Executing Elasticsearch query for posts with filters: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, lat={}, lon={}, radiusKm={}",
+                userId, categoryId, status, visibility, query, hashtag, locationId, latitude, longitude, radiusKm);
 
         // Build the main query combining filters and security rules
         BoolQuery.Builder mainQueryBuilder = new BoolQuery.Builder();
 
         // Add filtering clauses (MUST conditions)
-        addFilterClauses(mainQueryBuilder, userId, categoryId, status, visibility, query);
+        addFilterClauses(mainQueryBuilder, userId, categoryId, status, visibility, query, hashtag);
+
+        // Add location filtering clauses
+        addLocationFilterClauses(mainQueryBuilder, locationId, latitude, longitude, radiusKm);
 
         // Add security clauses based on user role and visibility rules
         addSecurityClauses(mainQueryBuilder, currentUserId, followingIds);
@@ -85,19 +93,20 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
             List<Long> blockedUserIds,
             List<Long> blockedByUserIds,
             Set<String> viewedPostIds,
+            List<String> trendingHashtagNames,
             Pageable pageable) {
 
         log.info("Executing post suggestions query for user: {}", currentUserId);
-        log.debug("Context - Following: {}, Interests: {}, Blocked: {}, BlockedBy: {}, ViewedPosts: {}",
+        log.debug("Context - Following: {}, Interests: {}, Blocked: {}, BlockedBy: {}, ViewedPosts: {}, TrendingHashtags: {}",
                 followingIds.size(), interestIds.size(), blockedUserIds.size(), blockedByUserIds.size(),
-                viewedPostIds != null ? viewedPostIds.size() : 0);
+                viewedPostIds != null ? viewedPostIds.size() : 0, trendingHashtagNames != null ? trendingHashtagNames.size() : 0);
 
         // Build filter query (must_not and must conditions) - now includes viewed posts and followingIds for visibility
         BoolQuery filterQuery = buildSuggestionFilters(currentUserId, blockedUserIds, blockedByUserIds, viewedPostIds, followingIds);
 
         // Build scoring functions
         List<co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore> scoringFunctions =
-                buildScoringFunctions(followingIds, interestIds);
+                buildScoringFunctions(followingIds, interestIds, trendingHashtagNames);
 
         // Build the function_score query
         FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
@@ -204,7 +213,7 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
      * Build scoring functions for personalized ranking
      */
     private List<co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore> buildScoringFunctions(
-            Set<Long> followingIds, List<Long> interestIds) {
+            Set<Long> followingIds, List<Long> interestIds, List<String> trendingHashtagNames) {
 
         List<co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore> functions = new ArrayList<>();
 
@@ -237,7 +246,20 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
             log.debug("Added interest boost function for {} categories", interestIds.size());
         }
 
-        // Function 3: Popularity boost based on reaction count (weight: 2.0)
+        // Function 3: Boost posts with trending hashtags (weight: 3.0) - NEW
+        if (trendingHashtagNames != null && !trendingHashtagNames.isEmpty()) {
+            functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
+                    .filter(TermsQuery.of(ts -> ts
+                            .field("hashtags")
+                            .terms(t -> t.value(trendingHashtagNames.stream()
+                                    .map(FieldValue::of)
+                                    .toList())))._toQuery())
+                    .weight(3.0)
+            ));
+            log.debug("Added trending hashtag boost function for {} hashtags", trendingHashtagNames.size());
+        }
+
+        // Function 4: Popularity boost based on reaction count (weight: 2.0)
         functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
                 .fieldValueFactor(fvf -> fvf
                         .field("reactionCount")
@@ -248,7 +270,7 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
         ));
         log.debug("Added popularity boost function based on reactions");
 
-        // Function 4: Engagement boost based on comment count (weight: 1.5)
+        // Function 5: Engagement boost based on comment count (weight: 1.5)
         functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
                 .fieldValueFactor(fvf -> fvf
                         .field("commentCount")
@@ -259,7 +281,7 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
         ));
         log.debug("Added engagement boost function based on comments");
 
-        // Function 5: View count boost (weight: 1.0)
+        // Function 6: View count boost (weight: 1.0)
         functions.add(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore.of(f -> f
                 .fieldValueFactor(fvf -> fvf
                         .field("viewCount")
@@ -277,8 +299,8 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
      * Add filtering clauses to the main query (MUST conditions)
      */
     private void addFilterClauses(BoolQuery.Builder queryBuilder, Long userId, Long categoryId, 
-                                  PostStatus status, PostVisibility visibility, String searchQuery) {
-        
+                                  PostStatus status, PostVisibility visibility, String searchQuery, String hashtag) {
+
         // Filter by author ID
         if (userId != null) {
             log.debug("Adding author filter: userId={}", userId);
@@ -339,6 +361,14 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
             
             textQueryBuilder.minimumShouldMatch("1");
             queryBuilder.must(textQueryBuilder.build()._toQuery());
+        }
+
+        // Add hashtag filtering (MUST condition) - NEW
+        if (hashtag != null && !hashtag.trim().isEmpty()) {
+            log.debug("Adding hashtag filter: hashtag={}", hashtag);
+            queryBuilder.must(TermQuery.of(t -> t
+                    .field("hashtags")
+                    .value(hashtag.trim()))._toQuery());
         }
     }
 
@@ -404,5 +434,29 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
         queryBuilder.must(visibilityBuilder.build()._toQuery());
         
         log.debug("Security clauses added successfully");
+    }
+
+    /**
+     * Add location-based filtering clauses to the query (MUST conditions)
+     */
+    private void addLocationFilterClauses(BoolQuery.Builder queryBuilder, Long locationId,
+                                          Double latitude, Double longitude, Double radiusKm) {
+        // If both locationId and geo-distance params are provided, use OR logic (at least one matches)
+        // If only one type is provided, just use that filter
+
+        if (latitude != null && longitude != null && radiusKm != null && radiusKm > 0) {
+            // Geo-distance query to find posts within radius
+            log.debug("Adding geo-distance filter: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
+            queryBuilder.filter(GeoDistanceQuery.of(g -> g
+                    .field("location.point")
+                    .location(l -> l.latlon(ll -> ll.lat(latitude).lon(longitude)))
+                    .distance(radiusKm + "km"))._toQuery());
+        } else if (locationId != null) {
+            // Exact location ID match
+            log.debug("Adding exact location ID filter: locationId={}", locationId);
+            queryBuilder.filter(TermQuery.of(t -> t
+                    .field("location.id")
+                    .value(locationId))._toQuery());
+        }
     }
 }

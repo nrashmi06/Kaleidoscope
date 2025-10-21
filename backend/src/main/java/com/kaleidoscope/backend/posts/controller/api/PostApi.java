@@ -127,7 +127,15 @@ public interface PostApi {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) PostStatus status,
             @RequestParam(required = false) PostVisibility visibility,
-            @RequestParam(required = false) String q
+            @RequestParam(required = false) String q,
+            @Parameter(description = "Filter by hashtag name")
+            @RequestParam(required = false) String hashtag,
+            @Parameter(description = "Filter by specific location ID")
+            @RequestParam(required = false) Long locationId,
+            @Parameter(description = "Find posts near this location ID using geo-distance query")
+            @RequestParam(required = false) Long nearbyLocationId,
+            @Parameter(description = "Radius in kilometers for nearby location search (default: 5.0)", example = "5.0")
+            @RequestParam(required = false, defaultValue = "5.0") Double radiusKm
     );
 
     @Operation(summary = "Get post suggestions",
