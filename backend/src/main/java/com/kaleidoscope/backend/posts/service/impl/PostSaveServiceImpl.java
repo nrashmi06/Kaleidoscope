@@ -5,6 +5,7 @@ import com.kaleidoscope.backend.posts.dto.response.PostSaveResponseDTO;
 import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
 import com.kaleidoscope.backend.posts.exception.Posts.PostNotFoundException;
 import com.kaleidoscope.backend.posts.mapper.PostMapper;
+import com.kaleidoscope.backend.posts.mapper.PostSaveMapper;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostSave;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
@@ -60,10 +61,8 @@ public class PostSaveServiceImpl implements PostSaveService {
             }
         } else {
             if (existingSave.isEmpty()) {
-                PostSave postSave = PostSave.builder()
-                        .post(post)
-                        .user(currentUser)
-                        .build();
+                // Use mapper to create PostSave entity
+                PostSave postSave = PostSaveMapper.toEntity(post, currentUser);
                 postSaveRepository.save(postSave);
                 log.info("Post saved successfully: postId={}, userId={}", postId, userId);
             } else {
@@ -126,10 +125,7 @@ public class PostSaveServiceImpl implements PostSaveService {
         Optional<PostSave> userSave = postSaveRepository.findByPostAndUser(post, user);
         long totalSaves = postSaveRepository.countByPost(post);
 
-        return new PostSaveResponseDTO(
-                userSave.isPresent(),
-                totalSaves,
-                userSave.map(PostSave::getCreatedAt).orElse(null)
-        );
+        // Use mapper to create response DTO
+        return PostSaveMapper.toResponseDTO(userSave, totalSaves);
     }
 }

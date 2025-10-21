@@ -337,4 +337,85 @@ public class PostMapper {
                 .viewCount(document.getViewCount()) // Use denormalized view count directly
                 .build();
     }
+
+    /**
+     * Create PostDocument from Post entity with denormalized data for Elasticsearch indexing
+     * Migrated from PostServiceImpl.createPost
+     */
+    public PostDocument toPostDocument(Post post) {
+        if (post == null) {
+            return null;
+        }
+
+        // Find thumbnail URL from media with lowest position
+        String thumbnailUrl = post.getMedia().stream()
+                .min(Comparator.comparing(PostMedia::getPosition))
+                .map(PostMedia::getMediaUrl)
+                .orElse(null);
+
+        // Build author object for denormalized data
+        User currentUser = post.getUser();
+        PostDocument.Author author = PostDocument.Author.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .profilePictureUrl(currentUser.getProfilePictureUrl())
+                .build();
+
+        // Build categories list for denormalized data
+        List<PostDocument.Category> documentCategories = post.getCategories().stream()
+                .map(pc -> {
+                    Category cat = pc.getCategory();
+                    return PostDocument.Category.builder()
+                            .categoryId(cat.getCategoryId())
+                            .name(cat.getName())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // Build location info for denormalized data
+        PostDocument.LocationInfo locationInfo = null;
+        Location location = post.getLocation();
+        if (location != null) {
+            Long locationId = location.getLocationId();
+            String locationName = location.getName();
+            if (location.getLatitude() != null && location.getLongitude() != null) {
+                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
+                    new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                        location.getLatitude().doubleValue(),
+                        location.getLongitude().doubleValue()
+                    );
+                locationInfo = PostDocument.LocationInfo.builder()
+                        .id(locationId)
+                        .name(locationName)
+                        .point(geoPoint)
+                        .build();
+            } else {
+                // Location exists but has no coordinates
+                locationInfo = PostDocument.LocationInfo.builder()
+                        .id(locationId)
+                        .name(locationName)
+                        .point(null)
+                        .build();
+            }
+        }
+
+        // Create PostDocument with initial values
+        return PostDocument.builder()
+                .id(post.getPostId().toString())
+                .postId(post.getPostId())
+                .title(post.getTitle())
+                .body(post.getBody())
+                .summary(post.getSummary())
+                .thumbnailUrl(thumbnailUrl)
+                .visibility(post.getVisibility())
+                .status(post.getStatus())
+                .createdAt(post.getCreatedAt())
+                .author(author)
+                .categories(documentCategories)
+                .location(locationInfo)
+                .reactionCount(0L)       // Initial value
+                .commentCount(0L)        // Initial value
+                .viewCount(0L)           // Initial value
+                .build();
+    }
 }

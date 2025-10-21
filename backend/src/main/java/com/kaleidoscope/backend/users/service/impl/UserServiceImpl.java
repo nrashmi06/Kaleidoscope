@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.users.service.impl;
 
 import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
+import com.kaleidoscope.backend.async.mapper.AsyncMapper;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
@@ -17,7 +18,6 @@ import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.GrantedAuthority;
@@ -180,11 +180,7 @@ public class UserServiceImpl implements UserService {
             if (newProfilePictureUrl != null && !newProfilePictureUrl.trim().isEmpty()) {
                 // Publish to Redis Stream for ML processing - only when image URL exists
                 log.info("Publishing profile picture event for user {}: imageUrl={}", userId, newProfilePictureUrl);
-                ProfilePictureEventDTO event = ProfilePictureEventDTO.builder()
-                    .userId(userId)
-                    .imageUrl(newProfilePictureUrl)
-                    .correlationId(MDC.get("correlationId"))
-                    .build();
+                ProfilePictureEventDTO event = AsyncMapper.toProfilePictureEventDTO(userId, newProfilePictureUrl);
                 redisStreamPublisher.publish(ProducerStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
             } else {
                 log.debug("Skipping Redis Stream publishing for user {} - no profile picture URL", userId);

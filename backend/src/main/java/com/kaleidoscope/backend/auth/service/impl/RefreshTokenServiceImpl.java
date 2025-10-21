@@ -1,18 +1,18 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
 import com.kaleidoscope.backend.auth.config.JwtProperties;
-import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.exception.token.RefreshTokenException;
-import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
-import com.kaleidoscope.backend.users.mapper.UserMapper;
+import com.kaleidoscope.backend.auth.mapper.AuthMapper;
+import com.kaleidoscope.backend.auth.mapper.RefreshTokenMapper;
 import com.kaleidoscope.backend.auth.model.RefreshToken;
-import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.auth.repository.RefreshTokenRepository;
-import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.auth.service.RefreshTokenService;
-import com.kaleidoscope.backend.users.service.UserService;
 import com.kaleidoscope.backend.shared.config.ApplicationProperties;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
+import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.repository.UserRepository;
+import com.kaleidoscope.backend.users.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -23,9 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -64,10 +62,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         }
 
         RefreshToken refreshToken = refreshTokenRepository.findRefreshTokenByUserId(user.getUserId())
-                .orElseGet(() -> createNewRefreshToken(user));
+                .map(AuthMapper::updateRefreshToken)  // Use mapper to update existing token
+                .orElseGet(() -> AuthMapper.toRefreshToken(user));  // Use mapper to create new token
 
-        refreshToken.setExpiry(Instant.now().plusMillis(REFRESH_TOKEN_VALIDITY_MS));
-        refreshToken.setToken(UUID.randomUUID().toString());
         return refreshTokenRepository.save(refreshToken);
     }
 
@@ -114,22 +111,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         User user = existingToken.getUser();
         userRepository.save(user);
 
-        UserLoginResponseDTO responseDTO = UserMapper.toUserLoginResponseDTO(user);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("user", responseDTO);
-        response.put("accessToken", newAccessToken);
-        response.put("refreshToken", newRefreshToken);
-
-        return response;
-    }
-
-    private RefreshToken createNewRefreshToken(User user) {
-        return RefreshToken.builder()
-                .token(UUID.randomUUID().toString())
-                .expiry(Instant.now().plusMillis(REFRESH_TOKEN_VALIDITY_MS))
-                .user(user)
-                .build();
+        // Use mapper to create renewal response
+        return RefreshTokenMapper.toRenewalResponse(user, newAccessToken, newRefreshToken);
     }
 
     private RefreshToken validateRefreshTokenAndGet(String token) {
@@ -151,6 +134,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 });
     }
 
+    @Override
     public void setSecureRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         log.debug("Setting secure refresh token cookie");
 
@@ -194,8 +178,17 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         }
 
         response.setHeader("Set-Cookie", cookieString.toString());
+        log.debug("Refresh token cookie set successfully");
+    }
 
-        log.debug("Cookie settings - Path: /, MaxAge: {}, Secure: {}, SameSite: {}",
-                maxAge, isSecure, sameSite);
+    public void clearRefreshTokenCookie(HttpServletResponse response) {
+        Cookie refreshTokenCookie = new Cookie("refreshToken", null);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(!applicationProperties.baseUrl().contains("localhost"));
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(0);
+
+        response.addCookie(refreshTokenCookie);
+        log.info("Refresh token cookie cleared successfully");
     }
 }

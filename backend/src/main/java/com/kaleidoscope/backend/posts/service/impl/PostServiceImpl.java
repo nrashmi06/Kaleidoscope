@@ -216,77 +216,15 @@ public class PostServiceImpl implements PostService {
 
         // 6. Index the new post to Elasticsearch with initial/default denormalized values
         try {
-            // Find thumbnail URL from media with lowest position (same logic as PostMapper)
-            String thumbnailUrl = savedPost.getMedia().stream()
-                    .min(Comparator.comparing(PostMedia::getPosition))
-                    .map(PostMedia::getMediaUrl)
-                    .orElse(null);
+            // Use mapper to create PostDocument from Post entity
+            PostDocument postDocument = postMapper.toPostDocument(savedPost);
 
-            // Build author object for denormalized data
-            PostDocument.Author author = PostDocument.Author.builder()
-                    .userId(currentUser.getUserId())
-                    .username(currentUser.getUsername())
-                    .profilePictureUrl(currentUser.getProfilePictureUrl())
-                    .build();
-
-            // Build categories list for denormalized data
-            List<PostDocument.Category> documentCategories = savedPost.getCategories().stream()
-                    .map(pc -> {
-                        Category cat = pc.getCategory();
-                        return PostDocument.Category.builder()
-                                .categoryId(cat.getCategoryId())
-                                .name(cat.getName())
-                                .build();
-                    })
-                    .collect(Collectors.toList());
-
-            // Build location info for denormalized data
-            PostDocument.LocationInfo locationInfo = null;
-            Location location = savedPost.getLocation();
-            if (location != null) {
-                Long locationId = location.getLocationId();
-                String locationName = location.getName();
-                if (location.getLatitude() != null && location.getLongitude() != null) {
-                    org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
-                        new org.springframework.data.elasticsearch.core.geo.GeoPoint(
-                            location.getLatitude().doubleValue(),
-                            location.getLongitude().doubleValue()
-                        );
-                    locationInfo = PostDocument.LocationInfo.builder()
-                            .id(locationId)
-                            .name(locationName)
-                            .point(geoPoint)
-                            .build();
-                } else {
-                    // Location exists but has no coordinates
-                    locationInfo = PostDocument.LocationInfo.builder()
-                            .id(locationId)
-                            .name(locationName)
-                            .point(null)
-                            .build();
-                }
+            // Log location info if present
+            if (postDocument.getLocation() != null) {
                 log.debug("Including location in ES index for post {}: locationId={}, name={}, hasCoordinates={}",
-                         savedPost.getPostId(), locationId, locationName, locationInfo.getPoint() != null);
+                         savedPost.getPostId(), postDocument.getLocation().getId(),
+                         postDocument.getLocation().getName(), postDocument.getLocation().getPoint() != null);
             }
-
-            // Create PostDocument with initial values
-            PostDocument postDocument = PostDocument.builder()
-                    .id(savedPost.getPostId().toString())
-                    .postId(savedPost.getPostId())
-                    .title(savedPost.getTitle())
-                    .body(savedPost.getBody())
-                    .summary(savedPost.getSummary())
-                    .thumbnailUrl(thumbnailUrl)
-                    .visibility(savedPost.getVisibility())
-                    .status(savedPost.getStatus())
-                    .createdAt(savedPost.getCreatedAt())
-                    .author(author)
-                    .categories(documentCategories)
-                    .location(locationInfo)
-                    .reactionCount(0L)       // Initial value
-                    .commentCount(0L)        // Initial value
-                    .viewCount(0L)           // Initial value
-                    .build();
 
             // Index to Elasticsearch
             postSearchRepository.save(postDocument);

@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.shared.service.impl;
 
+import com.kaleidoscope.backend.async.mapper.AsyncMapper;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.posts.model.Post;
@@ -139,10 +140,7 @@ public class HashtagServiceImpl implements HashtagService {
         if (addedHashtags != null && !addedHashtags.isEmpty()) {
             log.info("Triggering async hashtag usage increment for {} hashtags", addedHashtags.size());
             for (Hashtag hashtag : addedHashtags) {
-                Map<String, Object> event = new HashMap<>();
-                event.put("hashtagName", hashtag.getName().toLowerCase());
-                event.put("change", 1);
-                event.put("timestamp", System.currentTimeMillis());
+                Map<String, Object> event = AsyncMapper.toHashtagUsageEvent(hashtag.getName(), 1);
 
                 try {
                     redisStreamPublisher.publish(HASHTAG_USAGE_SYNC_STREAM, event);
@@ -156,10 +154,7 @@ public class HashtagServiceImpl implements HashtagService {
         if (removedHashtags != null && !removedHashtags.isEmpty()) {
             log.info("Triggering async hashtag usage decrement for {} hashtags", removedHashtags.size());
             for (Hashtag hashtag : removedHashtags) {
-                Map<String, Object> event = new HashMap<>();
-                event.put("hashtagName", hashtag.getName().toLowerCase());
-                event.put("change", -1);
-                event.put("timestamp", System.currentTimeMillis());
+                Map<String, Object> event = AsyncMapper.toHashtagUsageEvent(hashtag.getName(), -1);
 
                 try {
                     redisStreamPublisher.publish(HASHTAG_USAGE_SYNC_STREAM, event);
