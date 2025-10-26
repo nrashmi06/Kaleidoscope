@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useEffect } from "react";
-import StoryCircles from "@/components/feed/StoryCircles";
-import { PostCreationInput } from "@/components/feed/socialMediaPostCardComponents/PostCreationInput";
 import { MessagesComponent } from "@/components/feed/MessagesComponent";
 import { LiveEvents } from "@/components/feed/LiveEvents";
 import FeedHeader from "@/components/feed/FeedHeader";
@@ -14,21 +12,19 @@ import { useAccessToken } from "@/hooks/useAccessToken";
 import { getUserPreferencesByIdAdminController } from "@/controllers/userPreferencesController/getUserPreferencesByIdAdminController";
 
 export default function FeedMain() {
-  const { posts, isLoading, isRefreshing, hasMorePosts, handlers, searchQuery } = useFeedPosts();
-  const { refreshPosts, loadAllPosts, loadMorePosts, handleSearch, addNewPostToFeed, handlePostDeleted } = handlers;
+  const { posts, isLoading, isRefreshing, hasMorePosts, handlers } = useFeedPosts();
+  const { refreshPosts, loadAllPosts, loadMorePosts, handlePostDeleted } = handlers;
 
   const { userId } = useAppSelector((state) => state.auth);
   const accessToken = useAccessToken();
   const { setTheme } = useTheme();
 
-  // Apply user theme preference
   useEffect(() => {
     const applyTheme = async () => {
       if (!userId || !accessToken) return;
       const res = await getUserPreferencesByIdAdminController({ userId }, accessToken);
       if (res.success && res.data?.theme) {
-        const pref = res.data.theme;
-        setTheme(pref.toLowerCase());
+        setTheme(res.data.theme.toLowerCase());
       }
     };
     applyTheme();
@@ -37,14 +33,7 @@ export default function FeedMain() {
   return (
     <div className="max-w-full mx-auto flex flex-col lg:flex-row gap-3">
       {/* Left/Main Column */}
-      <div className="flex-1 space-y-6">
-        <StoryCircles />
-        <PostCreationInput
-          onPostCreated={addNewPostToFeed}
-          onSearch={handleSearch}
-          currentSearchQuery={searchQuery}
-        />
-
+      <div className="flex-1 space-y-6 p-3">
         <FeedHeader
           postsCount={posts.length}
           isRefreshing={isRefreshing}

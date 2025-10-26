@@ -5,9 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { registerUserWithProfile } from "@/services/auth/register";
-import { RegisterFormState } from "@/lib/types/auth";
 import { verifyEmail } from "@/services/auth/verifyEmailResend";
 import { RegistrationLoader } from "./RegistrationLoader";
+import type { RegisterFormState } from "@/lib/types/auth";
 
 export default function SignupForm() {
   const [formState, setFormState] = useState<RegisterFormState>({
@@ -20,11 +20,15 @@ export default function SignupForm() {
     profilePicture: null,
   });
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [feedback, setFeedback] = useState<{ message: string; type: "success" | "error" | "" }>({
+    message: "",
+    type: "",
+  });
+
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
 
+  /** --- Password Validation --- **/
   const getPasswordErrors = (password: string) => {
     const errors: string[] = [];
     if (password.length < 8) errors.push("At least 8 characters");
@@ -36,347 +40,237 @@ export default function SignupForm() {
 
   const isPasswordStrong = (password: string) => getPasswordErrors(password).length === 0;
 
+  /** --- Submit Handler --- **/
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setFeedback({ message: "", type: "" });
 
-    if (formState.password !== formState.confirmPassword) {
-      setError("Passwords do not match.");
-      return;
+    const { email, password, confirmPassword, username, designation, summary, profilePicture } =
+      formState;
+
+    if (password !== confirmPassword) {
+      return setFeedback({ message: "Passwords do not match.", type: "error" });
     }
 
-    if (!isPasswordStrong(formState.password)) {
-      setError(
-        `Password does not meet requirements: ${getPasswordErrors(
-          formState.password
-        ).join(", ")}`
-      );
-      return;
+    if (!isPasswordStrong(password)) {
+      return setFeedback({
+        message: `Password does not meet requirements: ${getPasswordErrors(password).join(", ")}`,
+        type: "error",
+      });
     }
 
-    if (!formState.profilePicture) {
-      setError("Please upload a profile picture.");
-      return;
+    if (!profilePicture) {
+      return setFeedback({ message: "Please upload a profile picture.", type: "error" });
     }
 
-    // Start the loading animation
     setIsRegistering(true);
 
     try {
       const result = await registerUserWithProfile(
-        {
-          email: formState.email,
-          password: formState.password,
-          username: formState.username,
-          designation: formState.designation,
-          summary: formState.summary,
-        },
-        formState.profilePicture
+        { email, password, username, designation, summary },
+        profilePicture
       );
 
       if (result.success) {
-        setSuccess(result.message);
+        setFeedback({ message: result.message, type: "success" });
         setEmailSubmitted(true);
       } else {
-        setError(result.message);
+        setFeedback({ message: result.message, type: "error" });
       }
-    } catch (error) {
-      setError("An unexpected error occurred. Please try again.");
+    } catch {
+      setFeedback({ message: "An unexpected error occurred. Please try again.", type: "error" });
     } finally {
       setIsRegistering(false);
     }
-
-    setTimeout(() => {
-      setError("");
-      setSuccess("");
-    }, 5000);
   };
 
+  /** --- Resend Verification Email --- **/
   const handleResendEmail = async () => {
     const result = await verifyEmail({ email: formState.email });
-    if (result.success) {
-      setSuccess("Verification email resent.");
-    } else {
-      setError(result.message);
-    }
-
-    setTimeout(() => {
-      setError("");
-      setSuccess("");
-    }, 5000);
+    setFeedback({
+      message: result.success ? "Verification email resent." : result.message,
+      type: result.success ? "success" : "error",
+    });
   };
 
+  /** --- Registration Success Page --- **/
   if (emailSubmitted) {
     return (
       <>
         <RegistrationLoader isLoading={isRegistering} />
-        <div className="mx-auto my-auto w-full max-w-md rounded-md bg-white mt-20 flex-col justify-center text-center dark:bg-black">
-        <h2 className="text-xl font-semibold text-indigo-900 dark:text-neutral-100">
-          Registration Successful
-        </h2>
-        <p className="mt-2 text-sm text-indigo-700 dark:text-neutral-300">
-          Please check your email and verify your account.
-        </p>
-        <button
-          className="mt-4 group/btn relative h-10 w-1/2 rounded-md bg-gradient-to-r from-indigo-700 via-indigo-800 to-indigo-900 text-white shadow-lg transition-all hover:brightness-110"
-          onClick={handleResendEmail}
+        <section
+          className="mx-auto mt-20 flex w-full max-w-md flex-col items-center justify-center rounded-md bg-white p-8 text-center shadow-lg dark:bg-black"
+          aria-live="polite"
         >
-          Resend Verification Email
-        </button>
-        {(error || success) && (
-          <Toast
-            message={error || success}
-            type={error ? "error" : "success"}
-            onClose={() => {
-              setError("");
-              setSuccess("");
-            }}
-          />
-        )}
-        </div>
+          <h1 className="text-xl font-semibold text-indigo-900 dark:text-neutral-100">
+            Registration Successful
+          </h1>
+          <p className="mt-2 text-sm text-indigo-700 dark:text-neutral-300">
+            Please check your email and verify your account.
+          </p>
+          <button
+            type="button"
+            className="mt-4 rounded-md bg-gradient-to-r from-indigo-700 via-indigo-800 to-indigo-900 px-6 py-2 text-white shadow-lg transition-all hover:brightness-110"
+            onClick={handleResendEmail}
+          >
+            Resend Verification Email
+          </button>
+
+          {feedback.message && <Toast {...feedback} onClose={() => setFeedback({ message: "", type: "" })} />}
+        </section>
       </>
     );
   }
 
+  /** --- Main Signup Form --- **/
   return (
     <>
       <RegistrationLoader isLoading={isRegistering} />
-      <div className="shadow-input mx-auto mt-20 w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
-      <h2 className="text-xl text-center font-bold text-black dark:text-neutral-200">
-        Welcome to Kaleidoscope
-      </h2>
-      <form className="my-8" onSubmit={handleSubmit}>
-        <LabelInputContainer>
-          <Label>Email Address <span className="text-red-500">*</span></Label>
-          <Input
-            type="email"
-            value={formState.email}
-            onChange={(e) =>
-              setFormState({ ...formState, email: e.target.value })
-            }
-          />
-        </LabelInputContainer>
 
-        <LabelInputContainer>
-          <Label>Username <span className="text-red-500">*</span></Label>
-          <Input
-            type="text"
-            value={formState.username}
-            onChange={(e) =>
-              setFormState({ ...formState, username: e.target.value })
-            }
-          />
-        </LabelInputContainer>
+      <section
+        className="mx-auto mt-20 w-full max-w-md rounded-2xl border border-blue-500 bg-white p-8 shadow-lg dark:bg-black"
+        aria-labelledby="signup-title"
+      >
+        <h1 id="signup-title" className="text-center text-xl font-bold text-black dark:text-neutral-200">
+          Welcome to Kaleidoscope
+        </h1>
 
-        <LabelInputContainer>
-          <Label className="flex items-center space-x-1 group relative">
-  <span>Password <span className="text-red-500">*</span></span>
-  <span
-    className="cursor-pointer rounded-full border border-blue-600 px-1.5 text-blue-600 font-bold dark:text-blue-400 dark:border-blue-400"
-    aria-label="Password requirements"
-  >
-    ?
-    <div className="absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 rounded-md bg-blue-300 px-3 py-2 text-xs text-white opacity-0 transition-opacity duration-200 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto whitespace-pre-line z-50">
-      Password must include:
-      {"\n"}- At least 8 characters
-      {"\n"}- One uppercase letter
-      {"\n"}- One number
-      {"\n"}- One special character
-    </div>
-  </span>
-</Label>
+        <form className="my-8 space-y-4" onSubmit={handleSubmit} noValidate>
+          {[
+            { label: "Email Address", type: "email", key: "email", required: true },
+            { label: "Username", type: "text", key: "username", required: true },
+          ].map(({ label, type, key, required }) => (
+            <LabelInputContainer key={key}>
+              <Label>
+                {label} {required && <span className="text-red-500">*</span>}
+              </Label>
+              <Input
+                type={type}
+                value={formState[key as keyof RegisterFormState] as string}
+                onChange={(e) => setFormState({ ...formState, [key]: e.target.value })}
+                required={required}
+              />
+            </LabelInputContainer>
+          ))}
 
-          <Input
-            type="password"
-            value={formState.password}
-            onChange={(e) =>
-              setFormState({ ...formState, password: e.target.value })
-            }
-          />
-        </LabelInputContainer>
+          <LabelInputContainer>
+            <Label>Password <span className="text-red-500">*</span></Label>
+            <Input
+              type="password"
+              value={formState.password}
+              onChange={(e) => setFormState({ ...formState, password: e.target.value })}
+              required
+            />
+          </LabelInputContainer>
 
-        <LabelInputContainer>
-          <Label>Confirm Password <span className="text-red-500">*</span></Label>
-          <Input
-            type="password"
-            value={formState.confirmPassword}
-            onFocus={() => {
-              if (!isPasswordStrong(formState.password)) {
-                setError(
-                  `Password does not meet requirements: ${getPasswordErrors(
-                    formState.password
-                  ).join(", ")}`
-                );
+          <LabelInputContainer>
+            <Label>Confirm Password <span className="text-red-500">*</span></Label>
+            <Input
+              type="password"
+              value={formState.confirmPassword}
+              onChange={(e) => setFormState({ ...formState, confirmPassword: e.target.value })}
+              required
+            />
+          </LabelInputContainer>
+
+          <LabelInputContainer>
+            <Label>Designation</Label>
+            <Input
+              type="text"
+              value={formState.designation}
+              onChange={(e) => setFormState({ ...formState, designation: e.target.value })}
+            />
+          </LabelInputContainer>
+
+          <LabelInputContainer>
+            <Label>Summary</Label>
+            <Input
+              type="text"
+              value={formState.summary}
+              onChange={(e) => setFormState({ ...formState, summary: e.target.value })}
+            />
+          </LabelInputContainer>
+
+          <LabelInputContainer>
+            <Label>Profile Picture <span className="text-red-500">*</span></Label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                setFormState({ ...formState, profilePicture: e.target.files?.[0] || null })
               }
-            }}
-            onChange={(e) =>
-              setFormState({
-                ...formState,
-                confirmPassword: e.target.value,
-              })
-            }
-          />
-        </LabelInputContainer>
+              required
+            />
+          </LabelInputContainer>
 
-        <LabelInputContainer>
-          <Label>Designation</Label>
-          <Input
-            type="text"
-            value={formState.designation}
-            onChange={(e) =>
-              setFormState({ ...formState, designation: e.target.value })
-            }
-          />
-        </LabelInputContainer>
+          <button
+            disabled={isRegistering}
+            className={cn(
+              "relative mt-4 h-10 w-full rounded-md text-white shadow-lg transition-all",
+              isRegistering
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-800 hover:brightness-110"
+            )}
+            type="submit"
+          >
+            {isRegistering ? "Creating Account..." : "Sign up →"}
+            <BottomGradient />
+          </button>
+        </form>
 
-        <LabelInputContainer>
-          <Label>Summary</Label>
-          <Input
-            type="text"
-            value={formState.summary}
-            onChange={(e) =>
-              setFormState({ ...formState, summary: e.target.value })
-            }
-          />
-        </LabelInputContainer>
-
-        <LabelInputContainer>
-          <Label>Profile Picture <span className="text-red-500">*</span></Label>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              setFormState({
-                ...formState,
-                profilePicture: e.target.files?.[0] || null,
-              })
-            }
-          />
-        </LabelInputContainer>
-
-        <button
-          disabled={isRegistering}
-          className={`mt-4 group/btn relative h-10 w-full rounded-md text-white shadow-lg transition-all ${
-            isRegistering
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-blue-400 via-blue-600 to-blue-800 hover:brightness-110"
-          }`}
-          type="submit"
-        >
-          {isRegistering ? "Creating Account..." : "Sign up →"}
-          <BottomGradient />
-        </button>
-      </form>
-
-      
-
-      {(error || success) && (
-        <Toast
-          message={error || success}
-          type={error ? "error" : "success"}
-          onClose={() => {
-            setError("");
-            setSuccess("");
-          }}
-        />
-      )}
-      </div>
+        {feedback.message && (
+          <Toast {...feedback} onClose={() => setFeedback({ message: "", type: "" })} />
+        )}
+      </section>
     </>
   );
 }
 
-// Toast popup
+/* Toast Notification */
 const Toast = ({
   message,
   type,
   onClose,
 }: {
   message: string;
-  type: "success" | "error";
+  type: "success" | "error" | "";
   onClose: () => void;
-}) => (
-  <div
-    className={`fixed top-4 right-4 z-50 rounded-md px-4 py-3 shadow-lg transition-all
-      ${type === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
-  >
-    <div className="flex items-center justify-between space-x-4">
-      <span>{message}</span>
-      <button
-        className="text-white text-lg font-bold focus:outline-none"
-        onClick={onClose}
-      >
-        &times;
-      </button>
+}) =>
+  message && (
+    <div
+      role="alert"
+      aria-live="assertive"
+      className={`fixed top-4 right-4 z-50 rounded-md px-4 py-3 text-sm text-white shadow-lg ${
+        type === "success" ? "bg-green-500" : "bg-red-500"
+      }`}
+    >
+      <div className="flex items-center justify-between space-x-4">
+        <span>{message}</span>
+        <button
+          type="button"
+          aria-label="Close"
+          className="text-lg font-bold focus:outline-none"
+          onClick={onClose}
+        >
+          ×
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
 
-// // Password rules toast
-// const PasswordHintToast = ({
-//   show,
-//   errors,
-//   onClose,
-// }: {
-//   show: boolean;
-//   errors: string[];
-//   onClose: () => void;
-// }) => {
-//   if (!show) return null;
-
-//   const rules = [
-//     "At least 8 characters",
-//     "One uppercase letter",
-//     "One number",
-//     "One special character",
-//   ];
-
-//   return (
-//     <div className="fixed top-20 right-4 z-50 w-80 rounded-md border border-indigo-300 bg-indigo-50 p-4 text-sm shadow-lg dark:border-blue-600/50 dark:bg-zinc-800 dark:text-blue-200">
-//       <div className="flex justify-between items-start">
-//         <div>
-//           <p className="font-semibold mb-2">Password must include:</p>
-//           <ul className="space-y-1">
-//             {rules.map((rule, idx) => {
-//               const valid = !errors.includes(rule);
-//               return (
-//                 <li key={idx} className="flex items-center gap-2">
-//                   {valid ? (
-//                     <CheckCircle className="h-4 w-4 text-green-600" />
-//                   ) : (
-//                     <XCircle className="h-4 w-4 text-red-500" />
-//                   )}
-//                   <span className={valid ? "text-green-700" : "text-red-500"}>
-//                     {rule}
-//                   </span>
-//                 </li>
-//               );
-//             })}
-//           </ul>
-//         </div>
-//         <button className="text-lg font-bold ml-2" onClick={onClose}>
-//           &times;
-//         </button>
-//       </div>
-//     </div>
-//   );
-// };
-
-// Bottom gradient
+/* Button Gradient */
 const BottomGradient = () => (
   <>
-    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
+    <span className="absolute inset-x-0 -bottom-px h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
+    <span className="absolute inset-x-10 -bottom-px mx-auto h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
   </>
 );
 
-// Label + input wrapper
+/* Label + Input Wrapper */
 const LabelInputContainer = ({
   children,
   className,
 }: {
   children: React.ReactNode;
   className?: string;
-}) => (
-  <div className={cn("flex w-full flex-col space-y-2", className)}>{children}</div>
-);
+}) => <div className={cn("flex w-full flex-col space-y-2", className)}>{children}</div>;

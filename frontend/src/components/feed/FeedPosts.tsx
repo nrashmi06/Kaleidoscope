@@ -3,6 +3,7 @@
 import React from "react";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { Post } from "@/services/post/fetchPosts";
+import { useAccessToken } from "@/hooks/useAccessToken";
 
 interface FeedPostsProps {
   posts: Post[];
@@ -19,6 +20,8 @@ export default function FeedPosts({
   loadMorePosts,
   handlePostDeleted,
 }: FeedPostsProps) {
+  const accessToken = useAccessToken(); // fetch the token from your hook
+
   if (isLoading)
     return (
       <div className="flex justify-center items-center py-8">
@@ -36,7 +39,12 @@ export default function FeedPosts({
   return (
     <>
       {posts.map((post) => (
-        <SocialPostCard key={post.postId} post={post} onPostDeleted={handlePostDeleted} />
+        <SocialPostCard
+          key={post.postId}
+          post={post}
+          onPostDeleted={handlePostDeleted}
+          accessToken={accessToken} // pass the token here
+        />
       ))}
 
       {hasMorePosts ? (

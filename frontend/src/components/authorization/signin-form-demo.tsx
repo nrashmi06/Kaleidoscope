@@ -44,7 +44,7 @@ export default function SigninForm() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="mx-auto w-full max-w-md p-6 sm:p-8 rounded-2xl bg-white/90 dark:bg-zinc-950/80 backdrop-blur-md shadow-xl border border-indigo-200 dark:border-indigo-800"
+      className="mx-auto w-full max-w-md p-6 sm:p-8 rounded-2xl bg-white/90 dark:bg-zinc-950/80 backdrop-blur-md shadow-xl border border-blue-200 dark:border-blue-500"
     >
       {/* Title */}
       <h2 className="text-2xl text-center font-bold text-indigo-900 dark:text-indigo-300">
@@ -95,7 +95,7 @@ export default function SigninForm() {
           type="submit"
           disabled={isLoading}
           className={cn(
-            "group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-indigo-700 via-indigo-800 to-indigo-900 text-white font-semibold shadow-lg transition-all hover:brightness-110",
+            "group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-semibold shadow-lg transition-all hover:brightness-110",
             isLoading && "opacity-70 cursor-not-allowed"
           )}
         >
@@ -152,8 +152,8 @@ export default function SigninForm() {
 const BottomGradient = React.memo(function BottomGradient() {
   return (
     <>
-      <span className="absolute inset-x-0 -bottom-px block h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-      <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-400 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
+      <span className="absolute inset-x-0 -bottom-px h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
+      <span className="absolute inset-x-10 -bottom-px mx-auto h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
     </>
   );
 });
