@@ -30,6 +30,10 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // --- [CHANGED] ---
+  // Use a ref for the selection flag to prevent re-renders
+  const isSelectingRef = useRef(false); 
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -44,6 +48,14 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
 
   // Debounced search
   useEffect(() => {
+    // --- [CHANGED] ---
+    // Check the ref. If it's true, it means we're selecting.
+    // Reset it and skip the search.
+    if (isSelectingRef.current) {
+      isSelectingRef.current = false; // Reset the flag
+      return; // Skip search
+    }
+
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
@@ -72,14 +84,18 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [query, accessToken]);
+  // --- [CHANGED] ---
+  // Removed the flag from the dependency array
+  }, [query, accessToken]); 
 
   const handleLocationSelect = async (location: LocationOption) => {
+    // --- [CHANGED] ---
+    // Set the ref's current value. This does NOT trigger a re-render.
+    isSelectingRef.current = true;
+
     if (location.source === 'backend') {
-      // Backend location already has locationId
       onLocationSelect(location);
     } else {
-      // Nominatim location - need to create in backend first
       setIsCreatingLocation(true);
       try {
         const createResponse = await createLocationController(
@@ -110,8 +126,10 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
       }
     }
 
-    setQuery(location.name);
+    // This will trigger the useEffect, but the ref will be true
+    setQuery(location.name); 
     setIsOpen(false);
+    setResults([]); // Clear results to prevent re-opening on focus
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +137,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
     setQuery(value);
     
     if (selectedLocation && value !== selectedLocation.name) {
-      onLocationSelect(null); // Clear selection if user types something different
+      onLocationSelect(null);
     }
   };
 
@@ -132,7 +150,10 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
           value={query}
           onChange={handleInputChange}
           onFocus={() => {
-            if (results.length > 0) setIsOpen(true);
+            // Only open if there are results and nothing is selected
+            if (results.length > 0 && !selectedLocation) {
+              setIsOpen(true);
+            }
           }}
           placeholder={placeholder}
           className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
@@ -143,6 +164,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
         )}
       </div>
 
+      {/* --- (Rest of the component is unchanged) --- */}
       {isOpen && results.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {results.map((location) => (
