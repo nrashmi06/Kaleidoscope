@@ -1,0 +1,35 @@
+meta {
+  name: Approve Follow Request
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/follows/requests/approve?requesterUserId=2
+  body: none
+  auth: bearer
+}
+
+params:query {
+  requesterUserId: 2
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("should approve follow request successfully", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody().message).to.equal("Follow request approved successfully");
+    expect(res.getBody().data).to.include("Approved follow request from user");
+  });
+  
+  test("should return 404 if request not found", function() {
+    if (res.getStatus() === 404) {
+      expect(res.getBody().success).to.equal(false);
+      expect(res.getBody().message).to.equal("Follow request not found");
+    }
+  });
+}

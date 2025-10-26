@@ -35,15 +35,17 @@ public class UserProfilePostSyncConsumer implements StreamListener<String, MapRe
 
     @Override
     public void onMessage(MapRecord<String, String, String> record) {
+        // Retrieve the message ID for logging/XACK reference
+        String messageId = record.getId().getValue();
         try {
             Long userId = Long.valueOf(record.getValue().get("userId"));
 
-            log.info("[UserProfilePostSyncConsumer] Processing profile sync for user {}", userId);
+            log.info("[UserProfilePostSyncConsumer] Processing profile sync for user {}, messageId: {}", userId, messageId);
 
             // Fetch updated user details from database
             User updatedUser = userRepository.findByUserId(userId);
             if (updatedUser == null) {
-                log.warn("[UserProfilePostSyncConsumer] User not found for userId: {}", userId);
+                log.warn("[UserProfilePostSyncConsumer] User not found for userId: {}, messageId: {}", userId, messageId);
                 return;
             }
 
@@ -66,12 +68,13 @@ public class UserProfilePostSyncConsumer implements StreamListener<String, MapRe
                     .toList();
 
             if (postsToUpdate.isEmpty()) {
-                log.info("[UserProfilePostSyncConsumer] No posts found for user {} - skipping sync", userId);
+                log.info("[UserProfilePostSyncConsumer] No posts found for user {} - skipping sync, messageId: {}",
+                        userId, messageId);
                 return;
             }
 
-            log.info("[UserProfilePostSyncConsumer] Found {} posts to update for user {}", 
-                    postsToUpdate.size(), userId);
+            log.info("[UserProfilePostSyncConsumer] Found {} posts to update for user {}, messageId: {}",
+                    postsToUpdate.size(), userId, messageId);
 
             // Perform bulk update of author fields
             int updatedCount = 0;
@@ -97,19 +100,19 @@ public class UserProfilePostSyncConsumer implements StreamListener<String, MapRe
                              post.getPostId(), userId);
 
                 } catch (Exception e) {
-                    log.error("[UserProfilePostSyncConsumer] Failed to update post {} for user {}: {}", 
-                             post.getPostId(), userId, e.getMessage(), e);
-                    // Continue with other posts even if one fails
+                    log.error("[UserProfilePostSyncConsumer] Failed to update post {} for user {}, messageId={}: {}",
+                             post.getPostId(), userId, messageId, e.getMessage(), e);
+                    // Continue with other posts instead of failing the entire batch
                 }
             }
 
-            log.info("[UserProfilePostSyncConsumer] Successfully updated {} out of {} posts for user {}", 
-                    updatedCount, postsToUpdate.size(), userId);
+            log.info("[UserProfilePostSyncConsumer] Successfully updated {}/{} posts for user {}, messageId: {}",
+                    updatedCount, postsToUpdate.size(), userId, messageId);
 
         } catch (Exception e) {
-            log.error("[UserProfilePostSyncConsumer] Error processing user profile sync event: {}", 
-                     e.getMessage(), e);
-            // Don't rethrow - we don't want to break the stream processing
+            log.error("[UserProfilePostSyncConsumer] Error processing profile sync event for messageId={}: {}",
+                     messageId, e.getMessage(), e);
+            throw e; // Re-throw to prevent XACK on failure
         }
     }
 }

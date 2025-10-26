@@ -1,0 +1,33 @@
+meta {
+  name: delete hashtag by id (admin)
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/api/hashtags/1
+  body: none
+  auth: inherit
+}
+
+docs {
+  Delete a hashtag by ID (Admin only).
+
+  Path Parameter:
+  - hashtagId: The ID of the hashtag to delete
+
+  Behavior:
+  - Deletes all post_hashtags associations
+  - Deletes the hashtag entity
+  - Only accessible by ADMIN role
+
+  Expected responses:
+  - 200 OK: Successfully deleted
+  - 403 Forbidden: Non-admin user attempted deletion
+  - 404 Not Found: Hashtag doesn't exist
+
+  Security:
+  - Requires ADMIN role
+  - Returns 403 if non-admin user attempts deletion
+}
+

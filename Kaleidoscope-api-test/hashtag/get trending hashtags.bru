@@ -1,0 +1,31 @@
+meta {
+  name: get trending hashtags
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/hashtags/trending?page=0&size=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+docs {
+  Get trending hashtags ordered by usage count (most used first).
+
+  Query Parameters:
+  - page: Page number (default: 0)
+  - size: Page size (default: 20)
+
+  Response includes:
+  - hashtagId: Unique identifier
+  - name: Hashtag name (without #)
+  - usageCount: Number of times used
+  - createdAt: Creation timestamp
+}
+

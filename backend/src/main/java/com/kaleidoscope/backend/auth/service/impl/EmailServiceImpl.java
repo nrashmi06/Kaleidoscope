@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.util.Map;
+
 @Service
 public class EmailServiceImpl implements EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailServiceImpl.class);
@@ -72,5 +74,30 @@ public class EmailServiceImpl implements EmailService {
         String body = templateEngine.process("verificationEmailTemplate", context);
         sendHtmlEmail(email, subject, body);
         logger.info("Verification email sent to: {}", email);
+    }
+
+    @Override
+    public void sendNotificationEmail(String to, String subject, String templateName, Map<String, Object> variables) {
+        logger.info("Starting to send notification email to: {}, template: {}", to, templateName);
+        try {
+            Context context = new Context();
+
+            // Add all variables to context
+            if (variables != null) {
+                variables.forEach(context::setVariable);
+            }
+
+            // Add baseUrl if not already present
+            if (!context.containsVariable("baseUrl")) {
+                context.setVariable("baseUrl", applicationProperties.baseUrl());
+            }
+
+            String body = templateEngine.process(templateName, context);
+            sendHtmlEmail(to, subject, body);
+            logger.info("Notification email sent successfully to: {}, template: {}", to, templateName);
+        } catch (Exception e) {
+            logger.error("Failed to send notification email to: {}, template: {}", to, templateName, e);
+            throw new MailSendException("Failed to send notification email", e);
+        }
     }
 }

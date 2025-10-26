@@ -52,20 +52,6 @@ public class LocationServiceImpl implements LocationService {
         return locationMapper.toDTOPage(locationPage);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<LocationResponseDTO> findNearbyLocations(double latitude, double longitude, double radiusKm, Pageable pageable) {
-        log.info("Finding locations near ({}, {}) within {} km", latitude, longitude, radiusKm);
-        if (latitude < -90 || latitude > 90) {
-            throw new IllegalArgumentException("Latitude must be between -90 and 90.");
-        }
-        if (longitude < -180 || longitude > 180) {
-            throw new IllegalArgumentException("Longitude must be between -180 and 180.");
-        }
-        double radiusMeters = radiusKm * 1000;
-        Page<Location> locationPage = locationRepository.findNearbyLocations(latitude, longitude, radiusMeters, pageable);
-        return locationMapper.toDTOPage(locationPage);
-    }
 
     @Override
     @Transactional(readOnly = true)

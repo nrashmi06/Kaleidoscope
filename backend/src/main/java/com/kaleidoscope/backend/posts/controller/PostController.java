@@ -116,9 +116,15 @@ public class PostController implements PostApi {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) PostStatus status,
             @RequestParam(required = false) PostVisibility visibility,
-            @RequestParam(required = false) String q
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String hashtag,
+            @RequestParam(required = false) Long locationId,
+            @RequestParam(required = false) Long nearbyLocationId,
+            @RequestParam(required = false, defaultValue = "5.0") Double radiusKm
     ) {
-        PaginatedResponse<PostSummaryResponseDTO> response = postService.filterPosts(pageable, userId, categoryId, status, visibility, q);
+        PaginatedResponse<PostSummaryResponseDTO> response = postService.filterPosts(
+                pageable, userId, categoryId, status, visibility, q, hashtag, locationId, nearbyLocationId, radiusKm
+        );
         return ResponseEntity.ok(AppResponse.<PaginatedResponse<PostSummaryResponseDTO>>builder()
                 .success(true)
                 .message("Posts retrieved successfully.")

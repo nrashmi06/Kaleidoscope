@@ -32,6 +32,7 @@ public class PostDetailResponseDTO {
     private List<PostMediaResponseDTO> media;
     private LocationResponseDTO location;
     private List<UserTagResponseDTO> taggedUsers;
+    private List<String> hashtags;
 
     // Interaction Counts & User-Specific Reaction
     private long reactionCount;

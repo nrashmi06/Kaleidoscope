@@ -26,12 +26,10 @@ import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
-import com.kaleidoscope.backend.shared.model.Category;
-import com.kaleidoscope.backend.shared.model.Location;
-import com.kaleidoscope.backend.shared.model.MediaAssetTracker;
-import com.kaleidoscope.backend.shared.model.UserTag;
+import com.kaleidoscope.backend.shared.model.*;
 import com.kaleidoscope.backend.shared.repository.*;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
+import com.kaleidoscope.backend.shared.service.HashtagService;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.shared.service.UserTagService;
 import com.kaleidoscope.backend.users.model.User;
@@ -71,6 +69,7 @@ public class PostServiceImpl implements PostService {
     private final PostViewService postViewService;
     private final PostSearchRepository postSearchRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    private final HashtagService hashtagService;
 
     @Override
     @Transactional
@@ -123,6 +122,19 @@ public class PostServiceImpl implements PostService {
         // Save the post first to generate its ID
         Post savedPost = postRepository.save(post);
         log.info("Post entity successfully saved: postId={}, title='{}'", savedPost.getPostId(), savedPost.getTitle());
+
+        // Handle hashtags: parse, find/create, and associate with post
+        log.debug("Processing hashtags for post body");
+        Set<String> hashtagNames = hashtagService.parseHashtags(postCreateRequestDTO.body());
+        if (!hashtagNames.isEmpty()) {
+            log.info("Found {} hashtags in post body", hashtagNames.size());
+            List<Hashtag> hashtags = hashtagService.findOrCreateHashtags(hashtagNames);
+            hashtagService.associateHashtagsWithPost(savedPost, new HashSet<>(hashtags));
+            hashtagService.triggerHashtagUsageUpdate(new HashSet<>(hashtags), Collections.emptySet());
+            log.info("Successfully associated and updated usage for {} hashtags", hashtags.size());
+        } else {
+            log.debug("No hashtags found in post body");
+        }
 
         // Handle media if provided
         if (postCreateRequestDTO.mediaDetails() != null && !postCreateRequestDTO.mediaDetails().isEmpty()) {
@@ -204,47 +216,15 @@ public class PostServiceImpl implements PostService {
 
         // 6. Index the new post to Elasticsearch with initial/default denormalized values
         try {
-            // Find thumbnail URL from media with lowest position (same logic as PostMapper)
-            String thumbnailUrl = savedPost.getMedia().stream()
-                    .min(Comparator.comparing(PostMedia::getPosition))
-                    .map(PostMedia::getMediaUrl)
-                    .orElse(null);
+            // Use mapper to create PostDocument from Post entity
+            PostDocument postDocument = postMapper.toPostDocument(savedPost);
 
-            // Build author object for denormalized data
-            PostDocument.Author author = PostDocument.Author.builder()
-                    .userId(currentUser.getUserId())
-                    .username(currentUser.getUsername())
-                    .profilePictureUrl(currentUser.getProfilePictureUrl())
-                    .build();
-
-            // Build categories list for denormalized data
-            List<PostDocument.Category> documentCategories = savedPost.getCategories().stream()
-                    .map(pc -> {
-                        Category cat = pc.getCategory();
-                        return PostDocument.Category.builder()
-                                .categoryId(cat.getCategoryId())
-                                .name(cat.getName())
-                                .build();
-                    })
-                    .collect(Collectors.toList());
-
-            // Create PostDocument with initial values
-            PostDocument postDocument = PostDocument.builder()
-                    .id(savedPost.getPostId().toString())
-                    .postId(savedPost.getPostId())
-                    .title(savedPost.getTitle())
-                    .body(savedPost.getBody())
-                    .summary(savedPost.getSummary())
-                    .thumbnailUrl(thumbnailUrl)
-                    .visibility(savedPost.getVisibility())
-                    .status(savedPost.getStatus())
-                    .createdAt(savedPost.getCreatedAt())
-                    .author(author)
-                    .categories(documentCategories)
-                    .reactionCount(0L)       // Initial value
-                    .commentCount(0L)        // Initial value
-                    .viewCount(0L)           // Initial value
-                    .build();
+            // Log location info if present
+            if (postDocument.getLocation() != null) {
+                log.debug("Including location in ES index for post {}: locationId={}, name={}, hasCoordinates={}",
+                         savedPost.getPostId(), postDocument.getLocation().getId(),
+                         postDocument.getLocation().getName(), postDocument.getLocation().getPoint() != null);
+            }
 
             // Index to Elasticsearch
             postSearchRepository.save(postDocument);
@@ -453,6 +433,14 @@ public class PostServiceImpl implements PostService {
             throw new UnauthorizedActionException("User is not authorized to delete this post.");
         }
 
+        // Before deleting, get associated hashtags and trigger usage count decrement
+        log.debug("Retrieving hashtags for post {} before deletion", postId);
+        Set<Hashtag> hashtags = post.getHashtags();
+        if (!hashtags.isEmpty()) {
+            log.info("Triggering usage count decrement for {} hashtags", hashtags.size());
+            hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
+        }
+
         List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
         if (!tagsToDelete.isEmpty()) {
             log.debug("Soft deleting {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
@@ -471,6 +459,14 @@ public class PostServiceImpl implements PostService {
             log.error("Post not found for hard delete: {}", postId);
             return new PostNotFoundException(postId);
         });
+
+        // Before deleting, get associated hashtags and trigger usage count decrement
+        log.debug("Retrieving hashtags for post {} before hard deletion", postId);
+        Set<Hashtag> hashtags = post.getHashtags();
+        if (!hashtags.isEmpty()) {
+            log.info("Triggering usage count decrement for {} hashtags", hashtags.size());
+            hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
+        }
 
         List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
         if (!tagsToDelete.isEmpty()) {
@@ -566,6 +562,7 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+
     @Override
     @Transactional(readOnly = true)
     public PaginatedResponse<PostSummaryResponseDTO> filterPosts(Pageable pageable,
@@ -573,9 +570,13 @@ public class PostServiceImpl implements PostService {
                                                                  Long categoryId,
                                                                  PostStatus status,
                                                                  PostVisibility visibility,
-                                                                 String query) {
-        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}",
-                userId, categoryId, status, visibility, query);
+                                                                 String query,
+                                                                 String hashtag,
+                                                                 Long locationId,
+                                                                 Long nearbyLocationId,
+                                                                 Double radiusKm) {
+        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, nearbyLocationId={}, radiusKm={}",
+                userId, categoryId, status, visibility, query, hashtag, locationId, nearbyLocationId, radiusKm);
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -587,6 +588,23 @@ public class PostServiceImpl implements PostService {
             log.debug("Retrieved {} following IDs for user {}", followingIds.size(), currentUserId);
         }
 
+        // Handle nearbyLocationId - fetch coordinates for geo-distance query
+        Double latitude = null;
+        Double longitude = null;
+        if (nearbyLocationId != null) {
+            log.debug("Fetching coordinates for nearbyLocationId: {}", nearbyLocationId);
+            Location location = locationRepository.findById(nearbyLocationId)
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + nearbyLocationId));
+
+            if (location.getLatitude() != null && location.getLongitude() != null) {
+                latitude = location.getLatitude().doubleValue();
+                longitude = location.getLongitude().doubleValue();
+                log.info("Using geo-distance query: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
+            } else {
+                log.warn("Location {} exists but has no coordinates. Geo-distance query will be skipped.", nearbyLocationId);
+            }
+        }
+
         // Use the custom Elasticsearch repository method
         Page<PostDocument> documentPage = postSearchRepository.findVisibleAndFilteredPosts(
                 currentUserId,
@@ -596,6 +614,11 @@ public class PostServiceImpl implements PostService {
                 status,
                 visibility,
                 query,
+                hashtag,
+                locationId,
+                latitude,
+                longitude,
+                radiusKm,
                 pageable
         );
 
@@ -608,4 +631,3 @@ public class PostServiceImpl implements PostService {
         return PaginatedResponse.fromPage(dtoPage);
     }
 }
-

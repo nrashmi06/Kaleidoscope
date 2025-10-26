@@ -15,6 +15,7 @@ public final class StreamingConfigConstants {
     public static final String POST_INTERACTION_SYNC_CONSUMER = "post-interaction-sync-consumer";
     public static final String USER_PROFILE_POST_SYNC_CONSUMER = "user-profile-post-sync-consumer";
     public static final String USER_PROFILE_FACE_EMBEDDING_CONSUMER = "user-profile-face-embedding-consumer";
+    public static final String NOTIFICATION_CONSUMER = "notification-consumer";
 
     private StreamingConfigConstants() {
         // Utility class - prevent instantiation

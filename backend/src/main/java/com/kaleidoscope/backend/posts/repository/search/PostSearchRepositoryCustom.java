@@ -26,6 +26,11 @@ public interface PostSearchRepositoryCustom {
      * @param status Filter by post status (optional)
      * @param visibility Filter by post visibility (optional)
      * @param query Text search query across title, summary, and body (optional)
+     * @param hashtag Filter by hashtag name (optional)
+     * @param locationId Filter by specific location ID (optional)
+     * @param latitude Latitude for geo-distance query (optional)
+     * @param longitude Longitude for geo-distance query (optional)
+     * @param radiusKm Radius in kilometers for geo-distance query (optional)
      * @param pageable Pagination and sorting parameters
      * @return Page of PostDocument matching the criteria and visible to the user
      */
@@ -37,25 +42,27 @@ public interface PostSearchRepositoryCustom {
             PostStatus status,
             PostVisibility visibility,
             String query,
+            String hashtag,
+            Long locationId,
+            Double latitude,
+            Double longitude,
+            Double radiusKm,
             Pageable pageable
     );
 
     /**
-     * Find personalized post suggestions using Elasticsearch function_score query
-     * Ranks posts based on multiple factors:
-     * - Following: Posts from users the current user follows (high weight)
-     * - Interests: Posts in categories the user is interested in (medium weight)
-     * - Popularity: Posts with high engagement (reactions, comments, views)
-     * - Recency: Newer posts are preferred
+     * Find personalized post suggestions for the current user
+     * Uses function_score queries to rank posts based on user preferences
      *
      * @param currentUserId ID of the authenticated user
      * @param followingIds Set of user IDs that the current user follows
      * @param interestIds List of category IDs the user is interested in
      * @param blockedUserIds List of user IDs blocked by the current user
-     * @param blockedByUserIds List of user IDs who have blocked the current user
+     * @param blockedByUserIds List of user IDs who blocked the current user
      * @param viewedPostIds Set of post IDs already viewed by the user (for filtering)
+     * @param trendingHashtagNames List of trending hashtag names to boost in scoring
      * @param pageable Pagination and sorting parameters
-     * @return Page of PostDocument ordered by relevance score
+     * @return Page of PostDocument ordered by personalized scoring
      */
     Page<PostDocument> findPostSuggestions(
             Long currentUserId,
@@ -64,6 +71,7 @@ public interface PostSearchRepositoryCustom {
             List<Long> blockedUserIds,
             List<Long> blockedByUserIds,
             Set<String> viewedPostIds,
+            List<String> trendingHashtagNames,
             Pageable pageable
     );
 }

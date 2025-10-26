@@ -1,0 +1,51 @@
+meta {
+  name: stream notification count
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/notifications/stream?token=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiUk9MRV9VU0VSIiwidXNlcklkIjozLCJpc1VzZXJJbnRlcmVzdFNlbGVjdGVkIjp0cnVlLCJ0aGVtZSI6IkRBUksiLCJsYW5ndWFnZSI6ImVuLVVTIiwic3ViIjoiYWpheDgxOTY4QGdtYWlsLmNvbSIsImlhdCI6MTc2MDg5MTc4MCwiZXhwIjoxNzYwOTc4MTgwfQ.-ffz6TJ52o6CU0ps8lda752I8fp3C7j8XAN33zuE2fA
+  body: none
+  auth: bearer
+}
+
+params:query {
+  token: eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiUk9MRV9VU0VSIiwidXNlcklkIjozLCJpc1VzZXJJbnRlcmVzdFNlbGVjdGVkIjp0cnVlLCJ0aGVtZSI6IkRBUksiLCJsYW5ndWFnZSI6ImVuLVVTIiwic3ViIjoiYWpheDgxOTY4QGdtYWlsLmNvbSIsImlhdCI6MTc2MDg5MTc4MCwiZXhwIjoxNzYwOTc4MTgwfQ.-ffz6TJ52o6CU0ps8lda752I8fp3C7j8XAN33zuE2fA
+}
+
+headers {
+  Content-Type: text/event-stream
+  Accept: text/event-stream
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Stream Notification Count (SSE)
+  
+  Establishes a Server-Sent Events (SSE) connection to receive real-time unread notification count updates.
+  
+  ## Initial Broadcast
+  - Upon connection, the server immediately sends the current unread count
+  - Event name: `unseen-count`
+  - Data: integer value representing unread count
+  
+  ## Live Updates
+  - Whenever a new notification arrives, the count is automatically broadcasted
+  - When notifications are marked as read, the updated count is sent
+  - When notifications are deleted, the count is decremented and sent
+  
+  ## Connection Management
+  - Connection timeout: 1 hour
+  - Automatic cleanup of stale connections every 5 minutes
+  - Connection is removed when user logs out
+  
+  ## Response Format
+  ```
+  event: unseen-count
+  data: 5
+  ```
+}

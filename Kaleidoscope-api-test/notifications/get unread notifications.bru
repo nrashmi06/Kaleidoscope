@@ -1,0 +1,41 @@
+meta {
+  name: get unread notifications
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/notifications?isRead=false&page=0&size=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  isRead: false
+  page: 0
+  size: 20
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Get Unread Notifications
+
+  Retrieves only unread notifications for the authenticated user.
+
+  ## Query Parameters
+  - `isRead`: Set to `false` to get only unread notifications
+  - `page` (optional): Page number (0-indexed)
+  - `size` (optional): Page size
+
+  ## Use Case
+  - Display unread notifications in a dropdown or notification center
+  - Show what needs user's attention
+}
+

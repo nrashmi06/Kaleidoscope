@@ -3,7 +3,9 @@ package com.kaleidoscope.backend.posts.model;
 import com.kaleidoscope.backend.posts.enums.PostStatus;
 import com.kaleidoscope.backend.posts.enums.PostVisibility;
 import com.kaleidoscope.backend.shared.model.Category;
+import com.kaleidoscope.backend.shared.model.Hashtag;
 import com.kaleidoscope.backend.shared.model.Location;
+import com.kaleidoscope.backend.shared.model.PostHashtag;
 import com.kaleidoscope.backend.shared.model.UserTag;
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
@@ -95,6 +97,10 @@ public class Post {
     @Builder.Default
     private Set<UserTag> userTags = new HashSet<>();
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<PostHashtag> postHashtags = new HashSet<>();
+
     public void addMedia(PostMedia mediaItem) {
         media.add(mediaItem);
         mediaItem.setPost(this);
@@ -143,6 +149,16 @@ public class Post {
         if (toRemove != null) {
             this.userTags.remove(toRemove);
         }
+    }
+
+    /**
+     * Helper method to get Hashtag entities directly from PostHashtag relationships
+     * @return Set of Hashtag entities associated with this post
+     */
+    public Set<Hashtag> getHashtags() {
+        return this.postHashtags.stream()
+                .map(PostHashtag::getHashtag)
+                .collect(java.util.stream.Collectors.toSet());
     }
 
     @Override

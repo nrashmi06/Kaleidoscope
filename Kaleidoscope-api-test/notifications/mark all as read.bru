@@ -1,0 +1,47 @@
+meta {
+  name: mark all as read
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{base_url}}/api/notifications/read-all
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Mark All Notifications as Read
+
+  Marks all notifications for the authenticated user as read and resets the unread count to zero.
+
+  ## Behavior
+  - Updates all unread notifications to read status in a single transaction
+  - Resets unread count to 0 in Redis
+  - Broadcasts count update (0) via SSE to connected clients
+
+  ## Response
+  Returns the number of notifications that were marked as read:
+  ```json
+  {
+    "success": true,
+    "message": "All notifications marked as read",
+    "data": {
+      "markedReadCount": 12
+    }
+  }
+  ```
+
+  ## Use Case
+  - "Mark all as read" button in notification center
+  - Clearing notification badge when user views all notifications
+}
+

@@ -2,9 +2,7 @@ package com.kaleidoscope.backend.users.exception;
 
 import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.shared.response.AppResponse;
-import com.kaleidoscope.backend.users.exception.follow.FollowRelationshipNotFoundException;
-import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;
-import com.kaleidoscope.backend.users.exception.follow.UserAlreadyFollowedException;
+import com.kaleidoscope.backend.users.exception.follow.*;
 import com.kaleidoscope.backend.users.exception.notification.NotificationPreferencesUpdateException;
 import com.kaleidoscope.backend.users.exception.notification.UserNotificationPreferencesNotFoundException;
 import com.kaleidoscope.backend.users.exception.user.*;
@@ -253,6 +251,30 @@ public class UserExceptionHandler {
                 path
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(FollowRequestNotFoundException.class)
+    public ResponseEntity<AppResponse<Object>> handleFollowRequestNotFoundException(FollowRequestNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("FollowRequestNotFoundException caught by UserExceptionHandler: {}", ex.getMessage());
+        AppResponse<Object> response = AppResponse.error(
+                "Follow request not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(FollowRequestAlreadyExistsException.class)
+    public ResponseEntity<AppResponse<Object>> handleFollowRequestAlreadyExistsException(FollowRequestAlreadyExistsException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("FollowRequestAlreadyExistsException caught by UserExceptionHandler: {}", ex.getMessage());
+        AppResponse<Object> response = AppResponse.error(
+                "Follow request already exists",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     // UserInterest Exception Handlers

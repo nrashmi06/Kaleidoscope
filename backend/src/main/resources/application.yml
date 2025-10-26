@@ -1,7 +1,7 @@
 # Application Configuration
 spring:
   application:
-    name: ${APP_NAME:kaleidoscope}
+    name: ${APP_NAME:kaleidoscope-backend} # Ensure APP_NAME is set in your cloud environment variables
   app:
     base-url: ${APP_BASE_URL:http://localhost:8080}
     defaults:
@@ -25,6 +25,9 @@ spring:
   data:
     redis:
       url: ${REDIS_URL:redis://localhost:6379}
+      streams:
+        consumer:
+          poll-timeout-ms: 10000
 
   # Elasticsearch Configuration
   elasticsearch:

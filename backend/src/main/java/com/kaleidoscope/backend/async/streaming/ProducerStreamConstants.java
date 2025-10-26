@@ -16,6 +16,10 @@ public final class ProducerStreamConstants {
     // Synchronization streams
     public static final String POST_INTERACTION_SYNC_STREAM = "post-interaction-sync";
     public static final String USER_PROFILE_POST_SYNC_STREAM = "user-profile-post-sync";
+    public static final String HASHTAG_USAGE_SYNC_STREAM = "hashtag-usage-sync-stream";
+
+    // Notification streams
+    public static final String NOTIFICATION_EVENTS_STREAM = "notification-events";
 
     private ProducerStreamConstants() {
         // Utility class - prevent instantiation

@@ -117,6 +117,56 @@ public class InteractionServiceImpl implements InteractionService {
                         .build();
                 reactionRepository.save(reaction);
                 log.info("[reactOrUnreact] Created new reaction for user {} on content {}:{} to {}", currentUserId, contentType, contentId, reactionType);
+
+                // Publish notification event for NEW_REACTION (only for new reactions, not updates)
+                try {
+                    Long contentOwnerId = null;
+
+                    // Determine content owner based on content type
+                    if (contentType == ContentType.POST) {
+                        contentOwnerId = postRepository.findById(contentId)
+                            .map(post -> post.getUser().getUserId())
+                            .orElse(null);
+                    } else if (contentType == ContentType.BLOG) {
+                        contentOwnerId = blogRepository.findById(contentId)
+                            .map(blog -> blog.getUser().getUserId())
+                            .orElse(null);
+                    } else if (contentType == ContentType.COMMENT) {
+                        contentOwnerId = commentRepository.findById(contentId)
+                            .map(comment -> comment.getUser().getUserId())
+                            .orElse(null);
+                    }
+
+                    // Only publish if content owner exists and is not the reactor
+                    if (contentOwnerId != null && !contentOwnerId.equals(currentUserId)) {
+                        Map<String, String> additionalData = Map.of(
+                            "reactorUsername", currentUser.getUsername(),
+                            "reactionType", reactionType.name()
+                        );
+
+                        com.kaleidoscope.backend.shared.enums.NotificationType notifType =
+                            (contentType == ContentType.COMMENT)
+                                ? com.kaleidoscope.backend.shared.enums.NotificationType.NEW_REACTION_COMMENT
+                                : com.kaleidoscope.backend.shared.enums.NotificationType.NEW_REACTION_POST;
+
+                        com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                            new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                                notifType,
+                                contentOwnerId,
+                                currentUserId,
+                                contentId,
+                                contentType,
+                                additionalData,
+                                org.slf4j.MDC.get("correlationId")
+                            );
+
+                        redisStreamPublisher.publish("notification-events", notificationEvent);
+                        log.debug("[reactOrUnreact] Published {} notification event for content owner {}", notifType, contentOwnerId);
+                    }
+                } catch (Exception e) {
+                    log.error("[reactOrUnreact] Failed to publish notification event: {}", e.getMessage(), e);
+                    // Continue execution even if notification publishing fails
+                }
             }
         }
 
@@ -178,6 +228,49 @@ public class InteractionServiceImpl implements InteractionService {
                 .build();
         Comment savedComment = commentRepository.save(comment);
         log.info("[addComment] Saved comment with ID: {} for user: {}", savedComment.getCommentId(), currentUserId);
+
+        // Publish notification event for NEW_COMMENT
+        try {
+            // Determine content owner based on content type
+            Long contentOwnerId = null;
+            if (contentType == ContentType.POST) {
+                contentOwnerId = postRepository.findById(contentId)
+                    .map(post -> post.getUser().getUserId())
+                    .orElse(null);
+            } else if (contentType == ContentType.BLOG) {
+                contentOwnerId = blogRepository.findById(contentId)
+                    .map(blog -> blog.getUser().getUserId())
+                    .orElse(null);
+            }
+
+            // Only publish if content owner exists and is not the commenter
+            if (contentOwnerId != null && !contentOwnerId.equals(currentUserId)) {
+                Map<String, String> additionalData = Map.of(
+                    "commenterUsername", currentUser.getUsername(),
+                    "commentBody", savedComment.getBody().length() > 100
+                        ? savedComment.getBody().substring(0, 100) + "..."
+                        : savedComment.getBody()
+                );
+
+                com.kaleidoscope.backend.async.dto.NotificationEventDTO notificationEvent =
+                    new com.kaleidoscope.backend.async.dto.NotificationEventDTO(
+                        com.kaleidoscope.backend.shared.enums.NotificationType.NEW_COMMENT,
+                        contentOwnerId,
+                        currentUserId,
+                        contentId,
+                        contentType,
+                        additionalData,
+                        org.slf4j.MDC.get("correlationId")
+                    );
+
+                redisStreamPublisher.publish("notification-events", notificationEvent);
+                log.debug("[addComment] Published NEW_COMMENT notification event for content owner {}", contentOwnerId);
+            }
+        } catch (Exception e) {
+            log.error("[addComment] Failed to publish notification event: {}", e.getMessage(), e);
+            // Continue execution even if notification publishing fails
+        }
+
         if (requestDTO.taggedUserIds() != null && !requestDTO.taggedUserIds().isEmpty()) {
             for (Long taggedUserId : requestDTO.taggedUserIds()) {
                 CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(

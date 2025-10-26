@@ -1,23 +1,25 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
 import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
+import com.kaleidoscope.backend.async.mapper.AsyncMapper;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
 import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyInUseException;
 import com.kaleidoscope.backend.auth.exception.email.InvalidEmailException;
+import com.kaleidoscope.backend.auth.mapper.AuthMapper;
 import com.kaleidoscope.backend.auth.model.EmailVerification;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.auth.service.UserRegistrationService;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
-import com.kaleidoscope.backend.users.enums.Theme;
-import com.kaleidoscope.backend.users.enums.Visibility;
 import com.kaleidoscope.backend.users.exception.user.InvalidUsernameException;
 import com.kaleidoscope.backend.users.exception.user.UsernameAlreadyInUseException;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
+import com.kaleidoscope.backend.users.mapper.UserNotificationPreferencesMapper;
+import com.kaleidoscope.backend.users.mapper.UserPreferencesMapper;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserNotificationPreferences;
 import com.kaleidoscope.backend.users.model.UserPreferences;
@@ -26,13 +28,10 @@ import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +46,8 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     private final UserNotificationPreferencesRepository userNotificationPreferencesRepository;
     private final EmailVerificationRepository emailVerificationRepository;
     private final UserMapper userMapper;
+    private final UserPreferencesMapper userPreferencesMapper;
+    private final UserNotificationPreferencesMapper userNotificationPreferencesMapper;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
     private final EmailService emailService;
@@ -125,7 +126,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
                 userRepository.save(user);
                 log.debug("Profile picture uploaded for user ID: {}", user.getUserId());
 
-                // Publish profile picture event to Redis Stream
+                // Publish profile picture event to Redis Stream using mapper
                 publishProfilePictureEvent(user, profilePictureUrl);
             } catch (Exception e) {
                 log.error("Failed to upload profile picture for user ID: {}", user.getUserId(), e);
@@ -138,12 +139,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
         if (profilePictureUrl != null && !profilePictureUrl.trim().isEmpty()) {
             try {
                 log.info("Publishing profile picture event for newly registered user {}: imageUrl={}", user.getUserId(), profilePictureUrl);
-                ProfilePictureEventDTO event = ProfilePictureEventDTO.builder()
-                    .userId(user.getUserId())
-                    .imageUrl(profilePictureUrl)
-                    .correlationId(MDC.get("correlationId"))
-                    .build();
-
+                ProfilePictureEventDTO event = AsyncMapper.toProfilePictureEventDTO(user.getUserId(), profilePictureUrl);
                 redisStreamPublisher.publish(ProducerStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM, event);
             } catch (Exception e) {
                 log.error("Failed to publish profile picture event to Redis Stream for user ID: {}", user.getUserId(), e);
@@ -154,39 +150,14 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     }
 
     private void createDefaultPreferences(User user) {
-        // Create default user preferences
-        UserPreferences userPreferences = UserPreferences.builder()
-                .user(user)
-                .theme(Theme.SYSTEM)
-                .language("en-US")
-                .profileVisibility(Visibility.PUBLIC)
-                .allowMessages(Visibility.FRIENDS_ONLY)
-                .allowTagging(Visibility.PUBLIC)
-                .viewActivity(Visibility.FRIENDS_ONLY)
-                .showEmail(false)
-                .showPhone(false)
-                .showOnlineStatus(true)
-                .searchDiscoverable(true)
-                .build();
-
+        // Create default user preferences using mapper
+        UserPreferences userPreferences = userPreferencesMapper.toEntity(user);
         userPreferencesRepository.save(userPreferences);
 
-        // Create default notification preferences
-        UserNotificationPreferences notificationPreferences = UserNotificationPreferences.builder()
-                .user(user)
-                .likesEmail(true)
-                .likesPush(true)
-                .commentsEmail(true)
-                .commentsPush(true)
-                .followsEmail(true)
-                .followsPush(true)
-                .mentionsEmail(true)
-                .mentionsPush(true)
-                .systemEmail(true)
-                .systemPush(true)
-                .build();
-
+        // Create default notification preferences using mapper
+        UserNotificationPreferences notificationPreferences = userNotificationPreferencesMapper.toEntity(user);
         userNotificationPreferencesRepository.save(notificationPreferences);
+
         log.debug("Created default preferences for user ID: {}", user.getUserId());
     }
 
@@ -194,15 +165,12 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
         try {
             String token = generateVerificationToken();
 
-            // Create email verification record
-            EmailVerification emailVerification = new EmailVerification();
-            emailVerification.setUserId(user.getUserId());
-            emailVerification.setEmail(user.getEmail());
-            emailVerification.setVerificationCode(token);
-            emailVerification.setExpiryTime(LocalDateTime.now().plusHours(24));
-            emailVerification.setStatus("pending");
-            emailVerification.setCreatedAt(LocalDateTime.now());
-
+            // Create email verification record using mapper
+            EmailVerification emailVerification = AuthMapper.toEmailVerification(
+                    user.getUserId(),
+                    user.getEmail(),
+                    token
+            );
             emailVerificationRepository.save(emailVerification);
             emailService.sendVerificationEmail(user.getEmail(), token);
 

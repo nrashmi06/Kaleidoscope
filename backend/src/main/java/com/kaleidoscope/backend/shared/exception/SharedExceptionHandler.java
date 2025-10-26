@@ -4,6 +4,7 @@ import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
 import com.kaleidoscope.backend.shared.exception.Image.SignatureGenerationException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryAlreadyExistsException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
+import com.kaleidoscope.backend.shared.exception.other.HashTagNotFoundException;
 import com.kaleidoscope.backend.shared.exception.userTags.TagNotFoundException;
 import com.kaleidoscope.backend.shared.exception.userTags.UserTaggingException;
 import com.kaleidoscope.backend.shared.response.AppResponse;
@@ -132,5 +133,16 @@ public class SharedExceptionHandler {
                 path
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HashTagNotFoundException.class)
+    public ResponseEntity<AppResponse<Object>> handleHashTagNotFoundException(HashTagNotFoundException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        AppResponse<Object> response = AppResponse.error(
+                "Hashtag not found",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 }

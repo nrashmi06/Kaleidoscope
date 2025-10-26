@@ -19,21 +19,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Tag(name = "Follow", description = "APIs for following and unfollowing users")
 public interface FollowApi {
 
-    @Operation(summary = "Follow a user", description = "Allows an authenticated user to follow another user.")
+    @Operation(summary = "Follow a user", description = "Allows an authenticated user to follow another user. For public profiles, follows immediately. For private profiles (FRIENDS_ONLY), creates a follow request that requires approval.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully followed user",
+            @ApiResponse(responseCode = "200", description = "Successfully followed user or sent follow request",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = AppResponse.class))),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "409", description = "Already following or request already sent")
     })
     ResponseEntity<AppResponse<String>> followUser(
             @Parameter(description = "The ID of the user to follow", required = true)
             @RequestParam Long targetUserId);
 
-    @Operation(summary = "Unfollow a user", description = "Allows an authenticated user to unfollow another user.")
+    @Operation(summary = "Unfollow a user", description = "Allows an authenticated user to unfollow another user or cancel a pending follow request.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully unfollowed user",
+            @ApiResponse(responseCode = "200", description = "Successfully unfollowed user or cancelled request",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = AppResponse.class))),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
@@ -84,4 +85,39 @@ public interface FollowApi {
             @RequestParam(required = false) Long userId,
             @Parameter(description = "Pagination information")
             @PageableDefault(size = 10) Pageable pageable);
+
+    @Operation(summary = "Get pending follow requests", description = "Retrieves a paginated list of pending follow requests received by the authenticated user, sorted by creation time (newest first).")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pending requests retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    ResponseEntity<AppResponse<PaginatedResponse<UserDetailsSummaryResponseDTO>>> getPendingFollowRequests(
+            @Parameter(description = "Pagination information")
+            @PageableDefault(size = 10, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable);
+
+    @Operation(summary = "Approve a follow request", description = "Approves a follow request from another user, creating a follow relationship.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Follow request approved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Follow request not found")
+    })
+    ResponseEntity<AppResponse<String>> approveFollowRequest(
+            @Parameter(description = "The ID of the user who sent the follow request", required = true)
+            @RequestParam Long requesterUserId);
+
+    @Operation(summary = "Reject a follow request", description = "Rejects a follow request from another user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Follow request rejected successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Follow request not found")
+    })
+    ResponseEntity<AppResponse<String>> rejectFollowRequest(
+            @Parameter(description = "The ID of the user who sent the follow request", required = true)
+            @RequestParam Long requesterUserId);
 }

@@ -31,6 +31,12 @@ public record UpdateNotificationPreferencesRequestDTO(
     Boolean systemEmail,
 
     @NotNull(message = "System push preference is required")
-    Boolean systemPush
+    Boolean systemPush,
+
+    @NotNull(message = "Follow request push preference is required")
+    Boolean followRequestPush,
+
+    @NotNull(message = "Follow accept push preference is required")
+    Boolean followAcceptPush
 ) {
 }

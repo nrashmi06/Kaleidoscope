@@ -19,6 +19,7 @@ public class PostSummaryResponseDTO {
     private UserDetailsSummaryResponseDTO author;
     private List<CategorySummaryResponseDTO> categories;
     private String thumbnailUrl;
+    private List<String> hashtags;
 
     // Interaction Counts
     private long reactionCount;

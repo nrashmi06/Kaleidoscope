@@ -6,15 +6,12 @@ import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.shared.model.Category;
+import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.enums.Visibility;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserInterest;
-import com.kaleidoscope.backend.users.repository.FollowRepository;
-import com.kaleidoscope.backend.users.repository.UserBlockRepository;
-import com.kaleidoscope.backend.users.repository.UserInterestRepository;
-import com.kaleidoscope.backend.users.repository.UserPreferencesRepository;
-import com.kaleidoscope.backend.users.repository.UserRepository;
+import com.kaleidoscope.backend.users.repository.*;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -270,11 +267,46 @@ public class ElasticsearchStartupSyncService {
                         .build())
                 .collect(Collectors.toList());
 
+        // Build location object with GeoPoint
+        PostDocument.LocationInfo locationInfo = null;
+        Location location = post.getLocation();
+        if (location != null) {
+            Long locationId = location.getLocationId();
+            String locationName = location.getName();
+            if (location.getLatitude() != null && location.getLongitude() != null) {
+                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
+                    new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                        location.getLatitude().doubleValue(),
+                        location.getLongitude().doubleValue()
+                    );
+                locationInfo = PostDocument.LocationInfo.builder()
+                        .id(locationId)
+                        .name(locationName)
+                        .point(geoPoint)
+                        .build();
+            } else {
+                // Location exists but has no coordinates
+                locationInfo = PostDocument.LocationInfo.builder()
+                        .id(locationId)
+                        .name(locationName)
+                        .point(null)
+                        .build();
+            }
+            log.debug("Synced location for post {}: locationId={}, name={}, hasCoordinates={}",
+                     post.getPostId(), locationId, locationName, locationInfo.getPoint() != null);
+        }
+
         // Find thumbnail URL (first media item)
         String thumbnailUrl = post.getMedia().stream()
                 .min(Comparator.comparing(PostMedia::getPosition))
                 .map(PostMedia::getMediaUrl)
                 .orElse(null);
+
+        // Extract hashtag names from post
+        List<String> hashtagNames = post.getPostHashtags().stream()
+                .map(ph -> ph.getHashtag().getName())
+                .collect(Collectors.toList());
+        log.debug("Synced {} hashtags for post {}", hashtagNames.size(), post.getPostId());
 
         // Build PostDocument
         PostDocument postDocument = PostDocument.builder()
@@ -289,11 +321,13 @@ public class ElasticsearchStartupSyncService {
                 .createdAt(post.getCreatedAt())
                 .author(authorDoc)
                 .categories(categories)
+                .location(locationInfo)
                 .reactionCount(0L) // Initial value, will be updated by interaction events
                 .commentCount(0L) // Initial value, will be updated by interaction events
                 .viewCount(0L) // Initial value, will be updated by view tracking
                 .mlImageTags(new ArrayList<>()) // Will be updated by ML service
                 .peopleCount(null) // Will be updated by ML service
+                .hashtags(hashtagNames) // Add hashtags to document
                 .build();
 
         postSearchRepository.save(postDocument);

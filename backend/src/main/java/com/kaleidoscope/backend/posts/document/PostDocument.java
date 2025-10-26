@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,6 +53,9 @@ public class PostDocument {
     @Field(type = FieldType.Nested) // Nested for lists of objects
     private List<Category> categories;
 
+    @Field(type = FieldType.Object)
+    private LocationInfo location;
+
     // --- Counts for Filtering & Sorting ---
 
     @Field(type = FieldType.Long)
@@ -69,6 +73,10 @@ public class PostDocument {
 
     @Field(type = FieldType.Integer)
     private Integer peopleCount;
+
+    // --- Hashtags ---
+    @Field(type = FieldType.Keyword)
+    private List<String> hashtags;
 
     // --- Supporting Nested Classes ---
 
@@ -99,5 +107,18 @@ public class PostDocument {
 
         @Field(type = FieldType.Keyword)
         private String name;
+    }
+
+    @Data
+    @Builder
+    public static class LocationInfo {
+        @Field(type = FieldType.Long)
+        private Long id;
+
+        @Field(type = FieldType.Keyword)
+        private String name;
+
+        @Field(type = FieldType.Object)
+        private GeoPoint point;
     }
 }

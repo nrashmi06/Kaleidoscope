@@ -97,33 +97,6 @@ public class LocationController implements LocationApi {
     }
 
     @Override
-    @GetMapping(LocationRoutes.NEARBY_LOCATIONS)
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<AppResponse<PaginatedResponse<LocationResponseDTO>>> findNearbyLocations(
-            @RequestParam double latitude,
-            @RequestParam double longitude,
-            @RequestParam double radiusKm,
-            @PageableDefault(size = 20, sort = "name") Pageable pageable) {
-
-        log.info("Finding nearby locations at coordinates: {}, {} within {} km radius",
-                latitude, longitude, radiusKm);
-
-        Page<LocationResponseDTO> nearbyLocations = locationService.findNearbyLocations(latitude, longitude, radiusKm, pageable);
-        PaginatedResponse<LocationResponseDTO> paginated = PaginatedResponse.fromPage(nearbyLocations);
-        return ResponseEntity.ok(
-                AppResponse.<PaginatedResponse<LocationResponseDTO>>builder()
-                        .success(true)
-                        .message(String.format("Found nearby locations within %.1f km of coordinates (%.4f, %.4f)",
-                                radiusKm, latitude, longitude))
-                        .data(paginated)
-                        .errors(Collections.emptyList())
-                        .timestamp(Instant.now().toEpochMilli())
-                        .path(LocationRoutes.NEARBY_LOCATIONS)
-                        .build()
-        );
-    }
-
-    @Override
     @DeleteMapping(LocationRoutes.DELETE_LOCATION)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<AppResponse<Void>> deleteLocationById(@PathVariable Long locationId) {
