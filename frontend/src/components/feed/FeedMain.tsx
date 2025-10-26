@@ -35,7 +35,6 @@ export default function FeedMain() {
       {/* Left/Main Column */}
       <div className="flex-1 space-y-6 p-3">
         <FeedHeader
-          postsCount={posts.length}
           isRefreshing={isRefreshing}
           refreshPosts={refreshPosts}
           loadAllPosts={loadAllPosts}

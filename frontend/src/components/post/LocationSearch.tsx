@@ -9,7 +9,7 @@ import { MapPin, Search, Loader2 } from "lucide-react";
 
 interface LocationSearchProps {
   selectedLocation: LocationOption | null;
-  onLocationSelect: (location: LocationOption) => void;
+  onLocationSelect: (location: LocationOption | null) => void;
   placeholder?: string;
   className?: string;
 }
@@ -119,7 +119,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
     setQuery(value);
     
     if (selectedLocation && value !== selectedLocation.name) {
-      onLocationSelect(null as any); // Clear selection if user types something different
+      onLocationSelect(null); // Clear selection if user types something different
     }
   };
 

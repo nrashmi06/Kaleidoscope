@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 
 interface Props {
@@ -9,7 +11,13 @@ interface Props {
   onToggle: (id: number) => void;
 }
 
-export default function TagUsers({ userSearchQuery, setUserSearchQuery, users, taggedUserIds = [], onToggle }: Props) {
+export default function TagUsers({
+  userSearchQuery,
+  setUserSearchQuery,
+  users,
+  taggedUserIds = [],
+  onToggle,
+}: Props) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

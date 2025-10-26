@@ -96,7 +96,7 @@ export default function CreatePostPage() {
             selectedLocation={selectedLocation}
             onLocationSelect={(loc) => {
               setSelectedLocation(loc);
-              setFormData({ ...formData, locationId: loc.locationId || null });
+              setFormData({ ...formData, locationId: loc?.locationId || null });
             }}
           />
 

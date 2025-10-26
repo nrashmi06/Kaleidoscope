@@ -172,4 +172,23 @@ export interface UploadSignatureResponseDTO {
   trackingIds: string[];
 }
 
+// types
+export interface TagUserRequest {
+  taggedUserId: number;
+  contentType: "POST" | "COMMENT";
+  contentId: number;
+}
+
+export interface TaggedUserData {
+  tagId: number;
+  taggedUserId: number;
+  taggedUsername: string;
+  taggerUserId: number;
+  taggerUsername: string;
+  contentType: string;
+  contentId: number;
+  createdAt: string;
+}
+
+export type TagUserResponse = StandardAPIResponse<TaggedUserData>;
 export type UploadSignaturesResponse = StandardAPIResponse<UploadSignatureResponseDTO>;

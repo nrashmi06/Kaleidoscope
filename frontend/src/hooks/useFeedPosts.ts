@@ -22,7 +22,7 @@ export const useFeedPosts = () => {
       try {
         const result = await filterPostsController(accessToken, {
           page,
-          size: 50,
+          size: 6,
           sort: "createdAt,desc",
           q: searchQuery || undefined,
         });
