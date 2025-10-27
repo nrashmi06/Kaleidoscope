@@ -1,5 +1,5 @@
 import { AxiosError } from "axios";
-import { getReactionsForPost } from "@/services/postInteraction/getReactionService";
+import { getReactionsForPost } from "@/services/postInteractionService/getReactionService";
 import { ReactionSummaryResponse } from "@/lib/types/reaction";
 
 /**

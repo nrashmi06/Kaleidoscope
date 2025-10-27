@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition, useRef } from "react";
 import { getReactionsForPostController } from "@/controllers/postInteractionController/getReactionsForPostController";
+import { reactToPostController } from "@/controllers/postInteractionController/reactToPostController";
 import {
   ReactionIcons,
   ReactionSummaryResponse,
@@ -58,9 +59,28 @@ export function PostActions({ postId }: PostActionsProps) {
   const total = summary?.totalReactions ?? 0;
   const currentUserReaction = summary?.currentUserReaction ?? null;
 
-  const handleReactionClick = (reaction: ReactionType) => {
-    console.log(`Clicked on reaction: ${reaction}`);
+  // --- Handle Reaction Click ---
+  const handleReactionClick = async (reaction: ReactionType) => {
+    if (!accessToken) return;
+
+    // If user clicks the same reaction again → unreact
+    const isUnreact = currentUserReaction === reaction;
+
     setShowReactionPicker(false);
+
+    startTransition(async () => {
+      try {
+        const response = await reactToPostController(postId, reaction, isUnreact, accessToken);
+        if (response.success) {
+          // Update the local state to reflect the latest summary
+          setReactions(response);
+        } else {
+          console.error("Failed to update reaction:", response.message);
+        }
+      } catch (error) {
+        console.error("Error reacting to post:", error);
+      }
+    });
   };
 
   const mainReactions: ReactionType[] = ["LIKE", "CELEBRATE", "INSIGHTFUL", "SUPPORT"];
@@ -83,25 +103,33 @@ export function PostActions({ postId }: PostActionsProps) {
             }}
           >
             <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 rounded-full bg-white/95 px-3 py-2 sm:px-4 sm:py-3 shadow-xl ring-1 ring-black/5 backdrop-blur-xl dark:bg-gray-900/95 dark:ring-white/10">
-              {(Object.keys(ReactionIcons) as ReactionType[]).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => handleReactionClick(type)}
-                  onMouseEnter={() => setHoveredReaction(type)}
-                  onMouseLeave={() => setHoveredReaction(null)}
-                  disabled={isPending}
-                  className="group relative flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full text-xl sm:text-2xl transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-110 active:scale-95"
-                  aria-label={type}
-                >
-                  <span className="relative z-10">{ReactionIcons[type]}</span>
-                  <div className="absolute inset-0 rounded-full bg-gray-100 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-gray-800" />
-                  {hoveredReaction === type && (
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white dark:bg-gray-700 shadow-md transition-all duration-150">
-                      {type.charAt(0) + type.slice(1).toLowerCase()}
-                    </div>
-                  )}
-                </button>
-              ))}
+              {(Object.keys(ReactionIcons) as ReactionType[]).map((type) => {
+                const isActive = currentUserReaction === type;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handleReactionClick(type)}
+                    onMouseEnter={() => setHoveredReaction(type)}
+                    onMouseLeave={() => setHoveredReaction(null)}
+                    disabled={isPending}
+                    className={`group relative flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full text-xl sm:text-2xl transition-all duration-200 ease-out 
+                      hover:-translate-y-1 hover:scale-110 active:scale-95 
+                      ${
+                        isActive
+                          ? "ring-2 ring-blue-500 bg-blue-100 dark:bg-blue-900/40"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    aria-label={type}
+                  >
+                    <span className="relative z-10">{ReactionIcons[type]}</span>
+                    {hoveredReaction === type && (
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white dark:bg-gray-700 shadow-md transition-all duration-150">
+                        {type.charAt(0) + type.slice(1).toLowerCase()}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -119,7 +147,11 @@ export function PostActions({ postId }: PostActionsProps) {
             {mainReactions.map((type, index) => (
               <div
                 key={index}
-                className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-white text-base ring-2 ring-white transition-transform group-hover:-translate-y-0.5 dark:bg-gray-900 dark:ring-gray-900"
+                className={`flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-base ring-2 transition-transform group-hover:-translate-y-0.5 ${
+                  currentUserReaction === type
+                    ? "bg-blue-100 text-blue-600 ring-blue-300 dark:bg-blue-900/40 dark:ring-blue-700"
+                    : "bg-white ring-white dark:bg-gray-900 dark:ring-gray-900"
+                }`}
                 style={{
                   transitionDelay: `${index * 30}ms`,
                   zIndex: 3 - index,

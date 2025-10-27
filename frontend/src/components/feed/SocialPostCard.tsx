@@ -7,6 +7,7 @@ import { PostMedia } from "./socialMediaPostCardComponents/PostMedia";
 import { PostText } from "./socialMediaPostCardComponents/PostText";
 import { PostTaggedUsers } from "./socialMediaPostCardComponents/PostTaggedUsers";
 import { PostActions } from "./socialMediaPostCardComponents/PostActions";
+import  CommentDropdown  from "./socialMediaPostCardComponents/CommentDropdown";
 
 interface SocialPostCardProps {
   post: Post;
@@ -49,6 +50,7 @@ function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPos
         <PostText post={post} />
         <PostTaggedUsers post={post} />
         <PostActions postId={post.postId} />
+        <CommentDropdown postId={post.postId} />
       </div>
     </div>
   );

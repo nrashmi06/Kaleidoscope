@@ -20,19 +20,30 @@ export const ReactionIcons: Record<ReactionType, string> = {
 // Content types that can be reacted to
 export type ReactionContentType = "POST" | "COMMENT";
 
+/* -------------------------------------------------------------------------- */
+/*                                Request Types                               */
+/* -------------------------------------------------------------------------- */
+
 // Request body for adding or changing a reaction
-export interface ReactionRequest {
-  contentId: number;               // ID of the post or comment
-  contentType: ReactionContentType; // "POST" or "COMMENT"
-  reactionType: ReactionType;       // Selected reaction type
+export interface ReactionRequestBody {
+  reactionType: ReactionType;
 }
 
-// Response type from GET /api/posts/{postId}/reactions
+// Query params for unreacting (optional)
+export interface ReactionRequestParams {
+  unreact?: boolean;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Response Types                              */
+/* -------------------------------------------------------------------------- */
+
+// Core structure of reaction data returned from the backend
 export interface ReactionSummary {
   contentId: number;
   contentType: ReactionContentType;
-  currentUserReaction: ReactionType | null; // What current user reacted with (if any)
-  countsByType: Partial<Record<ReactionType, number>>; // Count of each reaction
+  currentUserReaction: ReactionType | null;
+  countsByType: Partial<Record<ReactionType, number>>;
   totalReactions: number;
 }
 
@@ -46,12 +57,8 @@ export interface StandardAPIResponse<T> {
   path?: string;
 }
 
-// API response for reaction summary
+// GET response for reactions summary
 export type ReactionSummaryResponse = StandardAPIResponse<ReactionSummary>;
 
-// API response for reaction update (POST / DELETE)
-export type ReactionUpdateResponse = StandardAPIResponse<{
-  contentId: number;
-  contentType: ReactionContentType;
-  reactionType: ReactionType;
-}>;
+// POST response for creating/updating/removing a reaction
+export type ReactionUpdateResponse = StandardAPIResponse<ReactionSummary>;
