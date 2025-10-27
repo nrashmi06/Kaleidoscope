@@ -76,3 +76,25 @@ export interface StandardAPIResponse<T> {
 
 // Final response type for GET /api/posts/{postId}/comments
 export type CommentsListResponse = StandardAPIResponse<PaginatedCommentData>;
+// Request payload for adding a comment
+export interface AddCommentRequest {
+  body: string;
+  taggedUserIds?: number[]; // optional
+}
+
+// Response for a single comment creation
+export interface AddCommentResponseData {
+  commentId: number;
+  contentId: number;
+  contentType: CommentContentType;
+  body: string;
+  status: CommentStatus;
+  createdAt: string;
+  updatedAt: string;
+  author: CommentAuthor;
+  tags: CommentTag[];
+}
+
+// Standard wrapped response
+export type AddCommentResponse = StandardAPIResponse<AddCommentResponseData>;
+

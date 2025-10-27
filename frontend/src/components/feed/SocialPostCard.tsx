@@ -49,7 +49,9 @@ function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPos
         <PostMedia post={post} />
         <PostText post={post} />
         <PostTaggedUsers post={post} />
-        <PostActions postId={post.postId} />
+        <p className="mb-0 mt-0">
+          <PostActions postId={post.postId} />
+        </p>
         <CommentDropdown postId={post.postId} />
       </div>
     </div>
