@@ -17,9 +17,8 @@ export interface UploadSignatureResponse {
       cloudName: string;
     }>;
   };
-  errors: any;
+  errors: unknown[];
   timestamp: number;
-  path: any;
 }
 
 export const generateUploadSignatureService = async (

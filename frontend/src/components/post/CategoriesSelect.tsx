@@ -1,7 +1,12 @@
 import React from "react";
 
+interface Category {
+  categoryId: number;
+  name: string;
+}
+
 interface Props {
-  categories: any[];
+  categories: Category[];
   selectedIds: number[];
   onToggle: (id: number) => void;
 }

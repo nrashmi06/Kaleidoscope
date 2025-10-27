@@ -29,7 +29,7 @@ export interface Post {
     height: number;
     fileSizeKb: number;
     durationSeconds?: number | null;
-    extraMetadata?: Record<string, any>;
+    extraMetadata?: Record<string, unknown>;
   }>;
   taggedUsers?: Array<{
     userId: number;
@@ -57,7 +57,7 @@ export interface FetchPostsResponse {
     hasNext: boolean;
     hasPrevious: boolean;
   };
-  errors: any[];
+  errors: unknown[];
   timestamp: number;
   path: string;
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   Home,
   Users,
   FileText,
-  Play,
   ImageIcon,
   Settings,
 } from "lucide-react";
@@ -67,8 +67,10 @@ export function UserSidebar() {
           {suggestedUsers.map((user, index) => (
             <div key={index} className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 flex items-center justify-center text-xs font-medium text-gray-600">
-                <img
+                <Image
                   src={user.avatar}
+                  width={64}          // Set width
+                  height={64}         // Set height
                   alt={user.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
