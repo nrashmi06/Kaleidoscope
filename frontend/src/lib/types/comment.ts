@@ -98,3 +98,9 @@ export interface AddCommentResponseData {
 // Standard wrapped response
 export type AddCommentResponse = StandardAPIResponse<AddCommentResponseData>;
 
+export interface DeleteCommentPathParams {
+  postId: number;
+  commentId: number;
+}
+
+export type DeleteCommentResponse = StandardAPIResponse<string>;

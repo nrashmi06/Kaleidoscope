@@ -55,6 +55,7 @@ export interface LoginUserPayload {
   username: string;
   email: string;
   role: 'USER' | 'ADMIN'; // Extend roles as needed
+  profilePictureUrl?: string;
 }
 
 export interface RegisterUserPayload {

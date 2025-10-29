@@ -4,28 +4,21 @@ import { useState } from "react";
 import { MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 import { getCommentsForPostController } from "@/controllers/postInteractionController/getCommentsForPostController";
 import { addCommentController } from "@/controllers/postInteractionController/addCommentController";
-import { CommentsListResponse, CommentItem as CommentType } from "@/lib/types/comment";
+import {
+  CommentsListResponse,
+  CommentItem as CommentType,
+} from "@/lib/types/comment";
 import { useAccessToken } from "@/hooks/useAccessToken";
-
+import { useUserData } from "@/hooks/useUserData";
 import CommentItem from "./comments/CommentItem";
 import CommentInput from "./comments/CommentInput";
 import CommentSkeleton from "@/components/loading/CommentSkeleton";
 
 interface CommentSectionProps {
   postId: number;
-  currentUser?: {
-    username: string;
-    profilePictureUrl: string;
-  };
 }
 
-export function CommentSection({
-  postId,
-  currentUser = {
-    username: "You",
-    profilePictureUrl: "/default-avatar.png",
-  },
-}: CommentSectionProps) {
+export default function CommentSection({ postId }: CommentSectionProps) {
   const [comments, setComments] = useState<CommentType[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -35,7 +28,9 @@ export function CommentSection({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const accessToken = useAccessToken();
+  const currentUser = useUserData();
 
+  /** ✅ Fetch Comments */
   const fetchComments = async (pageNumber: number) => {
     if (!accessToken) {
       setError("Missing access token. Please log in again.");
@@ -53,10 +48,15 @@ export function CommentSection({
       );
 
       if (response.success && response.data?.content) {
+        const fetchedComments = response.data.content.map((c) => ({
+          ...c,
+          commentId: Number(c.commentId),
+        }));
+
         setComments((prev) =>
-          pageNumber > 0 ? [...prev, ...response.data!.content] : response.data!.content
+          pageNumber > 0 ? [...prev, ...fetchedComments] : fetchedComments
         );
-        setTotalPages(response.data!.totalPages || 1);
+        setTotalPages(response.data.totalPages || 1);
         setPage(pageNumber);
       } else {
         setError(response.message || "Failed to load comments");
@@ -69,6 +69,7 @@ export function CommentSection({
     }
   };
 
+  /** ✅ Reload or toggle */
   const handleToggle = async () => {
     if (!isExpanded) {
       setIsExpanded(true);
@@ -78,12 +79,14 @@ export function CommentSection({
     }
   };
 
+  /** ✅ Pagination */
   const handleLoadMore = async () => {
     if (page + 1 < totalPages) {
       await fetchComments(page + 1);
     }
   };
 
+  /** ✅ Post New Comment */
   const handlePostComment = async (body: string) => {
     if (!accessToken) {
       setError("You must be logged in to comment.");
@@ -97,14 +100,15 @@ export function CommentSection({
       if (response.success && response.data) {
         const newComment: CommentType = {
           ...response.data,
+          commentId: Number(response.data.commentId) || Date.now(),
           author: response.data.author || {
-            username: currentUser.username,
-            profilePictureUrl: currentUser.profilePictureUrl,
-            userId: 0,
+            username: currentUser?.username || "You",
+            profilePictureUrl:
+              currentUser?.profilePictureUrl || "/default-avatar.png",
+            userId: currentUser?.userId || 0,
             email: "",
             accountStatus: "ACTIVE",
           },
-          body,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           tags: [],
@@ -122,6 +126,15 @@ export function CommentSection({
     }
   };
 
+  /** ✅ Delete Comment (local + optional refresh) */
+  const handleDeleteComment = async (commentId: number) => {
+    // Option 1: Just remove it locally
+    setComments((prev) => prev.filter((c) => c.commentId !== commentId));
+
+    // Option 2 (optional): Full reload from backend
+    // await fetchComments(0);
+  };
+
   return (
     <section className="w-full mt-1 border-t border-gray-100 dark:border-gray-800 pt-3">
       <div className="flex justify-center">
@@ -130,34 +143,50 @@ export function CommentSection({
           className="flex items-center justify-center gap-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none"
         >
           <MessageSquare size={18} />
-          <p className="text-sm">{isExpanded ? "Hide Comments" : "Show Comments"}</p>
+          <p className="text-sm">
+            {isExpanded ? "Hide Comments" : "Show Comments"}
+          </p>
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       </div>
 
       {isExpanded && (
         <div className="mt-3 p-4 w-full border-t border-gray-100 dark:border-gray-800">
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
           <CommentInput
-            currentUser={currentUser}
+            currentUser={{
+              username: currentUser?.username || "You",
+              profilePictureUrl:
+                currentUser?.profilePictureUrl || "/default-avatar.png",
+              userId: currentUser?.userId || 0,
+            }}
             onSubmit={handlePostComment}
             isPosting={isPosting}
           />
 
           {isLoading && comments.length === 0 && (
-            <div className="space-y-3">
+            <div className="space-y-3 mt-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <CommentSkeleton key={i} />
+                <CommentSkeleton key={`skeleton-${i}`} />
               ))}
             </div>
           )}
 
           {!isLoading && comments.length > 0 && (
             <>
-              <ul className="space-y-3">
+              <ul className="space-y-3 mt-3">
                 {comments.map((comment) => (
-                  <CommentItem key={comment.commentId} comment={comment} postId={postId} />
+                  <CommentItem
+                    key={comment.commentId}
+                    comment={comment}
+                    postId={postId}
+                    currentUser={{
+                      username: currentUser?.username || "You",
+                      userId: currentUser?.userId || 0,
+                    }}
+                    onDelete={handleDeleteComment} // ✅ Pass callback here
+                  />
                 ))}
               </ul>
 
@@ -176,7 +205,7 @@ export function CommentSection({
           )}
 
           {!isLoading && comments.length === 0 && !error && (
-            <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
+            <p className="text-gray-500 dark:text-gray-400 text-sm text-center mt-3">
               No comments yet. Be the first to comment!
             </p>
           )}
@@ -185,5 +214,3 @@ export function CommentSection({
     </section>
   );
 }
-
-export default CommentSection;

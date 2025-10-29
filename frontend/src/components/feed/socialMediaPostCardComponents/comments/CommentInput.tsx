@@ -8,6 +8,7 @@ interface CommentInputProps {
   currentUser: {
     username: string;
     profilePictureUrl: string;
+    userId: number;
   };
   onSubmit: (comment: string) => Promise<void>;
   isPosting: boolean;

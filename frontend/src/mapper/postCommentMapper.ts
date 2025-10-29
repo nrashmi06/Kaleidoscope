@@ -9,4 +9,5 @@ export const PostCommentMapper = {
   getCommentsForPost: (postId: number, page: number = 0, size: number = 10, sort: string = "createdAt,desc") =>
     `${BASE_URL}/posts/${postId}/comments?page=${page}&size=${size}&sort=${encodeURIComponent(sort)}`,
   addComment: (postId: number) => `${BASE_URL}/posts/${postId}/comments`,
+  deleteComment: (postId: number, commentId: number) => `${BASE_URL}/posts/${postId}/comments/${commentId}`,
 };

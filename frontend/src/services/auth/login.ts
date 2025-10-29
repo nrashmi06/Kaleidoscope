@@ -44,11 +44,12 @@ export const loginUser = async (
 
     dispatch(
       setUser({
-        userId: userData.userId,
+        userId: Number(userData.userId),
         username: userData.username,
         email: userData.email,
         role: userData.role,
         accessToken,
+        profilePictureUrl: userData.profilePictureUrl || "",
         isUserInterestSelected,
       })
     );

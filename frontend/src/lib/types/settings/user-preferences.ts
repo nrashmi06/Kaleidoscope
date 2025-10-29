@@ -9,7 +9,7 @@ export interface StandardAPIResponse<T> {
 
 // Admin-specific request
 export interface GetUserPreferencesByIdAdminData {
-  userId: string;
+  userId: number;
 }
 
 // Update specific fields
