@@ -87,7 +87,7 @@ export default function CreatePostPage() {
         <Header router={router} />
         <form onSubmit={handleSubmit} className="space-y-6">
           <TitleInput value={formData.title} onChange={(title) => setFormData({ ...formData, title })} />
-          <BodyInput value={formData.body} onChange={(body) => setFormData({ ...formData, body })} />
+          <BodyInput value={formData.body} onChange={(body: string) => setFormData({ ...formData, body })} accessToken={accessToken} />
           <SummaryInput value={formData.summary} onChange={(summary) => setFormData({ ...formData, summary })} />
           <VisibilitySelect value={formData.visibility} onChange={(visibility) => setFormData({ ...formData, visibility })} />
           
