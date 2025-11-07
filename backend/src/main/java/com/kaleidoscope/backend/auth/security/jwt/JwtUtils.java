@@ -156,9 +156,44 @@ public class JwtUtils {
     }
 
     public Long getUserIdFromContext() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String jwt = getJwtFromHeader(request);
-        return getUserIdFromJwtToken(jwt);
+        // First try to get from SecurityContext if authentication is already set
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            // Try to get userId from request attributes first (set by SSE filter)
+            try {
+                HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+                Object userIdAttr = request.getAttribute("userId");
+                if (userIdAttr instanceof Long) {
+                    return (Long) userIdAttr;
+                }
+            } catch (Exception e) {
+                logger.debug("Could not get userId from request attributes: {}", e.getMessage());
+            }
+        }
+
+        // Fallback to extracting from JWT token
+        try {
+            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+
+            // Try Authorization header first (standard requests)
+            String jwt = getJwtFromHeader(request);
+
+            // If not found in header, try query parameter (SSE requests)
+            if (jwt == null || jwt.isEmpty()) {
+                jwt = request.getParameter("token");
+                logger.debug("Using token from query parameter for getUserIdFromContext");
+            }
+
+            if (jwt != null && !jwt.isEmpty()) {
+                return getUserIdFromJwtToken(jwt);
+            }
+
+            logger.warn("No JWT token found in header or query parameter");
+            return null;
+        } catch (Exception e) {
+            logger.error("Error extracting userId from context: {}", e.getMessage());
+            return null;
+        }
     }
 
 
