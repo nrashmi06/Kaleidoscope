@@ -1,16 +1,10 @@
 "use client";
 
-import {
-  IconLogout,
-  IconSettings,
-  IconUser,
-  IconBell,
-  IconPlus,
-  IconSearch,
-} from "@tabler/icons-react";
+import { IconLogout, IconSettings, IconUser, IconPlus, IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import React, { useState, useRef, useEffect } from "react";
+import NotificationBell from "@/components/ui/NotificationBell";
 
 interface TopNavbarProps {
   onLogout: () => void;
@@ -25,7 +19,7 @@ export default function TopNavbar({
 }: TopNavbarProps) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
-  const [hasNotification] = useState(true);
+  // notification presence is driven by NotificationBell (redux)
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,16 +77,10 @@ export default function TopNavbar({
             <IconPlus size={20} />
           </button>
               
-          {/* Notifications */}
-          <button
-            aria-label="Notifications"
-            className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors duration-200"
-          >
-            <IconBell size={20} />
-            {hasNotification && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            )}
-          </button>
+          {/* Notifications (reads unread count from redux) */}
+          <div className="relative flex items-center justify-center w-10 h-10">
+            <NotificationBell />
+          </div>
           
           {/* Profile */}
           <button

@@ -13,7 +13,7 @@ import { getUserPreferencesByIdAdminController } from "@/controllers/userPrefere
 
 export default function FeedMain() {
   const { posts, isLoading, isRefreshing, hasMorePosts, handlers } = useFeedPosts();
-  const { refreshPosts, loadAllPosts, loadMorePosts, handlePostDeleted } = handlers;
+  const { refreshPosts, loadMorePosts, handlePostDeleted } = handlers;
 
   const { userId } = useAppSelector((state) => state.auth);
   const accessToken = useAccessToken();
@@ -37,7 +37,6 @@ export default function FeedMain() {
         <FeedHeader
           isRefreshing={isRefreshing}
           refreshPosts={refreshPosts}
-          loadAllPosts={loadAllPosts}
         />
 
         <FeedPosts

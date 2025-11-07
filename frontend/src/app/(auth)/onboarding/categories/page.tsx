@@ -71,6 +71,8 @@ const OnboardingCategoriesPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  console.info ("The categories are: ", categories);  
+
   useEffect(() => {
     if (!accessToken) {
       router.push("/auth/login");

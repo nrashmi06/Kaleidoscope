@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { StoreProvider } from "@/hooks/StoreProvider";
+import NotificationProvider from "@/providers/NotificationProvider";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "react-hot-toast";
 
@@ -36,8 +37,10 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <StoreProvider>
-            {children}
-            <Toaster position="top-right" />
+            <NotificationProvider>
+              {children}
+              <Toaster position="top-right" />
+            </NotificationProvider>
           </StoreProvider>
         </ThemeProvider>
       </body>

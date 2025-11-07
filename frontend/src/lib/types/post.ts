@@ -2,7 +2,7 @@
 
 export interface MediaUploadRequestDTO {
   url: string;
-  mediaType: "IMAGE" | "VIDEO";
+  mediaType: "IMAGE" | "VIDEO"; // video support is for furture adaptation
   position: number;
   width: number;
   height: number;
@@ -64,7 +64,7 @@ export interface PostCreationResponseDTO {
   title: string;
   body: string;
   summary: string;
-  visibility: "PUBLIC" | "PRIVATE" | "FOLLOWERS_ONLY";
+  visibility: "PUBLIC" | "FOLLOWERS";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   createdAt: string;
   updatedAt: string;
@@ -192,3 +192,23 @@ export interface TaggedUserData {
 
 export type TagUserResponse = StandardAPIResponse<TaggedUserData>;
 export type UploadSignaturesResponse = StandardAPIResponse<UploadSignatureResponseDTO>;
+
+
+/**
+ * Request type for soft deleting a post.
+ * Only the `postId` is required since it is passed in the route path.
+ */
+export interface PostSoftDeleteRequest {
+  postId: number;
+}
+
+/**
+ * Request type for hard deleting a post (Admin only).
+ */
+export interface PostHardDeleteRequest {
+  postId: number;
+}
+
+export type PostSoftDeleteResponse = StandardAPIResponse<null>;
+export type PostHardDeleteResponse = StandardAPIResponse<null>;
+

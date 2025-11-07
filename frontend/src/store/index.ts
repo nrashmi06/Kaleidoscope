@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage"; 
 import authReducer from "@/store/authSlice"; 
+import notificationReducer from "@/store/notificationSlice";
 
 // Define  reducers
 const authPersistConfig = {
@@ -17,6 +18,7 @@ const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 const store = configureStore({
     reducer: {
       auth: persistedAuthReducer, 
+      notifications: notificationReducer,
   },
   devTools: process.env.NODE_ENV !== "production",
   middleware: (getDefaultMiddleware) =>

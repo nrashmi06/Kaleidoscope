@@ -91,8 +91,8 @@ export default function BodyInput({
   return (
     <div className="relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm transition-all duration-300 hover:shadow-md">
       {/* Floating Label */}
-      <label className="absolute -top-3 left-4 bg-white dark:bg-gray-800 px-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-        Body <span className="text-red-500">*</span>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Body <span className="text-white-500">*</span>
       </label>
 
       <textarea
@@ -100,7 +100,7 @@ export default function BodyInput({
         onChange={handleChange}
         rows={6}
         placeholder="Write your post content here..."
-        className="w-full rounded-xl border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none p-4 resize-none text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 text-sm leading-relaxed transition"
+        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
       />
 
       {showSuggestions && suggestions.length > 0 && (

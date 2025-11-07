@@ -12,6 +12,7 @@ export const updateUserPreferences = async (
   const response = await axios.put(UserPreferencesMapper.updateUserPreferences, payload, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
     },
   });
   return response.data;
