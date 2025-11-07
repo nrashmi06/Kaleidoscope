@@ -43,34 +43,39 @@ public class NotificationSseServiceImpl implements NotificationSseService {
 
     @Override
     public SseEmitter createEmitter(Long userId) {
-        log.info("Creating SSE emitter for userId: {}", userId);
+        log.info("[SSE] Creating new SSE emitter for userId: {}", userId);
 
         // Remove existing emitter if present
-        removeEmitter(userId);
+        SseEmitter existingEmitter = emitters.get(userId);
+        if (existingEmitter != null) {
+            log.info("[SSE] Removing existing emitter for userId: {} before creating new one", userId);
+            removeEmitter(userId);
+        }
 
         // Create new emitter with timeout
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+        log.debug("[SSE] Created new SseEmitter with timeout: {} ms for userId: {}", SSE_TIMEOUT_MS, userId);
 
         // Set up callbacks for emitter lifecycle
         emitter.onCompletion(() -> {
-            log.info("SSE connection completed for userId: {}", userId);
+            log.info("[SSE] Connection completed gracefully for userId: {}", userId);
             removeEmitter(userId);
         });
 
         emitter.onTimeout(() -> {
-            log.warn("SSE connection timed out for userId: {}", userId);
+            log.warn("[SSE] Connection timed out after {} ms for userId: {}", SSE_TIMEOUT_MS, userId);
             removeEmitter(userId);
         });
 
         emitter.onError((ex) -> {
-            log.error("SSE connection error for userId: {}", userId, ex);
+            log.error("[SSE] Connection error occurred for userId: {} - Error: {}", userId, ex.getMessage(), ex);
             removeEmitter(userId);
         });
 
         // Store the emitter with timestamp
         emitters.put(userId, emitter);
         emitterTimestamps.put(userId, System.currentTimeMillis());
-        log.info("Registered SSE emitter for userId: {}. Total active connections: {}", userId, emitters.size());
+        log.info("[SSE] Successfully registered SSE emitter for userId: {}. Total active connections: {}", userId, emitters.size());
 
         // Send initial count immediately after registration
         sendInitialCount(userId, emitter);
@@ -86,15 +91,17 @@ public class NotificationSseServiceImpl implements NotificationSseService {
         if (removed != null) {
             try {
                 removed.complete();
+                log.info("[SSE] Successfully removed and completed emitter for userId: {}. Remaining active connections: {}", userId, emitters.size());
             } catch (Exception e) {
-                log.debug("Error completing emitter for userId: {}", userId, e);
+                log.warn("[SSE] Error completing emitter for userId: {} - {}", userId, e.getMessage());
             }
-            log.info("Removed SSE emitter for userId: {}. Remaining active connections: {}", userId, emitters.size());
+        } else {
+            log.debug("[SSE] Attempted to remove non-existent emitter for userId: {}", userId);
         }
     }
 
     private void sendInitialCount(Long userId, SseEmitter emitter) {
-        log.debug("Sending initial count for userId: {}", userId);
+        log.info("[SSE] Sending initial unread count for userId: {}", userId);
 
         String redisKey = String.format(UNREAD_COUNT_KEY_PATTERN, userId);
         Long count = null;
@@ -106,64 +113,73 @@ public class NotificationSseServiceImpl implements NotificationSseService {
             if (countStr != null && !countStr.isEmpty()) {
                 try {
                     count = Long.parseLong(countStr);
-                    log.debug("Found cached unread count in Redis for userId: {}, count: {}", userId, count);
+                    log.debug("[SSE] Found cached unread count in Redis for userId: {}, count: {}", userId, count);
                 } catch (NumberFormatException e) {
-                    log.warn("Failed to parse Redis count value '{}' for userId: {}, will query database", countStr, userId);
+                    log.warn("[SSE] Failed to parse Redis count value '{}' for userId: {}, will query database", countStr, userId);
                 }
+            } else {
+                log.debug("[SSE] No cached count found in Redis for userId: {}, querying database", userId);
             }
 
             // If not found in Redis or parse error, query database
             if (count == null) {
                 count = notificationRepository.countByRecipientUserUserIdAndIsReadFalse(userId);
-                log.debug("Queried database for unread count for userId: {}, count: {}", userId, count);
+                log.info("[SSE] Queried database for unread count for userId: {}, count: {}", userId, count);
 
                 // Cache the count in Redis with TTL
                 try {
                     stringRedisTemplate.opsForValue().set(redisKey, count.toString(), REDIS_TTL_HOURS, TimeUnit.HOURS);
-                    log.debug("Cached unread count in Redis for userId: {} with TTL of {} hours", userId, REDIS_TTL_HOURS);
+                    log.debug("[SSE] Cached unread count in Redis for userId: {} with TTL of {} hours", userId, REDIS_TTL_HOURS);
                 } catch (Exception e) {
-                    log.error("Failed to cache count in Redis for userId: {}", userId, e);
+                    log.error("[SSE] Failed to cache count in Redis for userId: {} - {}", userId, e.getMessage());
                     // Continue without caching - not critical
                 }
             }
 
             // Send the count to the client as initial broadcast
             sendCountToEmitter(emitter, count);
-            log.info("Sent initial unread count {} to userId: {}", count, userId);
+            log.info("[SSE] Successfully sent initial unread count {} to userId: {}", count, userId);
 
         } catch (Exception e) {
-            log.error("Error fetching initial count for userId: {}", userId, e);
+            log.error("[SSE] Error fetching initial count for userId: {} - {}", userId, e.getMessage(), e);
             // Send zero as fallback
             try {
                 sendCountToEmitter(emitter, 0L);
+                log.warn("[SSE] Sent fallback count of 0 to userId: {} due to error", userId);
             } catch (Exception fallbackError) {
-                log.error("Failed to send fallback count for userId: {}", userId, fallbackError);
+                log.error("[SSE] Failed to send fallback count for userId: {} - {}", userId, fallbackError.getMessage());
             }
         }
     }
 
     @Override
     public void sendCountUpdate(Long userId, Long count) {
-        log.debug("Broadcasting count update for userId: {}, count: {}", userId, count);
+        log.info("[SSE] Broadcasting count update for userId: {}, newCount: {}", userId, count);
 
         SseEmitter emitter = emitters.get(userId);
         if (emitter != null) {
-            sendCountToEmitter(emitter, count);
-            log.debug("Successfully broadcasted count update to userId: {}", userId);
+            try {
+                sendCountToEmitter(emitter, count);
+                log.info("[SSE] Successfully broadcasted count update {} to userId: {}", count, userId);
+            } catch (Exception e) {
+                log.error("[SSE] Failed to broadcast count update to userId: {} - {}", userId, e.getMessage(), e);
+            }
         } else {
-            log.debug("No active SSE connection for userId: {}, skipping count broadcast", userId);
+            log.debug("[SSE] No active SSE connection for userId: {}, skipping count broadcast for value: {}", userId, count);
         }
     }
 
     private void sendCountToEmitter(SseEmitter emitter, Long count) {
         try {
+            log.debug("[SSE] Sending SSE event 'unseen-count' with value: {}", count);
             emitter.send(SseEmitter.event()
                     .name("unseen-count")
                     .data(count));
-            log.debug("Successfully sent count: {} via SSE", count);
+            log.debug("[SSE] Successfully sent count: {} via SSE", count);
         } catch (IOException e) {
-            log.error("Failed to send count via SSE", e);
+            log.error("[SSE] IOException while sending count via SSE - {}", e.getMessage(), e);
             emitter.completeWithError(e);
+            throw new RuntimeException("Failed to send SSE event", e);
         }
     }
 
@@ -171,21 +187,26 @@ public class NotificationSseServiceImpl implements NotificationSseService {
         long currentTime = System.currentTimeMillis();
         int removedCount = 0;
 
+        log.debug("[SSE] Starting cleanup of stale connections. Current active connections: {}", emitters.size());
+
         for (Map.Entry<Long, Long> entry : emitterTimestamps.entrySet()) {
             Long userId = entry.getKey();
             Long timestamp = entry.getValue();
+            long age = currentTime - timestamp;
 
-            if (currentTime - timestamp > SSE_TIMEOUT_MS) {
-                log.info("Cleaning up stale SSE connection for userId: {} (age: {} ms)",
-                        userId, currentTime - timestamp);
+            if (age > SSE_TIMEOUT_MS) {
+                log.info("[SSE] Cleaning up stale SSE connection for userId: {} (age: {} ms, timeout: {} ms)",
+                        userId, age, SSE_TIMEOUT_MS);
                 removeEmitter(userId);
                 removedCount++;
             }
         }
 
         if (removedCount > 0) {
-            log.info("Cleaned up {} stale SSE connections. Remaining connections: {}",
+            log.info("[SSE] Cleanup completed - removed {} stale connections. Remaining connections: {}",
                     removedCount, emitters.size());
+        } else {
+            log.debug("[SSE] Cleanup completed - no stale connections found. Active connections: {}", emitters.size());
         }
     }
 }
