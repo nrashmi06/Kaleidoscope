@@ -113,7 +113,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
                 user.getUserId(),
                 user.getEmail(),
                 user.getUsername(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getProfilePictureUrl()
         );
 
         Map<String, Object> response = new HashMap<>();
