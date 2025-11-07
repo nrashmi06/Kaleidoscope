@@ -36,7 +36,7 @@ public class SseAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // Only process SSE stream endpoint with token query parameter
-        if (request.getRequestURI().endsWith(NotificationRoutes.STREAM)) {
+        if (request.getRequestURI().contains(NotificationRoutes.STREAM)) {
             String token = request.getParameter("token");
 
             if (token == null || token.isEmpty()) {
@@ -48,8 +48,12 @@ public class SseAuthenticationFilter extends OncePerRequestFilter {
                 if (jwtUtils.validateJwtToken(token)) {
                     String email = jwtUtils.getUserNameFromJwtToken(token);
                     String role = jwtUtils.getRoleFromJwtToken(token);
+                    Long userId = jwtUtils.getUserIdFromJwtToken(token);
 
-                    log.debug("SSE authentication successful for user: {} with role: {}", email, role);
+                    log.debug("SSE authentication successful for user: {} with role: {}, userId: {}", email, role, userId);
+
+                    // Store userId in request attributes for easy access
+                    request.setAttribute("userId", userId);
 
                     // Create UserDetails from JWT claims
                     UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
@@ -63,12 +67,19 @@ public class SseAuthenticationFilter extends OncePerRequestFilter {
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    log.info("SSE authentication context set for user: {}", email);
+                    log.info("SSE authentication context set for user: {}, userId: {}", email, userId);
+                } else {
+                    log.error("SSE token validation failed for token: {}...",
+                            token.length() > 10 ? token.substring(0, 10) : token);
+                    throw new ServletException("Invalid JWT token");
                 }
                 filterChain.doFilter(request, response);
             } catch (Exception e) {
                 log.error("SSE authentication failed: {}", e.getMessage(), e);
-                throw new ServletException("Authentication failed: " + e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Authentication failed: " + e.getMessage());
+                response.getWriter().flush();
+                return; // Don't continue the filter chain
             }
         } else {
             filterChain.doFilter(request, response);
