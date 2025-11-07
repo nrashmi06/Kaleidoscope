@@ -100,7 +100,11 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
 
     @Override
     public Page<UserDocument> findTaggableUsers(Long currentUserId, List<Long> blockedUserIds, List<Long> blockedByUserIds, String query, Pageable pageable) {
-        log.info("Executing Elasticsearch query for taggable users - currentUserId: {}, query: {}", currentUserId, query);
+        log.info("[findTaggableUsers] Starting query - currentUserId: {}, searchQuery: '{}', blockedUserIds: {}, blockedByUserIds: {}, page: {}, size: {}",
+                currentUserId, query,
+                blockedUserIds != null ? blockedUserIds.size() : 0,
+                blockedByUserIds != null ? blockedByUserIds.size() : 0,
+                pageable.getPageNumber(), pageable.getPageSize());
 
         // Build Elasticsearch query
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
@@ -110,25 +114,30 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .field("userId")
                 .value(currentUserId)
         )));
+        log.debug("[findTaggableUsers] Added mustNot filter for currentUserId: {}", currentUserId);
 
         // Must be ACTIVE account
         boolQueryBuilder.must(Query.of(q -> q.term(t -> t
                 .field("accountStatus")
                 .value(AccountStatus.ACTIVE.name())
         )));
+        log.debug("[findTaggableUsers] Added must filter for accountStatus: ACTIVE");
 
         // Must be USER role (not ADMIN)
         boolQueryBuilder.must(Query.of(q -> q.term(t -> t
                 .field("role")
                 .value(Role.USER.name())
         )));
+        log.debug("[findTaggableUsers] Added must filter for role: USER");
 
-        // Must have PUBLIC tagging preference (using .keyword sub-field)
-        // Assuming allowTagging is mapped as 'keyword' or you might need .keyword
-        boolQueryBuilder.must(Query.of(q -> q.term(t -> t
+        // Must have PUBLIC tagging preference
+        // IMPORTANT: Using match query because allowTagging is a 'text' field in Elasticsearch
+        // Term queries don't work properly on analyzed text fields
+        boolQueryBuilder.must(Query.of(q -> q.match(m -> m
                 .field("allowTagging")
-                .value(Visibility.PUBLIC.name())
+                .query(Visibility.PUBLIC.name())
         )));
+        log.debug("[findTaggableUsers] Added must match filter for allowTagging: PUBLIC");
 
         // Exclude users blocked by current user
         if (blockedUserIds != null && !blockedUserIds.isEmpty()) {
@@ -138,6 +147,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                             .map(FieldValue::of)
                             .collect(Collectors.toList())))
             )));
+            log.debug("[findTaggableUsers] Added mustNot filter for {} blocked users", blockedUserIds.size());
         }
 
         // Exclude users who blocked current user
@@ -148,6 +158,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                             .map(FieldValue::of)
                             .collect(Collectors.toList())))
             )));
+            log.debug("[findTaggableUsers] Added mustNot filter for {} users who blocked current user", blockedByUserIds.size());
         }
 
         // Filter by search query if provided
@@ -172,6 +183,7 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
             )));
 
             boolQueryBuilder.must(Query.of(q -> q.bool(searchQueryBuilder.build())));
+            log.debug("[findTaggableUsers] Added search filter for query: '{}'", normalizedSearch);
         }
 
         // Build the native query with pagination
@@ -179,6 +191,8 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .withQuery(Query.of(q -> q.bool(boolQueryBuilder.build())))
                 .withPageable(pageable)
                 .build();
+
+        log.debug("[findTaggableUsers] Executing Elasticsearch query");
 
         // Execute search
         SearchHits<UserDocument> searchHits = elasticsearchTemplate.search(nativeQuery, UserDocument.class);
@@ -188,8 +202,15 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .map(SearchHit::getContent)
                 .collect(Collectors.toList());
 
-        log.info("Elasticsearch query returned {} taggable users out of {} total hits",
-                userDocuments.size(), searchHits.getTotalHits());
+        log.info("[findTaggableUsers] Query completed - returned {} taggable users out of {} total hits for currentUserId: {}",
+                userDocuments.size(), searchHits.getTotalHits(), currentUserId);
+
+        if (log.isDebugEnabled() && !userDocuments.isEmpty()) {
+            log.debug("[findTaggableUsers] Found users: {}",
+                    userDocuments.stream()
+                            .map(u -> String.format("userId=%d,username=%s", u.getUserId(), u.getUsername()))
+                            .collect(Collectors.joining(", ")));
+        }
 
         return new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
     }
@@ -389,3 +410,4 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         return new PageImpl<>(userDocuments, pageable, searchHits.getTotalHits());
     }
 }
+

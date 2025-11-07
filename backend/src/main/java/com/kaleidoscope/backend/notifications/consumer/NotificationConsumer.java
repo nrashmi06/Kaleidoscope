@@ -112,17 +112,26 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
 
             // Increment unread count in Redis and send SSE update
             String countKey = String.format(UNREAD_COUNT_KEY_PATTERN, event.recipientUserId());
+            log.debug("[NotificationConsumer] Incrementing unread count in Redis for userId: {}, key: {}",
+                    event.recipientUserId(), countKey);
             Long newCount = stringRedisTemplate.opsForValue().increment(countKey);
 
             if (newCount != null) {
                 // Set TTL on the key if this is the first increment
                 if (newCount == 1) {
                     stringRedisTemplate.expire(countKey, REDIS_TTL_HOURS, java.util.concurrent.TimeUnit.HOURS);
+                    log.debug("[NotificationConsumer] Set TTL of {} hours on new Redis key for userId: {}",
+                            REDIS_TTL_HOURS, event.recipientUserId());
                 }
 
                 // Send count update via SSE
+                log.info("[NotificationConsumer] Sending SSE count update: userId={}, newCount={}, notificationType={}",
+                        event.recipientUserId(), newCount, event.type());
                 notificationSseService.sendCountUpdate(event.recipientUserId(), newCount);
-                log.debug("Incremented unread count to {} for userId: {}", newCount, event.recipientUserId());
+                log.debug("[NotificationConsumer] SSE count update sent successfully for userId: {}", event.recipientUserId());
+            } else {
+                log.warn("[NotificationConsumer] Redis increment returned null for userId: {}, SSE update skipped",
+                        event.recipientUserId());
             }
 
             // Send email notification if enabled
