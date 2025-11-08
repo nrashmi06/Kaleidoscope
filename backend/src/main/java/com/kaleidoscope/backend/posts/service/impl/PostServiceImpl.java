@@ -178,12 +178,18 @@ public class PostServiceImpl implements PostService {
 
             // Iterate through the saved media and publish an event for each one
             log.info("Publishing {} post image events to Redis Stream for post {}", finalSavedPost.getMedia().size(), finalSavedPost.getPostId());
+
+            // Get the current user ID for the uploaderId field
+            Long uploaderId = currentUser.getUserId();
+
             finalSavedPost.getMedia().forEach(mediaItem -> {
                 PostImageEventDTO event = PostImageEventDTO.builder()
                     .postId(finalSavedPost.getPostId())
                     .mediaId(mediaItem.getMediaId())
-                    .imageUrl(mediaItem.getMediaUrl())
-                    .correlationId(MDC.get("correlationId"))
+                    .mediaUrl(mediaItem.getMediaUrl()) // RENAMED
+                    .uploaderId(uploaderId) // ADDED
+                    .timestamp(java.time.Instant.now().toString()) // ADDED
+                    .correlationId(MDC.get("correlationId")) // KEPT
                     .build();
                 redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
@@ -304,8 +310,10 @@ public class PostServiceImpl implements PostService {
                 PostImageEventDTO event = PostImageEventDTO.builder()
                         .postId(savedPost.getPostId())
                         .mediaId(firstMedia.getMediaId()) // Include media ID for tracking ML insights
-                        .imageUrl(firstMedia.getMediaUrl())
-                        .correlationId(MDC.get("correlationId"))
+                        .mediaUrl(firstMedia.getMediaUrl()) // RENAMED
+                        .uploaderId(currentUserId) // ADDED
+                        .timestamp(java.time.Instant.now().toString()) // ADDED
+                        .correlationId(MDC.get("correlationId")) // KEPT
                         .build();
                 redisStreamPublisher.publish(ProducerStreamConstants.POST_UPDATE_STREAM, event);
             }
@@ -407,13 +415,20 @@ public class PostServiceImpl implements PostService {
         // Publish Redis Stream events for newly added media during update
         if (!newMediaItems.isEmpty()) {
             log.info("Publishing {} new media events to Redis Stream for post update {}", newMediaItems.size(), post.getPostId());
+
+            // Get the current user ID for the uploaderId field
+            Long uploaderId = jwtUtils.getUserIdFromContext();
+
             newMediaItems.forEach(mediaItem -> {
                 PostImageEventDTO event = PostImageEventDTO.builder()
                     .postId(post.getPostId())
                     .mediaId(mediaItem.getMediaId())
-                    .imageUrl(mediaItem.getMediaUrl())
-                    .correlationId(MDC.get("correlationId"))
+                    .mediaUrl(mediaItem.getMediaUrl()) // RENAMED
+                    .uploaderId(uploaderId) // ADDED
+                    .timestamp(java.time.Instant.now().toString()) // ADDED
+                    .correlationId(MDC.get("correlationId")) // KEPT
                     .build();
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
         }
     }
