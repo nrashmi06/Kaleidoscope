@@ -45,7 +45,6 @@ public class RedisStreamConfig {
     private final NotificationConsumer notificationConsumer;
     private final HashtagUsageSyncConsumer hashtagUsageSyncConsumer;
 
-    // 1. CRITICAL FIX: Inject application name and create a unique instance ID
     @Value("${spring.application.name:kaleidoscope}")
     private String applicationName;
 
@@ -154,3 +153,4 @@ public class RedisStreamConfig {
         };
     }
 }
+    
