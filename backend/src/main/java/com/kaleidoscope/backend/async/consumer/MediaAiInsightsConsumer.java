@@ -5,6 +5,11 @@ import com.kaleidoscope.backend.async.dto.MediaAiInsightsResultDTO;
 import com.kaleidoscope.backend.async.exception.async.PostMediaNotFoundException;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
+import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
+import com.kaleidoscope.backend.async.service.PostAggregationTriggerService;
+import com.kaleidoscope.backend.async.service.PostProcessingStatusService;
+import com.kaleidoscope.backend.async.service.ReadModelUpdateService;
+import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.Post;
@@ -16,6 +21,7 @@ import com.kaleidoscope.backend.posts.repository.search.SearchAssetSearchReposit
 import com.kaleidoscope.backend.users.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC; // <-- ADDED FOR CORRELATION ID
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
@@ -25,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component // Changed from @Service for injection into RedisStreamConfig
 @RequiredArgsConstructor
@@ -36,13 +43,25 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     private final SearchAssetSearchRepository searchAssetSearchRepository;
     private final ObjectMapper objectMapper;
 
+    // --- ADDED FOR AI INTEGRATION (Task 6.1) ---
+    private final ReadModelUpdateService readModelUpdateService;
+    private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
+    private final PostProcessingStatusService postProcessingStatusService;
+    private final PostAggregationTriggerService postAggregationTriggerService;
+    private final PostRepository postRepository; // Need this to get media IDs
+
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
         // Retrieve the message ID for logging/XACK reference
         String messageId = record.getId().getValue();
-        try {
-            log.info("Received ML insights message from Redis Stream: streamKey={}, messageId={}", 
+        Map<String, String> value = record.getValue();
+        String correlationId = value.get("correlationId");
+
+        // Set correlationId in MDC for this thread
+        try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
+
+            log.info("Received ML insights message from Redis Stream: streamKey={}, messageId={}",
                     record.getStream(), messageId);
 
             // Deserialization: Convert the incoming MapRecord message into MediaAiInsightsResultDTO
@@ -70,10 +89,34 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Saved SearchAssetDocument to Elasticsearch for mediaId: {}, documentId: {}", 
                     postMedia.getMediaId(), savedDocument.getId());
 
-            // --- CRITICAL FIX: Explicit Acknowledgment ---
-            // In a manual acknowledgement setup, the listener container handles the XACK
-            // on successful completion of this method. If the transaction completes
-            // successfully (no exception is thrown), the framework can proceed to XACK.
+
+            // 1. Update the new 'read_model_media_search' table
+            // This runs in a new transaction
+            readModelUpdateService.updateMediaSearchReadModel(savedInsights, postMedia);
+
+            // 2. Trigger ES Sync for the read model
+            elasticsearchSyncTriggerService.triggerSync("read_model_media_search", postMedia.getMediaId());
+
+            // 3. Check if all media for this post are processed
+            Long postId = postMedia.getPost().getPostId();
+            if (postProcessingStatusService.allMediaProcessedForPost(postId)) {
+                log.info("All media for postId: {} have been processed. Triggering aggregation.", postId);
+
+                // Get all media IDs for this post to send to the aggregator
+                Post post = postRepository.findById(postId).orElseThrow(() ->
+                    new IllegalStateException("Post not found for postId: " + postId) // Should not happen
+                );
+                List<Long> allMediaIds = post.getMedia().stream()
+                                             .map(PostMedia::getMediaId)
+                                             .collect(Collectors.toList());
+
+                // 4. Trigger the Post Aggregation Service
+                postAggregationTriggerService.triggerAggregation(postId, allMediaIds);
+            } else {
+                log.info("PostId: {} is still processing other media. Aggregation not triggered.", postId);
+            }
+            // --- END AI INTEGRATION ---
+
             log.info("Successfully processed ML insights for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
 
@@ -87,6 +130,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             throw new StreamMessageProcessingException(record.getStream(), messageId,
                     "Unexpected error during ML insights processing", e); // Re-throw fatal exception
         }
+        // MDC.clear() is handled automatically by the try-with-resources block
     }
 
     private MediaAiInsightsResultDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {

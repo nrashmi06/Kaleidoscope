@@ -6,6 +6,8 @@ import com.kaleidoscope.backend.async.exception.async.BboxParsingException;
 import com.kaleidoscope.backend.async.exception.async.MediaAiInsightsNotFoundException;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
+import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
+import com.kaleidoscope.backend.async.service.ReadModelUpdateService;
 import com.kaleidoscope.backend.posts.enums.FaceDetectionStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
@@ -13,6 +15,7 @@ import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
@@ -30,14 +33,20 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     private final ObjectMapper objectMapper;
     private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
     private final MediaAiInsightsRepository mediaAiInsightsRepository;
+    private final ReadModelUpdateService readModelUpdateService;
+    private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
 
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
         // Retrieve the message ID for logging/XACK reference
         String messageId = record.getId().getValue();
-        try {
-            log.info("Received face detection message from Redis Stream: streamKey={}, messageId={}", 
+        Map<String, String> value = record.getValue();
+        String correlationId = value.get("correlationId");
+
+        try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
+
+            log.info("Received face detection message from Redis Stream: streamKey={}, messageId={}",
                     record.getStream(), messageId);
 
             // Deserialization: Convert the incoming MapRecord message into FaceDetectionResultDTO
@@ -59,6 +68,16 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             MediaDetectedFace savedFace = mediaDetectedFaceRepository.save(detectedFace);
             log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}", 
                     mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
+
+
+            // 1. Create the new 'read_model_face_search' record
+            readModelUpdateService.createFaceSearchReadModel(savedFace);
+
+            // 2. Trigger ES Sync for the new face record
+            // Use savedFace.getId() which is the auto-generated primary key
+            elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
+
+            // --- END AI INTEGRATION ---
 
             log.info("Successfully processed face detection for mediaId: {} and messageId: {} - created face record with ID: {}",
                     resultDTO.getMediaId(), messageId, savedFace.getId());
