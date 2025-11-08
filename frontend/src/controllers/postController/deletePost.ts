@@ -1,26 +1,26 @@
 import { deletePostService } from "@/services/post/deletePost";
+import type { PostSoftDeleteResponse } from "@/lib/types/post";
 
+/**
+ * Controller wrapper for deleting a post (soft delete).
+ * Returns the backend's standard response type so callers can inspect `success`.
+ */
 export const deletePostController = async (
   accessToken: string,
-  postId: number,
-  hardDelete: boolean = false
-): Promise<{ success: boolean; error?: string }> => {
+  postId: number
+): Promise<PostSoftDeleteResponse> => {
   try {
-    console.log("[Controller] Deleting post:", postId, hardDelete ? "(hard delete)" : "(soft delete)");
-    const result = await deletePostService(accessToken, postId, hardDelete);
-
-    if (!result.success) {
-      console.error("[Controller] Failed to delete post:", result.error);
-      return { success: false, error: result.error || "Failed to delete post" };
-    }
-
-    console.log("[Controller] Post deleted successfully");
-    return { success: true };
+    const result = await deletePostService(accessToken, postId);
+    return result;
   } catch (error) {
     console.error("[Controller] Error in deletePostController:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unexpected error occurred",
+      message: error instanceof Error ? error.message : "Unexpected error occurred",
+      data: null,
+      errors: [error instanceof Error ? error.message : "Unexpected error occurred"],
+      timestamp: Date.now(),
+      path: `/posts/${postId}`,
     };
   }
 };

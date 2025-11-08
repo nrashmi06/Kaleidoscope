@@ -10,15 +10,21 @@ const authPersistConfig = {
     key: "auth",
     storage,
   };
+
+const notificationPersistConfig = {
+    key: "notification",
+    storage,
+  };
   
 // Persist reducers 
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
+const persistedNotificationReducer = persistReducer(notificationPersistConfig, notificationReducer);
 
 // Create the Redux store
 const store = configureStore({
     reducer: {
-      auth: persistedAuthReducer, 
-      notifications: notificationReducer,
+      auth: persistedAuthReducer,
+      notifications: persistedNotificationReducer,
   },
   devTools: process.env.NODE_ENV !== "production",
   middleware: (getDefaultMiddleware) =>

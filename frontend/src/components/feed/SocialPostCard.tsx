@@ -2,6 +2,7 @@
 import { useState, useCallback, memo } from "react";
 import { Post } from "@/services/post/fetchPosts";
 import { deletePostController } from "@/controllers/postController/deletePost";
+import { useUserData } from "@/hooks/useUserData";
 import { PostHeader } from "./socialMediaPostCardComponents/PostHeader";
 import { PostMedia } from "./socialMediaPostCardComponents/PostMedia";
 import { PostText } from "./socialMediaPostCardComponents/PostText";
@@ -17,7 +18,11 @@ interface SocialPostCardProps {
 
 function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPostCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  const canDeletePost = true; // replace later with role/ownership logic
+  const currentUser = useUserData();
+
+  // Only allow delete if current user is ADMIN or the author of the post
+  const canDeletePost =
+    !!currentUser && (currentUser.role === "ADMIN" || currentUser.userId === post.author.userId);
 
   const handleDelete = useCallback(async () => {
     if (!canDeletePost || isDeleting) return;
@@ -26,13 +31,13 @@ function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPos
 
     setIsDeleting(true);
     try {
-      const result = await deletePostController(accessToken, post.postId, false);
+      const result = await deletePostController(accessToken, post.postId);
       if (result.success) {
         console.log("Post deleted successfully:", post.postId);
         onPostDeleted?.(post.postId.toString());
       } else {
-        console.error("Failed to delete post:", result.error);
-        alert(result.error);
+        console.error("Failed to delete post:", result.message);
+        alert(result.message || "Failed to delete post");
       }
     } catch (err) {
       console.error("Error deleting post:", err);

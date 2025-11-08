@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { MessagesComponent } from "@/components/feed/MessagesComponent";
-import { LiveEvents } from "@/components/feed/LiveEvents";
 import FeedHeader from "@/components/feed/FeedHeader";
 import FeedPosts from "@/components/feed/FeedPosts";
 import { useFeedPosts } from "@/hooks/useFeedPosts";
@@ -46,12 +44,6 @@ export default function FeedMain() {
           loadMorePosts={loadMorePosts}
           handlePostDeleted={handlePostDeleted}
         />
-      </div>
-
-      {/* Right Sidebar */}
-      <div className="w-full lg:w-80 flex flex-col space-y-6">
-        <MessagesComponent />
-        <LiveEvents />
       </div>
     </div>
   );
