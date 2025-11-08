@@ -5,7 +5,7 @@ export type ReactionType =
   | "SUPPORT"
   | "INSIGHTFUL"
   | "FUNNY"
-  | "CURIOUS";
+  | "LOVE";
 
 // Enum-like object for easier mapping in UI (optional)
 export const ReactionIcons: Record<ReactionType, string> = {
@@ -14,7 +14,7 @@ export const ReactionIcons: Record<ReactionType, string> = {
   SUPPORT: "👏",
   INSIGHTFUL: "💡",
   FUNNY: "😂",
-  CURIOUS: "🤔",
+  LOVE: "❤️",
 };
 
 // Content types that can be reacted to

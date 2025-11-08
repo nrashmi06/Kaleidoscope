@@ -1,4 +1,4 @@
-import type { UnseenCountPayload } from "@/lib/types/notification";
+import type { UnseenCountPayload } from "@/lib/types/notificationSSEType";
 
 export type NotificationCallbacks = {
   onOpen?: () => void;
@@ -11,7 +11,7 @@ export class NotificationStreamService {
   private es: EventSource | null = null;
   private reconnectTimer: number = 0;
   private readonly reconnectDelay = 3000;
-  private readonly baseUrl = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}kaleidoscope/api/notifications/stream`;
+  private readonly baseUrl = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/notifications/stream`;
 
   connect(token: string | null, callbacks: NotificationCallbacks = {}) {
     this.disconnect();
@@ -48,7 +48,6 @@ export class NotificationStreamService {
         try {
           const data = JSON.parse(ev.data) as UnseenCountPayload | number;
           const payload = typeof data === "number" ? { count: data } : data;
-          console.info("connected to sse ");
           callbacks.onUnseenCount?.(payload);
         } catch (e) {
           callbacks.onError?.(e);

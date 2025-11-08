@@ -1,6 +1,6 @@
 import NotificationStreamService from "@/services/notifications/notificationStreamService";
 import { setCount, setConnected, setError } from "@/store/notificationSlice";
-import type { UnseenCountPayload } from "@/lib/types/notification";
+import type { UnseenCountPayload } from "@/lib/types/notificationSSEType";
 import type { AppDispatch } from "@/store";
 
 const svc = new NotificationStreamService();
@@ -19,7 +19,15 @@ export function startNotificationStream(dispatch: AppDispatch, token: string | n
       dispatch(setConnected(false));
       dispatch(setError(err?.toString?.() ?? "Connection error"));
     },
-    onUnseenCount: (payload: UnseenCountPayload) => dispatch(setCount(payload.count)),
+    onUnseenCount: (payload: UnseenCountPayload) => {
+      try {
+        console.debug('[notification] SSE unseen-count received', payload);
+      } catch {}
+      dispatch(setCount(payload.count));
+      try {
+        console.debug('[notification] dispatched setCount', payload.count);
+      } catch {}
+    },
   });
 
   return () => {

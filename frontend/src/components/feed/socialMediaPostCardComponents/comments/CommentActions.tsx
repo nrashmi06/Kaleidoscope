@@ -107,7 +107,7 @@ export function CommentActions({ postId, commentId }: CommentActionsProps) {
     "LIKE",
     "CELEBRATE",
     "FUNNY",
-    "CURIOUS",
+    "LOVE",
     "INSIGHTFUL",
     "SUPPORT",
   ];

@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { Post } from "@/services/post/fetchPosts";
 import { useAccessToken } from "@/hooks/useAccessToken";
+import PostLoader from "../loading/PostLoader";
 
 interface FeedPostsProps {
   posts: Post[];
@@ -50,6 +51,7 @@ export default function FeedPosts({
   return (
     // The div is now just a simple container, no scrolling or height classes
     <div className="space-y-4">
+
       {posts.map((post) => (
         <SocialPostCard
           key={post.postId}
@@ -60,9 +62,11 @@ export default function FeedPosts({
       ))}
 
       {isLoading && (
-        <div className="flex justify-center py-4 text-gray-500">
-          Loading posts...
-        </div>
+        <>
+          <PostLoader />
+          <PostLoader />
+          <PostLoader />
+        </>
       )}
 
       {!hasMorePosts && posts.length > 0 && (

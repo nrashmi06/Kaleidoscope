@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { useAppDispatch } from "@/hooks/appDispatch";
 import { useAppSelector } from "@/hooks/useAppSelector";
-import { startNotificationStream } from "@/controllers/notificationController";
+import { startNotificationStream } from "@/controllers/notificationController/notificationController";
 
 function isJwtValid(token: string) {
   if (!token) return false;

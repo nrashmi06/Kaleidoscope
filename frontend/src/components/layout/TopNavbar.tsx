@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import React, { useState, useRef, useEffect } from "react";
 import NotificationBell from "@/components/ui/NotificationBell";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 interface TopNavbarProps {
   onLogout: () => void;
@@ -21,6 +23,7 @@ export default function TopNavbar({
   const [showMenu, setShowMenu] = useState(false);
   // notification presence is driven by NotificationBell (redux)
   const menuRef = useRef<HTMLDivElement>(null);
+  const user = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -88,7 +91,7 @@ export default function TopNavbar({
             className="relative w-10 h-10 rounded-full overflow-hidden hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors duration-200 focus:outline-none"
           >
             <Image
-              src="/person4.jpg"
+              src={user.profilePictureUrl}
               alt="User Avatar"
               fill
               sizes="40px"
