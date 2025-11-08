@@ -21,4 +21,7 @@ public interface MediaAiInsightsRepository extends JpaRepository<MediaAiInsights
     
     @Query("SELECT m FROM MediaAiInsights m WHERE m.status = :status AND m.isSafe = true")
     List<MediaAiInsights> findSafeMediaByStatus(@Param("status") MediaAiStatus status);
+
+    // --- ADDED FOR POST PROCESSING STATUS CHECK ---
+    long countByPost_PostIdAndStatus(Long postId, MediaAiStatus status);
 }

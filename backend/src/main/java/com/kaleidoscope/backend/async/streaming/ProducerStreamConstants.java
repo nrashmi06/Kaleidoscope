@@ -21,6 +21,18 @@ public final class ProducerStreamConstants {
     // Notification streams
     public static final String NOTIFICATION_EVENTS_STREAM = "notification-events";
 
+    /**
+     * Published by Backend -> Consumed by AI Post Aggregator.
+     * Tells the aggregator that all media for a post have been processed.
+     */
+    public static final String POST_AGGREGATION_TRIGGER_STREAM = "post-aggregation-trigger";
+
+    /**
+     * Published by Backend -> Consumed by AI ES Sync Service.
+     * Tells the sync service that a read model table has been updated.
+     */
+    public static final String ES_SYNC_QUEUE_STREAM = "es-sync-queue";
+
     private ProducerStreamConstants() {
         // Utility class - prevent instantiation
     }

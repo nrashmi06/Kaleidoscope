@@ -12,6 +12,14 @@ public final class ConsumerStreamConstants {
     public static final String FACE_RECOGNITION_STREAM = "face-recognition-results";
     public static final String USER_PROFILE_FACE_EMBEDDING_STREAM = "user-profile-face-embedding-results";
 
+    // --- ADDED FOR AI INTEGRATION (Task 5.4) ---
+    /**
+     * Consumed by Backend <- Published by AI Post Aggregator.
+     * Contains aggregated insights for an entire post.
+     */
+    public static final String POST_INSIGHTS_ENRICHED_STREAM = "post-insights-enriched";
+    // --- END AI INTEGRATION ---
+
     private ConsumerStreamConstants() {
         // Utility class - prevent instantiation
     }
