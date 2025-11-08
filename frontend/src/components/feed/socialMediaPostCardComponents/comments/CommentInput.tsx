@@ -14,7 +14,11 @@ interface CommentInputProps {
     profilePictureUrl: string;
     userId: number;
   };
-  onSubmit: (comment: string) => Promise<void>;
+  // onSubmit now accepts an optional array of selected tags (if any were chosen)
+  onSubmit: (
+    comment: string,
+    selectedTags?: TaggableUser[] | null
+  ) => Promise<void>;
   isPosting: boolean;
 }
 
@@ -28,6 +32,7 @@ export default function CommentInput({
   const [results, setResults] = useState<TaggableUser[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedTags, setSelectedTags] = useState<TaggableUser[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const accessToken = useAccessToken();
 
@@ -63,17 +68,32 @@ export default function CommentInput({
   }, [debouncedQuery, accessToken]);
 
   const handleSend = async () => {
-    const trimmed = comment.trim();
+    let trimmed = comment.trim();
     if (!trimmed) return;
-    await onSubmit(trimmed);
+
+    // If users were selected, replace each @username occurrence with username (remove the @)
+    if (selectedTags && selectedTags.length > 0) {
+      for (const tag of selectedTags) {
+        const regex = new RegExp(`@${tag.username}`);
+        trimmed = trimmed.replace(regex, tag.username);
+      }
+    }
+
+    await onSubmit(trimmed, selectedTags.length > 0 ? selectedTags : null);
     setComment("");
     setShowDropdown(false);
+    setSelectedTags([]);
   };
 
   const handleUserSelect = (user: TaggableUser) => {
     const updated = comment.replace(/@\w*$/, `@${user.username} `);
     setComment(updated);
     setShowDropdown(false);
+    // avoid duplicates
+    setSelectedTags((prev) => {
+      if (prev.find((p) => p.userId === user.userId)) return prev;
+      return [...prev, user];
+    });
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

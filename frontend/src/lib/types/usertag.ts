@@ -39,3 +39,6 @@ export interface StandardAPIResponse<T> {
 // for GET /api/users/taggable-users
 // --------------------------------------
 export type TaggableUsersResponse = StandardAPIResponse<PaginatedTaggableUserData>;
+
+// Response type for DELETE /api/users/tags/{tagId}
+export type DeleteUserTagResponse = StandardAPIResponse<string>;

@@ -25,4 +25,8 @@ export const UserTagMapper = {
 
     return `${BASE_URL}/users/taggable-users?${params.toString()}`;
   },
+  // Create a user tag
+  createTag: () => `${BASE_URL}/users/tags`,
+  // Delete a user tag by id
+  deleteTag: (tagId: number) => `${BASE_URL}/users/tags/${tagId}`,
 };

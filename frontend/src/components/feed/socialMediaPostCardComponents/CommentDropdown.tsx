@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
+import { useState, useRef } from "react";
+import { MessageSquare, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { getCommentsForPostController } from "@/controllers/postInteractionController/getCommentsForPostController";
 import { addCommentController } from "@/controllers/postInteractionController/addCommentController";
 import {
@@ -29,6 +29,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
   const accessToken = useAccessToken();
   const currentUser = useUserData();
+  const lastPostTimestampRef = useRef<number | null>(null);
 
   /** ✅ Fetch Comments */
   const fetchComments = async (pageNumber: number) => {
@@ -38,6 +39,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       const response: CommentsListResponse = await getCommentsForPostController(
         postId,
@@ -69,13 +71,19 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     }
   };
 
-  /** ✅ Reload or toggle */
+  /** ✅ Toggle with instant skeleton and clear on collapse */
   const handleToggle = async () => {
     if (!isExpanded) {
       setIsExpanded(true);
+      setComments([]); // Clear stale data
+      setPage(0);
+      setError(null);
+      setIsLoading(true); // Show skeleton instantly
       await fetchComments(0);
     } else {
       setIsExpanded(false);
+      setComments([]); // Clear comments on collapse
+      setError(null);
     }
   };
 
@@ -87,13 +95,20 @@ export default function CommentSection({ postId }: CommentSectionProps) {
   };
 
   /** ✅ Post New Comment */
-  const handlePostComment = async (body: string) => {
+  const handlePostComment = async (body: string, selectedTags?: { userId: number; username: string }[] | null) => {
     if (!accessToken) {
       setError("You must be logged in to comment.");
       return;
     }
+    const now = Date.now();
+    if (lastPostTimestampRef.current && now - lastPostTimestampRef.current < 3000) {
+      setError("Please wait a moment before posting again.");
+      return;
+    }
+    lastPostTimestampRef.current = now;
 
     setIsPosting(true);
+    setError(null);
     try {
       const response = await addCommentController(postId, accessToken, { body });
 
@@ -115,6 +130,35 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         };
 
         setComments((prev) => [newComment, ...prev]);
+
+        if (selectedTags && selectedTags.length > 0) {
+          try {
+            const tagModule = await import(
+              "@/controllers/userTagController/createUserTagController"
+            );
+
+            for (const t of selectedTags) {
+              try {
+                await tagModule.createUserTagController(accessToken!, {
+                  taggedUserId: t.userId,
+                  contentType: "COMMENT",
+                  contentId: Number(newComment.commentId),
+                });
+              } catch (tagErr) {
+                console.error("Failed to create user tag for", t.username, tagErr);
+              }
+            }
+
+            await fetchComments(0);
+          } catch (err) {
+            console.error("Failed to create user tags after posting comment:", err);
+            try {
+              await fetchComments(0);
+            } catch (e) {
+              console.error("Failed to refresh comments after tagging error:", e);
+            }
+          }
+        }
       } else {
         setError(response.message || "Failed to post comment");
       }
@@ -126,47 +170,47 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     }
   };
 
-  /** ✅ Delete Comment (local + optional refresh) */
+  /** ✅ Delete Comment */
   const handleDeleteComment = async (commentId: number) => {
-    // Option 1: Just remove it locally
     setComments((prev) => prev.filter((c) => c.commentId !== commentId));
-
-    // Option 2 (optional): Full reload from backend
-    // await fetchComments(0);
   };
 
   return (
-    <section className="w-full mt-1 border-t border-gray-100 dark:border-gray-800 pt-3">
+    <section className="w-full mt-1 border-t border-gray-100 dark:border-gray-800 pt-2">
       <div className="flex justify-center">
         <button
           onClick={handleToggle}
-          className="flex items-center justify-center gap-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors focus:outline-none"
         >
-          <MessageSquare size={18} />
-          <p className="text-sm">
-            {isExpanded ? "Hide Comments" : "Show Comments"}
-          </p>
-          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <MessageSquare size={16} />
+          <span className="text-sm">{isExpanded ? "Hide" : "Comments"}</span>
+          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
 
       {isExpanded && (
-        <div className="mt-3 p-4 w-full border-t border-gray-100 dark:border-gray-800">
-          {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+        <div className="mt-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+          {error && (
+            <div className="mb-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded">
+              {error}
+            </div>
+          )}
 
-          <CommentInput
-            currentUser={{
-              username: currentUser?.username || "You",
-              profilePictureUrl:
-                currentUser?.profilePictureUrl || "/default-avatar.png",
-              userId: currentUser?.userId || 0,
-            }}
-            onSubmit={handlePostComment}
-            isPosting={isPosting}
-          />
+          <div className="px-3">
+            <CommentInput
+              currentUser={{
+                username: currentUser?.username || "You",
+                profilePictureUrl:
+                  currentUser?.profilePictureUrl || "/default-avatar.png",
+                userId: currentUser?.userId || 0,
+              }}
+              onSubmit={handlePostComment}
+              isPosting={isPosting}
+            />
+          </div>
 
           {isLoading && comments.length === 0 && (
-            <div className="space-y-3 mt-3">
+            <div className="space-y-3 mt-3 px-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <CommentSkeleton key={`skeleton-${i}`} />
               ))}
@@ -175,7 +219,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
           {!isLoading && comments.length > 0 && (
             <>
-              <ul className="space-y-3 mt-3">
+              <ul className="space-y-3 mt-3 px-3">
                 {comments.map((comment) => (
                   <CommentItem
                     key={comment.commentId}
@@ -185,19 +229,33 @@ export default function CommentSection({ postId }: CommentSectionProps) {
                       username: currentUser?.username || "You",
                       userId: currentUser?.userId || 0,
                     }}
-                    onDelete={handleDeleteComment} // ✅ Pass callback here
+                    onDelete={handleDeleteComment}
+                    onTagDeleted={async () => {
+                      try {
+                        await fetchComments(0);
+                      } catch (e) {
+                        console.error("Failed refreshing comments after tag delete", e);
+                      }
+                    }}
                   />
                 ))}
               </ul>
 
               {page + 1 < totalPages && (
-                <div className="text-center mt-4">
+                <div className="text-center mt-3 px-3">
                   <button
                     onClick={handleLoadMore}
                     disabled={isLoading}
-                    className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-50"
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:opacity-50 transition-colors"
                   >
-                    {isLoading ? "Loading..." : "Load More"}
+                    {isLoading ? (
+                      <span className="flex items-center gap-1.5 justify-center">
+                        <Loader2 size={14} className="animate-spin" />
+                        Loading...
+                      </span>
+                    ) : (
+                      "Load more"
+                    )}
                   </button>
                 </div>
               )}
@@ -205,8 +263,8 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           )}
 
           {!isLoading && comments.length === 0 && !error && (
-            <p className="text-gray-500 dark:text-gray-400 text-sm text-center mt-3">
-              No comments yet. Be the first to comment!
+            <p className="text-gray-400 dark:text-gray-500 text-sm text-center mt-4 px-3">
+              No comments yet
             </p>
           )}
         </div>
