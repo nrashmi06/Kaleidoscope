@@ -68,9 +68,6 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
                 postSearch.setAllAiScenes(String.join(",", enriched.getAllAiScenes()));
             }
             postSearch.setInferredEventType(enriched.getInferredEventType());
-            if(enriched.getInferredTags() != null) {
-                postSearch.setInferredTags(String.join(",", enriched.getInferredTags()));
-            }
             postSearch.setUpdatedAt(Instant.now());
             // Note: We are not fetching Post/User here to keep this consumer lightweight.
             // We assume another process (like the initial post creation) populates the other fields.
@@ -106,4 +103,3 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
         // MDC.clear() is handled automatically by the try-with-resources block
     }
 }
-

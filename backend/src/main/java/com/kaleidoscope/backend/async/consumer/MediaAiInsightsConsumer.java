@@ -140,6 +140,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
 
             return MediaAiInsightsResultDTO.builder()
                     .mediaId(Long.parseLong(recordValue.get("mediaId")))
+                    .postId(recordValue.get("postId") != null ? Long.parseLong(recordValue.get("postId")) : null)
                     .isSafe(Boolean.parseBoolean(recordValue.get("isSafe")))
                     .caption(recordValue.get("caption"))
                     .tags(parseStringList(recordValue.get("tags")))

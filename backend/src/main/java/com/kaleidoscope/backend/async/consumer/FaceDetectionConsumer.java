@@ -101,6 +101,9 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
 
             return FaceDetectionResultDTO.builder()
                     .mediaId(Long.parseLong(recordValue.get("mediaId")))
+                    .postId(recordValue.get("postId") != null ? Long.parseLong(recordValue.get("postId")) : null)
+                    .faceId(recordValue.get("faceId"))
+                    .confidence(recordValue.get("confidence") != null ? Double.parseDouble(recordValue.get("confidence")) : null)
                     .bbox(parseIntegerList(recordValue.get("bbox")))
                     .embedding(recordValue.get("embedding"))
                     .build();

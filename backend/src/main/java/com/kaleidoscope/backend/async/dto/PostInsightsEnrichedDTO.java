@@ -20,8 +20,6 @@ public class PostInsightsEnrichedDTO {
     private List<String> allAiTags;
     private List<String> allAiScenes;
     private String inferredEventType;
-    private List<String> inferredTags;
     private String timestamp;
     private String correlationId; // Added to receive from the message
 }
-
