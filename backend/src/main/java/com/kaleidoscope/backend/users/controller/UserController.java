@@ -7,12 +7,15 @@ import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileStatusRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserProfileResponseDTO;
 import com.kaleidoscope.backend.users.routes.UserRoutes;
 import com.kaleidoscope.backend.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -88,6 +91,25 @@ public class UserController implements UserApi {
                 "User status updated to " + updateUserProfileStatusRequestDTO.profileStatus(),
                 "Profile status updated successfully",
                 UserRoutes.UPDATE_USER_PROFILE_STATUS
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    @GetMapping(UserRoutes.GET_USER_PROFILE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AppResponse<UserProfileResponseDTO>> getUserProfile(
+            @PathVariable Long userId,
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        log.info("Fetching user profile for userId: {}", userId);
+        UserProfileResponseDTO userProfile = userService.getUserProfile(userId, pageable);
+
+        AppResponse<UserProfileResponseDTO> response = AppResponse.success(
+                userProfile,
+                "Profile retrieved successfully",
+                UserRoutes.GET_USER_PROFILE.replace("{userId}", userId.toString())
         );
 
         return ResponseEntity.ok(response);

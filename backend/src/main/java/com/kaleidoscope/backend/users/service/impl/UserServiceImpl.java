@@ -4,15 +4,25 @@ import com.kaleidoscope.backend.async.dto.ProfilePictureEventDTO;
 import com.kaleidoscope.backend.async.mapper.AsyncMapper;
 import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
+import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
+import com.kaleidoscope.backend.posts.dto.response.PostSummaryResponseDTO;
+import com.kaleidoscope.backend.posts.enums.PostStatus;
+import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
+import com.kaleidoscope.backend.shared.response.PaginatedResponse;
 import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.document.UserDocument;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserProfileResponseDTO;
+import com.kaleidoscope.backend.users.enums.FollowStatus;
+import com.kaleidoscope.backend.users.enums.Visibility;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.repository.FollowRepository;
+import com.kaleidoscope.backend.users.repository.FollowRequestRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
 import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
@@ -40,17 +50,29 @@ public class UserServiceImpl implements UserService {
     private final RedisStreamPublisher redisStreamPublisher;
     private final UserDocumentSyncService userDocumentSyncService;
     private final UserSearchRepository userSearchRepository;
+    private final JwtUtils jwtUtils;
+    private final FollowRepository followRepository;
+    private final FollowRequestRepository followRequestRepository;
+    private final PostService postService;
 
     public UserServiceImpl(UserRepository userRepository,
                            ImageStorageService imageStorageService,
                            RedisStreamPublisher redisStreamPublisher,
                            UserDocumentSyncService userDocumentSyncService,
-                           UserSearchRepository userSearchRepository) {
+                           UserSearchRepository userSearchRepository,
+                           JwtUtils jwtUtils,
+                           FollowRepository followRepository,
+                           FollowRequestRepository followRequestRepository,
+                           PostService postService) {
         this.userRepository = userRepository;
         this.imageStorageService = imageStorageService;
         this.redisStreamPublisher = redisStreamPublisher;
         this.userDocumentSyncService = userDocumentSyncService;
         this.userSearchRepository = userSearchRepository;
+        this.jwtUtils = jwtUtils;
+        this.followRepository = followRepository;
+        this.followRequestRepository = followRequestRepository;
+        this.postService = postService;
     }
 
     @Override
@@ -219,5 +241,85 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileResponseDTO getUserProfile(Long profileUserId, Pageable pageable) {
+        // 1. Get the viewing user's ID
+        final Long viewingUserId = jwtUtils.getUserIdFromContext();
+
+        // 2. Get the profile user's data from ELASTICSEARCH
+        UserDocument profileUserDoc = userSearchRepository.findById(profileUserId.toString())
+                .orElseThrow(() -> new UserNotFoundException("User profile not found with ID: " + profileUserId));
+
+        // 3. Get profile privacy settings DIRECTLY from the UserDocument
+        // This assumes profileVisibility is correctly synced, which it is.
+        Visibility profileVisibility = Visibility.PUBLIC; // Default to public
+        if (profileUserDoc.getProfileVisibility() != null) {
+            try {
+                profileVisibility = Visibility.valueOf(profileUserDoc.getProfileVisibility());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid profileVisibility value '{}' in UserDocument for userId: {}. Defaulting to PUBLIC.",
+                        profileUserDoc.getProfileVisibility(), profileUserId);
+            }
+        }
+
+        boolean isPrivate = profileVisibility == Visibility.FRIENDS_ONLY;
+        boolean isSelf = viewingUserId.equals(profileUserId);
+
+        // 4. Determine the follow status (This requires SQL checks)
+        FollowStatus followStatus = FollowStatus.NONE;
+        if (isSelf) {
+            // No follow status for your own profile
+        } else if (followRepository.existsByFollower_UserIdAndFollowing_UserId(viewingUserId, profileUserId)) {
+            followStatus = FollowStatus.FOLLOWING;
+        } else if (followRequestRepository.existsByRequester_UserIdAndRequestee_UserId(viewingUserId, profileUserId)) {
+            followStatus = FollowStatus.REQUESTED;
+        }
+
+        // 5. Determine if content is viewable
+        // Content is viewable if:
+        // - The profile is public
+        // - OR the viewer is following the profile
+        // - OR the viewer is looking at their own profile
+        boolean canViewContent = !isPrivate || followStatus == FollowStatus.FOLLOWING || isSelf;
+
+        // 6. Fetch posts ONLY if content is viewable
+        PaginatedResponse<PostSummaryResponseDTO> posts = null;
+        if (canViewContent) {
+            // Use postService.filterPosts. It's smart and already uses Elasticsearch.
+            // We only pass the profileUserId as the *author* filter.
+            posts = postService.filterPosts(
+                    pageable,
+                    profileUserId, // Filter by the profile user's ID
+                    null,          // No category filter
+                    PostStatus.PUBLISHED, // Only show published posts
+                    null,          // Let filterPosts handle visibility
+                    null,          // No query
+                    null,          // No hashtag
+                    null,          // No locationId
+                    null,          // No nearbyLocationId
+                    null           // No radius
+            );
+        } else {
+            // Create an empty paginated response so the JSON field isn't null
+            posts = PaginatedResponse.fromPage(Page.empty(pageable));
+        }
+
+        // 7. Build and return the final DTO using data from the UserDocument
+        return UserProfileResponseDTO.builder()
+                .userId(profileUserDoc.getUserId())
+                .username(profileUserDoc.getUsername())
+                .profilePictureUrl(profileUserDoc.getProfilePictureUrl())
+                .coverPhotoUrl(profileUserDoc.getCoverPhotoUrl())
+                .summary(profileUserDoc.getSummary())
+                .designation(profileUserDoc.getDesignation())
+                .followerCount(profileUserDoc.getFollowerCount() != null ? profileUserDoc.getFollowerCount() : 0)
+                .followingCount(profileUserDoc.getFollowingCount() != null ? profileUserDoc.getFollowingCount() : 0)
+                .isPrivate(isPrivate && !isSelf) // Only show "private" if it's not your own profile
+                .followStatus(isSelf ? null : followStatus) // No follow status for self
+                .posts(posts)
+                .build();
     }
 }
