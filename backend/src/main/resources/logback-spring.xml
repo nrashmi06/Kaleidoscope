@@ -1,43 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdc>true</includeMdc>
-            <includeContext>true</includeContext>
-            <includeMdcKeyName>mdc</includeMdcKeyName>
-            <customFields>{"service":"kaleidoscope-backend","environment":"${SPRING_PROFILES_ACTIVE:-default}"}</customFields>
-            <fieldNames>
-                <timestamp>@timestamp</timestamp>
-                <message>message</message>
-                <level>level</level>
-                <thread>thread</thread>
-                <logger>logger</logger>
-            </fieldNames>
+    <!-- Simple Console Appender (for prod) -->
+    <appender name="CONSOLE_SIMPLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
-    </appender>
-
-    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <destination>${LOGSTASH_HOST:-127.0.0.1}:${LOGSTASH_PORT:-5000}</destination>
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdc>true</includeMdc>
-            <includeContext>true</includeContext>
-            <includeMdcKeyName>mdc</includeMdcKeyName>
-            <customFields>{"service":"kaleidoscope-backend","environment":"${SPRING_PROFILES_ACTIVE:-default}","application":"kaleidoscope"}</customFields>
-            <fieldNames>
-                <timestamp>@timestamp</timestamp>
-                <message>message</message>
-                <level>level</level>
-                <thread>thread</thread>
-                <logger>logger</logger>
-            </fieldNames>
-        </encoder>
-        <connectionTimeout>5000</connectionTimeout>
-        <reconnectionDelay>1 second</reconnectionDelay>
-        <keepAliveDuration>5 minutes</keepAliveDuration>
-        <writeBufferSize>16384</writeBufferSize>
-        <queueSize>512</queueSize>
-        <includeCallerData>false</includeCallerData>
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -52,15 +20,6 @@
         </rollingPolicy>
     </appender>
 
-    <appender name="ASYNC_LOGSTASH" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="LOGSTASH"/>
-        <queueSize>1024</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>false</includeCallerData>
-        <neverBlock>true</neverBlock>
-        <maxFlushTime>2000</maxFlushTime>
-    </appender>
-
     <logger name="org.springframework" level="WARN"/>
     <logger name="org.hibernate" level="WARN"/>
     <logger name="org.hibernate.SQL" level="WARN"/>
@@ -71,10 +30,10 @@
     <logger name="org.eclipse.jetty" level="INFO"/>
     <logger name="net.logstash.logback.appender.LogstashTcpSocketAppender" level="WARN"/>
 
+    <!-- Default Root Logger (simple console) -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="CONSOLE_SIMPLE"/>
         <appender-ref ref="FILE"/>
-        <appender-ref ref="ASYNC_LOGSTASH"/>
     </root>
 
     <logger name="com.kaleidoscope.backend" level="DEBUG"/>
@@ -84,9 +43,73 @@
     <logger name="com.kaleidoscope.backend.users" level="DEBUG"/>
     <logger name="com.kaleidoscope.backend.posts" level="DEBUG"/>
 
+    <!-- Development Profile: Console + Logstash/Kibana -->
+    <springProfile name="dev">
+        <!-- Logstash Console Appender (for dev) -->
+        <appender name="CONSOLE_LOGSTASH" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdc>true</includeMdc>
+                <includeContext>true</includeContext>
+                <includeMdcKeyName>mdc</includeMdcKeyName>
+                <customFields>{"service":"kaleidoscope-backend","environment":"dev"}</customFields>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <message>message</message>
+                    <level>level</level>
+                    <thread>thread</thread>
+                    <logger>logger</logger>
+                </fieldNames>
+            </encoder>
+        </appender>
+
+        <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+            <destination>${LOGSTASH_HOST:-127.0.0.1}:${LOGSTASH_PORT:-5000}</destination>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdc>true</includeMdc>
+                <includeContext>true</includeContext>
+                <includeMdcKeyName>mdc</includeMdcKeyName>
+                <customFields>{"service":"kaleidoscope-backend","environment":"dev","application":"kaleidoscope"}</customFields>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <message>message</message>
+                    <level>level</level>
+                    <thread>thread</thread>
+                    <logger>logger</logger>
+                </fieldNames>
+            </encoder>
+            <connectionTimeout>5000</connectionTimeout>
+            <reconnectionDelay>1 second</reconnectionDelay>
+            <keepAliveDuration>5 minutes</keepAliveDuration>
+            <writeBufferSize>16384</writeBufferSize>
+            <queueSize>512</queueSize>
+            <includeCallerData>false</includeCallerData>
+        </appender>
+
+        <appender name="ASYNC_LOGSTASH" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="LOGSTASH"/>
+            <queueSize>1024</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <includeCallerData>false</includeCallerData>
+            <neverBlock>true</neverBlock>
+            <maxFlushTime>2000</maxFlushTime>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_LOGSTASH"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ASYNC_LOGSTASH"/>
+        </root>
+        <logger name="com.kaleidoscope.backend" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.shared.config" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.auth" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.users" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.posts" level="DEBUG"/>
+    </springProfile>
+
+    <!-- Production Profile: Simple Console Only (No Logstash/Kibana) -->
     <springProfile name="prod, production">
         <root level="INFO">
-            <appender-ref ref="ASYNC_LOGSTASH"/>
+            <appender-ref ref="CONSOLE_SIMPLE"/>
             <appender-ref ref="FILE"/>
         </root>
         <logger name="com.kaleidoscope.backend" level="INFO"/>

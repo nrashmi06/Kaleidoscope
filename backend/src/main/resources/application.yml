@@ -32,6 +32,8 @@ spring:
   # Elasticsearch Configuration
   elasticsearch:
     uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}
+    username: ${SPRING_ELASTICSEARCH_USERNAME:elastic}
+    password: ${SPRING_ELASTICSEARCH_PASSWORD:changeme123}
 
   # JPA Configuration
   jpa:
