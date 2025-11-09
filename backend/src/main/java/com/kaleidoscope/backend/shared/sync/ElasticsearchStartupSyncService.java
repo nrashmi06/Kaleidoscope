@@ -22,8 +22,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // <-- IMPORT ADDED
+import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -50,15 +51,21 @@ public class ElasticsearchStartupSyncService {
 
     private static final int BATCH_SIZE = 100;
 
+    @PostConstruct
+    public void init() {
+        log.info("✅ ElasticsearchStartupSyncService bean initialized successfully");
+    }
+
     /**
      * Triggered automatically when the application is fully started
      * Syncs all data from PostgreSQL to Elasticsearch
      */
     @EventListener(ApplicationReadyEvent.class)
     @Async("taskExecutor")
-    @Transactional(readOnly = true) // <-- FIX: ANNOTATION MOVED HERE
+    @Transactional(readOnly = true)
     public void syncAllDataOnStartup() {
         log.info("==================== ELASTICSEARCH STARTUP SYNC STARTED ====================");
+        log.info("Thread: {}", Thread.currentThread().getName());
 
         try {
             // Sync in order: Users first (as Posts reference Users)

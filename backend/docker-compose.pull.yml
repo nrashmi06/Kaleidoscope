@@ -1,50 +1,45 @@
+# Docker Compose for teammates who run the entire stack (including backend) in containers
+# You use docker-compose.yml (runs backend locally), they use this file
+# Both connect to the same external DigitalOcean Elasticsearch/Redis
+
 services:
   app:
     image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
-      # Removed dependency on local elasticsearch
       logstash:
         condition: service_started
     env_file:
-      - .env # This file MUST contain your cloud ES_URIS, USERNAME, and PASSWORD
+      - .env
     environment:
-      # This correctly points to the logstash container on the docker network
-      - LOGSTASH_HOST=logstash
-      # SPRING_ELASTICSEARCH_URIS, USERNAME, and PASSWORD
-      # are now loaded directly from the .env file.
+      # Override for containers: use DigitalOcean direct connections with elastic superuser
+      - SPRING_ELASTICSEARCH_URIS=${CONTAINER_ES_URIS}
+      - SPRING_ELASTICSEARCH_USERNAME=${CONTAINER_ES_USERNAME}
+      - SPRING_ELASTICSEARCH_PASSWORD=${CONTAINER_ES_PASSWORD}
+      - REDIS_URL=${CONTAINER_REDIS_URL}
     ports:
       - "${APP_PORT:-8080}:8080"
-    networks:
-      - app-network
+    network_mode: "host"
     restart: unless-stopped
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
     container_name: kaleidoscope-logstash
-    ports:
-      - "5000:5000"
-      - "5001:5001"
-      - "5044:5044"
-      - "9600:9600"
-    networks:
-      - app-network
+    network_mode: "host"
     volumes:
       - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     environment:
-      # Point Logstash to the external (cloud) Elasticsearch
-      # These variables must be in your .env file
-      - ELASTICSEARCH_HOSTS=${SPRING_ELASTICSEARCH_URIS}
-      - ELASTICSEARCH_USERNAME=${SPRING_ELASTICSEARCH_USERNAME}
-      - ELASTICSEARCH_PASSWORD=${SPRING_ELASTICSEARCH_PASSWORD}
+      # Use the correct environment variables that match .env
+      - ELASTICSEARCH_HOSTS=${CONTAINER_ES_HOST}
+      - ELASTICSEARCH_USERNAME=${KIBANA_ES_USER}
+      - ELASTICSEARCH_PASSWORD=${KIBANA_ES_PASS}
       - "xpack.monitoring.enabled=false"
       - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
-    # Removed dependency on local elasticsearch
     restart: always
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '1.0'
           memory: 1G
 
   kibana:
@@ -52,26 +47,29 @@ services:
     container_name: kaleidoscope-kibana
     ports:
       - "5601:5601"
-    networks:
-      - app-network
+    network_mode: "host"
     environment:
-      # Point Kibana to the external (cloud) Elasticsearch
-      # These variables must be in your .env file
-      - ELASTICSEARCH_HOSTS=${SPRING_ELASTICSEARCH_URIS}
-      - ELASTICSEARCH_USERNAME=${SPRING_ELASTICSEARCH_USERNAME}
-      - ELASTICSEARCH_PASSWORD=${SPRING_ELASTICSEARCH_PASSWORD}
-      # Enable security since we are now using credentials
-      - "xpack.security.enabled=true"
+      # Use the correct environment variables that match .env
+      - ELASTICSEARCH_HOSTS=${CONTAINER_ES_HOST}
+      - ELASTICSEARCH_USERNAME=${KIBANA_ES_USER}
+      - ELASTICSEARCH_PASSWORD=${KIBANA_ES_PASS}
+      - SERVER_HOST=0.0.0.0
+      - SERVER_NAME=kaleidoscope-kibana
+      - XPACK_SECURITY_ENABLED=true
+      # Add encryption keys to suppress warnings
+      - XPACK_REPORTING_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
+      - XPACK_REPORTING_KIBANASERVER_HOSTNAME=localhost
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
+      - XPACK_SECURITY_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
     depends_on:
       - logstash
     restart: always
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '1.0'
           memory: 1G
 
-# Removed the elasticsearch service and its volume
 volumes: {}
 
 networks:
