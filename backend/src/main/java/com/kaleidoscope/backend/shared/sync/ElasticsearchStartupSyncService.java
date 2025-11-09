@@ -20,10 +20,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer; // <-- IMPORT ADDED
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -44,11 +47,19 @@ public class ElasticsearchStartupSyncService {
     private final FollowRepository followRepository;
     private final UserBlockRepository userBlockRepository;
     private final UserPreferencesRepository userPreferencesRepository;
-    
+
     private final PostRepository postRepository;
     private final PostSearchRepository postSearchRepository;
 
+    // --- IMPORT ADDED ---
+    private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
+
     private static final int BATCH_SIZE = 100;
+
+    @PostConstruct
+    public void init() {
+        log.info("✅ ElasticsearchStartupSyncService bean initialized successfully");
+    }
 
     /**
      * Triggered automatically when the application is fully started
@@ -56,15 +67,28 @@ public class ElasticsearchStartupSyncService {
      */
     @EventListener(ApplicationReadyEvent.class)
     @Async("taskExecutor")
+    @Transactional(readOnly = true)
     public void syncAllDataOnStartup() {
         log.info("==================== ELASTICSEARCH STARTUP SYNC STARTED ====================");
-        
+        log.info("Thread: {}", Thread.currentThread().getName());
+
         try {
             // Sync in order: Users first (as Posts reference Users)
             syncAllUsers();
             syncAllPosts();
-            
+
             log.info("==================== ELASTICSEARCH STARTUP SYNC COMPLETED SUCCESSFULLY ====================");
+
+            //
+            // --- THIS IS THE KEY CHANGE ---
+            //
+            // Start the Redis Stream consumers ONLY AFTER all data has been synced.
+            //
+            log.info("Starting Redis Stream Message Listener Container...");
+            streamMessageListenerContainer.start();
+            log.info("✅ Redis Stream consumers started successfully after data sync.");
+
+
         } catch (Exception e) {
             log.error("==================== ELASTICSEARCH STARTUP SYNC FAILED ====================", e);
             // Don't throw - allow application to start even if ES sync fails
@@ -74,14 +98,14 @@ public class ElasticsearchStartupSyncService {
     /**
      * Sync all users from PostgreSQL to Elasticsearch
      */
-    @Transactional(readOnly = true)
+    // @Transactional(readOnly = true) // <-- Removed from here
     public void syncAllUsers() {
         log.info("Starting user synchronization to Elasticsearch...");
-        
+
         try {
             long totalUsers = userRepository.count();
             log.info("Found {} total users to sync", totalUsers);
-            
+
             if (totalUsers == 0) {
                 log.info("No users found in database. Skipping user sync.");
                 return;
@@ -99,8 +123,8 @@ public class ElasticsearchStartupSyncService {
                     break;
                 }
 
-                log.info("Syncing user batch {}/{} ({} users)", 
-                         pageNumber + 1, userPage.getTotalPages(), userPage.getNumberOfElements());
+                log.info("Syncing user batch {}/{} ({} users)",
+                        pageNumber + 1, userPage.getTotalPages(), userPage.getNumberOfElements());
 
                 for (User user : userPage.getContent()) {
                     try {
@@ -161,6 +185,13 @@ public class ElasticsearchStartupSyncService {
                 .map(prefs -> prefs.getAllowTagging() != null ? prefs.getAllowTagging().name() : Visibility.PUBLIC.name())
                 .orElse(Visibility.PUBLIC.name());
 
+        // Fetch profile visibility
+        String profileVisibility = userPreferencesRepository
+                .findByUser_UserId(user.getUserId())
+                .map(prefs -> prefs.getProfileVisibility() != null ? prefs.getProfileVisibility().name() : Visibility.PUBLIC.name())
+                .orElse(Visibility.PUBLIC.name());
+
+
         // Build UserDocument
         UserDocument userDocument = UserDocument.builder()
                 .id(user.getUserId().toString())
@@ -180,6 +211,7 @@ public class ElasticsearchStartupSyncService {
                 .blockedUserIds(blockedUserIds)
                 .blockedByUserIds(blockedByUserIds)
                 .allowTagging(allowTagging)
+                .profileVisibility(profileVisibility) // <-- FIELD ADDED
                 .faceEmbedding(null) // Will be updated by ML service
                 .createdAt(user.getCreatedAt())
                 .lastSeen(user.getLastSeen())
@@ -192,14 +224,14 @@ public class ElasticsearchStartupSyncService {
     /**
      * Sync all posts from PostgreSQL to Elasticsearch
      */
-    @Transactional(readOnly = true)
+    // @Transactional(readOnly = true) // <-- Removed from here
     public void syncAllPosts() {
         log.info("Starting post synchronization to Elasticsearch...");
-        
+
         try {
             long totalPosts = postRepository.count();
             log.info("Found {} total posts to sync", totalPosts);
-            
+
             if (totalPosts == 0) {
                 log.info("No posts found in database. Skipping post sync.");
                 return;
@@ -218,8 +250,8 @@ public class ElasticsearchStartupSyncService {
                     break;
                 }
 
-                log.info("Syncing post batch {}/{} ({} posts)", 
-                         pageNumber + 1, postPage.getTotalPages(), postPage.getNumberOfElements());
+                log.info("Syncing post batch {}/{} ({} posts)",
+                        pageNumber + 1, postPage.getTotalPages(), postPage.getNumberOfElements());
 
                 for (Post post : postPage.getContent()) {
                     try {
@@ -275,10 +307,10 @@ public class ElasticsearchStartupSyncService {
             String locationName = location.getName();
             if (location.getLatitude() != null && location.getLongitude() != null) {
                 org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
-                    new org.springframework.data.elasticsearch.core.geo.GeoPoint(
-                        location.getLatitude().doubleValue(),
-                        location.getLongitude().doubleValue()
-                    );
+                        new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                                location.getLatitude().doubleValue(),
+                                location.getLongitude().doubleValue()
+                        );
                 locationInfo = PostDocument.LocationInfo.builder()
                         .id(locationId)
                         .name(locationName)
@@ -293,7 +325,7 @@ public class ElasticsearchStartupSyncService {
                         .build();
             }
             log.debug("Synced location for post {}: locationId={}, name={}, hasCoordinates={}",
-                     post.getPostId(), locationId, locationName, locationInfo.getPoint() != null);
+                    post.getPostId(), locationId, locationName, locationInfo.getPoint() != null);
         }
 
         // Find thumbnail URL (first media item)
@@ -303,7 +335,7 @@ public class ElasticsearchStartupSyncService {
                 .orElse(null);
 
         // Extract hashtag names from post
-        List<String> hashtagNames = post.getPostHashtags().stream()
+        List<String> hashtagNames = post.getPostHashtags().stream() // <-- This is where the fix takes effect
                 .map(ph -> ph.getHashtag().getName())
                 .collect(Collectors.toList());
         log.debug("Synced {} hashtags for post {}", hashtagNames.size(), post.getPostId());
@@ -375,4 +407,3 @@ public class ElasticsearchStartupSyncService {
         private boolean postsSynced;
     }
 }
-

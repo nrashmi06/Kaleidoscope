@@ -161,8 +161,9 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
                     record.getStream(), messageId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            log.error("Error processing notification event from stream: {}, messageId: {}", 
-                    record.getStream(), messageId, e);
+            log.error("Error processing notification event from stream: {}, messageId: {}, error: {}. Message will remain in PEL.",
+                    record.getStream(), messageId, e.getMessage(), e);
+            throw e; // CRITICAL FIX: Re-throw to prevent XACK on failure and avoid data loss
         }
     }
 

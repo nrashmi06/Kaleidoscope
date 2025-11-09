@@ -65,34 +65,29 @@ public class RedisStreamConfig {
         return applicationName + "-" + instanceId;
     }
 
-    @Bean(initMethod = "start", destroyMethod = "stop")
+    //
+    // --- THIS IS THE KEY CHANGE ---
+    //
+    // Removed 'initMethod = "start"' so the container is created but not started.
+    // It will be started manually by ElasticsearchStartupSyncService AFTER the sync.
+    //
+    @Bean(destroyMethod = "stop")
     public StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer(
             RedisTemplate<String, String> redisTemplate) {
         log.info("Configuring Redis Stream Message Listener Container for App: {} (ID: {})", applicationName, instanceId);
 
-        // 2. Ensure Consumer Groups Exist before connecting
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.ML_INSIGHTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_DETECTION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_RECOGNITION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.HASHTAG_USAGE_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-
-        // 3. Configure Container Options for Manual Acknowledgment
+        // 2. Configure Container Options for Manual Acknowledgment
         StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
                 StreamMessageListenerContainerOptions.builder()
                         .batchSize(10)
                         .pollTimeout(Duration.ofSeconds(1))
-                        .errorHandler(createErrorHandler())
+                        .errorHandler(createErrorHandler()) // This handler will reactively create groups on "NOGROUP" error
                         .build();
 
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(redisConnectionFactory, options);
 
-        // 4. Register Consumers with Unique Names and Manual Acknowledgment
+        // 3. Register Consumers with Unique Names and Manual Acknowledgment
         String consumerName = uniqueConsumerName();
 
         registerConsumer(container, consumerName, ConsumerStreamConstants.ML_INSIGHTS_STREAM, mediaAiInsightsConsumer);
@@ -130,15 +125,20 @@ public class RedisStreamConfig {
     // Existing ensureConsumerGroupExists method (now private and cleaner)
     private void ensureConsumerGroupExists(RedisTemplate<String, String> redisTemplate, String streamName, String groupName) {
         try {
-            // Try to create consumer group (this will fail if it already exists, which is fine)
-            // Use ReadOffset.from("0-0") to ensure creation even if the stream is currently empty
+            // First, ensure the stream exists by adding a dummy entry if needed
+            Long streamLength = redisTemplate.opsForStream().size(streamName);
+            if (streamLength == null || streamLength == 0) {
+                // Stream doesn't exist, create it with a dummy message that we'll ignore
+                log.debug("Stream '{}' doesn't exist, creating it...", streamName);
+                redisTemplate.opsForStream().add(streamName, java.util.Map.of("init", "true"));
+            }
+
+            // Now create the consumer group - params are: key, readOffset, group
             redisTemplate.opsForStream().createGroup(streamName, ReadOffset.from("0-0"), groupName);
             log.info("Created consumer group '{}' for stream '{}'", groupName, streamName);
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().contains("BUSYGROUP")) {
                 log.debug("Consumer group '{}' already exists for stream '{}'", groupName, streamName);
-            } else if (e.getMessage() != null && e.getMessage().contains("NOKEY")) {
-                log.warn("Stream '{}' does not exist yet. Group creation failed (NOKEY), but will be created automatically on first publish/receive.", streamName);
             } else {
                 log.warn("Could not create/verify consumer group '{}' for stream '{}': {}", groupName, streamName, e.getMessage());
             }
@@ -147,13 +147,64 @@ public class RedisStreamConfig {
 
     private ErrorHandler createErrorHandler() {
         return throwable -> {
-            // Log the failure. If the root consumer threw a business logic exception
-            // (PostMediaNotFoundException, StreamDeserializationException, etc.)
-            // it means the consumer failed and re-threw the exception.
-            // The container will NOT XACK, leaving the message in the PEL.
+            // Unwrap exception to get root cause
+            Throwable rootCause = throwable;
+            while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
 
+            String msg = rootCause.getMessage() != null ? rootCause.getMessage() : "";
+
+            // Check if this is a NOGROUP error - stream exists but consumer group doesn't
+            if (msg.contains("NOGROUP")) {
+                // Extract stream name from error message
+                String streamName = extractStreamName(msg);
+                log.warn("Consumer group missing for stream '{}'. Creating now...", streamName);
+
+                // Actually create the consumer group
+                try {
+                    RedisTemplate<String, String> redis = redisTemplate();
+                    log.info("Stream '{}' found, creating consumer group...", streamName);
+
+                    // Ensure stream exists first
+                    Long streamLength = redis.opsForStream().size(streamName);
+                    if (streamLength == null || streamLength == 0) {
+                        redis.opsForStream().add(streamName, java.util.Map.of("init", "true"));
+                    }
+
+                    // Create group with correct parameter order: key, readOffset, group
+                    redis.opsForStream().createGroup(
+                            streamName,
+                            ReadOffset.from("0-0"),
+                            StreamingConfigConstants.BACKEND_CONSUMER_GROUP
+                    );
+                    log.info("✅ Successfully created consumer group 'backend-group' for stream '{}'", streamName);
+                } catch (Exception e) {
+                    if (e.getMessage() != null && e.getMessage().contains("BUSYGROUP")) {
+                        log.debug("Group already exists for '{}'", streamName);
+                    } else {
+                        log.error("Failed to create group for '{}': {}", streamName, e.getMessage());
+                    }
+                }
+                return; // Don't log as ERROR for NOGROUP, we're handling it
+            }
+
+            // For other errors, log them as actual errors
             log.error("Unrecoverable error processing Redis Stream message. Message left in PEL: {}",
-                    throwable.getMessage(), throwable);
+                    msg, throwable);
         };
+    }
+
+    // Helper method to extract stream name from NOGROUP error message
+    private String extractStreamName(String errorMsg) {
+        // Parse: "NOGROUP No such key 'stream-name' or consumer group..."
+        if (errorMsg.contains("No such key '")) {
+            int start = errorMsg.indexOf("No such key '") + 13;
+            int end = errorMsg.indexOf("'", start);
+            if (end > start) {
+                return errorMsg.substring(start, end);
+            }
+        }
+        return "unknown";
     }
 }

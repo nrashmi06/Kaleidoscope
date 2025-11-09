@@ -1,74 +1,45 @@
+# Docker Compose for teammates who run the entire stack (including backend) in containers
+# You use docker-compose.yml (runs backend locally), they use this file
+# Both connect to the same external DigitalOcean Elasticsearch/Redis
+
 services:
   app:
     image: ${DOCKER_REGISTRY:-ajayprabhu2004}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
-      elasticsearch:
-        condition: service_healthy
       logstash:
         condition: service_started
     env_file:
       - .env
     environment:
-      # This is the correct variable to override spring.elasticsearch.uris from your application.yml
-      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
-      # This correctly points to the logstash container on the docker network
-      - LOGSTASH_HOST=logstash
+      # Override for containers: use DigitalOcean direct connections with elastic superuser
+      - SPRING_ELASTICSEARCH_URIS=${CONTAINER_ES_URIS}
+      - SPRING_ELASTICSEARCH_USERNAME=${CONTAINER_ES_USERNAME}
+      - SPRING_ELASTICSEARCH_PASSWORD=${CONTAINER_ES_PASSWORD}
+      - REDIS_URL=${CONTAINER_REDIS_URL}
     ports:
       - "${APP_PORT:-8080}:8080"
-    networks:
-      - app-network
+    network_mode: "host"
     restart: unless-stopped
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: kaleidoscope-elasticsearch
-    environment:
-      - "discovery.type=single-node"
-      - "xpack.security.enabled=false"
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
-    ports:
-      - "9200:9200"
-    networks:
-      - app-network
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: kaleidoscope-logstash
+    network_mode: "host"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 60s
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      # Use the correct environment variables that match .env
+      - ELASTICSEARCH_HOSTS=${CONTAINER_ES_HOST}
+      - ELASTICSEARCH_USERNAME=${KIBANA_ES_USER}
+      - ELASTICSEARCH_PASSWORD=${KIBANA_ES_PASS}
+      - "xpack.monitoring.enabled=false"
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
     restart: always
     deploy:
       resources:
         limits:
           cpus: '1.0'
-          memory: 2G
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.11.0
-    container_name: kaleidoscope-logstash
-    ports:
-      - "5000:5000"
-      - "5001:5001"
-      - "5044:5044"
-      - "9600:9600"
-    networks:
-      - app-network
-    volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    environment:
-      - "ELASTICSEARCH_HOST=elasticsearch:9200"
-      - "xpack.monitoring.enabled=false"
-      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
-    depends_on:
-      - elasticsearch
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
           memory: 1G
 
   kibana:
@@ -76,20 +47,30 @@ services:
     container_name: kaleidoscope-kibana
     ports:
       - "5601:5601"
-    networks:
-      - app-network
+    network_mode: "host"
+    environment:
+      # Use the correct environment variables that match .env
+      - ELASTICSEARCH_HOSTS=${CONTAINER_ES_HOST}
+      - ELASTICSEARCH_USERNAME=${KIBANA_ES_USER}
+      - ELASTICSEARCH_PASSWORD=${KIBANA_ES_PASS}
+      - SERVER_HOST=0.0.0.0
+      - SERVER_NAME=kaleidoscope-kibana
+      - XPACK_SECURITY_ENABLED=true
+      # Add encryption keys to suppress warnings
+      - XPACK_REPORTING_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
+      - XPACK_REPORTING_KIBANASERVER_HOSTNAME=localhost
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
+      - XPACK_SECURITY_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
     depends_on:
-      - elasticsearch
       - logstash
     restart: always
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '1.0'
           memory: 1G
 
-volumes:
-  elasticsearch_data:
+volumes: {}
 
 networks:
   app-network:

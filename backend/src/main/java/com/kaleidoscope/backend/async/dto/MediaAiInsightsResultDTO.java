@@ -8,6 +8,7 @@ import java.util.List;
 @Builder
 public class MediaAiInsightsResultDTO {
     private Long mediaId;
+    private Long postId;
     private Boolean isSafe;
     private String caption;
     private List<String> tags;

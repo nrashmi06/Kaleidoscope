@@ -1,0 +1,11 @@
+# Development Profile Overrides
+# These settings will override the base application.yml
+spring:
+  data:
+    redis:
+      # Overrides base to include a password placeholder
+      url: ${REDIS_URL:redis://:password@localhost:6379}
+
+  elasticsearch:
+    # Overrides base to remove username/password for dev
+    uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}

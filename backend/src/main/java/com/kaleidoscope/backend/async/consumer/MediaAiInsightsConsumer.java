@@ -74,19 +74,19 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                         log.error("PostMedia not found for mediaId: {}", resultDTO.getMediaId());
                         return new PostMediaNotFoundException(resultDTO.getMediaId());
                     });
-            log.info("Retrieved PostMedia for mediaId: {}, postId: {}", 
+            log.info("Retrieved PostMedia for mediaId: {}, postId: {}",
                     postMedia.getMediaId(), postMedia.getPost().getPostId());
 
             // PostgreSQL Update ("Write" Model): Create and save MediaAiInsights entity
             MediaAiInsights mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia);
             MediaAiInsights savedInsights = mediaAiInsightsRepository.save(mediaAiInsights);
-            log.info("Saved MediaAiInsights for mediaId: {}, status: {}, isSafe: {}", 
+            log.info("Saved MediaAiInsights for mediaId: {}, status: {}, isSafe: {}",
                     savedInsights.getMediaId(), savedInsights.getStatus(), savedInsights.getIsSafe());
 
             // Elasticsearch Update ("Read" Model): Create and save SearchAssetDocument
             SearchAssetDocument searchDocument = createSearchAssetDocument(postMedia, savedInsights);
             SearchAssetDocument savedDocument = searchAssetSearchRepository.save(searchDocument);
-            log.info("Saved SearchAssetDocument to Elasticsearch for mediaId: {}, documentId: {}", 
+            log.info("Saved SearchAssetDocument to Elasticsearch for mediaId: {}, documentId: {}",
                     postMedia.getMediaId(), savedDocument.getId());
 
 
@@ -104,11 +104,11 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
 
                 // Get all media IDs for this post to send to the aggregator
                 Post post = postRepository.findById(postId).orElseThrow(() ->
-                    new IllegalStateException("Post not found for postId: " + postId) // Should not happen
+                        new IllegalStateException("Post not found for postId: " + postId) // Should not happen
                 );
                 List<Long> allMediaIds = post.getMedia().stream()
-                                             .map(PostMedia::getMediaId)
-                                             .collect(Collectors.toList());
+                        .map(PostMedia::getMediaId)
+                        .collect(Collectors.toList());
 
                 // 4. Trigger the Post Aggregation Service
                 postAggregationTriggerService.triggerAggregation(postId, allMediaIds);
@@ -140,6 +140,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
 
             return MediaAiInsightsResultDTO.builder()
                     .mediaId(Long.parseLong(recordValue.get("mediaId")))
+                    .postId(recordValue.get("postId") != null ? Long.parseLong(recordValue.get("postId")) : null)
                     .isSafe(Boolean.parseBoolean(recordValue.get("isSafe")))
                     .caption(recordValue.get("caption"))
                     .tags(parseStringList(recordValue.get("tags")))
@@ -174,8 +175,14 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         log.debug("Creating MediaAiInsights entity for mediaId: {}", resultDTO.getMediaId());
 
         return MediaAiInsights.builder()
-                .mediaId(resultDTO.getMediaId())
-                .postMedia(postMedia)
+                //
+                // --- THIS IS THE FIX ---
+                // We REMOVE the .mediaId() call because the @MapsId annotation
+                // will automatically copy the ID from the 'postMedia' relationship.
+                //
+                // .mediaId(resultDTO.getMediaId()) // <-- THIS LINE IS REMOVED
+                //
+                .postMedia(postMedia) // Set the relationship
                 .post(postMedia.getPost())
                 .status(MediaAiStatus.COMPLETED)
                 .isSafe(resultDTO.getIsSafe())
