@@ -5,6 +5,7 @@ import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileStatusRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserProfileResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,7 +15,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -71,4 +75,18 @@ public interface UserApi {
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Request to update user profile status", required = true,
                     content = @Content(schema = @Schema(implementation = UpdateUserProfileStatusRequestDTO.class)))
             @RequestBody UpdateUserProfileStatusRequestDTO updateUserProfileStatusRequestDTO);
+
+    @Operation(summary = "Get user profile by ID", description = "Retrieves a user's public or private profile, including follow status and posts, based on the viewer's relationship.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = AppResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    ResponseEntity<AppResponse<UserProfileResponseDTO>> getUserProfile(
+            @Parameter(description = "The ID of the user profile to retrieve", required = true)
+            @PathVariable Long userId,
+            @Parameter(hidden = true)
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable);
 }

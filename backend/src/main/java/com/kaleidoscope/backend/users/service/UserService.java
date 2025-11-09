@@ -3,6 +3,7 @@ package com.kaleidoscope.backend.users.service;
 import com.kaleidoscope.backend.users.dto.request.UpdateUserProfileRequestDTO;
 import com.kaleidoscope.backend.users.dto.response.UpdateUserProfileResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
+import com.kaleidoscope.backend.users.dto.response.UserProfileResponseDTO;
 import com.kaleidoscope.backend.users.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -72,4 +73,14 @@ public interface UserService {
      * @return true if email exists
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Get a user's profile information, gated by privacy settings.
+     * This implementation MUST use Elasticsearch (UserDocument) for primary data.
+     *
+     * @param profileUserId The ID of the user whose profile is being viewed.
+     * @param pageable Pagination for the user's posts.
+     * @return UserProfileResponseDTO containing all necessary profile data.
+     */
+    UserProfileResponseDTO getUserProfile(Long profileUserId, Pageable pageable);
 }

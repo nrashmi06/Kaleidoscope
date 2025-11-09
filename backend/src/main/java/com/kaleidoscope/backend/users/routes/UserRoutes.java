@@ -12,4 +12,5 @@ public final class UserRoutes {
     public static final String GET_ALL_USERS_BY_PROFILE_STATUS = BASE_API;
     public static final String UPDATE_USER_PROFILE_STATUS = BASE_API + "/profile-status";
     public static final String UPDATE_USER_PROFILE = BASE_API + "/profile";
+    public static final String GET_USER_PROFILE = BASE_API + "/profile" + USER_ID_PATH;
 }
