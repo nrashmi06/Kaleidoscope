@@ -212,3 +212,59 @@ export interface PostHardDeleteRequest {
 export type PostSoftDeleteResponse = StandardAPIResponse<null>;
 export type PostHardDeleteResponse = StandardAPIResponse<null>;
 
+// Single Post API Types
+export interface PostAuthorResponseDTO {
+  userId: number;
+  email: string;
+  username: string;
+  accountStatus: string;
+  profilePictureUrl: string | null;
+}
+
+export interface PostLocationResponseDTO {
+  locationId: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+  country: string;
+  state: string;
+  city: string;
+  address: string;
+  placeId: string;
+  createdAt: string;
+}
+
+export interface PostTaggedUserResponseDTO {
+  tagId: number;
+  taggedUserId: number;
+  taggedUsername: string;
+  taggerUserId: number;
+  taggerUsername: string;
+  contentType: string;
+  contentId: number;
+  createdAt: string;
+}
+
+export interface SinglePostResponseDTO {
+  postId: number;
+  title: string;
+  body: string;
+  summary: string;
+  visibility: "PUBLIC" | "FOLLOWERS";
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+  author: PostAuthorResponseDTO;
+  categories: CategorySummaryResponseDTO[];
+  media: PostMediaResponseDTO[];
+  location: PostLocationResponseDTO | null;
+  taggedUsers: PostTaggedUserResponseDTO[];
+  hashtags: string[];
+  reactionCount: number;
+  commentCount: number;
+  viewCount: number;
+  currentUserReaction: string | null;
+}
+
+export type SinglePostResponse = StandardAPIResponse<SinglePostResponseDTO>;
+

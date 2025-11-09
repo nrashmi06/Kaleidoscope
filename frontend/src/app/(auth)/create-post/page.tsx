@@ -10,6 +10,7 @@ import { getParentCategoriesController } from "@/controllers/categoryController/
 import { searchUsersController } from "@/controllers/userController/searchUsers";
 import TitleInput from "@/components/post/TitleInput";
 import BodyInput from "@/components/post/BodyInput";
+import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
 import SummaryInput from "@/components/post/SummaryInput";
 import VisibilitySelect from "@/components/post/VisibilitySelect";
 import {LocationSearch} from "@/components/post/LocationSearch";
@@ -87,7 +88,14 @@ export default function CreatePostPage() {
         <Header router={router} />
         <form onSubmit={handleSubmit} className="space-y-6">
           <TitleInput value={formData.title} onChange={(title) => setFormData({ ...formData, title })} />
-          <BodyInput value={formData.body} onChange={(body: string) => setFormData({ ...formData, body })} accessToken={accessToken} />
+          <EnhancedBodyInput 
+            value={formData.body} 
+            onChange={(body: string) => setFormData({ ...formData, body })} 
+            accessToken={accessToken} 
+            placeholder="Write your post content here... Use # to add hashtags, **bold text**, *italic text*"
+            minRows={8}
+            maxRows={20}
+          />
           <SummaryInput value={formData.summary} onChange={(summary) => setFormData({ ...formData, summary })} />
           <VisibilitySelect value={formData.visibility} onChange={(visibility) => setFormData({ ...formData, visibility })} />
           

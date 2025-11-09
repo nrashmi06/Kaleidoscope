@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, JSX } from "react";
-import { getHashtagSuggestionsController } from "@/controllers/hashtagController/getHashtagSuggestionsController";
+import { fetchHashtagSuggestions } from "@/controllers/hashtag/hashtagController"; // ✅ Updated import
+import { HashtagSuggestion } from "@/lib/types/hashtag";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface BodyInputProps {
@@ -15,33 +16,47 @@ export default function BodyInput({
   onChange,
   accessToken,
 }: BodyInputProps): JSX.Element {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<HashtagSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [cursorPosition, setCursorPosition] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // ✅ Debounce the search term
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
 
-  // ✅ Fetch hashtag suggestions
+  // ✅ Fetch hashtag suggestions using new controller
   useEffect(() => {
     const fetchSuggestions = async (): Promise<void> => {
-      if (debouncedSearchTerm.length < 1) {
+      if (!accessToken) return; // Prevent call without token
+      if (debouncedSearchTerm.trim().length < 1) {
         setSuggestions([]);
         setShowSuggestions(false);
+        setError(null);
         return;
       }
 
+      setIsLoading(true);
+      setError(null);
+
       try {
-        const hashtags = await getHashtagSuggestionsController(
-          debouncedSearchTerm,
-          accessToken
-        );
-        setSuggestions(hashtags);
-        setShowSuggestions(hashtags.length > 0);
+        const result = await fetchHashtagSuggestions(debouncedSearchTerm, accessToken, 8);
+        if (result.error) {
+          setError(result.error);
+          setSuggestions([]);
+          setShowSuggestions(false);
+        } else {
+          setSuggestions(result.suggestions);
+          setShowSuggestions(result.suggestions.length > 0);
+        }
       } catch (error) {
         console.error("Error fetching hashtag suggestions:", error);
+        setError("Failed to load hashtag suggestions");
         setShowSuggestions(false);
+        setSuggestions([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -60,11 +75,13 @@ export default function BodyInput({
       const textBeforeCursor = newValue.slice(0, cursor);
       const match = textBeforeCursor.match(/#(\w*)$/);
 
-      if (match && match[1]) {
-        setSearchTerm(match[1]);
+      if (match) {
+        const searchTerm = match[1] || "";
+        setSearchTerm(searchTerm);
       } else {
         setShowSuggestions(false);
         setSearchTerm("");
+        setError(null);
       }
     },
     [onChange]
@@ -72,7 +89,7 @@ export default function BodyInput({
 
   // ✅ Handle selecting a suggestion
   const handleSelectSuggestion = useCallback(
-    (tag: string): void => {
+    (hashtag: HashtagSuggestion): void => {
       const textBefore = value.slice(0, cursorPosition);
       const textAfter = value.slice(cursorPosition);
       const match = textBefore.match(/#(\w*)$/);
@@ -80,7 +97,7 @@ export default function BodyInput({
       if (!match || match.index === undefined) return;
 
       const newText =
-        textBefore.slice(0, match.index) + `#${tag} ` + textAfter;
+        textBefore.slice(0, match.index) + `#${hashtag.name} ` + textAfter;
 
       onChange(newText);
       setShowSuggestions(false);
@@ -92,7 +109,17 @@ export default function BodyInput({
     <div className="relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm transition-all duration-300 hover:shadow-md">
       {/* Floating Label */}
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        Body <span className="text-white-500">*</span>
+        Body <span className="text-red-500">*</span>
+        {searchTerm && (
+          <span className="ml-2 text-xs text-blue-500">
+            Searching for: #{searchTerm}
+          </span>
+        )}
+        {isLoading && (
+          <span className="ml-2 text-xs text-yellow-500">
+            Loading suggestions...
+          </span>
+        )}
       </label>
 
       <textarea
@@ -105,21 +132,33 @@ export default function BodyInput({
 
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg py-3 px-4 z-50 animate-in fade-in-50 slide-in-from-top-2">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Suggested Hashtags
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Suggested Hashtags
+            </p>
+            {isLoading && (
+              <div className="animate-spin rounded-full h-3 w-3 border border-blue-500 border-t-transparent" />
+            )}
+          </div>
 
           <div className="flex flex-wrap gap-2">
-            {suggestions.map((tag) => (
+            {suggestions.map((hashtag) => (
               <button
-                key={tag}
-                onClick={() => handleSelectSuggestion(tag)}
-                className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
+                key={hashtag.hashtagId}
+                onClick={() => handleSelectSuggestion(hashtag)}
+                className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-800 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1"
               >
-                #{tag}
+                <span>#{hashtag.name}</span>
+                <span className="text-xs opacity-70">({hashtag.usageCount})</span>
               </button>
             ))}
           </div>
+
+          {error && (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+              {error}
+            </p>
+          )}
         </div>
       )}
     </div>

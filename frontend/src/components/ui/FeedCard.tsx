@@ -4,21 +4,27 @@ import { useState } from 'react';
 import { Heart, MessageCircle, Bookmark } from 'lucide-react';
 
 interface FeedCardProps {
+  postId?: number; // Add postId prop
   username: string;
   handle: string;
   image: string;
   text: string;
   tags: string[];
   userImage?: string;
+  onViewDetails?: (postId: number) => void; // Add callback for viewing details
+  accessToken?: string;
 }
 
 export default function FeedCard({
+  postId,
   username,
   handle,
   image,
   text,
   tags,
   userImage = `/${handle.replace('@', '')}.jpg`,
+  onViewDetails,
+  accessToken,
 }: FeedCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -137,6 +143,16 @@ export default function FeedCard({
             </button>
           )}
         </p>
+
+        {/* View Full Post Button */}
+        {postId && onViewDetails && (
+          <button
+            onClick={() => onViewDetails(postId)}
+            className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          >
+            View Full Post
+          </button>
+        )}
 
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mt-2">

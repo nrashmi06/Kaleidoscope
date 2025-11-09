@@ -1,54 +1,46 @@
-import axios, { AxiosError } from "axios";
-import { HashtagMapper } from "@/mapper/hashtagMapper";
-import { HashtagSuggestionsResponse } from "@/lib/types/hashtag";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_BACKEND_URL || 'http://localhost:8080';
 
 /**
- * Fetches hashtag suggestions based on a given prefix.
- * @param prefix - The prefix string to search for (e.g., 'java', 'spr')
- * @param accessToken - Optional access token for authenticated requests
- * @returns A structured HashtagSuggestionsResponse
+ * Fetch hashtag suggestions
+ * @param prefix - Hashtag prefix to search for
+ * @param token - Bearer token for authorization
+ * @param page - Page number (default: 0)
+ * @param size - Page size (default: 10)
  */
-export const getHashtagSuggestions = async (
+export async function getHashtagSuggestions(
   prefix: string,
-  accessToken?: string
-): Promise<HashtagSuggestionsResponse> => {
-  try {
-    const response = await axios.get<HashtagSuggestionsResponse>(
-      HashtagMapper.getHashtagSuggestions(prefix),
-      {
-        withCredentials: true, // in case backend uses cookies
-        headers: {
-          Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-        },
-      }
-    );
+  token: string,
+  page: number = 0,
+  size: number = 10
+) {
+  if (!prefix?.trim()) throw new Error('Prefix is required');
 
-    return response.data;
-  } catch (error) {
-    console.error("[getHashtagSuggestions] Error:", error);
+  const queryString = new URLSearchParams({
+    prefix: prefix.trim(),
+    page: page.toString(),
+    size: size.toString(),
+  }).toString();
 
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<HashtagSuggestionsResponse>;
-      return (
-        axiosError.response?.data || {
-          success: false,
-          message: "Failed to fetch hashtag suggestions",
-          errors: [axiosError.message],
-          data: null,
-          timestamp: Date.now(),
-          path: `/api/hashtags/suggest`,
-        }
-      );
-    }
+  const url = `${API_BASE_URL}/kaleidoscope/api/hashtags/suggest?${queryString}`;
 
-    // Fallback for unexpected errors
-    return {
-      success: false,
-      message: "Unexpected error fetching hashtag suggestions",
-      errors: ["Unknown error"],
-      data: null,
-      timestamp: Date.now(),
-      path: `/api/hashtags/suggest`,
-    };
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || `Request failed with status ${response.status}`);
   }
-};
+
+  const data = await response.json();
+
+  if (!data?.success) {
+    throw new Error(data?.message || 'Failed to fetch hashtag suggestions');
+  }
+
+  return data;
+}
