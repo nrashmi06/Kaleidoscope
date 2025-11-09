@@ -59,10 +59,24 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             log.info("Successfully deserialized face detection for mediaId: {}, bbox: {}",
                     resultDTO.getMediaId(), resultDTO.getBbox());
 
-            // --- THIS IS THE FIX ---
+            // Handle empty bbox (no faces detected) - this is a valid ML result
+            if (resultDTO.getBbox() == null || resultDTO.getBbox().isEmpty()) {
+                log.info("No faces detected for mediaId: {} - this is a valid ML result, acknowledging message",
+                        resultDTO.getMediaId());
+                // Message will be acknowledged successfully without creating face records
+                return;
+            }
+
+            // Validate bbox has 4 coordinates
+            if (resultDTO.getBbox().size() != 4) {
+                log.warn("Invalid bbox for mediaId: {} - expected 4 coordinates, got {}. Acknowledging message.",
+                        resultDTO.getMediaId(), resultDTO.getBbox().size());
+                // Acknowledge the message to prevent reprocessing of invalid data
+                return;
+            }
+
             // Data Retrieval with Retry: Find the corresponding MediaAiInsights entity
             MediaAiInsights mediaAiInsights = findMediaAiInsightsWithRetry(resultDTO.getMediaId());
-            // --- END OF FIX ---
 
             log.info("Retrieved MediaAiInsights for mediaId: {}, postId: {}",
                     mediaAiInsights.getMediaId(), mediaAiInsights.getPost().getPostId());
@@ -199,4 +213,3 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                 .build();
     }
 }
-
