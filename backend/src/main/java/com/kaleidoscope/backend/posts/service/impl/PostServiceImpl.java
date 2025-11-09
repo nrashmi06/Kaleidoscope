@@ -462,6 +462,15 @@ public class PostServiceImpl implements PostService {
             userTagRepository.deleteAll(tagsToDelete);
         }
 
+        // Remove from Elasticsearch before soft-deleting from PostgreSQL
+        try {
+            postSearchRepository.deleteById(String.valueOf(postId));
+            log.info("Removed post {} from Elasticsearch index", postId);
+        } catch (Exception e) {
+            log.error("Failed to remove post {} from Elasticsearch during soft delete: {}", postId, e.getMessage(), e);
+            // Continue with soft delete even if ES removal fails
+        }
+
         postRepository.delete(post);
         log.info("Post {} soft-deleted by user {} (admin? {})", postId, currentUserId, isAdmin);
     }

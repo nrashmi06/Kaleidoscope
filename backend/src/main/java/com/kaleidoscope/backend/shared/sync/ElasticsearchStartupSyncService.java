@@ -20,6 +20,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer; // <-- IMPORT ADDED
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +51,9 @@ public class ElasticsearchStartupSyncService {
     private final PostRepository postRepository;
     private final PostSearchRepository postSearchRepository;
 
+    // --- IMPORT ADDED ---
+    private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
+
     private static final int BATCH_SIZE = 100;
 
     @PostConstruct
@@ -73,6 +78,17 @@ public class ElasticsearchStartupSyncService {
             syncAllPosts();
 
             log.info("==================== ELASTICSEARCH STARTUP SYNC COMPLETED SUCCESSFULLY ====================");
+
+            //
+            // --- THIS IS THE KEY CHANGE ---
+            //
+            // Start the Redis Stream consumers ONLY AFTER all data has been synced.
+            //
+            log.info("Starting Redis Stream Message Listener Container...");
+            streamMessageListenerContainer.start();
+            log.info("✅ Redis Stream consumers started successfully after data sync.");
+
+
         } catch (Exception e) {
             log.error("==================== ELASTICSEARCH STARTUP SYNC FAILED ====================", e);
             // Don't throw - allow application to start even if ES sync fails

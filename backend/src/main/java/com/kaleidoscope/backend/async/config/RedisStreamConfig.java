@@ -65,34 +65,29 @@ public class RedisStreamConfig {
         return applicationName + "-" + instanceId;
     }
 
-    @Bean(initMethod = "start", destroyMethod = "stop")
+    //
+    // --- THIS IS THE KEY CHANGE ---
+    //
+    // Removed 'initMethod = "start"' so the container is created but not started.
+    // It will be started manually by ElasticsearchStartupSyncService AFTER the sync.
+    //
+    @Bean(destroyMethod = "stop")
     public StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer(
             RedisTemplate<String, String> redisTemplate) {
         log.info("Configuring Redis Stream Message Listener Container for App: {} (ID: {})", applicationName, instanceId);
 
-        // 2. Ensure Consumer Groups Exist before connecting
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.ML_INSIGHTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_DETECTION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_RECOGNITION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.HASHTAG_USAGE_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
-
-        // 3. Configure Container Options for Manual Acknowledgment
+        // 2. Configure Container Options for Manual Acknowledgment
         StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
                 StreamMessageListenerContainerOptions.builder()
                         .batchSize(10)
                         .pollTimeout(Duration.ofSeconds(1))
-                        .errorHandler(createErrorHandler())
+                        .errorHandler(createErrorHandler()) // This handler will reactively create groups on "NOGROUP" error
                         .build();
 
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(redisConnectionFactory, options);
 
-        // 4. Register Consumers with Unique Names and Manual Acknowledgment
+        // 3. Register Consumers with Unique Names and Manual Acknowledgment
         String consumerName = uniqueConsumerName();
 
         registerConsumer(container, consumerName, ConsumerStreamConstants.ML_INSIGHTS_STREAM, mediaAiInsightsConsumer);
@@ -179,9 +174,9 @@ public class RedisStreamConfig {
 
                     // Create group with correct parameter order: key, readOffset, group
                     redis.opsForStream().createGroup(
-                        streamName,
-                        ReadOffset.from("0-0"),
-                        StreamingConfigConstants.BACKEND_CONSUMER_GROUP
+                            streamName,
+                            ReadOffset.from("0-0"),
+                            StreamingConfigConstants.BACKEND_CONSUMER_GROUP
                     );
                     log.info("✅ Successfully created consumer group 'backend-group' for stream '{}'", streamName);
                 } catch (Exception e) {
@@ -213,4 +208,3 @@ public class RedisStreamConfig {
         return "unknown";
     }
 }
-

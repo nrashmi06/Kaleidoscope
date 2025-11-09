@@ -1,7 +1,9 @@
 package com.kaleidoscope.backend.async.consumer;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.PostInsightsEnrichedDTO;
+import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
 import com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel;
 import com.kaleidoscope.backend.readmodels.model.PostSearchReadModel;
@@ -15,6 +17,7 @@ import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -41,11 +44,11 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
 
         // Set correlationId in MDC for this thread
         try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
-            
+
             log.info("Received post-insights-enriched message from Redis Stream: messageId={}", messageId);
 
             // Deserialize the event
-            PostInsightsEnrichedDTO enriched = objectMapper.convertValue(value, PostInsightsEnrichedDTO.class);
+            PostInsightsEnrichedDTO enriched = convertMapRecordToDTO(record);
 
             Long postId = enriched.getPostId();
             if (postId == null) {
@@ -60,7 +63,7 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             // We assume other services (like a future PostUpdate consumer) populate author, title, etc.
             // This consumer adds the aggregated AI data.
             postSearch.setPostId(postId);
-            
+
             if(enriched.getAllAiTags() != null) {
                 postSearch.setAllAiTags(String.join(",", enriched.getAllAiTags()));
             }
@@ -71,7 +74,7 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             postSearch.setUpdatedAt(Instant.now());
             // Note: We are not fetching Post/User here to keep this consumer lightweight.
             // We assume another process (like the initial post creation) populates the other fields.
-            
+
             postSearchReadModelRepository.save(postSearch);
             log.info("Updated read_model_post_search for postId: {}", postId);
 
@@ -96,10 +99,60 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
                 elasticsearchSyncTriggerService.triggerSync("read_model_media_search", media.getMediaId());
             }
 
+            log.info("Successfully processed post-insights-enriched message for postId: {}, messageId: {}",
+                    enriched.getPostId(), messageId);
+
+        } catch (StreamDeserializationException e) {
+            log.error("Error deserializing post-insights-enriched message: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw e; // Re-throw specific exception to prevent XACK
         } catch (Exception e) {
-            log.error("Error processing post-insights-enriched message: messageId={}, error={}", messageId, e.getMessage(), e);
+            log.error("Error processing post-insights-enriched message: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
             throw e; // Re-throw to prevent XACK on failure
         }
         // MDC.clear() is handled automatically by the try-with-resources block
+    }
+
+    /**
+     * Manually converts the MapRecord to the DTO, handling JSON string deserialization for list fields.
+     */
+    private PostInsightsEnrichedDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {
+        Map<String, String> value = record.getValue();
+        String streamName = record.getStream();
+        String messageId = record.getId().getValue();
+
+        try {
+            PostInsightsEnrichedDTO.PostInsightsEnrichedDTOBuilder builder = PostInsightsEnrichedDTO.builder();
+
+            builder.postId(Long.parseLong(value.get("postId")));
+            builder.inferredEventType(value.get("inferredEventType"));
+            builder.timestamp(value.get("timestamp"));
+            builder.correlationId(value.get("correlationId"));
+
+            // Manually parse List<String> fields from their JSON string representation
+            TypeReference<List<String>> listTypeRef = new TypeReference<>() {};
+
+            String allAiTagsStr = value.get("allAiTags");
+            if (allAiTagsStr != null && !allAiTagsStr.isEmpty() && !allAiTagsStr.equals("null")) {
+                builder.allAiTags(objectMapper.readValue(allAiTagsStr, listTypeRef));
+            } else {
+                builder.allAiTags(Collections.emptyList());
+            }
+
+            String allAiScenesStr = value.get("allAiScenes");
+            if (allAiScenesStr != null && !allAiScenesStr.isEmpty() && !allAiScenesStr.equals("null")) {
+                builder.allAiScenes(objectMapper.readValue(allAiScenesStr, listTypeRef));
+            } else {
+                builder.allAiScenes(Collections.emptyList());
+            }
+
+            return builder.build();
+
+        } catch (Exception e) {
+            log.error("Failed to convert MapRecord to PostInsightsEnrichedDTO: {}", e.getMessage(), e);
+            throw new StreamDeserializationException(streamName, messageId,
+                    "Failed to deserialize post-insights-enriched message", e);
+        }
     }
 }

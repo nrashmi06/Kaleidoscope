@@ -91,8 +91,10 @@ public class Post {
     private Set<PostCategory> categories = new HashSet<>();
 
     // Using the shared UserTag entity instead of a specific PostTag
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JoinColumn(name = "content_id")
+    // Read-only relationship - UserTags are managed through UserTagService
+    // This prevents Hibernate from trying to set content_id to NULL on Post deletion
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "content_id", referencedColumnName = "post_id", insertable = false, updatable = false)
     @Where(clause = "content_type = 'POST'")
     @Builder.Default
     private Set<UserTag> userTags = new HashSet<>();

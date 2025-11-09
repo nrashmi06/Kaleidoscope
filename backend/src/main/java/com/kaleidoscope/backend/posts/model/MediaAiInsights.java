@@ -24,6 +24,10 @@ public class MediaAiInsights {
     @Column(name = "media_id")
     private Long mediaId;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "media_id", nullable = false)
     @MapsId
