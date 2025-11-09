@@ -99,8 +99,16 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
                 elasticsearchSyncTriggerService.triggerSync("read_model_media_search", media.getMediaId());
             }
 
+            log.info("Successfully processed post-insights-enriched message for postId: {}, messageId: {}",
+                    enriched.getPostId(), messageId);
+
+        } catch (StreamDeserializationException e) {
+            log.error("Error deserializing post-insights-enriched message: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
+            throw e; // Re-throw specific exception to prevent XACK
         } catch (Exception e) {
-            log.error("Error processing post-insights-enriched message: messageId={}, error={}", messageId, e.getMessage(), e);
+            log.error("Error processing post-insights-enriched message: messageId={}, error={}. Message will remain in PEL.",
+                    messageId, e.getMessage(), e);
             throw e; // Re-throw to prevent XACK on failure
         }
         // MDC.clear() is handled automatically by the try-with-resources block

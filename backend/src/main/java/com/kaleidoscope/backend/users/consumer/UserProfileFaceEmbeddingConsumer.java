@@ -49,6 +49,14 @@ public class UserProfileFaceEmbeddingConsumer implements StreamListener<String, 
 
             log.info("Successfully synced face embedding to UserDocument for user ID: {}, messageId: {}", userId, messageId);
 
+        } catch (NumberFormatException e) {
+            log.error("Invalid userId format in face embedding message: streamKey={}, messageId={}, error={}. Message will remain in PEL.",
+                    record.getStream(), messageId, e.getMessage(), e);
+            throw e; // Re-throw to prevent XACK on invalid data
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid face embedding format in message: streamKey={}, messageId={}, error={}. Message will remain in PEL.",
+                    record.getStream(), messageId, e.getMessage(), e);
+            throw e; // Re-throw to prevent XACK on invalid embedding format
         } catch (Exception e) {
             log.error("Error processing user profile face embedding message from Redis Stream: streamKey={}, messageId={}, error={}. Message will remain in PEL.",
                     record.getStream(), messageId, e.getMessage(), e);
