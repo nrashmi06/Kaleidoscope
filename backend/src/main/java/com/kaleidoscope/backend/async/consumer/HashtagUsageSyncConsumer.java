@@ -4,6 +4,7 @@ import com.kaleidoscope.backend.shared.repository.HashtagRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
@@ -23,15 +24,18 @@ public class HashtagUsageSyncConsumer implements StreamListener<String, MapRecor
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
         String messageId = record.getId().getValue();
-        
-        try {
-            log.info("Received hashtag usage sync message from Redis Stream: streamKey={}, messageId={}", 
+        Map<String, String> value = record.getValue();
+        String correlationId = value.get("correlationId");
+
+        // Set correlationId in MDC for this thread
+        try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
+
+            log.info("Received hashtag usage sync message from Redis Stream: streamKey={}, messageId={}",
                     record.getStream(), messageId);
 
             // Extract data from the record
-            Map<String, String> recordValue = record.getValue();
-            String hashtagName = recordValue.get("hashtagName");
-            int change = Integer.parseInt(recordValue.get("change"));
+            String hashtagName = value.get("hashtagName");
+            int change = Integer.parseInt(value.get("change"));
 
             log.info("Processing hashtag usage update: hashtag='{}', change={}", hashtagName, change);
 
@@ -56,5 +60,6 @@ public class HashtagUsageSyncConsumer implements StreamListener<String, MapRecor
                     messageId, e.getMessage(), e);
             throw e; // Re-throw to prevent XACK
         }
+        // MDC.clear() is handled automatically by the try-with-resources block
     }
 }

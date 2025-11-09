@@ -31,7 +31,10 @@ public class AsyncMapper {
      * Migrated from UserServiceImpl.updateUserProfile
      */
     public static Map<String, Object> toUserProfileSyncPayload(Long userId) {
-        return Map.of("userId", userId);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("userId", userId);
+        payload.put("correlationId", MDC.get("correlationId"));
+        return payload;
     }
 
     /**
@@ -43,7 +46,7 @@ public class AsyncMapper {
         event.put("hashtagName", hashtagName.toLowerCase());
         event.put("change", change);
         event.put("timestamp", System.currentTimeMillis());
+        event.put("correlationId", MDC.get("correlationId"));
         return event;
     }
 }
-

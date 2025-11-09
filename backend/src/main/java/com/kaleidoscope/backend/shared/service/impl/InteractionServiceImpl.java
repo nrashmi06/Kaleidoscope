@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -174,10 +175,10 @@ public class InteractionServiceImpl implements InteractionService {
         if (contentType == ContentType.POST) {
             try {
                 // Create a simple event payload with postId for the sync consumer
-                Map<String, Object> eventPayload = Map.of(
-                    "contentId", contentId,
-                    "changeType", unreact ? "UNREACT" : "REACT"
-                );
+                Map<String, Object> eventPayload = new HashMap<>();
+                eventPayload.put("contentId", contentId);
+                eventPayload.put("changeType", unreact ? "UNREACT" : "REACT");
+                eventPayload.put("correlationId", org.slf4j.MDC.get("correlationId"));
 
                 redisStreamPublisher.publish(ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, eventPayload);
                 log.debug("[reactOrUnreact] Published POST_INTERACTION_SYNC_STREAM event for post {}", contentId);

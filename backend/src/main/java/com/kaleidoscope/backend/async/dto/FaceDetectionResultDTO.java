@@ -8,6 +8,9 @@ import java.util.List;
 @Builder
 public class FaceDetectionResultDTO {
     private Long mediaId;
+    private Long postId;
+    private String faceId;
+    private Double confidence;
     private List<Integer> bbox;
     private String embedding;
 }
