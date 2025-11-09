@@ -1,0 +1,20 @@
+# Production Profile Overrides
+# These settings will override the base application.yml
+spring:
+  data:
+    redis:
+      # Overrides base to include a password placeholder
+      url: ${REDIS_URL:redis://:password@localhost:6379}
+
+  elasticsearch:
+    # Overrides base to use empty strings for auth
+    # (These will likely be set by environment variables in prod)
+    uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}
+    username: ${SPRING_ELASTICSEARCH_USERNAME:}
+    password: ${SPRING_ELASTICSEARCH_PASSWORD:}
+
+# Logstash Configuration (Production only)
+# This block is *added* in prod and doesn't exist in base
+logstash:
+  host: ${LOGSTASH_HOST:127.0.0.1}
+  port: ${LOGSTASH_PORT:5000}

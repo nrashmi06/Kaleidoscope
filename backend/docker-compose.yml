@@ -1,47 +1,9 @@
+# This is the pull.yml for your teammates.
+# It runs the app, logstash, and kibana as containers.
+# It connects to your EXTERNAL Elasticsearch on DigitalOcean.
+version: '3.8'
+
 services:
-  # --- POSTGRES DATABASE (db) - COMMENTED OUT ---
-  # db:
-  #   image: postgis/postgis:17-3.4
-  #   container_name: ${POSTGRES_CONTAINER_NAME:-kaleidoscope-postgres}
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   ports:
-  #     - "${POSTGRES_PORT:-5432}:5432"
-  #   networks:
-  #     - app-network
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 5
-  #   restart: always
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.5'
-  #         memory: 512M
-
-  # --- REDIS CACHE (redis) - COMMENTED OUT ---
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: kaleidoscope-redis
-  #   ports:
-  #     - "6379:6379"
-  #   networks:
-  #     - app-network
-  #   volumes:
-  #     - redis_data:/data
-  #     - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
-  #   command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-  #   restart: always
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.5'
-  #         memory: 256M
-
   app:
     build:
       context: .
@@ -49,49 +11,32 @@ services:
     image: ${DOCKER_REGISTRY:-rajay04}/kaleidoscope:backend-${APP_VERSION:-latest}
     container_name: ${APP_CONTAINER_NAME:-kaleidoscope-app}
     depends_on:
-      # --- Dependencies on local services (COMMENTED OUT) ---
-      # db:
-      #   condition: service_healthy
-      # redis:
-      #   condition: service_started
-      elasticsearch:
-        condition: service_healthy
       logstash:
         condition: service_started
     env_file:
       - .env
-    # The SPRING_DATA_REDIS_HOST is no longer needed here if you use spring.data.redis.url in your application.yml
     environment:
-      - LOGSTASH_HOST=logstash
-      - ELASTICSEARCH_HOST=elasticsearch
-      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      # This points the app's logging to the logstash container
+      - LOGSTASH_HOST=localhost
     ports:
       - "${APP_PORT:-8080}:8080"
-    networks:
-      - app-network
+    network_mode: "host"
     restart: unless-stopped
     profiles:
       - full-docker
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: kaleidoscope-elasticsearch
-    environment:
-      - "discovery.type=single-node"
-      - "xpack.security.enabled=false"
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
-    ports:
-      - "9200:9200"
-    networks:
-      - app-network
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: kaleidoscope-logstash
+    network_mode: "host"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 60s
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - ELASTICSEARCH_HOSTS=${CONTAINER_ES_HOST}
+      - ELASTICSEARCH_USERNAME=${KIBANA_ES_USER}
+      - ELASTICSEARCH_PASSWORD=${KIBANA_ES_PASS}
+      - "xpack.monitoring.enabled=false"
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
     restart: always
     deploy:
       resources:
@@ -99,53 +44,33 @@ services:
           cpus: '1.0'
           memory: 2G
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.11.0
-    container_name: kaleidoscope-logstash
-    ports:
-      - "5000:5000"
-      - "5001:5001"
-      - "5044:5044"
-      - "9600:9600"
-    networks:
-      - app-network
-    volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    environment:
-      - "ELASTICSEARCH_HOST=elasticsearch:9200"
-      - "xpack.monitoring.enabled=false"
-      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
-    depends_on:
-      - elasticsearch
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
     container_name: kaleidoscope-kibana
     ports:
       - "5601:5601"
-    networks:
-      - app-network
+    network_mode: "host"
+    environment:
+      - ELASTICSEARCH_HOSTS=${CONTAINER_ES_HOST}
+      - ELASTICSEARCH_USERNAME=${KIBANA_ES_USER}
+      - ELASTICSEARCH_PASSWORD=${KIBANA_ES_PASS}
+      - SERVER_HOST=0.0.0.0
+      - SERVER_NAME=kaleidoscope-kibana
+      - XPACK_SECURITY_ENABLED=true
+      - XPACK_REPORTING_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
+      - XPACK_REPORTING_KIBANASERVER_HOSTNAME=localhost
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
+      - XPACK_SECURITY_ENCRYPTIONKEY=a_random_32_char_encryption_key_1234567890
     depends_on:
-      - elasticsearch
       - logstash
     restart: always
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 1G
+          cpus: '1.0'
+          memory: 2G
 
-volumes:
-  # --- Volumes for local services (COMMENTED OUT) ---
-  # postgres_data:
-  elasticsearch_data:
-  # redis_data:
+volumes: {}
 
 networks:
   app-network:
