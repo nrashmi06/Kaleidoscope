@@ -101,9 +101,11 @@
         </root>
         <logger name="com.kaleidoscope.backend" level="DEBUG"/>
         <logger name="com.kaleidoscope.backend.shared.config" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.shared.sync" level="INFO"/>
         <logger name="com.kaleidoscope.backend.auth" level="DEBUG"/>
         <logger name="com.kaleidoscope.backend.users" level="DEBUG"/>
         <logger name="com.kaleidoscope.backend.posts" level="DEBUG"/>
+        <logger name="com.kaleidoscope.backend.notifications" level="DEBUG"/>
     </springProfile>
 
     <!-- Production Profile: Simple Console Only (No Logstash/Kibana) -->
