@@ -59,7 +59,7 @@ const FollowRequestItem: React.FC<{
         toast.error(message);
       }
     }
-  }, [accessToken, user.userId, user.username, onAction]);
+  }, [accessToken, user.userId, onAction]);
 
 
   return (

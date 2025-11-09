@@ -11,4 +11,5 @@ export const AuthMapper = {
   logout: `${BASE_URL}/auth/logout`,
   renewToken : `${BASE_URL}/auth/renew-token`,
   changePassword: `${BASE_URL}/auth/change-password`,
+  checkUsername: `${BASE_URL}/auth/username/check`,
 };

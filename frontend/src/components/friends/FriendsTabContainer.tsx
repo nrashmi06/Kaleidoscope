@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import FollowingList from "./FollowingList";
 import FollowersList from "./FollowersList";
 import type { SuggestedUser } from "@/lib/types/followSuggestions";
+import type { FollowerUser } from "@/lib/types/followers"; // ✅ IMPORTED
 import { cn } from "@/lib/utils";
 import { Users, UserPlus } from "lucide-react";
 
@@ -12,6 +13,11 @@ interface FriendsTabContainerProps {
   followingUsers: SuggestedUser[];
   followingLoading: boolean;
   currentUserId: number | null;
+  onNewFollowingUser: (user: SuggestedUser) => void;
+  // ✅ NEW PROPS
+  initialFollowers: FollowerUser[];
+  initialLoading: boolean;
+  initialTotalElements: number;
 }
 
 type Tab = "FOLLOWING" | "FOLLOWERS";
@@ -59,6 +65,11 @@ export default function FriendsTabContainer({
   followingUsers,
   followingLoading,
   currentUserId,
+  onNewFollowingUser, 
+  // ✅ Destructure new props
+  initialFollowers,
+  initialLoading,
+  initialTotalElements,
 }: FriendsTabContainerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("FOLLOWING");
 
@@ -66,7 +77,6 @@ export default function FriendsTabContainer({
   
   const renderContent = () => {
     if (activeTab === "FOLLOWING") {
-      // The FollowingList component now receives the loading state
       return (
         <FollowingList 
           users={followingUsers} 
@@ -75,8 +85,14 @@ export default function FriendsTabContainer({
       );
     }
     
-    // FollowersList component handles its own fetch/loading
-    return <FollowersList targetUserId={currentUserId || undefined} />;
+    // ✅ Pass cached data down
+    return <FollowersList 
+             targetUserId={currentUserId || undefined}
+             onUserFollowed={onNewFollowingUser} 
+             initialFollowers={initialFollowers}
+             initialLoading={initialLoading}
+             initialTotalElements={initialTotalElements}
+           />;
   };
 
   return (
@@ -90,17 +106,16 @@ export default function FriendsTabContainer({
           icon={<Users className="w-4 h-4" />}
           onClick={() => setActiveTab("FOLLOWING")}
         />
-        {/* Note: FollowersList fetches its own total count */}
         <TabButton
           active={activeTab === "FOLLOWERS"}
           label="Followers"
-          count={0} // Placeholder, count handled internally by FollowersList for display
+          count={initialTotalElements} // ✅ Use total count from parent cache
           icon={<UserPlus className="w-4 h-4" />}
           onClick={() => setActiveTab("FOLLOWERS")}
         />
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content (unchanged) */}
       <div className="min-h-[300px]">
         {renderContent()}
       </div>

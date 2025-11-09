@@ -1,11 +1,13 @@
 // src/store/followThunks.ts
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { getFollowing } from "@/controllers/followController/getFollowingController";
+import { fetchFollowersController } from '@/controllers/followController/fetchFollowersController'; 
 import { RootState } from './index';
 import { 
   setFollowingUserIds, 
   addFollowingUserId, 
-  removeFollowingUserId 
+  removeFollowingUserId,
+  setFollowersUserIds, 
 } from './authSlice';
 import { followUser, unfollowUser } from '@/controllers/followController/followController'; 
 
@@ -18,7 +20,7 @@ export const fetchAndStoreFollowing = createAsyncThunk(
     const userId = state.auth.userId;
 
     if (!token || userId === 0) {
-      console.warn("Cannot fetch following: Missing token or userId.");
+      console.warn("[FollowThunk] Cannot fetch following: Missing token or userId.");
       return;
     }
 
@@ -35,8 +37,34 @@ export const fetchAndStoreFollowing = createAsyncThunk(
   }
 );
 
+// Thunk 2: Fetches the entire list of followers IDs and stores it in Redux.
+export const fetchAndStoreFollowers = createAsyncThunk(
+  'follow/fetchAndStoreFollowers',
+  async (_, { getState, dispatch }) => {
+    const state = getState() as RootState;
+    const token = state.auth.accessToken;
+    const userId = state.auth.userId;
 
-// Thunk 2: Handles following a user with optimistic update
+    if (!token || userId === 0) {
+      console.warn("[FollowThunk] Cannot fetch followers: Missing token or userId.");
+      return;
+    }
+
+    // Fetch a large page size to cover most followers lists on login/page load
+    const result = await fetchFollowersController(token, { userId, page: 0, size: 500 });
+
+    if (result.success && result.data?.users) { // Note: 'data' contains the payload, 'users' is the array
+      const followersIds = result.data.users.map(u => u.userId);
+      dispatch(setFollowersUserIds(followersIds));
+      console.log(`[FollowThunk] Stored ${followersIds.length} followers IDs in Redux.`);
+    } else {
+      console.error(`[FollowThunk] Failed to fetch followers list: ${result.error}`);
+    }
+  }
+);
+
+
+// Thunk 3: Handles following a user with optimistic update
 export const startFollowUser = createAsyncThunk(
   'follow/startFollowUser',
   async (targetUserId: number, { getState, dispatch }) => {
@@ -61,7 +89,7 @@ export const startFollowUser = createAsyncThunk(
 );
 
 
-// Thunk 3: Handles unfollowing a user with optimistic update
+// Thunk 4: Handles unfollowing a user with optimistic update
 export const startUnfollowUser = createAsyncThunk(
   'follow/startUnfollowUser',
   async (targetUserId: number, { getState, dispatch }) => {

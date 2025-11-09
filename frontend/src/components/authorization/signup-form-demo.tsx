@@ -1,3 +1,4 @@
+// src/components/authorization/signup-form-demo.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -8,6 +9,7 @@ import { registerUserWithProfile } from "@/services/auth/register";
 import { verifyEmail } from "@/services/auth/verifyEmailResend";
 import { RegistrationLoader } from "./RegistrationLoader";
 import type { RegisterFormState } from "@/lib/types/auth";
+import UsernameCheckInput from "../auth/UsernameCheckInput"; // ✅ NEW IMPORT
 
 export default function SignupForm() {
   const [formState, setFormState] = useState<RegisterFormState>({
@@ -27,6 +29,10 @@ export default function SignupForm() {
 
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  
+  // ✅ NEW STATE: Username availability status
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState(false); 
+  const [usernameMessage, setUsernameMessage] = useState("");
 
   /** --- Password Validation --- **/
   const getPasswordErrors = (password: string) => {
@@ -39,6 +45,12 @@ export default function SignupForm() {
   };
 
   const isPasswordStrong = (password: string) => getPasswordErrors(password).length === 0;
+
+  /** --- Username Availability Handler --- **/
+  const handleAvailabilityChange = (isAvailable: boolean, message: string) => {
+      setIsUsernameAvailable(isAvailable);
+      setUsernameMessage(message);
+  }
 
   /** --- Submit Handler --- **/
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -57,6 +69,11 @@ export default function SignupForm() {
         message: `Password does not meet requirements: ${getPasswordErrors(password).join(", ")}`,
         type: "error",
       });
+    }
+    
+    // ✅ CHECK: Must be available before registration proceeds
+    if (!isUsernameAvailable) {
+        return setFeedback({ message: usernameMessage || "Please choose an available username.", type: "error" });
     }
 
     if (!profilePicture) {
@@ -93,13 +110,13 @@ export default function SignupForm() {
     });
   };
 
-  /** --- Registration Success Page --- **/
+  /** --- Registration Success Page --- */
   if (emailSubmitted) {
     return (
       <>
         <RegistrationLoader isLoading={isRegistering} />
         <section
-          className="mx-auto mt-20 flex w-full max-w-md flex-col items-center justify-center rounded-md bg-white p-8 text-center shadow-lg dark:bg-black"
+          className="mx-auto mt-20 flex w-full max-w-md flex-col items-center justify-center rounded-2xl border border-blue-500 bg-white p-8 shadow-lg dark:bg-black"
           aria-live="polite"
         >
           <h1 className="text-xl font-semibold text-indigo-900 dark:text-neutral-100">
@@ -122,7 +139,7 @@ export default function SignupForm() {
     );
   }
 
-  /** --- Main Signup Form --- **/
+  /** --- Main Signup Form --- */
   return (
     <>
       <RegistrationLoader isLoading={isRegistering} />
@@ -136,26 +153,34 @@ export default function SignupForm() {
         </h1>
 
         <form className="my-8 space-y-4" onSubmit={handleSubmit} noValidate>
-          {[
-            { label: "Email Address", type: "email", key: "email", required: true },
-            { label: "Username", type: "text", key: "username", required: true },
-          ].map(({ label, type, key, required }) => (
-            <LabelInputContainer key={key}>
-              <Label>
-                {label} {required && <span className="text-red-500">*</span>}
-              </Label>
-              <Input
-                type={type}
-                value={formState[key as keyof RegisterFormState] as string}
-                onChange={(e) => setFormState({ ...formState, [key]: e.target.value })}
-                required={required}
-              />
-            </LabelInputContainer>
-          ))}
+          {/* Email Input */}
+          <LabelInputContainer key="email">
+            <Label htmlFor="email" className="text-indigo-900 dark:text-neutral-200">
+              Email Address <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={formState.email}
+              onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+              required
+            />
+          </LabelInputContainer>
+
+          {/* ✅ USERNAME CHECK INPUT */}
+          <LabelInputContainer>
+            <UsernameCheckInput
+              value={formState.username}
+              onChange={(username) => setFormState({ ...formState, username })}
+              onAvailabilityChange={handleAvailabilityChange}
+            />
+          </LabelInputContainer>
+          {/* END USERNAME CHECK INPUT */}
 
           <LabelInputContainer>
-            <Label>Password <span className="text-red-500">*</span></Label>
+            <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
             <Input
+              id="password"
               type="password"
               value={formState.password}
               onChange={(e) => setFormState({ ...formState, password: e.target.value })}
@@ -164,8 +189,9 @@ export default function SignupForm() {
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label>Confirm Password <span className="text-red-500">*</span></Label>
+            <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
             <Input
+              id="confirmPassword"
               type="password"
               value={formState.confirmPassword}
               onChange={(e) => setFormState({ ...formState, confirmPassword: e.target.value })}
@@ -174,8 +200,9 @@ export default function SignupForm() {
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label>Designation</Label>
+            <Label htmlFor="designation">Designation</Label>
             <Input
+              id="designation"
               type="text"
               value={formState.designation}
               onChange={(e) => setFormState({ ...formState, designation: e.target.value })}
@@ -183,8 +210,9 @@ export default function SignupForm() {
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label>Summary</Label>
+            <Label htmlFor="summary">Summary</Label>
             <Input
+              id="summary"
               type="text"
               value={formState.summary}
               onChange={(e) => setFormState({ ...formState, summary: e.target.value })}
@@ -192,8 +220,9 @@ export default function SignupForm() {
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label>Profile Picture <span className="text-red-500">*</span></Label>
+            <Label htmlFor="profilePicture">Profile Picture <span className="text-red-500">*</span></Label>
             <Input
+              id="profilePicture"
               type="file"
               accept="image/*"
               onChange={(e) =>
@@ -204,10 +233,10 @@ export default function SignupForm() {
           </LabelInputContainer>
 
           <button
-            disabled={isRegistering}
+            disabled={isRegistering || !isUsernameAvailable} // ✅ DISABLED IF USERNAME ISN'T AVAILABLE
             className={cn(
-              "relative mt-4 h-10 w-full rounded-md text-white shadow-lg transition-all",
-              isRegistering
+              "relative mt-4 h-10 w-full rounded-md text-white font-semibold shadow-lg transition-all",
+              isRegistering || !isUsernameAvailable
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-800 hover:brightness-110"
             )}
@@ -226,7 +255,7 @@ export default function SignupForm() {
   );
 }
 
-/* Toast Notification */
+/* Toast Notification (unchanged) */
 const Toast = ({
   message,
   type,
@@ -258,7 +287,7 @@ const Toast = ({
     </div>
   );
 
-/* Button Gradient */
+/* Button Gradient (unchanged) */
 const BottomGradient = () => (
   <>
     <span className="absolute inset-x-0 -bottom-px h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
@@ -266,7 +295,7 @@ const BottomGradient = () => (
   </>
 );
 
-/* Label + Input Wrapper */
+/* Label + Input Wrapper (unchanged) */
 const LabelInputContainer = ({
   children,
   className,

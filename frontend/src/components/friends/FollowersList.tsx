@@ -6,48 +6,65 @@ import { fetchFollowersController } from "@/controllers/followController/fetchFo
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { useUserData } from "@/hooks/useUserData"; 
 import type { FollowerUser } from "@/lib/types/followers"; 
-import FollowerItem from "./FollowerItem"; // ✅ Importing new consistent component
+import type { SuggestedUser } from "@/lib/types/followSuggestions"; 
+import FollowerItem from "./FollowerItem"; 
 import { Loader2, Users, AlertCircle } from "lucide-react";
 
 interface FollowersListProps {
   targetUserId?: number; 
   initialPageSize?: number;
+  onUserFollowed: (user: SuggestedUser) => void; 
+  initialFollowers: FollowerUser[];
+  initialLoading: boolean; 
+  initialTotalElements: number;
 }
 
 export default function FollowersList({ 
     targetUserId, 
-    initialPageSize = 10 
+    initialPageSize = 10,
+    onUserFollowed,
+    initialFollowers,
+    initialLoading, // Used directly in render
+    initialTotalElements,
 }: FollowersListProps) {
   const token = useAccessToken();
   const currentAuthUser = useUserData();
+  
   const userId = targetUserId ?? (currentAuthUser.userId ? Number(currentAuthUser.userId) : undefined); 
   
-  const [followers, setFollowers] = useState<FollowerUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialize state from props
+  const [followers, setFollowers] = useState<FollowerUser[]>(initialFollowers);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [pagination, setPagination] = useState({
       currentPage: 0,
-      totalPages: 1,
-      totalElements: 0,
+      totalPages: Math.ceil(initialTotalElements / initialPageSize) || 1,
+      totalElements: initialTotalElements,
   });
   
   const hasMore = pagination.currentPage + 1 < pagination.totalPages;
 
+  // Sync local state with props on update/tab switch (CRITICAL FIX)
+  useEffect(() => {
+    setFollowers(initialFollowers);
+    setPagination(prev => ({ 
+        ...prev, 
+        totalPages: Math.ceil(initialTotalElements / initialPageSize) || 1,
+        totalElements: initialTotalElements
+    }));
+  }, [initialFollowers, initialTotalElements, initialPageSize]);
+
+
+  // --- Core Fetch Function (Only used for PAGINATION) ---
   const fetchFollowers = useCallback(async (pageToFetch: number) => {
     if (!token || userId === undefined) {
         setError("User not authenticated or ID missing.");
-        setLoading(false);
-        return;
+        return; 
     }
-
-    if (pageToFetch === 0) {
-        setLoading(true);
-        setError(null);
-    } else {
-        setIsFetchingMore(true);
-    }
+    
+    setIsFetchingMore(true);
+    setError(null);
 
     try {
         const res = await fetchFollowersController(token, { 
@@ -59,14 +76,13 @@ export default function FollowersList({
         if (res.success && res.data) {
             const data = res.data;
             
-            setFollowers(prev => 
-                pageToFetch === 0 ? data.users : [...prev, ...data.users]
-            );
-            setPagination({
+            setFollowers(prev => [...prev, ...data.users]);
+            setPagination(prev => ({
+                ...prev,
                 currentPage: data.currentPage,
                 totalPages: data.totalPages,
                 totalElements: data.totalElements,
-            });
+            }));
         } else {
             setError(res.message || res.error || "Failed to load followers.");
         }
@@ -74,17 +90,19 @@ export default function FollowersList({
         setError("An unexpected error occurred while fetching followers.");
         console.error(err);
     } finally {
-        setLoading(false);
         setIsFetchingMore(false);
     }
   }, [token, userId, initialPageSize]);
 
-  // Initial fetch
-  useEffect(() => {
-    if (userId) {
-      fetchFollowers(0);
-    }
-  }, [userId, fetchFollowers]);
+  
+  // Handler to remove a follower from the list upon successful unfollow
+  const handleFollowerRemoved = useCallback((removedUserId: number) => {
+    setFollowers(prev => prev.filter(user => user.userId !== removedUserId));
+    setPagination(prev => ({ 
+        ...prev, 
+        totalElements: prev.totalElements - 1 
+    }));
+  }, []);
 
   const handleLoadMore = () => {
     if (hasMore && !isFetchingMore) {
@@ -93,7 +111,8 @@ export default function FollowersList({
   };
 
 
-  if (loading && followers.length === 0) {
+  // RENDER LOGIC: Use initialLoading prop directly.
+  if (initialLoading && followers.length === 0) {
     return (
         <div className="space-y-3">
             {/* Skeleton loader (aligned with new item size) */}
@@ -134,7 +153,12 @@ export default function FollowersList({
   return (
     <div className="space-y-4">
       {followers.map((user) => (
-        <FollowerItem key={user.userId} user={user} />
+        <FollowerItem 
+            key={user.userId} 
+            user={user} 
+            onItemRemoved={handleFollowerRemoved} 
+            onUserFollowed={onUserFollowed} 
+        />
       ))}
       
       {hasMore && (

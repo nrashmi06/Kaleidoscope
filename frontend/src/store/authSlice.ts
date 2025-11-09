@@ -9,8 +9,10 @@ interface AuthState {
   accessToken: string;
   profilePictureUrl: string;
   isUserInterestSelected: boolean;
-  // ✅ NEW STATE
+  // ✅ FOLLOWING STATE
   followingUserIds: number[]; 
+  // ✅ NEW: FOLLOWERS STATE
+  followersUserIds: number[]; // <-- Added for persistent caching
 }
 // Example to ensure only serializable data is stored in Redux state
 const initialState: AuthState = {
@@ -21,8 +23,9 @@ const initialState: AuthState = {
     accessToken: "",
     profilePictureUrl: "",
     isUserInterestSelected: false,
-    // ✅ Initialize new state
+    // ✅ Initialize new states
     followingUserIds: [], 
+    followersUserIds: [], // <-- Initialized
   };
   
   const authSlice = createSlice({
@@ -37,8 +40,9 @@ const initialState: AuthState = {
         state.accessToken = action.payload.accessToken;
         state.profilePictureUrl = action.payload.profilePictureUrl;
         state.isUserInterestSelected = action.payload.isUserInterestSelected;
-        // ✅ Preserve followingUserIds on login/set
         state.followingUserIds = action.payload.followingUserIds || [];
+        // ✅ Preserve new state on login/set
+        state.followersUserIds = action.payload.followersUserIds || [];
       },
       clearUser(state) {
         state.userId = 0;
@@ -48,8 +52,9 @@ const initialState: AuthState = {
         state.accessToken = "";
         state.profilePictureUrl = "";
         state.isUserInterestSelected = false;
-        // ✅ Clear followingUserIds on logout
+        // ✅ Clear both states on logout
         state.followingUserIds = []; 
+        state.followersUserIds = []; 
       },
       setInterestSelected(state) {
         state.isUserInterestSelected = true;
@@ -57,22 +62,44 @@ const initialState: AuthState = {
       clearInterestSelection(state) {
         state.isUserInterestSelected = false;
       },
-      // ✅ NEW REDUCER: Set the full list of IDs (used by thunk/friends page)
+      // Following Reducers
       setFollowingUserIds(state, action: PayloadAction<number[]>) {
         state.followingUserIds = action.payload;
       },
-      // ✅ NEW REDUCER: Add a single ID (for optimistic follow)
       addFollowingUserId(state, action: PayloadAction<number>) {
         if (!state.followingUserIds.includes(action.payload)) {
             state.followingUserIds.push(action.payload);
         }
       },
-      // ✅ NEW REDUCER: Remove a single ID (for optimistic unfollow)
       removeFollowingUserId(state, action: PayloadAction<number>) {
         state.followingUserIds = state.followingUserIds.filter(id => id !== action.payload);
+      },
+      // ✅ NEW Reducers: Followers
+      setFollowersUserIds(state, action: PayloadAction<number[]>) {
+        state.followersUserIds = action.payload;
+      },
+      addFollowerUserId(state, action: PayloadAction<number>) {
+        if (!state.followersUserIds.includes(action.payload)) {
+            state.followersUserIds.push(action.payload);
+        }
+      },
+      removeFollowerUserId(state, action: PayloadAction<number>) {
+        state.followersUserIds = state.followersUserIds.filter(id => id !== action.payload);
       },
     },
   });
   
-  export const { setUser, clearUser, setInterestSelected, clearInterestSelection, setFollowingUserIds, addFollowingUserId, removeFollowingUserId } = authSlice.actions;
+  export const { 
+    setUser, 
+    clearUser, 
+    setInterestSelected, 
+    clearInterestSelection, 
+    setFollowingUserIds, 
+    addFollowingUserId, 
+    removeFollowingUserId,
+    // ✅ Export new actions
+    setFollowersUserIds,
+    addFollowerUserId,
+    removeFollowerUserId
+  } = authSlice.actions;
   export default authSlice.reducer;
