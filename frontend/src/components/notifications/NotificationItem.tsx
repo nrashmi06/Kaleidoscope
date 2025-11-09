@@ -9,7 +9,9 @@ import {
   markAsRead,
   deleteNotification,
 } from "@/controllers/notificationController/notificationsController";
+import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import type { NotificationItem as NotificationType } from "@/lib/types/notifications";
+import Image from "next/image";
 
 interface Props {
   item: NotificationType;
@@ -29,14 +31,20 @@ export default function NotificationItem({
 
   const [isMarking, setIsMarking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isReadLocal, setIsReadLocal] = useState(item.isRead);
+
   const busy = isMarking || isDeleting;
 
+  // Sync when updated externally (e.g., mark all as read)
+  React.useEffect(() => {
+    setIsReadLocal(item.isRead);
+  }, [item.isRead]);
+
   const handleMarkRead = async () => {
-    // 🧠 Only mark this notification if it’s unread
     if (!token || isReadLocal || busy) return;
 
-    // Optimistic UI update
+    // Optimistic update
     setIsReadLocal(true);
     dispatch(setCount(Math.max(0, unreadCount - 1)));
 
@@ -47,7 +55,7 @@ export default function NotificationItem({
         onUpdated?.(res.data as NotificationType);
       }
     } catch {
-      // Rollback if API fails
+      // Rollback if error
       setIsReadLocal(false);
       dispatch(setCount(unreadCount + 1));
     } finally {
@@ -55,11 +63,10 @@ export default function NotificationItem({
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // prevent marking as read
+  const confirmDelete = async () => {
     if (!token || busy) return;
-    if (!confirm("Delete this notification?")) return;
     setIsDeleting(true);
+
     try {
       const res = await deleteNotification(token, item.notificationId);
       if (res.success) {
@@ -70,10 +77,11 @@ export default function NotificationItem({
       }
     } finally {
       setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
-  // UI state classes
+  // Styles
   const bgClass = isReadLocal
     ? "bg-white dark:bg-neutral-900"
     : "bg-neutral-50 dark:bg-neutral-800/50";
@@ -85,54 +93,83 @@ export default function NotificationItem({
     : "text-neutral-900 dark:text-neutral-100 font-medium";
 
   return (
-    <li
-      onClick={handleMarkRead}
-      className={`
-        group relative flex flex-col gap-2 p-4 m-2 rounded-xl border ${borderClass} ${bgClass}
-        hover:bg-neutral-100 dark:hover:bg-neutral-800
-        transition-all duration-200 cursor-pointer
-        ${busy ? "opacity-70 pointer-events-none" : ""}
-      `}
-    >
-      <div className="flex items-start justify-between">
-        <p className={`text-sm leading-relaxed ${textClass}`}>
-          {item.message}
-        </p>
+    <>
+      <li
+        onClick={handleMarkRead}
+        className={`group relative flex flex-row items-start gap-3 p-4 m-2 rounded-xl border ${borderClass} ${bgClass}
+          hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200 cursor-pointer
+          ${busy ? "opacity-70 pointer-events-none" : ""}`}
+      >
+        {/* Avatar */}
+        <div className="flex-shrink-0">
+          <Image
+            src={item.actorProfilePictureUrl || "/person.jpg"} // fallback avatar
+            alt={item.actorUsername || "User Avatar"}
+            width={40}  // required
+            height={40} // required
+            className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-neutral-800"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              target.src = "/person.jpg"; // ensure fallback if image fails
+            }}
+          />
+        </div>
 
-        <button
-          onClick={handleDelete}
-          disabled={busy}
-          title="Delete notification"
-          className={`
-            flex items-center justify-center w-8 h-8 rounded-md
-            text-neutral-500 dark:text-neutral-400
-            hover:text-red-600 dark:hover:text-red-400
-            hover:bg-red-50 dark:hover:bg-red-900/20
-            opacity-0 group-hover:opacity-100 focus:opacity-100
-            transition-all duration-200
-          `}
-        >
-          {isDeleting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Trash2 className="w-4 h-4 cursor-pointer" />
-          )}
-        </button>
-      </div>
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <div className="min-w-0">
+              <p className={`text-sm leading-relaxed ${textClass}`}>
+                {item.message}
+              </p>
 
-      <span className="text-xs text-neutral-500 dark:text-neutral-500">
-        {new Date(item.createdAt).toLocaleString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </span>
+              <span className="text-xs text-neutral-500 dark:text-neutral-500">
+                {new Date(item.createdAt).toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
 
-      {/* Unread indicator — subtle blue dot */}
-      {!isReadLocal && (
-        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-      )}
-    </li>
+            {/* Delete button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteModal(true);
+              }}
+              disabled={busy}
+              title="Delete notification"
+              className="flex items-center justify-center w-8 h-8 rounded-md
+                text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400
+                hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100
+                focus:opacity-100 transition-all duration-200"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 cursor-pointer" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Unread blue dot */}
+        {!isReadLocal && (
+          <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+        )}
+      </li>
+
+      {/* Delete Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+        isDeleting={isDeleting}
+        title="Delete Notification"
+        message="Are you sure you want to delete this notification? This action cannot be undone."
+      />
+    </>
   );
 }

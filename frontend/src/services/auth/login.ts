@@ -1,3 +1,4 @@
+// src/services/auth/login.ts
 import axios, { AxiosError } from 'axios';
 import {
   LoginUserData,
@@ -7,12 +8,14 @@ import {
 import { AuthMapper } from '@/mapper/authMapper';
 import { AppDispatch } from '@/store/index';
 import { setUser } from '@/store/authSlice';
+import { fetchAndStoreFollowing } from '@/store/followThunks'; // ✅ NEW IMPORT
 
 export const loginUser = async (
   credentials: LoginUserData,
   dispatch: AppDispatch
 ): Promise<{ success: boolean; data?: LoginUserPayload; message: string }> => {
   try {
+    // ... (unchanged axios call) ...
     const response = await axios.post<LoginUserResponse>(
       AuthMapper.login,
       credentials
@@ -51,8 +54,13 @@ export const loginUser = async (
         accessToken,
         profilePictureUrl: userData.profilePictureUrl || "",
         isUserInterestSelected,
+        // Set an empty array here, as the thunk will fetch the true list asynchronously.
+        followingUserIds: [], 
       })
     );
+    
+    // ✅ NEW CALL: Start async process to fetch the list of following users and store in Redux
+    dispatch(fetchAndStoreFollowing()); 
 
     return {
       success: true,
@@ -60,6 +68,7 @@ export const loginUser = async (
       message: apiResponse.message,
     };
   } catch (error) {
+    // ... (unchanged error handling) ...
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<LoginUserResponse>;
       const errorResponse = axiosError.response?.data;

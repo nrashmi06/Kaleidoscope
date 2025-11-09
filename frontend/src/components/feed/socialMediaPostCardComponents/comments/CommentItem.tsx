@@ -7,7 +7,7 @@ import { CommentItem as CommentType } from "@/lib/types/comment";
 import { deleteCommentController } from "@/controllers/postInteractionController/deleteCommentController";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import CommentActions from "./CommentActions";
-import CommentBody from "@/components/feed/comments/CommentBody";
+import CommentBody from "@/components/feed/socialMediaPostCardComponents/comments/CommentBody";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import CommentTagManager from "./CommentTagManager";
 

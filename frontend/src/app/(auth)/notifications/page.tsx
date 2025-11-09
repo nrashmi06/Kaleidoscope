@@ -6,6 +6,7 @@ import { getNotifications } from "@/controllers/notificationController/notificat
 import type { NotificationItem } from "@/lib/types/notifications";
 import NotificationItemComponent from "@/components/notifications/NotificationItem";
 import MarkAllAsReadButton from "@/components/notifications/MarkAllAsReadButton";
+import NotificationSkeleton from "@/components/loading/NotificationSkeleton";
 import { Bell, Inbox } from "lucide-react";
 
 export default function NotificationsPage() {
@@ -19,14 +20,17 @@ export default function NotificationsPage() {
     if (!token) return;
     let mounted = true;
     setLoading(true);
+
     (async () => {
       const res = await getNotifications(token, { page: 0, size: 50 });
       if (!mounted) return;
       setLoading(false);
+
       if (!res.success) {
         setError(res.error || "Failed to load notifications");
         return;
       }
+
       const payload = res.data?.data;
       if (payload) {
         setItems(payload.notifications.content || []);
@@ -34,7 +38,9 @@ export default function NotificationsPage() {
       }
     })();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [token]);
 
   return (
@@ -76,6 +82,7 @@ export default function NotificationsPage() {
                 </span>
               </div>
             </div>
+
             <MarkAllAsReadButton
               token={token}
               onMarkedAll={() => {
@@ -88,14 +95,17 @@ export default function NotificationsPage() {
 
         {/* Notifications List */}
         <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-700 overflow-hidden">
+          {/* Skeleton Loader */}
           {loading && (
-            <div className="flex flex-col items-center justify-center py-16 px-4">
-              <div className="w-12 h-12 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mb-4"></div>
-              <p className="text-neutral-600 dark:text-neutral-400">Loading notifications...</p>
+            <div className="divide-y divide-neutral-200 dark:divide-zinc-700">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <NotificationSkeleton key={i} />
+              ))}
             </div>
           )}
 
-          {error && (
+          {/* Error State */}
+          {error && !loading && (
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
                 <span className="text-2xl">⚠️</span>
@@ -107,6 +117,7 @@ export default function NotificationsPage() {
             </div>
           )}
 
+          {/* Empty State */}
           {!loading && !error && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 px-4">
               <div className="w-20 h-20 bg-neutral-100 dark:bg-zinc-700 rounded-full flex items-center justify-center mb-4">
@@ -121,6 +132,7 @@ export default function NotificationsPage() {
             </div>
           )}
 
+          {/* Notifications */}
           {!loading && !error && items.length > 0 && (
             <ul className="divide-y divide-neutral-200 dark:divide-zinc-700">
               {items.map((n) => (
@@ -128,8 +140,20 @@ export default function NotificationsPage() {
                   key={n.notificationId}
                   item={n}
                   token={token}
-                  onRemoved={(id) => setItems((prev) => prev.filter((x) => x.notificationId !== id))}
-                  onUpdated={(updated) => setItems((prev) => prev.map((x) => (x.notificationId === updated.notificationId ? updated : x)))}
+                  onRemoved={(id) =>
+                    setItems((prev) =>
+                      prev.filter((x) => x.notificationId !== id)
+                    )
+                  }
+                  onUpdated={(updated) =>
+                    setItems((prev) =>
+                      prev.map((x) =>
+                        x.notificationId === updated.notificationId
+                          ? updated
+                          : x
+                      )
+                    )
+                  }
                 />
               ))}
             </ul>

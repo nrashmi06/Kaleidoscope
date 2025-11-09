@@ -18,72 +18,74 @@ export default function FeedHeader({
     <header
       className="
         sticky top-0 z-20
-        flex flex-col md:flex-row md:items-center md:justify-between
-        gap-4 px-5 py-4
-        bg-white/70 dark:bg-neutral-900/70
+        flex items-center justify-between
+        px-4 py-2
+        rounded-md
+        bg-white/10 dark:bg-neutral-900/70
         border-b border-gray-200 dark:border-neutral-800
         backdrop-blur-md
-        supports-[backdrop-filter]:backdrop-blur-xl
+        supports-[backdrop-filter]:backdrop-blur-lg
+        shadow-sm
       "
     >
-      {/* Left Section — Title */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+      {/* Left — Title */}
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
           Feed
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Explore what’s happening right now
+        <p className="hidden sm:inline text-sm text-gray-500 dark:text-gray-400">
+          | Find the world around you 
         </p>
       </div>
 
-      {/* Right Section — Buttons */}
-      <div className="flex items-center gap-3 w-full md:w-auto">
+      {/* Right — Controls */}
+      <div className="flex items-center gap-1.5">
         {/* Filter Button */}
         <button
           onClick={onFilterClick}
+          aria-label="Filter"
           className="
-            flex flex-1 md:flex-none items-center justify-center gap-2
-            px-4 py-2.5
-            text-sm font-medium text-gray-700 dark:text-gray-200
-            bg-white dark:bg-neutral-800
-            border border-gray-200 dark:border-neutral-700
-            rounded-lg
-            hover:bg-gray-50 dark:hover:bg-neutral-700
-            active:scale-[0.98]
-            transition-all
-            shadow-sm
+            flex items-center justify-center gap-1.5
+            px-3 h-8
+            text-xs font-medium text-gray-600 dark:text-gray-300
+            bg-transparent
+            rounded-full
+            hover:bg-gray-100 dark:hover:bg-neutral-800
+            transition-colors
           "
         >
           <SlidersHorizontal className="w-4 h-4" />
-          <span>Filter</span>
+          <span className="hidden sm:inline">Filter</span>
         </button>
 
         {/* Refresh Button */}
         <button
           onClick={refreshPosts}
           disabled={isRefreshing}
+          aria-label="Refresh"
           className="
-            flex flex-1 md:flex-none items-center justify-center gap-2
-            px-5 py-2.5
-            text-sm font-medium
-            text-white bg-blue-500 hover:bg-blue-600
-            rounded-lg
-            shadow-md hover:shadow-lg
+            flex items-center justify-center gap-1.5
+            px-3 h-8
+            text-xs font-medium
+            text-blue-600 dark:text-blue-400
+            bg-blue-50 dark:bg-blue-950/30
+            rounded-full
+            hover:bg-blue-100 dark:hover:bg-blue-900/40
             active:scale-[0.98]
+            border border-blue-100 dark:border-blue-900/50
             transition-all
             disabled:opacity-60 disabled:pointer-events-none
-            min-w-[8rem]
           "
         >
           {isRefreshing ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Refreshing...</span>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="hidden sm:inline">Refreshing</span>
             </>
           ) : (
             <>
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Refresh</span>
             </>
           )}
         </button>
