@@ -21,6 +21,19 @@ public class ElasticsearchSyncTriggerService {
     private final RedisStreamPublisher redisStreamPublisher;
 
     /**
+     * Maps full table names to short index types expected by ES sync service.
+     */
+    private static final Map<String, String> TABLE_TO_INDEX_TYPE = Map.of(
+        "read_model_media_search", "media_search",
+        "read_model_post_search", "post_search",
+        "read_model_user_search", "user_search",
+        "read_model_blog_search", "blog_search",
+        "read_model_hashtag_search", "hashtag_search",
+        "read_model_location_search", "location_search",
+        "read_model_category_search", "category_search"
+    );
+
+    /**
      * Publishes a message to the es-sync-queue to index a document.
      *
      * @param indexName  The name of the read model table (e.g., "read_model_media_search").
@@ -38,12 +51,19 @@ public class ElasticsearchSyncTriggerService {
      * @param documentId The ID of the record.
      */
     public void triggerSync(String indexName, String operation, Long documentId) {
-        log.debug("Triggering ES Sync for index: {}, operation: {}, documentId: {}",
-                 indexName, operation, documentId);
+        // Map table name to index type
+        String indexType = TABLE_TO_INDEX_TYPE.get(indexName);
+        if (indexType == null) {
+            log.error("Unknown table name for ES sync: {}. Cannot trigger sync.", indexName);
+            return;
+        }
+
+        log.debug("Triggering ES Sync for indexType: {}, operation: {}, documentId: {}",
+                 indexType, operation, documentId);
         try {
             Map<String, Object> message = new HashMap<>();
-            message.put("indexName", indexName);
-            message.put("operation", operation);
+            message.put("indexType", indexType);
+            message.put("operation", operation.toLowerCase()); // ES sync expects lowercase operation
             message.put("documentId", String.valueOf(documentId));
             message.put("timestamp", Instant.now().toString());
             message.put("correlationId", MDC.get("correlationId")); // Pass on the correlation ID
@@ -60,4 +80,3 @@ public class ElasticsearchSyncTriggerService {
         }
     }
 }
-
