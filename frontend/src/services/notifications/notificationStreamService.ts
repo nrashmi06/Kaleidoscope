@@ -10,8 +10,13 @@ export type NotificationCallbacks = {
 export class NotificationStreamService {
   private es: EventSource | null = null;
   private reconnectTimer: number = 0;
-  private readonly reconnectDelay = 3000;
   private readonly baseUrl = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/notifications/stream`;
+
+  // --- Updated Reconnect Logic ---
+  private reconnectAttempts = 0;
+  private readonly baseReconnectDelay = 1000; // Start at 1 second
+  private readonly maxReconnectDelay = 30000; // Max 30 seconds
+  // --- End Updated Logic ---
 
   connect(token: string | null, callbacks: NotificationCallbacks = {}) {
     this.disconnect();
@@ -36,11 +41,17 @@ export class NotificationStreamService {
     try {
       this.es = new EventSource(url);
 
-      this.es.onopen = () => callbacks.onOpen?.();
+      this.es.onopen = () => {
+        callbacks.onOpen?.();
+        // ✅ NEW: Reset reconnect attempts on a successful connection
+        this.reconnectAttempts = 0;
+      };
 
       this.es.onerror = (err) => {
         callbacks.onError?.(err);
         callbacks.onClose?.();
+        // ✅ NEW: Ensure the connection is fully closed before reconnecting
+        this.es?.close();
         this.scheduleReconnect(token, callbacks);
       };
 
@@ -64,10 +75,21 @@ export class NotificationStreamService {
     if (!token || token.trim().length < 10) return;
     if (this.reconnectTimer) return;
 
+    // --- NEW: Exponential Backoff Calculation ---
+    this.reconnectAttempts++;
+    // Calculates delay: 1s, 2s, 4s, 8s, 16s, 30s (max) + random jitter
+    const delay = Math.min(
+      this.maxReconnectDelay,
+      this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts) + (Math.random() * 1000)
+    );
+    
+    console.warn(`[SSE] Connection error. Reconnecting in ${Math.round(delay / 1000)}s... (Attempt ${this.reconnectAttempts})`);
+    // --- End New Logic ---
+
     this.reconnectTimer = window.setTimeout(() => {
       this.reconnectTimer = 0;
       this.connect(token, callbacks);
-    }, this.reconnectDelay);
+    }, delay); // <-- Use the new calculated delay
   }
 
   disconnect() {
@@ -81,6 +103,8 @@ export class NotificationStreamService {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = 0;
     }
+    // ✅ NEW: Reset attempts on a manual disconnect (like logout)
+    this.reconnectAttempts = 0;
   }
 }
 

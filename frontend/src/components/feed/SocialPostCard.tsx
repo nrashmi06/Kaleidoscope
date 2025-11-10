@@ -8,9 +8,9 @@ import { PostMedia } from "./socialMediaPostCardComponents/PostMedia";
 import { PostText } from "./socialMediaPostCardComponents/PostText";
 import { PostTaggedUsers } from "./socialMediaPostCardComponents/PostTaggedUsers";
 import { PostActions } from "./socialMediaPostCardComponents/PostActions";
-import  CommentDropdown  from "./socialMediaPostCardComponents/CommentDropdown";
+import CommentDropdown from "./socialMediaPostCardComponents/CommentDropdown";
 import { PostModal } from "@/components/ui/PostModal";
-import { Eye } from "lucide-react";
+import { Eye, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 interface SocialPostCardProps {
   post: Post;
@@ -21,6 +21,7 @@ interface SocialPostCardProps {
 function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPostCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const currentUser = useUserData();
 
   // Only allow delete if current user is ADMIN or the author of the post
@@ -52,30 +53,73 @@ function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPos
 
   return (
     <>
-      <div className="w-full max-w-full mx-auto bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-800 relative">
-        <PostHeader post={post} canDelete={canDeletePost} onDelete={handleDelete} isDeleting={isDeleting} />
-        <div className="px-4 pb-4 space-y-4">
-          <PostMedia post={post} />
-          <PostText post={post} />
-          <PostTaggedUsers post={post} />
-          
-          {/* View Details Button */}
-          <div className="flex justify-between items-center">
+      <article className="w-full max-w-full mx-auto bg-white dark:bg-neutral-900 rounded-xl shadow-md hover:shadow-xl border border-gray-200 dark:border-neutral-800 transition-all duration-300 overflow-hidden">
+        {/* Header */}
+        <div className="bg-blue-50 dark:bg-blue-950/20 border-b border-gray-200 dark:border-neutral-800">
+          <PostHeader 
+            post={post} 
+            canDelete={canDeletePost} 
+            onDelete={handleDelete} 
+            isDeleting={isDeleting} 
+          />
+        </div>
+
+        {/* Content */}
+        <div className="px-4 sm:px-6 pb-4">
+          {/* Text Content */}
+          <div className="mb-4 mt-4">
+            <PostText post={post} />
+          </div>
+
+          {/* Media */}
+          <div className="mb-4 -mx-2 sm:-mx-4">
+            <PostMedia post={post} />
+          </div>
+
+          {/* Tagged Users */}
+          {post.taggedUsers && post.taggedUsers.length > 0 && (
+            <div className="mb-4 pb-4 border-b border-gray-200 dark:border-neutral-800">
+              <PostTaggedUsers post={post} />
+            </div>
+          )}
+
+          {/* Actions - Likes, Hearts, etc. */}
+          <div className="mb-4">
+            <PostActions postId={post.postId} />
+          </div>
+
+          {/* Action Buttons Row - Responsive */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-4">
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-100 dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-all duration-200 group border border-gray-200 dark:border-neutral-700"
+            >
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+              <span className="text-sm sm:text-base">{showComments ? 'Hide' : 'Show'} Comments</span>
+              {showComments ? (
+                <ChevronUp className="w-4 h-4 ml-auto sm:ml-0" />
+              ) : (
+                <ChevronDown className="w-4 h-4 ml-auto sm:ml-0" />
+              )}
+            </button>
+            
             <button
               onClick={() => setShowDetailModal(true)}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors duration-200"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-all duration-200 group shadow-sm hover:shadow-md"
             >
-              <Eye className="w-4 h-4 mr-1.5" />
-              View Details
+              <Eye className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+              <span className="text-sm sm:text-base">View Details</span>
             </button>
           </div>
 
-          <div className="mb-0 mt-0">
-            <PostActions postId={post.postId} />
-          </div>
-          <CommentDropdown postId={post.postId} />
+          {/* Comments Section with smooth animation */}
+          {showComments && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-neutral-800 animate-in slide-in-from-top-2 duration-300">
+              <CommentDropdown postId={post.postId} />
+            </div>
+          )}
         </div>
-      </div>
+      </article>
 
       {/* Post Detail Modal */}
       <PostModal

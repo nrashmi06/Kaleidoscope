@@ -1,3 +1,4 @@
+// src/components/sidebar/UserProfileCard.tsx
 "use client";
 
 import Image from "next/image";
@@ -5,9 +6,19 @@ import React from "react";
 import { RootState } from "@/store";
 import { useSelector } from "react-redux";
 import { Mail, User } from "lucide-react";
+import { useRouter } from "next/navigation"; // ✅ Import useRouter
 
 export function UserProfileCard() {
   const user = useSelector((state: RootState) => state.auth);
+  const router = useRouter(); // ✅ Get router instance
+
+  const handleViewProfile = () => {
+    if (user.userId) {
+      router.push(`/profile/${user.userId}`);
+    }
+  };
+
+  const isUserAuthenticated = user.userId > 0;
 
   return (
     <div className="w-full max-w-xs mx-auto">
@@ -58,14 +69,18 @@ export function UserProfileCard() {
 
         {/* Action Button */}
         <button
-          className="
+          onClick={handleViewProfile} // ✅ Link to profile
+          disabled={!isUserAuthenticated}
+          className={`
             mt-4 w-full text-sm font-medium 
             text-blue-600 dark:text-blue-400 
             bg-blue-50 hover:bg-blue-100 
             dark:bg-blue-950/20 dark:hover:bg-blue-900/30
             border border-transparent dark:border-blue-900/50
             rounded-lg py-1.5 transition-all
-          "
+            cursor-pointer
+            ${!isUserAuthenticated ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
         >
           View Profile
         </button>

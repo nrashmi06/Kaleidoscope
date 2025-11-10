@@ -9,7 +9,6 @@ import { createPostController } from "@/controllers/postController/createPost";
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
 import { searchUsersController } from "@/controllers/userController/searchUsers";
 import TitleInput from "@/components/post/TitleInput";
-import BodyInput from "@/components/post/BodyInput";
 import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
 import SummaryInput from "@/components/post/SummaryInput";
 import VisibilitySelect from "@/components/post/VisibilitySelect";

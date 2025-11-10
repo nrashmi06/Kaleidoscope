@@ -1,4 +1,3 @@
-// src/components/authorization/signup-form-demo.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -9,7 +8,8 @@ import { registerUserWithProfile } from "@/services/auth/register";
 import { verifyEmail } from "@/services/auth/verifyEmailResend";
 import { RegistrationLoader } from "./RegistrationLoader";
 import type { RegisterFormState } from "@/lib/types/auth";
-import UsernameCheckInput from "../auth/UsernameCheckInput"; // ✅ NEW IMPORT
+import UsernameCheckInput from "../auth/UsernameCheckInput";
+import { X, CheckCircle, Loader2 } from "lucide-react";
 
 export default function SignupForm() {
   const [formState, setFormState] = useState<RegisterFormState>({
@@ -29,12 +29,10 @@ export default function SignupForm() {
 
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  
-  // ✅ NEW STATE: Username availability status
-  const [isUsernameAvailable, setIsUsernameAvailable] = useState(false); 
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState(false);
   const [usernameMessage, setUsernameMessage] = useState("");
 
-  /** --- Password Validation --- **/
+  /** Password validation **/
   const getPasswordErrors = (password: string) => {
     const errors: string[] = [];
     if (password.length < 8) errors.push("At least 8 characters");
@@ -46,13 +44,11 @@ export default function SignupForm() {
 
   const isPasswordStrong = (password: string) => getPasswordErrors(password).length === 0;
 
-  /** --- Username Availability Handler --- **/
   const handleAvailabilityChange = (isAvailable: boolean, message: string) => {
-      setIsUsernameAvailable(isAvailable);
-      setUsernameMessage(message);
-  }
+    setIsUsernameAvailable(isAvailable);
+    setUsernameMessage(message);
+  };
 
-  /** --- Submit Handler --- **/
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFeedback({ message: "", type: "" });
@@ -60,25 +56,23 @@ export default function SignupForm() {
     const { email, password, confirmPassword, username, designation, summary, profilePicture } =
       formState;
 
-    if (password !== confirmPassword) {
+    if (password !== confirmPassword)
       return setFeedback({ message: "Passwords do not match.", type: "error" });
-    }
 
-    if (!isPasswordStrong(password)) {
+    if (!isPasswordStrong(password))
       return setFeedback({
         message: `Password does not meet requirements: ${getPasswordErrors(password).join(", ")}`,
         type: "error",
       });
-    }
-    
-    // ✅ CHECK: Must be available before registration proceeds
-    if (!isUsernameAvailable) {
-        return setFeedback({ message: usernameMessage || "Please choose an available username.", type: "error" });
-    }
 
-    if (!profilePicture) {
+    if (!isUsernameAvailable)
+      return setFeedback({
+        message: usernameMessage || "Please choose an available username.",
+        type: "error",
+      });
+
+    if (!profilePicture)
       return setFeedback({ message: "Please upload a profile picture.", type: "error" });
-    }
 
     setIsRegistering(true);
 
@@ -101,7 +95,6 @@ export default function SignupForm() {
     }
   };
 
-  /** --- Resend Verification Email --- **/
   const handleResendEmail = async () => {
     const result = await verifyEmail({ email: formState.email });
     setFeedback({
@@ -110,100 +103,134 @@ export default function SignupForm() {
     });
   };
 
-  /** --- Registration Success Page --- */
   if (emailSubmitted) {
     return (
       <>
         <RegistrationLoader isLoading={isRegistering} />
-        <section
-          className="mx-auto mt-20 flex w-full max-w-md flex-col items-center justify-center rounded-2xl border border-blue-500 bg-white p-8 shadow-lg dark:bg-black"
-          aria-live="polite"
-        >
-          <h1 className="text-xl font-semibold text-indigo-900 dark:text-neutral-100">
+        <section className="mx-auto mt-20 flex w-full max-w-md flex-col items-center rounded-xl border border-blue-400 bg-white p-8 shadow-md dark:bg-neutral-900">
+          <CheckCircle className="w-10 h-10 text-blue-500 mb-3" />
+          <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
             Registration Successful
           </h1>
-          <p className="mt-2 text-sm text-indigo-700 dark:text-neutral-300">
-            Please check your email and verify your account.
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300 text-center">
+            Please check your email at <b>{formState.email}</b> to verify your account.
           </p>
           <button
             type="button"
-            className="mt-4 rounded-md bg-gradient-to-r from-indigo-700 via-indigo-800 to-indigo-900 px-6 py-2 text-white shadow-lg transition-all hover:brightness-110"
             onClick={handleResendEmail}
+            className="mt-5 rounded-md bg-blue-600 px-5 py-2 text-white text-sm font-semibold hover:bg-blue-700 transition-all"
           >
             Resend Verification Email
           </button>
-
-          {feedback.message && <Toast {...feedback} onClose={() => setFeedback({ message: "", type: "" })} />}
+          {feedback.message && (
+            <Toast {...feedback} onClose={() => setFeedback({ message: "", type: "" })} />
+          )}
         </section>
       </>
     );
   }
 
-  /** --- Main Signup Form --- */
   return (
     <>
       <RegistrationLoader isLoading={isRegistering} />
-
-      <section
-        className="mx-auto mt-20 w-full max-w-md rounded-2xl border border-blue-500 bg-white p-8 shadow-lg dark:bg-black"
-        aria-labelledby="signup-title"
-      >
-        <h1 id="signup-title" className="text-center text-xl font-bold text-black dark:text-neutral-200">
-          Welcome to Kaleidoscope
+      <section className="mx-auto mt-10 mb-20 w-full max-w-md rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-8 shadow-md">
+        <h1 className="text-center text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+          Create your account
         </h1>
 
-        <form className="my-8 space-y-4" onSubmit={handleSubmit} noValidate>
-          {/* Email Input */}
-          <LabelInputContainer key="email">
-            <Label htmlFor="email" className="text-indigo-900 dark:text-neutral-200">
-              Email Address <span className="text-red-500">*</span>
-            </Label>
+        <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
+          {/* Email */}
+          <LabelInputContainer>
+            <Label htmlFor="email">Email Address *</Label>
             <Input
               id="email"
               type="email"
+              placeholder="you@example.com"
               value={formState.email}
               onChange={(e) => setFormState({ ...formState, email: e.target.value })}
               required
             />
           </LabelInputContainer>
 
-          {/* ✅ USERNAME CHECK INPUT */}
+          {/* Username with availability check */}
           <LabelInputContainer>
             <UsernameCheckInput
               value={formState.username}
               onChange={(username) => setFormState({ ...formState, username })}
               onAvailabilityChange={handleAvailabilityChange}
             />
+            {formState.username.length > 0 && (
+              <p
+                className={cn(
+                  "mt-1 text-xs flex items-center gap-1",
+                  isUsernameAvailable
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                )}
+              >
+                {isUsernameAvailable ? (
+                  <CheckCircle className="w-3 h-3" />
+                ) : (
+                  <X className="w-3 h-3" />
+                )}
+                {usernameMessage}
+              </p>
+            )}
           </LabelInputContainer>
-          {/* END USERNAME CHECK INPUT */}
 
+          {/* Password */}
           <LabelInputContainer>
-            <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
+            <Label htmlFor="password">Password *</Label>
             <Input
               id="password"
               type="password"
+              placeholder="••••••••"
               value={formState.password}
               onChange={(e) => setFormState({ ...formState, password: e.target.value })}
               required
             />
+            {formState.password && (
+              <div className="mt-1 space-y-1">
+                {getPasswordErrors(formState.password).map((err, i) => (
+                  <p key={i} className="text-xs text-red-500 flex items-center gap-1">
+                    <X className="w-3 h-3" /> {err}
+                  </p>
+                ))}
+                {isPasswordStrong(formState.password) && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> Strong password.
+                  </p>
+                )}
+              </div>
+            )}
           </LabelInputContainer>
 
+          {/* Confirm Password */}
           <LabelInputContainer>
-            <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
+            <Label htmlFor="confirmPassword">Confirm Password *</Label>
             <Input
               id="confirmPassword"
               type="password"
+              placeholder="••••••••"
               value={formState.confirmPassword}
               onChange={(e) => setFormState({ ...formState, confirmPassword: e.target.value })}
               required
             />
+            {formState.confirmPassword &&
+              formState.password !== formState.confirmPassword && (
+                <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                  <X className="w-3 h-3" /> Passwords do not match.
+                </p>
+              )}
           </LabelInputContainer>
 
+          {/* Profile Info */}
           <LabelInputContainer>
             <Label htmlFor="designation">Designation</Label>
             <Input
               id="designation"
               type="text"
+              placeholder="Software Engineer, etc."
               value={formState.designation}
               onChange={(e) => setFormState({ ...formState, designation: e.target.value })}
             />
@@ -214,13 +241,15 @@ export default function SignupForm() {
             <Input
               id="summary"
               type="text"
+              placeholder="Short bio (max 150 chars)"
               value={formState.summary}
               onChange={(e) => setFormState({ ...formState, summary: e.target.value })}
             />
           </LabelInputContainer>
 
+          {/* Profile Picture */}
           <LabelInputContainer>
-            <Label htmlFor="profilePicture">Profile Picture <span className="text-red-500">*</span></Label>
+            <Label htmlFor="profilePicture">Profile Picture *</Label>
             <Input
               id="profilePicture"
               type="file"
@@ -229,21 +258,22 @@ export default function SignupForm() {
                 setFormState({ ...formState, profilePicture: e.target.files?.[0] || null })
               }
               required
+              className="file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 file:rounded-md file:border-0 file:py-1 file:px-3"
             />
           </LabelInputContainer>
 
+          {/* Submit */}
           <button
-            disabled={isRegistering || !isUsernameAvailable} // ✅ DISABLED IF USERNAME ISN'T AVAILABLE
+            type="submit"
+            disabled={isRegistering || !isUsernameAvailable}
             className={cn(
-              "relative mt-4 h-10 w-full rounded-md text-white font-semibold shadow-lg transition-all",
+              "relative mt-6 h-11 w-full rounded-lg text-white font-semibold text-base transition-all",
               isRegistering || !isUsernameAvailable
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-800 hover:brightness-110"
+                : "bg-blue-600 hover:bg-blue-700"
             )}
-            type="submit"
           >
-            {isRegistering ? "Creating Account..." : "Sign up →"}
-            <BottomGradient />
+            {isRegistering ? <Loader2 className="w-5 h-5 mx-auto animate-spin" /> : "Sign Up →"}
           </button>
         </form>
 
@@ -255,7 +285,7 @@ export default function SignupForm() {
   );
 }
 
-/* Toast Notification (unchanged) */
+/* Toast */
 const Toast = ({
   message,
   type,
@@ -268,38 +298,24 @@ const Toast = ({
   message && (
     <div
       role="alert"
-      aria-live="assertive"
       className={`fixed top-4 right-4 z-50 rounded-md px-4 py-3 text-sm text-white shadow-lg ${
         type === "success" ? "bg-green-500" : "bg-red-500"
       }`}
     >
-      <div className="flex items-center justify-between space-x-4">
+      <div className="flex items-center justify-between">
         <span>{message}</span>
-        <button
-          type="button"
-          aria-label="Close"
-          className="text-lg font-bold focus:outline-none"
-          onClick={onClose}
-        >
-          ×
+        <button onClick={onClose} className="ml-3 text-lg font-bold">
+          &times;
         </button>
       </div>
     </div>
   );
 
-/* Button Gradient (unchanged) */
-const BottomGradient = () => (
-  <>
-    <span className="absolute inset-x-0 -bottom-px h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-    <span className="absolute inset-x-10 -bottom-px mx-auto h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-  </>
-);
-
-/* Label + Input Wrapper (unchanged) */
+/* Label + Input wrapper */
 const LabelInputContainer = ({
   children,
   className,
 }: {
   children: React.ReactNode;
   className?: string;
-}) => <div className={cn("flex w-full flex-col space-y-2", className)}>{children}</div>;
+}) => <div className={cn("flex flex-col space-y-1", className)}>{children}</div>;

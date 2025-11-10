@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { PostDetails } from "@/components/post/PostDetails";
 import { X } from "lucide-react";
 
@@ -30,7 +29,7 @@ export function PostModal({ postId, isOpen, onClose, accessToken, currentUserId 
         <PostDetails 
           postId={postId} 
           accessToken={accessToken}
-          currentUserId={1} // TODO: Get from auth context/store
+          currentUserId={currentUserId}
           onPostNotFound={onClose}
           onAuthError={onClose}
         />

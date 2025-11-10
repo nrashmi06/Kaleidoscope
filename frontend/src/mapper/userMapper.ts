@@ -8,4 +8,5 @@ export const UserMapper = {
     getAllFollowing:(userId : string) => `${BASE_URL}/follows/following?userId=${userId}`,
     getAllFollowers:(userId : string) => `${BASE_URL}/follows/followers?userId=${userId}`,
     followOrUnfollowUser:(targetUserId : string) => `${BASE_URL}/follows?targetUserId=${targetUserId}`,
+    getUserProfile: (userId: number) => `${BASE_URL}/users/profile/${userId}`,
 };

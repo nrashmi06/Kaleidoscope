@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { MessageSquare, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { MessageSquare, Loader2, Sparkles } from "lucide-react";
 import { getCommentsForPostController } from "@/controllers/postInteractionController/getCommentsForPostController";
 import { addCommentController } from "@/controllers/postInteractionController/addCommentController";
 import {
@@ -25,7 +25,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasLoadedInitial, setHasLoadedInitial] = useState(false);
 
   const accessToken = useAccessToken();
   const currentUser = useUserData();
@@ -60,6 +60,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
         );
         setTotalPages(response.data.totalPages || 1);
         setPage(pageNumber);
+        setHasLoadedInitial(true);
       } else {
         setError(response.message || "Failed to load comments");
       }
@@ -71,21 +72,12 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     }
   };
 
-  /** ✅ Toggle with instant skeleton and clear on collapse */
-  const handleToggle = async () => {
-    if (!isExpanded) {
-      setIsExpanded(true);
-      setComments([]); // Clear stale data
-      setPage(0);
-      setError(null);
-      setIsLoading(true); // Show skeleton instantly
-      await fetchComments(0);
-    } else {
-      setIsExpanded(false);
-      setComments([]); // Clear comments on collapse
-      setError(null);
+  /** ✅ Load initial comments on mount */
+  useEffect(() => {
+    if (postId && accessToken) {
+      fetchComments(0);
     }
-  };
+  }, [postId, accessToken]);
 
   /** ✅ Pagination */
   const handleLoadMore = async () => {
@@ -176,97 +168,133 @@ export default function CommentSection({ postId }: CommentSectionProps) {
   };
 
   return (
-    <section className="w-full mt-1 border-t border-gray-100 dark:border-gray-800 pt-2">
-      <div className="flex justify-center">
-        <button
-          onClick={handleToggle}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors focus:outline-none"
-        >
-          <MessageSquare size={16} />
-          <span className="text-sm">{isExpanded ? "Hide" : "Comments"}</span>
-          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
+    <section className="w-full mt-4">
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
+            <MessageSquare className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+            Comments
+          </h3>
+          {comments.length > 0 && (
+            <span className="px-2.5 py-0.5 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 text-sm font-semibold rounded-full">
+              {comments.length}
+            </span>
+          )}
+        </div>
+        
+        {hasLoadedInitial && comments.length > 0 && (
+          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-neutral-500">
+            <Sparkles className="w-3 h-3" />
+            <span>Latest first</span>
+          </div>
+        )}
       </div>
 
-      {isExpanded && (
-        <div className="mt-2 pt-3 border-t border-gray-100 dark:border-gray-800">
-          {error && (
-            <div className="mb-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded">
-              {error}
-            </div>
-          )}
-
-          <div className="px-3">
-            <CommentInput
-              currentUser={{
-                username: currentUser?.username || "You",
-                profilePictureUrl:
-                  currentUser?.profilePictureUrl || "/default-avatar.png",
-                userId: currentUser?.userId || 0,
-              }}
-              onSubmit={handlePostComment}
-              isPosting={isPosting}
-            />
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 px-4 py-3 text-sm text-red-600 dark:text-red-400 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/10 dark:to-pink-900/10 border border-red-200 dark:border-red-900/30 rounded-xl backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+            {error}
           </div>
+        </div>
+      )}
 
-          {isLoading && comments.length === 0 && (
-            <div className="space-y-3 mt-3 px-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <CommentSkeleton key={`skeleton-${i}`} />
-              ))}
+      {/* Comment Input */}
+      <div className="mb-6">
+        <CommentInput
+          currentUser={{
+            username: currentUser?.username || "You",
+            profilePictureUrl:
+              currentUser?.profilePictureUrl || "/default-avatar.png",
+            userId: currentUser?.userId || 0,
+          }}
+          onSubmit={handlePostComment}
+          isPosting={isPosting}
+        />
+      </div>
+
+      {/* Loading Skeletons */}
+      {isLoading && !hasLoadedInitial && (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CommentSkeleton key={`skeleton-${i}`} />
+          ))}
+        </div>
+      )}
+
+      {/* Comments List */}
+      {hasLoadedInitial && comments.length > 0 && (
+        <div className="space-y-4">
+          <ul className="space-y-4">
+            {comments.map((comment, index) => (
+              <li 
+                key={comment.commentId}
+                className="transform transition-all duration-300 animate-in fade-in slide-in-from-top-2"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <CommentItem
+                  comment={comment}
+                  postId={postId}
+                  currentUser={{
+                    username: currentUser?.username || "You",
+                    userId: currentUser?.userId || 0,
+                  }}
+                  onDelete={handleDeleteComment}
+                  onTagDeleted={async () => {
+                    try {
+                      await fetchComments(0);
+                    } catch (e) {
+                      console.error("Failed refreshing comments after tag delete", e);
+                    }
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+
+          {/* Load More Button */}
+          {page + 1 < totalPages && (
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={handleLoadMore}
+                disabled={isLoading}
+                className="group relative px-6 py-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-neutral-800 dark:to-neutral-700 hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 text-gray-700 dark:text-neutral-300 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transform hover:scale-105"
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading more comments...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Load More
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold group-hover:scale-110 transition-transform">
+                      {totalPages - page - 1}
+                    </div>
+                  </span>
+                )}
+              </button>
             </div>
           )}
+        </div>
+      )}
 
-          {!isLoading && comments.length > 0 && (
-            <>
-              <ul className="space-y-3 mt-3 px-3">
-                {comments.map((comment) => (
-                  <CommentItem
-                    key={comment.commentId}
-                    comment={comment}
-                    postId={postId}
-                    currentUser={{
-                      username: currentUser?.username || "You",
-                      userId: currentUser?.userId || 0,
-                    }}
-                    onDelete={handleDeleteComment}
-                    onTagDeleted={async () => {
-                      try {
-                        await fetchComments(0);
-                      } catch (e) {
-                        console.error("Failed refreshing comments after tag delete", e);
-                      }
-                    }}
-                  />
-                ))}
-              </ul>
-
-              {page + 1 < totalPages && (
-                <div className="text-center mt-3 px-3">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={isLoading}
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:opacity-50 transition-colors"
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center gap-1.5 justify-center">
-                        <Loader2 size={14} className="animate-spin" />
-                        Loading...
-                      </span>
-                    ) : (
-                      "Load more"
-                    )}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {!isLoading && comments.length === 0 && !error && (
-            <p className="text-gray-400 dark:text-gray-500 text-sm text-center mt-4 px-3">
-              No comments yet
-            </p>
-          )}
+      {/* Empty State */}
+      {hasLoadedInitial && comments.length === 0 && !error && !isLoading && (
+        <div className="py-12 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-neutral-800 dark:to-neutral-700 rounded-2xl flex items-center justify-center shadow-inner">
+            <MessageSquare className="w-8 h-8 text-gray-400 dark:text-neutral-500" />
+          </div>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No comments yet
+          </h4>
+          <p className="text-gray-500 dark:text-neutral-400 text-sm">
+            Be the first to share your thoughts!
+          </p>
         </div>
       )}
     </section>
