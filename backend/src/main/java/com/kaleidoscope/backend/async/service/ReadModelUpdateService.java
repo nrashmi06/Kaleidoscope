@@ -60,7 +60,7 @@ public class ReadModelUpdateService {
                 readModel.setAiScenes(String.join(",", insights.getScenes()));
             }
 
-            readModel.setImageEmbedding(insights.getImageEmbedding());
+            readModel.setImageEmbedding(convertEmbeddingToString(insights.getImageEmbedding()));
             readModel.setIsSafe(insights.getIsSafe());
             
             // detected_user_ids/usernames are updated by the FaceDetection consumer
@@ -125,6 +125,23 @@ public class ReadModelUpdateService {
         } catch (Exception e) {
             log.error("Failed to create FaceSearchReadModel for faceId: {}: {}", face.getId(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Converts float[] embedding to JSON string format for storage in read models.
+     * PostgreSQL stores as float[], but read models store as String.
+     */
+    private String convertEmbeddingToString(float[] embedding) {
+        if (embedding == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < embedding.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(embedding[i]);
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }
 
