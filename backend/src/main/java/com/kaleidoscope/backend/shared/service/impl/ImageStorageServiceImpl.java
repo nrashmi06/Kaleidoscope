@@ -100,6 +100,13 @@ public class ImageStorageServiceImpl implements ImageStorageService {
             log.error("[deleteImage] Image URL is null or empty");
             throw new ImageStorageException("Image URL must not be null or empty");
         }
+
+        // Skip deletion for non-upload URLs (console thumbnails, etc.)
+        if (!isValidUploadUrl(imageUrl)) {
+            log.warn("[deleteImage] Skipping deletion of invalid or non-upload URL: {}", imageUrl);
+            return CompletableFuture.completedFuture(null);
+        }
+
         try {
             String publicId = extractPublicIdFromUrl(imageUrl);
             log.debug("[deleteImage] Extracted publicId: {} from imageUrl: {}", publicId, imageUrl);
@@ -112,22 +119,65 @@ public class ImageStorageServiceImpl implements ImageStorageService {
         }
     }
 
+    /**
+     * Checks if URL is a valid Cloudinary upload URL (not a console thumbnail or other URL)
+     */
+    private boolean isValidUploadUrl(String imageUrl) {
+        return imageUrl.contains("res.cloudinary.com")
+                && (imageUrl.contains("/image/upload/") || imageUrl.contains("/video/upload/"))
+                && !imageUrl.contains("media_explorer_thumbnails")
+                && !imageUrl.contains("res-console.cloudinary.com");
+    }
+
     @Override
     public String extractPublicIdFromUrl(String imageUrl) {
         log.info("[extractPublicIdFromUrl] Extracting publicId from imageUrl: {}", imageUrl);
+
+        // Check if URL is valid Cloudinary URL
+        if (!imageUrl.contains("res.cloudinary.com") && !imageUrl.contains("cloudinary.com")) {
+            log.error("[extractPublicIdFromUrl] Invalid Cloudinary URL: {}", imageUrl);
+            throw new IllegalArgumentException("Invalid Cloudinary URL: " + imageUrl);
+        }
+
+        // Split URL by "/"
         String[] urlParts = imageUrl.split("/");
+
+        // Find the "kaleidoscope" folder index - this is our base folder
+        int kaleidoscopeIndex = -1;
         for (int i = 0; i < urlParts.length; i++) {
-            if (urlParts[i].equals("posts") || urlParts[i].equals("blogs")) {
-                if (i + 1 < urlParts.length) {
-                    String fileWithExt = urlParts[i + 1];
-                    String fileName = fileWithExt.contains(".") ? fileWithExt.substring(0, fileWithExt.lastIndexOf('.')) : fileWithExt;
-                    log.debug("[extractPublicIdFromUrl] Extracted publicId: {}", fileName);
-                    return fileName;
-                }
+            if (urlParts[i].equals("kaleidoscope")) {
+                kaleidoscopeIndex = i;
+                break;
             }
         }
-        log.error("[extractPublicIdFromUrl] Could not extract publicId from URL: {}", imageUrl);
-        throw new IllegalArgumentException("Could not extract publicId from URL: " + imageUrl);
+
+        if (kaleidoscopeIndex == -1) {
+            log.error("[extractPublicIdFromUrl] 'kaleidoscope' folder not found in URL: {}", imageUrl);
+            throw new IllegalArgumentException("'kaleidoscope' folder not found in URL: " + imageUrl);
+        }
+
+        // Extract everything from kaleidoscope to the end (excluding file extension)
+        StringBuilder publicIdBuilder = new StringBuilder();
+        for (int i = kaleidoscopeIndex; i < urlParts.length; i++) {
+            if (i > kaleidoscopeIndex) {
+                publicIdBuilder.append("/");
+            }
+            publicIdBuilder.append(urlParts[i]);
+        }
+
+        String publicIdWithExt = publicIdBuilder.toString();
+
+        // Remove file extension if present
+        String publicId;
+        int lastDotIndex = publicIdWithExt.lastIndexOf('.');
+        if (lastDotIndex > 0 && lastDotIndex > publicIdWithExt.lastIndexOf('/')) {
+            publicId = publicIdWithExt.substring(0, lastDotIndex);
+        } else {
+            publicId = publicIdWithExt;
+        }
+
+        log.debug("[extractPublicIdFromUrl] Extracted publicId: {}", publicId);
+        return publicId;
     }
 
     @Override
@@ -157,32 +207,35 @@ public class ImageStorageServiceImpl implements ImageStorageService {
             List<SignatureDataDTO> signatures = new ArrayList<>();
             for (String fileName : request.getFileNames()) {
                 String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-                String publicId = publicIdPrefix + System.currentTimeMillis() + "_" + uniqueId;
+                String shortPublicId = publicIdPrefix + System.currentTimeMillis() + "_" + uniqueId;
                 long timestamp = System.currentTimeMillis() / 1000;
 
                 Map<String, Object> params = new TreeMap<>();
-                params.put("public_id", publicId);
+                params.put("public_id", shortPublicId);
                 params.put("folder", folder);
                 params.put("timestamp", timestamp);
 
                 String signature = cloudinary.apiSignRequest(params, cloudinary.config.apiSecret);
 
-                // Use mapper to create MediaAssetTracker
-                MediaAssetTracker tracker = MediaAssetTrackerMapper.toEntity(publicId, currentUser, request.getContentType());
+                // The full public_id that Cloudinary will use is folder + "/" + shortPublicId
+                String fullPublicId = folder + "/" + shortPublicId;
+
+                // Use mapper to create MediaAssetTracker with FULL public_id
+                MediaAssetTracker tracker = MediaAssetTrackerMapper.toEntity(fullPublicId, currentUser, request.getContentType());
                 mediaAssetTrackerRepository.save(tracker);
-                log.debug("[generateUploadSignatures] Saved MediaAssetTracker for publicId: {}", publicId);
+                log.debug("[generateUploadSignatures] Saved MediaAssetTracker for fullPublicId: {}", fullPublicId);
 
                 // Use mapper to create SignatureDataDTO
                 SignatureDataDTO signatureData = SignatureMapper.toSignatureDataDTO(
                         signature,
                         timestamp,
-                        publicId,
+                        shortPublicId,
                         folder,
                         cloudinary.config.apiKey,
                         cloudinary.config.cloudName
                 );
                 signatures.add(signatureData);
-                log.debug("[generateUploadSignatures] Generated signature for file: {} publicId: {}", fileName, publicId);
+                log.debug("[generateUploadSignatures] Generated signature for file: {} shortPublicId: {}", fileName, shortPublicId);
             }
             log.info("[generateUploadSignatures] Successfully generated {} signatures", signatures.size());
 
