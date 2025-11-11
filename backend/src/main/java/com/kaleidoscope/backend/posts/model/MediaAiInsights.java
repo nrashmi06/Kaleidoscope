@@ -55,8 +55,9 @@ public class MediaAiInsights {
     @Column(name = "scenes", columnDefinition = "text[]")
     private String[] scenes;
 
+    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "image_embedding", columnDefinition = "vector(512)")
-    private String imageEmbedding;
+    private float[] imageEmbedding;
 
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
