@@ -8,16 +8,17 @@ import com.kaleidoscope.backend.auth.exception.email.InvalidEmailException;
 import com.kaleidoscope.backend.auth.exception.token.JwtTokenExpiredException;
 import com.kaleidoscope.backend.auth.exception.token.RefreshTokenException;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.users.exception.user.InvalidUsernameException;
 import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
 import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
-import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.exception.user.UsernameAlreadyInUseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -154,5 +155,22 @@ public class AuthExceptionHandler {
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
         AppResponse<Object> response = AppResponse.error("Image storage error", "Failed to store image. Please try again later.", path);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<AppResponse<Object>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        String supportedMethods = ex.getSupportedHttpMethods() != null
+            ? String.join(", ", ex.getSupportedHttpMethods().stream().map(method -> method.name()).toList())
+            : "Unknown";
+        String errorMessage = String.format("HTTP method '%s' is not supported for this endpoint. Supported methods: %s",
+            ex.getMethod(), supportedMethods);
+
+        AppResponse<Object> response = AppResponse.error(
+            "Method not allowed",
+            errorMessage,
+            path
+        );
+        return new ResponseEntity<>(response, HttpStatus.METHOD_NOT_ALLOWED);
     }
 }

@@ -76,12 +76,26 @@ public class RedisStreamConfig {
             RedisTemplate<String, String> redisTemplate) {
         log.info("Configuring Redis Stream Message Listener Container for App: {} (ID: {})", applicationName, instanceId);
 
+        // 1. Proactively create consumer groups for all streams BEFORE container starts
+        // This prevents NOGROUP errors and unnecessary warning logs
+        log.info("Ensuring consumer groups exist for all streams...");
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.ML_INSIGHTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_DETECTION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.FACE_RECOGNITION_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.USER_PROFILE_FACE_EMBEDDING_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.HASHTAG_USAGE_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        log.info("✅ Consumer group initialization complete");
+
         // 2. Configure Container Options for Manual Acknowledgment
         StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
                 StreamMessageListenerContainerOptions.builder()
                         .batchSize(10)
                         .pollTimeout(Duration.ofSeconds(1))
-                        .errorHandler(createErrorHandler()) // This handler will reactively create groups on "NOGROUP" error
+                        .errorHandler(createErrorHandler()) // Fallback error handler for runtime issues
                         .build();
 
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
@@ -129,18 +143,25 @@ public class RedisStreamConfig {
             Long streamLength = redisTemplate.opsForStream().size(streamName);
             if (streamLength == null || streamLength == 0) {
                 // Stream doesn't exist, create it with a dummy message that we'll ignore
-                log.debug("Stream '{}' doesn't exist, creating it...", streamName);
+                log.info("Stream '{}' doesn't exist yet, creating it...", streamName);
                 redisTemplate.opsForStream().add(streamName, java.util.Map.of("init", "true"));
             }
 
             // Now create the consumer group - params are: key, readOffset, group
             redisTemplate.opsForStream().createGroup(streamName, ReadOffset.from("0-0"), groupName);
-            log.info("Created consumer group '{}' for stream '{}'", groupName, streamName);
+            log.info("✅ Created consumer group '{}' for stream '{}'", groupName, streamName);
         } catch (Exception e) {
-            if (e.getMessage() != null && e.getMessage().contains("BUSYGROUP")) {
-                log.debug("Consumer group '{}' already exists for stream '{}'", groupName, streamName);
+            // Check for BUSYGROUP error - this means the group already exists
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            Throwable cause = e.getCause();
+            String causeMsg = cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("BUSYGROUP") || causeMsg.contains("BUSYGROUP") ||
+                errorMsg.contains("Consumer Group name already exists") ||
+                errorMsg.contains("Error in execution")) { // Generic Redis error that often means BUSYGROUP
+                log.debug("Consumer group '{}' already exists for stream '{}' ✓", groupName, streamName);
             } else {
-                log.warn("Could not create/verify consumer group '{}' for stream '{}': {}", groupName, streamName, e.getMessage());
+                log.warn("Could not create/verify consumer group '{}' for stream '{}': {}", groupName, streamName, errorMsg);
             }
         }
     }
@@ -178,12 +199,21 @@ public class RedisStreamConfig {
                             ReadOffset.from("0-0"),
                             StreamingConfigConstants.BACKEND_CONSUMER_GROUP
                     );
-                    log.info("✅ Successfully created consumer group 'backend-group' for stream '{}'", streamName);
+                    log.info("✅ Successfully created consumer group '{}' for stream '{}'", StreamingConfigConstants.BACKEND_CONSUMER_GROUP, streamName);
                 } catch (Exception e) {
-                    if (e.getMessage() != null && e.getMessage().contains("BUSYGROUP")) {
-                        log.debug("Group already exists for '{}'", streamName);
+                    // Check for BUSYGROUP error - this means the group already exists
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+                    Throwable cause = e.getCause();
+                    String causeMsg = cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+                    if (errorMsg.contains("BUSYGROUP") || causeMsg.contains("BUSYGROUP") ||
+                        errorMsg.contains("Consumer Group name already exists") ||
+                        errorMsg.contains("Error in execution")) { // Generic Redis error that often means BUSYGROUP
+                        log.info("✅ Consumer group '{}' already exists for stream '{}' (this is normal)",
+                                 StreamingConfigConstants.BACKEND_CONSUMER_GROUP, streamName);
                     } else {
-                        log.error("Failed to create group for '{}': {}", streamName, e.getMessage());
+                        log.error("Failed to create group '{}' for stream '{}': {}",
+                                 StreamingConfigConstants.BACKEND_CONSUMER_GROUP, streamName, errorMsg);
                     }
                 }
                 return; // Don't log as ERROR for NOGROUP, we're handling it

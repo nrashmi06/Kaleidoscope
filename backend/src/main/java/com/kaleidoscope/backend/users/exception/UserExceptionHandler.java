@@ -301,4 +301,29 @@ public class UserExceptionHandler {
         );
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
+
+    // Generic Exception Handler for Users Package
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<AppResponse<Object>> handleRuntimeException(RuntimeException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("RuntimeException caught by UserExceptionHandler: {}", ex.getMessage(), ex);
+        AppResponse<Object> response = AppResponse.error(
+                "An error occurred",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<AppResponse<Object>> handleGenericException(Exception ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.error("Generic Exception caught by UserExceptionHandler: {}", ex.getMessage(), ex);
+        AppResponse<Object> response = AppResponse.error(
+                "An unexpected error occurred",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.auth.controller.api;
 
 import com.kaleidoscope.backend.auth.dto.request.*;
+import com.kaleidoscope.backend.auth.dto.response.SseTicketResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -135,4 +137,14 @@ public interface AuthApi {
     ResponseEntity<AppResponse<UsernameAvailabilityResponseDTO>> checkUsernameAvailability(
             @Parameter(description = "Username to check") @RequestParam String username
     );
+
+    @Operation(summary = "Generate a one-time SSE ticket",
+            description = "Generates a short-lived (30s), one-time ticket for authenticating an SSE connection. This endpoint requires a valid Bearer token.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ticket generated successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized (Invalid Bearer token)")
+    })
+    @PostMapping
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<AppResponse<SseTicketResponseDTO>> generateSseTicket();
 }

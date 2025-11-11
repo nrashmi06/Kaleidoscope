@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.auth.service;
 
 import com.kaleidoscope.backend.auth.dto.request.UserLoginRequestDTO;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
+import com.kaleidoscope.backend.auth.dto.response.SseTicketResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
 import jakarta.servlet.http.HttpServletResponse;
@@ -82,4 +83,12 @@ public interface AuthService {
      * @return Response indicating availability status
      */
     UsernameAvailabilityResponseDTO checkUsernameAvailability(String username);
+
+    /**
+     * Generates a short-lived, one-time ticket for authenticating an SSE connection.
+     * This ticket is stored in Redis with the user's ID.
+     *
+     * @return SseTicketResponseDTO containing the one-time ticket.
+     */
+    SseTicketResponseDTO generateSseTicket();
 }

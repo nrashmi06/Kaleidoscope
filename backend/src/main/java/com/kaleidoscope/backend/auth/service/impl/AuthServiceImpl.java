@@ -2,9 +2,11 @@ package com.kaleidoscope.backend.auth.service.impl;
 
 import com.kaleidoscope.backend.auth.dto.request.UserLoginRequestDTO;
 import com.kaleidoscope.backend.auth.dto.request.UserRegistrationRequestDTO;
+import com.kaleidoscope.backend.auth.dto.response.SseTicketResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
+import com.kaleidoscope.backend.auth.exception.auth.UnauthorizedAccessException;
 import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyVerifiedException;
 import com.kaleidoscope.backend.auth.model.EmailVerification;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
@@ -24,6 +26,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -38,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -51,6 +55,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final EmailService emailService;
     private final UserRegistrationService userRegistrationService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     public AuthServiceImpl(
             JwtUtils jwtUtils,
@@ -60,7 +65,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             PasswordEncoder passwordEncoder,
             EmailVerificationRepository emailVerificationRepository,
             EmailService emailService,
-            UserRegistrationService userRegistrationService
+            UserRegistrationService userRegistrationService,
+            StringRedisTemplate stringRedisTemplate
     ) {
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
@@ -70,6 +76,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         this.emailVerificationRepository = emailVerificationRepository;
         this.emailService = emailService;
         this.userRegistrationService = userRegistrationService;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
@@ -335,5 +342,37 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         boolean isAvailable = !userRepository.existsByUsername(trimmedUsername);
 
         return new UsernameAvailabilityResponseDTO(isAvailable, trimmedUsername);
+    }
+
+    @Override
+    @Transactional
+    public SseTicketResponseDTO generateSseTicket() {
+        Long userId = jwtUtils.getUserIdFromContext();
+        if (userId == null) {
+            log.warn("Attempt to generate SSE ticket with no authenticated user context");
+            throw new UnauthorizedAccessException("User not authenticated");
+        }
+
+        String ticket = UUID.randomUUID().toString();
+        String redisKey = "sse-ticket:" + ticket;
+
+        log.debug("Attempting to generate SSE ticket for userId: {} with key: {}", userId, redisKey);
+
+        try {
+            // Store the ticket in Redis, mapping it to the userId.
+            // Set a 30-second expiry. This is more than enough time for the client
+            // to receive the ticket and immediately use it to connect.
+            stringRedisTemplate.opsForValue().set(redisKey, userId.toString(), 30, TimeUnit.SECONDS);
+
+            log.info("✓ SSE ticket generated and stored successfully | userId: {} | redisKey: {} | TTL: 30s | ticket: {}...",
+                    userId, redisKey, ticket.substring(0, Math.min(8, ticket.length())));
+            log.debug("Full ticket details | userId: {} | ticket: {} | expiresIn: 30 seconds", userId, ticket);
+
+            return new SseTicketResponseDTO(ticket);
+        } catch (Exception e) {
+            log.error("✗ Failed to store SSE ticket in Redis | userId: {} | redisKey: {} | error: {}",
+                    userId, redisKey, e.getMessage(), e);
+            throw new RuntimeException("Could not generate SSE ticket due to a server error", e);
+        }
     }
 }

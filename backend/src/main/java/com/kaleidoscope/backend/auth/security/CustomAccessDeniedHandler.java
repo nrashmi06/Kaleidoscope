@@ -27,14 +27,27 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         try {
             // Most important change: Check if response is already committed
             if (response.isCommitted()) {
-                logger.debug("Response already committed, skipping access denied handling for path: {}",
+                logger.trace("Response already committed, skipping access denied handling for path: {}",
                         request.getServletPath());
                 return;  // Exit early if response is committed
             }
 
+            // Special handling for SSE endpoints - they should not reach here if properly authenticated
+            String requestUri = request.getRequestURI();
+            if (requestUri != null && requestUri.contains("/stream")) {
+                logger.debug("Access denied on SSE endpoint {}, response not committed - possible connection issue",
+                        requestUri);
+                // Don't try to write JSON to an SSE connection
+                return;
+            }
+
             // Reset buffer and headers if anything was written
-            response.resetBuffer();
-            response.reset();
+            try {
+                response.resetBuffer();
+            } catch (IllegalStateException e) {
+                logger.trace("Cannot reset buffer for path {}: {}", request.getServletPath(), e.getMessage());
+                return;
+            }
 
             // Set response headers
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -50,6 +63,9 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
             objectMapper.writeValue(response.getOutputStream(), body);
             response.flushBuffer();  // Ensure everything is written
 
+        } catch (IllegalStateException ex) {
+            // Response was already committed or cannot be modified
+            logger.trace("Response state error for path {}: {}", request.getServletPath(), ex.getMessage());
         } catch (Exception ex) {
             // Log at debug level to avoid stack trace spam
             logger.debug("Could not handle access denied for path {}: {}",
