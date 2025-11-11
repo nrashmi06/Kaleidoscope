@@ -12,4 +12,5 @@ export const AuthMapper = {
   renewToken : `${BASE_URL}/auth/renew-token`,
   changePassword: `${BASE_URL}/auth/change-password`,
   checkUsername: `${BASE_URL}/auth/check-username`,
+  sseTicket: `${BASE_URL}/auth/sse-ticket`,
 };

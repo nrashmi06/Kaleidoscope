@@ -1,29 +1,15 @@
+// src/hooks/useNotificationStream.ts
 'use client'
 import { useEffect, useRef } from "react";
 import { useAppDispatch } from "@/hooks/appDispatch";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { startNotificationStream } from "@/controllers/notificationController/notificationController";
 
-function isJwtValid(token: string) {
-  if (!token) return false;
-  const parts = token.split('.');
-  if (parts.length !== 3) return false;
-
-  try {
-    // decode payload
-    const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
-    const payload = JSON.parse(payloadJson);
-    if (payload.exp && typeof payload.exp === 'number') {
-      // exp is in seconds since epoch
-      return payload.exp * 1000 > Date.now();
-    }
-    // if no exp claim, consider token invalid for safety
-    return false;
-  } catch {
-    // malformed token
-    return false;
-  }
-}
+/**
+ * ❌ REMOVED the isJwtValid(token) function
+ * Client-side validation is too brittle. We will let the
+ * /api/auth/sse-ticket endpoint validate the token.
+ */
 
 export default function useNotificationStream(active = true) {
   const dispatch = useAppDispatch();
@@ -33,16 +19,22 @@ export default function useNotificationStream(active = true) {
   useEffect(() => {
     if (!active) return undefined;
 
-    // Only attempt to connect when we have a well-formed, non-expired JWT
-    if (!token || !isJwtValid(token)) {
-      // make sure any existing connection is torn down
-      stopRef.current?.();
-      stopRef.current = null;
-      // Optionally you can dispatch an error state here or log for debugging
-      // console.debug('[Notification] SSE not started - missing or invalid token');
+    /**
+     * ✅ MODIFIED LOGIC:
+     * We no longer validate the token's expiry here.
+     * We just check if it exists. If it's invalid, the
+     * getSseTicketController will fail, and the
+     * notificationController's retry logic will handle it.
+     */
+    if (!token) {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug('[Notification] SSE not started - no token');
+      }
       return undefined;
     }
 
+    // This call will now be made as long as a token exists.
+    console.info('[Notification] Starting SSE stream' , token);
     stopRef.current = startNotificationStream(dispatch, token);
 
     return () => {

@@ -27,12 +27,17 @@ export const refreshToken =
 
       dispatch(
         setUser({
-          accessToken: data.accessToken,
-          userId: data.userId,
-          email: data.email,
-          username: data.username,
-          role: data.role,
-          isUserInterestSelected: false, // Will be updated by JWT decoding logic
+          userId: Number(data.userId),
+        username: data.username,
+        email: data.email,
+        role: data.role,
+        accessToken: data.accessToken,
+        profilePictureUrl: data.profilePictureUrl || "",
+        isUserInterestSelected:  false,
+        // Set empty arrays for initial state; thunks will populate them
+        followingUserIds: [], 
+        // ✅ NEW: Include the followersUserIds property
+        followersUserIds: [],
         })
       );
 
