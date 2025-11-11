@@ -230,4 +230,18 @@ public class AuthController implements AuthApi {
 
         return ResponseEntity.ok(response);
     }
+
+    @Override
+    @PostMapping(AuthRoutes.GENERATE_SSE_TICKET)
+    public ResponseEntity<AppResponse<SseTicketResponseDTO>> generateSseTicket() {
+        SseTicketResponseDTO ticketDTO = authService.generateSseTicket();
+
+        AppResponse<SseTicketResponseDTO> response = AppResponse.success(
+                ticketDTO,
+                "SSE ticket generated successfully",
+                AuthRoutes.GENERATE_SSE_TICKET
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }
