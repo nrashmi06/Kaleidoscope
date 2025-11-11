@@ -114,7 +114,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto min-w-0 min-h-0 py-3">
           {/* Content Wrapper for centering and max-width */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-30 lg:px-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-30 lg:px-30">
             {children}
           </div>
         </main>

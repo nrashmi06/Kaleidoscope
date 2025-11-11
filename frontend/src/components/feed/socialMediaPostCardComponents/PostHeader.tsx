@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Post } from "@/services/post/fetchPosts";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import FollowButton from "@/components/common/FollowButton";
+import { useRouter } from "next/navigation";
 
 interface PostHeaderProps {
   post: Post;
@@ -18,6 +19,7 @@ export function PostHeader({ post, canDelete, onDelete, isDeleting = false }: Po
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const deleteMenuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter(); 
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (deleteMenuRef.current && !deleteMenuRef.current.contains(e.target as Node)) {
@@ -32,35 +34,44 @@ export function PostHeader({ post, canDelete, onDelete, isDeleting = false }: Po
     }
   }, [showDeleteMenu, handleClickOutside]);
 
+  const handleViewProfile = () => {
+    router.push(`/profile/${post.author.userId}`);
+  };
+
   return (
     <div className="flex items-center justify-between p-4">
       <div className="flex items-center space-x-3">
-        <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden relative">
-          <Image
-            src={post.author.profilePictureUrl || "/person.jpg"}
-            alt={post.author.username}
-            fill
-            className="object-cover"
-            sizes="48px"
-          />
-        </div>
-        <div>
-          <h3 className="font-semibold text-base text-gray-900 dark:text-white">
-            {post.author.username}
-          </h3>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
-            {post.location && (
-              <>
-                <span>•</span>
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  <span>
-                    {post.location.name}, {post.location.city}
-                  </span>
-                </div>
-              </>
-            )}
+        <div
+          onClick={handleViewProfile}
+          className="flex items-center space-x-3 cursor-pointer group"
+        >
+          <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden relative">
+            <Image
+              src={post.author.profilePictureUrl || "/person.jpg"}
+              alt={post.author.username}
+              fill
+              className="object-cover"
+              sizes="48px"
+            />
+          </div>
+          <div>
+            <h3 className="font-semibold text-base text-gray-900 dark:text-white group-hover:underline select-none"> {/* ✅ FIX: Added select-none */}
+              {post.author.username}
+            </h3>
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 select-none"> {/* ✅ FIX: Added select-none */}
+              <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+              {post.location && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    <span>
+                      {post.location.name}, {post.location.city}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -81,7 +92,6 @@ export function PostHeader({ post, canDelete, onDelete, isDeleting = false }: Po
               <div className="absolute right-0 top-full mt-1 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg z-10 min-w-[120px]">
                 <button
                   onClick={() => {
-                    // Open confirmation modal instead of immediately deleting
                     setShowDeleteMenu(false);
                     setIsConfirmOpen(true);
                   }}
@@ -108,7 +118,6 @@ export function PostHeader({ post, canDelete, onDelete, isDeleting = false }: Po
         )}
       </div>
 
-      {/* Confirmation modal for deleting a post (shared component) */}
       <DeleteConfirmationModal
         isOpen={isConfirmOpen}
         onCancel={() => setIsConfirmOpen(false)}
@@ -116,7 +125,6 @@ export function PostHeader({ post, canDelete, onDelete, isDeleting = false }: Po
           try {
             await onDelete();
           } finally {
-            // Close modal after attempting deletion; parent may unmount this component on success
             setIsConfirmOpen(false);
           }
         }}

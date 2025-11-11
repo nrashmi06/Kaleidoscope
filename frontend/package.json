@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.4",
-    "@reduxjs/toolkit": "^2.8.1",
+    "@reduxjs/toolkit": "^2.10.1",
     "@tabler/icons-react": "^3.33.0",
     "@tailwindcss/cli": "^4.1.5",
     "axios": "^1.9.0",
@@ -25,9 +25,11 @@
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
     "react-hot-toast": "^2.6.0",
+    "react-markdown": "^10.1.0",
     "react-quill-new": "^3.6.0",
     "react-redux": "^9.2.0",
     "redux-persist": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.2.0"
   },
   "overrides": {
