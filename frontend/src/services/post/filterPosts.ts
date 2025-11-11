@@ -1,89 +1,70 @@
+// src/services/post/filterPosts.ts
 import { PostMapper } from '@/mapper/postMapper';
-import { FetchPostsResponse } from './fetchPosts';
+// ✅ Import our new, comprehensive types
+import type { PostFilterParams } from '@/lib/types/postFeed';
+import type { PaginatedPostsResponse } from '@/lib/types/postFeed';
 
-export interface PostFilterOptions {
-  page?: number;
-  size?: number;
-  sort?: string; // e.g., "createdAt,desc" or "title,asc"
-  userId?: number; // Filter by specific user
-  categoryId?: number; // Filter by category
-  status?: 'PUBLISHED' | 'DRAFT' | 'ARCHIVED'; // Post status
-  visibility?: 'PUBLIC' | 'PRIVATE' | 'FOLLOWERS_ONLY'; // Post visibility
-  q?: string; // Search query
-  sortBy?: string; // Alternative sort field
-  sortDirection?: 'ASC' | 'DESC'; // Alternative sort direction
-}
+// ✅ Rename the response type for clarity
+export type FilterPostsApiResponse = PaginatedPostsResponse;
 
+// ✅ Update function to use the strict PostFilterParams type
 export const filterPostsService = async (
   accessToken: string,
-  filterOptions?: PostFilterOptions
-): Promise<{ success: boolean; data?: FetchPostsResponse; error?: string }> => {
-  try {
-    const params = new URLSearchParams();
-    
-    // Add filter parameters
-    if (filterOptions?.page !== undefined) params.append('page', filterOptions.page.toString());
-    if (filterOptions?.size !== undefined) params.append('size', filterOptions.size.toString());
-    
-    // Handle sorting - prefer 'sort' format but fallback to individual params
-    if (filterOptions?.sort) {
-      params.append('sort', filterOptions.sort);
-    } else {
-      if (filterOptions?.sortBy) params.append('sortBy', filterOptions.sortBy);
-      if (filterOptions?.sortDirection) params.append('sortDirection', filterOptions.sortDirection);
-    }
-    
-    // Filter parameters
-    if (filterOptions?.userId !== undefined) params.append('userId', filterOptions.userId.toString());
-    if (filterOptions?.categoryId !== undefined) params.append('categoryId', filterOptions.categoryId.toString());
-    if (filterOptions?.status) params.append('status', filterOptions.status);
-    if (filterOptions?.visibility) params.append('visibility', filterOptions.visibility);
-    if (filterOptions?.q) params.append('q', filterOptions.q);
+  filterOptions: PostFilterParams = {} // Default to empty object
+): Promise<FilterPostsApiResponse> => {
+  const url = new URL(PostMapper.filterPosts);
 
-    const url = `${PostMapper.filterPosts}${params.toString() ? `?${params.toString()}` : ''}`;
+  // --- Robust Query Param Serialization ---
+  // Iterate over keys and append only if value is valid
+  Object.entries(filterOptions).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") {
+      if (Array.isArray(value)) {
+        // Handle array values, like 'sort'
+        value.forEach((v) => url.searchParams.append(key, v));
+      } else {
+        // Handle primitive values
+        url.searchParams.append(key, String(value));
+      }
+    }
+  });
+
+  const endpoint = url.toString();
+  
+  try {
+    console.log('✅ [filterPostsService] Filtering posts:', endpoint);
     
-    console.log('🔍 Filtering posts with URL:', url);
-    console.log('🔍 Filter options:', filterOptions);
-    console.log('🔍 Search query (q parameter):', filterOptions?.q);
-    
-    const response = await fetch(url, {
+    const response = await fetch(endpoint, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
+      cache: 'no-store', // Ensure fresh data for feeds
     });
 
-    console.log('🔍 Filter response status:', response.status);
+    const responseData: FilterPostsApiResponse = await response.json();
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('🔍 Filter API Error Response:', errorData);
+      console.error('✅ [filterPostsService] API Error:', responseData);
       return {
+        ...responseData,
         success: false,
-        error: errorData.message || "Failed to filter posts",
+        message: responseData.message || "Failed to filter posts",
       };
     }
+    
+    return responseData;
 
-    const responseData = await response.json();
-    console.log('🔍 Filter response:', responseData);
-    
-    if (!responseData.success) {
-      return {
-        success: false,
-        error: responseData.message || "Backend returned unsuccessful response",
-      };
-    }
-    
-    return {
-      success: true,
-      data: responseData,
-    };
   } catch (error) {
-    console.error('🔍 Network error filtering posts:', error);
+    console.error('✅ [filterPostsService] Network Error:', error);
+    const errorMessage = error instanceof Error ? error.message : "Network error occurred";
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Network error occurred",
+      message: errorMessage,
+      data: null,
+      errors: [errorMessage],
+      timestamp: Date.now(),
+      path: endpoint,
     };
   }
 };

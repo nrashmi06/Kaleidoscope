@@ -1,4 +1,4 @@
-const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api`;
 
 /**
  * UserNotificationPreferencesMapper

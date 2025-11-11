@@ -1,4 +1,6 @@
+// src/controllers/hashtag/hashtagController.ts
 import { getHashtagSuggestions } from '@/services/hashTag/hashtagService';
+import { HashtagItem } from "@/lib/types/hashtag"; // Correct type import
 
 export interface HashtagSuggestion {
   hashtagId: number;
@@ -15,6 +17,7 @@ export interface HashtagControllerResult {
 export function validateHashtagPrefix(prefix: string): boolean {
   return prefix.trim().length > 0;
 }
+
 /**
  * Fetch hashtag suggestions
  */
@@ -30,13 +33,11 @@ export async function fetchHashtagSuggestions(
 
     console.log('🔍 Fetching hashtag suggestions for:', prefix); // Debug log
 
-    // Use the correct service function signature
     const response = await getHashtagSuggestions(prefix.trim(), token, 0, limit);
     
     console.log('📊 Hashtag API response:', response); // Debug log
 
-    // Extract suggestions from the response
-    const suggestions = response?.data?.content?.map((item: any) => ({
+    const suggestions = response?.data?.content?.map((item: HashtagItem) => ({ // ✅ Correct type
       hashtagId: item.hashtagId,
       name: item.name,
       usageCount: item.usageCount
@@ -64,21 +65,25 @@ export function debouncedHashtagSuggestions(
   callback: (result: HashtagControllerResult) => void,
   delay: number = 300
 ): () => void {
-  let timeoutId: NodeJS.Timeout;
 
-  const cleanup = () => clearTimeout(timeoutId);
-
+  // Handle the "no prefix" case first
   if (!prefix.trim()) {
     callback({ suggestions: [], isLoading: false, error: 'Enter at least one character' });
-    return cleanup;
+    return () => {}; // Return an empty cleanup function
   }
 
+  // Set loading state immediately
   callback({ suggestions: [], isLoading: true, error: null });
 
-  timeoutId = setTimeout(async () => {
+  // ✅ FIX: Assign 'setTimeout' directly to 'const'.
+  // The type is correctly inferred as 'number' in the browser.
+  const timeoutId = setTimeout(async () => {
     const result = await fetchHashtagSuggestions(prefix, token);
     callback(result);
   }, delay);
+
+  // ✅ FIX: Define cleanup *after* timeoutId is created
+  const cleanup = () => clearTimeout(timeoutId);
 
   return cleanup;
 }

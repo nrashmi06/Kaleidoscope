@@ -3,7 +3,7 @@ export interface Post {
   title: string;
   body?: string;
   summary: string;
-  visibility: "PUBLIC" | "PRIVATE" | "FOLLOWERS_ONLY";
+  visibility: "PUBLIC" | "FOLLOWERS" ;
   createdAt: string;
   updatedAt?: string;
   author: {
@@ -90,8 +90,8 @@ export const fetchPostsService = async (
       params.append('sort', `${options.sortBy},desc`);
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL || 'http://127.0.0.1:8080';
-    const url = `${baseUrl}/kaleidoscope/api/posts${params.toString() ? `?${params.toString()}` : ''}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL 
+    const url = `${baseUrl}/api/posts${params.toString() ? `?${params.toString()}` : ''}`;
     
     console.log('Fetching posts from:', url);
     

@@ -1,4 +1,4 @@
-const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api`;
 
 export const FollowMapper = {
   follow: (targetUserId: number) => `${BASE_URL}/follows?targetUserId=${targetUserId}`,

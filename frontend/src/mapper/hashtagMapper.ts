@@ -1,5 +1,5 @@
 // mapper/hashtagMapper.ts
-const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api`;
 
 export const HashtagMapper = {
   /**
@@ -10,4 +10,5 @@ export const HashtagMapper = {
    */
   getHashtagSuggestions: (prefix: string) => 
     `${BASE_URL}/hashtags/suggest?prefix=${encodeURIComponent(prefix)}`,
+  getTrendingHashtags: () => `${BASE_URL}/hashtags/trending`,
 };

@@ -11,7 +11,7 @@ export type NotificationCallbacks = {
 
 export class NotificationStreamService {
   private es: EventSource | null = null;
-  private readonly baseUrl = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/notifications/stream`;
+  private readonly baseUrl = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api/notifications/stream`;
 
   /**
    * Connects to the SSE stream using a one-time ticket.
