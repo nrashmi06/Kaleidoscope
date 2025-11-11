@@ -37,24 +37,41 @@ public class UserController implements UserApi {
     public ResponseEntity<AppResponse<UpdateUserProfileResponseDTO>> updateUserProfile(
             @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
             @RequestPart(value = "coverPhoto", required = false) MultipartFile coverPhoto,
-            @RequestPart("userData") UpdateUserProfileRequestDTO userProfileData) throws Exception {
+            @RequestPart("userData") UpdateUserProfileRequestDTO userProfileData) {
 
-        Long userId = jwtUtils.getUserIdFromContext();
-        log.info("Updating profile for user ID: {}", userId);
+        try {
+            Long userId = jwtUtils.getUserIdFromContext();
 
-        // Set the files in the DTO
-        userProfileData.setProfilePicture(profilePicture);
-        userProfileData.setCoverPhoto(coverPhoto);
+            if (userId == null) {
+                log.error("Unable to extract user ID from security context");
+                AppResponse<UpdateUserProfileResponseDTO> response = AppResponse.error(
+                        "Authentication required",
+                        "Unable to identify authenticated user",
+                        UserRoutes.UPDATE_USER_PROFILE
+                );
+                return ResponseEntity.status(401).body(response);
+            }
 
-        UpdateUserProfileResponseDTO updatedUser = userService.updateUserProfile(userId, userProfileData);
+            log.info("Updating profile for user ID: {}", userId);
 
-        AppResponse<UpdateUserProfileResponseDTO> response = AppResponse.success(
-                updatedUser,
-                "Profile updated successfully",
-                UserRoutes.UPDATE_USER_PROFILE
-        );
+            // Set the files in the DTO
+            userProfileData.setProfilePicture(profilePicture);
+            userProfileData.setCoverPhoto(coverPhoto);
 
-        return ResponseEntity.ok(response);
+            UpdateUserProfileResponseDTO updatedUser = userService.updateUserProfile(userId, userProfileData);
+
+            AppResponse<UpdateUserProfileResponseDTO> response = AppResponse.success(
+                    updatedUser,
+                    "Profile updated successfully",
+                    UserRoutes.UPDATE_USER_PROFILE
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error updating user profile: {}", e.getMessage(), e);
+            // Let the exception propagate to the exception handler
+            throw new RuntimeException("Failed to update user profile: " + e.getMessage(), e);
+        }
     }
 
     @Override

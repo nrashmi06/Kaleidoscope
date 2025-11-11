@@ -28,6 +28,12 @@ public class SseAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // Skip if response is already committed (e.g., SSE already started)
+        if (response.isCommitted()) {
+            log.trace("Response already committed, skipping SseAuthenticationFilter for {}", request.getRequestURI());
+            return;
+        }
+
         // Skip JWT/SSE processing if already authenticated (e.g., via regular JWT header)
         if (SecurityContextHolder.getContext().getAuthentication() != null) {
             log.debug("Security context already contains authentication, skipping SseAuthenticationFilter");
@@ -41,7 +47,15 @@ public class SseAuthenticationFilter extends OncePerRequestFilter {
 
             if (token == null || token.isEmpty()) {
                 log.error("Token is required for SSE connection but was not provided");
-                throw new ServletException("Token is required for SSE connection");
+
+                // Only write error if response not committed
+                if (!response.isCommitted()) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Token is required for SSE connection\"}");
+                    response.getWriter().flush();
+                }
+                return; // Don't continue the filter chain
             }
 
             try {
@@ -71,15 +85,39 @@ public class SseAuthenticationFilter extends OncePerRequestFilter {
                 } else {
                     log.error("SSE token validation failed for token: {}...",
                             token.length() > 10 ? token.substring(0, 10) : token);
-                    throw new ServletException("Invalid JWT token");
+
+                    // Only write error if response not committed
+                    if (!response.isCommitted()) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\": \"Invalid JWT token\"}");
+                        response.getWriter().flush();
+                    }
+                    return; // Don't continue the filter chain
                 }
-                filterChain.doFilter(request, response);
+
+                // Continue filter chain, but catch any exceptions related to committed responses
+                try {
+                    filterChain.doFilter(request, response);
+                } catch (Exception e) {
+                    // If response is already committed (SSE started), just log and don't try to handle
+                    if (response.isCommitted()) {
+                        log.debug("Exception during SSE processing (response already committed): {}", e.getMessage());
+                    } else {
+                        throw e;
+                    }
+                }
             } catch (Exception e) {
                 log.error("SSE authentication failed: {}", e.getMessage(), e);
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Authentication failed: " + e.getMessage());
-                response.getWriter().flush();
-                return; // Don't continue the filter chain
+
+                // Only write error if response not committed
+                if (!response.isCommitted()) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Authentication failed: " + e.getMessage() + "\"}");
+                    response.getWriter().flush();
+                }
+                // Don't continue the filter chain
             }
         } else {
             filterChain.doFilter(request, response);

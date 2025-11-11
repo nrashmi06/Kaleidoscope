@@ -36,7 +36,8 @@ public class NotificationController implements NotificationApi {
 
     @Override
     @GetMapping(value = NotificationRoutes.STREAM, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @PreAuthorize("isAuthenticated()")
+    // Note: Authentication is handled by SseAuthenticationFilter, not @PreAuthorize
+    // Using @PreAuthorize here causes race condition with async SSE response
     public SseEmitter streamNotifications() {
         // Get userId from the SecurityContext which was populated by SseAuthenticationFilter
         Long userId = jwtUtils.getUserIdFromContext();
