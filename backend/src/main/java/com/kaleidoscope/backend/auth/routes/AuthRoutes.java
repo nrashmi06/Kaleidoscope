@@ -19,4 +19,5 @@ public final class AuthRoutes {
     public static final String FORGOT_PASSWORD = BASE_API + "/forgot-password";
     public static final String RESET_PASSWORD = BASE_API + "/reset-password";
     public static final String CHANGE_PASSWORD = BASE_API + "/change-password";
+    public static final String GENERATE_SSE_TICKET = BASE_API + "/sse-ticket";
 }

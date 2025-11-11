@@ -1,0 +1,15 @@
+meta {
+  name: generate sse ticket
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:8080/kaleidoscope/api/auth/sse-ticket
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

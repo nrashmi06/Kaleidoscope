@@ -8,9 +8,11 @@ import com.kaleidoscope.backend.auth.security.jwt.AuthTokenFilter;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.notifications.routes.NotificationRoutes;
 import com.kaleidoscope.backend.shared.config.CorrelationIdFilter;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -33,17 +35,23 @@ public class SecurityConfig {
     private final AuthEntryPointJwt unauthorizedHandler;
     private final CorrelationIdFilter correlationIdFilter;
     private final CorsConfig corsConfig;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final UserRepository userRepository;
 
     public SecurityConfig(
             AuthEntryPointJwt unauthorizedHandler,
             CorrelationIdFilter correlationIdFilter,
-            CorsConfig corsConfig
+            CorsConfig corsConfig,
+            StringRedisTemplate stringRedisTemplate,
+            UserRepository userRepository
     ) {
         this.unauthorizedHandler = unauthorizedHandler;
         this.correlationIdFilter = correlationIdFilter;
         this.corsConfig = corsConfig;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.userRepository = userRepository;
 
-        log.info("SecurityConfig initialized with CorrelationIdFilter");
+        log.info("SecurityConfig initialized with CorrelationIdFilter, RedisTemplate, and UserRepository");
     }
 
     @Bean
@@ -52,8 +60,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SseAuthenticationFilter sseAuthenticationFilter(JwtUtils jwtUtils) {
-        return new SseAuthenticationFilter(jwtUtils);
+    public SseAuthenticationFilter sseAuthenticationFilter() {
+        return new SseAuthenticationFilter(stringRedisTemplate, userRepository);
     }
 
     @Bean
