@@ -2,15 +2,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { blockUserController } from "@/controllers/user-blocks/blockUserController";
+// ✅ 1. Import thunk and dispatch hook
+import { useAppDispatch } from "@/hooks/appDispatch";
+import { startBlockUser } from "@/store/blockThunks";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { Loader2, UserX, ShieldCheck, AlertCircle, X } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 interface BlockUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetUser: { userId: number; username: string };
-  onBlockSuccess: () => void; // Callback to refresh profile
+  onBlockSuccess: () => void; // Callback to close modal
 }
 
 /**
@@ -27,6 +30,7 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const accessToken = useAccessToken();
+  const dispatch = useAppDispatch(); // ✅ 2. Get dispatch
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,25 +44,38 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
       return;
     }
 
-    // Call the controller with the block request
-    const result = await blockUserController(
-      { userIdToBlock: targetUser.userId, reason },
-      accessToken
-    );
+    try {
+      // ✅ 3. Dispatch the thunk instead of calling the controller
+      const result = await dispatch(
+        startBlockUser({ targetUserId: targetUser.userId, reason })
+      ).unwrap(); // .unwrap() will throw an error if the thunk fails
 
-    if (result.success) {
-      setSuccess(result.message);
+      setSuccess(result.message || "User blocked successfully.");
+      toast.success(result.message || "User blocked successfully.");
       setReason("");
-      // After 1.5s, call the success callback which
-      // will refresh the profile and close the modal.
+      
       setTimeout(() => {
-        onBlockSuccess();
+        onBlockSuccess(); // This will now close the modal
       }, 1500);
-    } else {
-      setError(result.message);
+
+    } catch (err) {
+      // ✅ 4. Handle errors from the thunk
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setIsLoading(false);
     }
   };
+
+  // Reset form when modal is closed
+  React.useEffect(() => {
+    if (!isOpen) {
+      setReason("");
+      setError(null);
+      setSuccess(null);
+      setIsLoading(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -145,7 +162,7 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
         )}
 
         {/* Error Message */}
-        {error && (
+        {error && !success && (
           <div className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <p className="text-sm font-medium">{error}</p>

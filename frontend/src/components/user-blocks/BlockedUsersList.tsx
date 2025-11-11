@@ -4,19 +4,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { getBlockedUsersController } from "@/controllers/user-blocks/getBlockedUsersController";
-import { unblockUserController } from "@/controllers/user-blocks/unblockUserController";
+// ❌ 1. Remove unblockController
+// import { unblockUserController } from "@/controllers/user-blocks/unblockUserController";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import type { BlockedUser, BlockedUsersPage } from "@/lib/types/blockedUsersList";
 import { 
   ShieldAlert, 
   AlertCircle, 
   UserX, 
-  ChevronLeft,  // ✅ 1. Re-add missing icon
-  ChevronRight, // ✅ 2. Re-add missing icon
-  RefreshCw,    // ✅ 3. Re-add missing icon
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,    
 } from "lucide-react";
-import { toast } from "react-hot-toast";
-import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+// ❌ 2. Remove toast and modal
+// import { toast } from "react-hot-toast";
+// import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+
+// ✅ 3. Import the new button
+import BlockButton from "@/components/common/BlockButton";
 
 /**
  * Skeleton Card for loading state
@@ -50,8 +55,9 @@ export const BlockedUsersList: React.FC = () => {
     error: null,
   });
 
-  const [userToUnblock, setUserToUnblock] = useState<BlockedUser | null>(null);
-  const [isUnblocking, setIsUnblocking] = useState(false);
+  // ❌ 4. Remove modal/unblock state
+  // const [userToUnblock, setUserToUnblock] = useState<BlockedUser | null>(null);
+  // const [isUnblocking, setIsUnblocking] = useState(false);
 
   const accessToken = useAccessToken();
 
@@ -97,46 +103,30 @@ export const BlockedUsersList: React.FC = () => {
     fetchPage(0);
   }, [fetchPage]);
 
-  // Handler to confirm and execute unblock
-  const handleConfirmUnblock = async () => {
-    if (!userToUnblock || !accessToken) return;
+  // ❌ 5. Remove handleConfirmUnblock
+  // const handleConfirmUnblock = async () => { ... };
 
-    setIsUnblocking(true);
-    const toastId = toast.loading("Unblocking user...");
+  // ✅ 6. Create a local handler to remove user from state
+  const handleUserUnblocked = useCallback((unblockedUserId: number) => {
+    // Optimistic update: remove user from list
+    setState(s => ({
+      ...s,
+      users: s.users.filter(u => u.userId !== unblockedUserId),
+      pagination: s.pagination ? {
+        ...s.pagination,
+        totalElements: s.pagination.totalElements - 1,
+      } : null,
+    }));
 
-    const result = await unblockUserController(
-      { userIdToUnblock: userToUnblock.userId }, 
-      accessToken
-    );
-
-    if (result.success) {
-      toast.success(result.message, { id: toastId });
-      
-      // Optimistic update: remove user from list
-      setState(s => ({
-        ...s,
-        users: s.users.filter(u => u.userId !== userToUnblock.userId),
-        pagination: s.pagination ? {
-          ...s.pagination,
-          totalElements: s.pagination.totalElements - 1,
-        } : null,
-      }));
-
-      // If the page is now empty, refetch the (previous) page
-      if (state.users.length === 1 && state.pagination && state.pagination.currentPage > 0) {
-        fetchPage(state.pagination.currentPage - 1);
-      }
-    } else {
-      toast.error(result.message, { id: toastId });
+    // If the page is now empty, refetch the (previous) page
+    if (state.users.length === 1 && state.pagination && state.pagination.currentPage > 0) {
+      fetchPage(state.pagination.currentPage - 1);
     }
-
-    setIsUnblocking(false);
-    setUserToUnblock(null); // Close modal
-  };
+  }, [state.users, state.pagination, fetchPage]);
 
 
   const { users, pagination, isLoading, error } = state;
-  const page = pagination?.currentPage ?? 0; // ✅ 5. 'page' is now used below
+  const page = pagination?.currentPage ?? 0;
   const totalPages = pagination?.totalPages ?? 0;
 
   return (
@@ -196,13 +186,14 @@ export const BlockedUsersList: React.FC = () => {
               <BlockedUserCard 
                 key={user.userId} 
                 user={user} 
-                onUnblockClick={() => setUserToUnblock(user)}
+                // ✅ 7. Pass the local handler to the card
+                onUserUnblocked={() => handleUserUnblocked(user.userId)}
               />
             ))}
           </div>
         )}
 
-        {/* ✅ 6. Add pagination controls back */}
+        {/* Pagination */}
         {pagination && totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-neutral-800">
             <button
@@ -230,15 +221,7 @@ export const BlockedUsersList: React.FC = () => {
         )}
       </div>
 
-      {/* Render Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={!!userToUnblock}
-        onCancel={() => setUserToUnblock(null)}
-        onConfirm={handleConfirmUnblock}
-        isDeleting={isUnblocking}
-        title="Unblock User"
-        message={`Are you sure you want to unblock @${userToUnblock?.username}? They will be able to see your posts and interact with you again.`}
-      />
+      {/* ❌ 8. Remove Modal Rendering */}
     </>
   );
 };
@@ -248,10 +231,11 @@ export const BlockedUsersList: React.FC = () => {
  */
 interface BlockedUserCardProps {
   user: BlockedUser;
-  onUnblockClick: () => void;
+  // ✅ 9. Update prop
+  onUserUnblocked: () => void;
 }
 
-const BlockedUserCard: React.FC<BlockedUserCardProps> = ({ user, onUnblockClick }) => {
+const BlockedUserCard: React.FC<BlockedUserCardProps> = ({ user, onUserUnblocked }) => {
   return (
     <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-800 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-700">
       <div className="flex items-center gap-4">
@@ -272,14 +256,12 @@ const BlockedUserCard: React.FC<BlockedUserCardProps> = ({ user, onUnblockClick 
         </div>
       </div>
        
-      {/* Add Unblock Button */}
-      <button
-        onClick={onUnblockClick}
-        className="flex items-center justify-center gap-2 px-4 h-9 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 text-sm font-semibold rounded-lg transition"
-        aria-label={`Unblock ${user.username}`}
-      >
-        Unblock
-      </button>
+      {/* ✅ 10. Render the common button and pass the callback */}
+      <BlockButton 
+        targetUserId={user.userId}
+        targetUsername={user.username}
+        onUnblockSuccess={onUserUnblocked}
+      />
     </div>
   );
 };

@@ -1,4 +1,6 @@
+// src/hooks/clearStore.ts
 import { clearUser } from "@/store/authSlice";
+import { clearBlockedUsers } from "@/store/blockSlice"; 
 import { useAppDispatch } from "./appDispatch";
 
 export default function useClearStore() {
@@ -6,6 +8,7 @@ export default function useClearStore() {
 
   const clearStore = () => {
     dispatch(clearUser());
+    dispatch(clearBlockedUsers());
   };
 
   return clearStore;

@@ -17,20 +17,23 @@ import {
   Eye,
   Sparkles,
   FileText,
-  UserX,
   ShieldAlert,
-  Loader2, // ✅ 1. Import Loader2
 } from "lucide-react";
 import FollowButton from "@/components/common/FollowButton";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import PostLoader from "@/components/loading/PostLoader";
 import { Post as PostType } from "@/services/post/fetchPosts";
-import { BlockUserModal } from "@/components/user-blocks/BlockUserModal";
 import { userBlockStatusController } from "@/controllers/user-blocks/userBlockStatusController";
 import type { UserBlockStatusData } from "@/lib/types/userBlockStatus";
-import { toast } from "react-hot-toast";
-import { unblockUserController } from "@/controllers/user-blocks/unblockUserController"; // ✅ 2. Import unblock controller
-import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal"; // ✅ 3. Import confirmation modal
+
+// ✅ 1. Import the new button
+import BlockButton from "@/components/common/BlockButton";
+
+// ❌ 2. Remove imports that are no longer needed
+// import { BlockUserModal } from "@/components/user-blocks/BlockUserModal";
+// import { unblockUserController } from "@/controllers/user-blocks/unblockUserController";
+// import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+// import { Loader2, UserX } from "lucide-react";
 
 interface UserProfileProps {
   userId: number;
@@ -73,17 +76,20 @@ export function UserProfile({ userId }: UserProfileProps) {
   const [profile, setProfile] = useState<MappedUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  
+  // ✅ 3. This state is still needed to show/hide the correct buttons
   const [blockStatus, setBlockStatus] = useState<UserBlockStatusData | null>(
     null
   );
+  
   const accessToken = useAccessToken();
   const currentUser = useUserData();
   const router = useRouter();
 
-  // ✅ 4. Add state for unblock modal and loading
-  const [isUnblockModalOpen, setIsUnblockModalOpen] = useState(false);
-  const [isUnblocking, setIsUnblocking] = useState(false);
+  // ❌ 4. Remove modal and loading states
+  // const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  // const [isUnblockModalOpen, setIsUnblockModalOpen] = useState(false);
+  // const [isUnblocking, setIsUnblocking] = useState(false);
 
   const isOwner = currentUser?.userId === userId;
 
@@ -141,33 +147,9 @@ export function UserProfile({ userId }: UserProfileProps) {
     router.push("/settings/profile-edit");
   };
 
-  const handleBlockSuccess = () => {
-    setIsBlockModalOpen(false); // Close the modal
-    fetchProfile(); // Refetch profile data to update block status
-  };
-
-  // ✅ 5. Add handler for unblock confirmation
-  const handleConfirmUnblock = async () => {
-    if (!profile || !accessToken) return;
-
-    setIsUnblocking(true);
-    const toastId = toast.loading("Unblocking user...");
-
-    const result = await unblockUserController(
-      { userIdToUnblock: profile.userId },
-      accessToken
-    );
-
-    if (result.success) {
-      toast.success(result.message, { id: toastId });
-      setIsUnblockModalOpen(false);
-      fetchProfile(); // Refetch profile to show new button states
-    } else {
-      toast.error(result.message, { id: toastId });
-    }
-
-    setIsUnblocking(false);
-  };
+  // ❌ 5. Remove modal handlers
+  // const handleBlockSuccess = () => { ... };
+  // const handleConfirmUnblock = async () => { ... };
 
   // --- Loading State (Minimalist Skeleton) ---
   if (loading) {
@@ -284,7 +266,7 @@ export function UserProfile({ userId }: UserProfileProps) {
                 />
               </div>
 
-              {/* ✅ --- 6. UPDATED ACTION BUTTONS LOGIC --- */}
+              {/* ✅ --- 6. SIMPLIFIED ACTION BUTTONS LOGIC --- */}
               <div className="flex space-x-3 pb-2">
                 {isOwner ? (
                   // Case 0: You are the owner
@@ -300,36 +282,20 @@ export function UserProfile({ userId }: UserProfileProps) {
                     <ShieldAlert className="w-4 h-4" />
                     You are blocked by this user
                   </div>
-                ) : blockStatus?.isBlocked ? (
-                  // Case 2: You have blocked this user (NOW FUNCTIONAL)
-                  <button
-                    onClick={() => setIsUnblockModalOpen(true)} // ✅ Set modal state
-                    disabled={isUnblocking} // ✅ Disable while loading
-                    className="px-4 py-2.5 text-sm font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/40 inline-flex items-center gap-2 transition-all duration-200 border border-yellow-300 dark:border-yellow-700 disabled:opacity-50"
-                    title="Unblock this user"
-                  >
-                    {isUnblocking ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <UserX className="w-4 h-4" />
-                    )}
-                    {isUnblocking ? "Unblocking..." : "Unblock"}
-                  </button>
                 ) : (
-                  // Case 3: No block, show normal buttons
+                  // Case 2 & 3: You have blocked them OR no block
+                  // The BlockButton component handles both states.
                   <>
                     <FollowButton targetUserId={userId} />
-                    <button
-                      onClick={() => setIsBlockModalOpen(true)}
-                      className="p-2 text-xs font-semibold rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 inline-flex items-center gap-2 transition-all duration-200 border border-red-200 dark:border-red-700"
-                      title="Block this user"
-                    >
-                      <UserX className="w-3 h-3" /> Block
-                    </button>
+                    <BlockButton
+                      targetUserId={profile.userId}
+                      targetUsername={profile.username}
+                      // No onUnblockSuccess needed here, Redux handles the button state
+                    />
                   </>
                 )}
               </div>
-              {/* ✅ --- END OF UPDATED LOGIC --- */}
+              {/* ✅ --- END OF SIMPLIFIED LOGIC --- */}
             </div>
 
             {/* ... (Text Details and Stats Row are unchanged) ... */}
@@ -433,28 +399,7 @@ export function UserProfile({ userId }: UserProfileProps) {
         </div>
       </div>
 
-      {/* --- RENDER MODALS --- */}
-      {/* ✅ 7. Render Block Modal */}
-      {isBlockModalOpen && profile && (
-        <BlockUserModal
-          isOpen={isBlockModalOpen}
-          onClose={() => setIsBlockModalOpen(false)}
-          targetUser={{ userId: profile.userId, username: profile.username }}
-          onBlockSuccess={handleBlockSuccess}
-        />
-      )}
-
-      {/* ✅ 8. Render Unblock Confirmation Modal */}
-      {isUnblockModalOpen && profile && (
-        <DeleteConfirmationModal
-          isOpen={isUnblockModalOpen}
-          onCancel={() => setIsUnblockModalOpen(false)}
-          onConfirm={handleConfirmUnblock}
-          isDeleting={isUnblocking}
-          title="Unblock User"
-          message={`Are you sure you want to unblock @${profile.username}? They will be able to see your posts and interact with you again.`}
-        />
-      )}
+      {/* ❌ 7. Remove Modal Rendering (now handled by BlockButton) */}
     </>
   );
 }
