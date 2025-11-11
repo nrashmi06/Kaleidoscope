@@ -48,13 +48,23 @@ export const startBlockUser = createAsyncThunk(
       token
     );
 
+    // --- ✅ MODIFIED FAILURE LOGIC ---
+
     if (result.success) {
+      // 3a. Normal success
       return { targetUserId, message: result.message };
-    } else {
-      // 3. Rollback on failure
-      dispatch(removeBlockedUserId(targetUserId));
-      throw new Error(result.message || "Failed to block user");
     }
+
+    // 3b. Check for the "already blocked" message and treat it as a SUCCESSFUL SYNC
+    if (result.message && result.message.toLowerCase().includes("user already blocked")) {
+      // The optimistic update was correct. Do NOT roll back.
+      // Return a success object so the modal closes properly.
+      return { targetUserId, message: "User is already blocked." };
+    }
+
+    // 3c. This is a REAL failure (e.g., server error), so roll back.
+    dispatch(removeBlockedUserId(targetUserId));
+    throw new Error(result.message || "Failed to block user");
   }
 );
 

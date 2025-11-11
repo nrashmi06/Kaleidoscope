@@ -9,6 +9,8 @@ import { AuthMapper } from '@/mapper/authMapper';
 import { AppDispatch } from '@/store/index';
 import { setUser } from '@/store/authSlice';
 import { fetchAndStoreFollowing, fetchAndStoreFollowers } from '@/store/followThunks'; 
+// ✅ 1. Import the block thunk
+import { fetchAndStoreBlockedUsers } from '@/store/blockThunks';
 
 export const loginUser = async (
   credentials: LoginUserData,
@@ -53,16 +55,16 @@ export const loginUser = async (
         accessToken,
         profilePictureUrl: userData.profilePictureUrl || "",
         isUserInterestSelected,
-        // Set empty arrays for initial state; thunks will populate them
         followingUserIds: [], 
-        // ✅ NEW: Include the followersUserIds property
         followersUserIds: [], 
       })
     );
     
-    // ✅ Dispatch both thunks to cache Following and Follower IDs asynchronously
+    // Dispatch all thunks to cache user lists
     dispatch(fetchAndStoreFollowing()); 
     dispatch(fetchAndStoreFollowers());
+    // ✅ 2. Dispatch the block thunk
+    dispatch(fetchAndStoreBlockedUsers()); 
 
     return {
       success: true,
@@ -70,7 +72,6 @@ export const loginUser = async (
       message: apiResponse.message,
     };
   } catch (error) {
-    // ... (unchanged error handling) ...
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<LoginUserResponse>;
       const errorResponse = axiosError.response?.data;
