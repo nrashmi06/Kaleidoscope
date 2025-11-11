@@ -3,7 +3,6 @@ package com.kaleidoscope.backend.async.consumer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.FaceDetectionResultDTO;
 import com.kaleidoscope.backend.async.exception.async.BboxParsingException;
-import com.kaleidoscope.backend.async.exception.async.MediaAiInsightsNotFoundException;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
@@ -23,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional; // <-- IMPORT ADDED
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component // Changed from @Service for injection into RedisStreamConfig
@@ -78,6 +77,13 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             // Data Retrieval with Retry: Find the corresponding MediaAiInsights entity
             MediaAiInsights mediaAiInsights = findMediaAiInsightsWithRetry(resultDTO.getMediaId());
 
+            if (mediaAiInsights == null) {
+                log.warn("MediaAiInsights not found for mediaId: {} after retries. The post/media was likely deleted. Acknowledging message to remove from PEL.",
+                         resultDTO.getMediaId());
+                // Return early - message will be acknowledged and removed from stream
+                return;
+            }
+
             log.info("Retrieved MediaAiInsights for mediaId: {}, postId: {}",
                     mediaAiInsights.getMediaId(), mediaAiInsights.getPost().getPostId());
 
@@ -100,7 +106,7 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             log.info("Successfully processed face detection for mediaId: {} and messageId: {} - created face record with ID: {}",
                     resultDTO.getMediaId(), messageId, savedFace.getId());
 
-        } catch (MediaAiInsightsNotFoundException | StreamDeserializationException | BboxParsingException e) {
+        } catch (StreamDeserializationException | BboxParsingException e) {
             log.error("Error processing face detection message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
             throw e; // Re-throw specific exceptions to prevent XACK
@@ -116,6 +122,7 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
      * --- NEW METHOD ---
      * Tries to find the MediaAiInsights record with exponential backoff.
      * This handles the race condition where this consumer runs before MediaAiInsightsConsumer.
+     * Returns null if the MediaAiInsights is not found after all retries (post was deleted).
      */
     private MediaAiInsights findMediaAiInsightsWithRetry(Long mediaId) {
         long currentDelay = INITIAL_RETRY_DELAY_MS;
@@ -143,9 +150,9 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             }
         }
 
-        log.error("MediaAiInsights not found for mediaId: {} after {} attempts. Giving up.",
+        log.warn("MediaAiInsights not found for mediaId: {} after {} attempts. The post/media may have been deleted. Returning null to acknowledge message.",
                 mediaId, MAX_RETRY_ATTEMPTS);
-        throw new MediaAiInsightsNotFoundException(mediaId);
+        return null; // Return null instead of throwing exception
     }
 
     private FaceDetectionResultDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {

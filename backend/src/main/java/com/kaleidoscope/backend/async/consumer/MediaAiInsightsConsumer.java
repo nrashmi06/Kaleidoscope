@@ -2,26 +2,25 @@ package com.kaleidoscope.backend.async.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.MediaAiInsightsResultDTO;
-import com.kaleidoscope.backend.async.exception.async.PostMediaNotFoundException;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
 import com.kaleidoscope.backend.async.service.PostAggregationTriggerService;
 import com.kaleidoscope.backend.async.service.PostProcessingStatusService;
 import com.kaleidoscope.backend.async.service.ReadModelUpdateService;
-import com.kaleidoscope.backend.posts.repository.PostRepository;
+import com.kaleidoscope.backend.posts.document.SearchAssetDocument;
 import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.posts.repository.PostMediaRepository;
-import com.kaleidoscope.backend.posts.document.SearchAssetDocument;
+import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.SearchAssetSearchRepository;
 import com.kaleidoscope.backend.users.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC; // <-- ADDED FOR CORRELATION ID
+import org.slf4j.MDC;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
@@ -69,11 +68,18 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Successfully deserialized ML insights for mediaId: {}", resultDTO.getMediaId());
 
             // Data Retrieval: Find the corresponding PostMedia entity
+            // Handle case where PostMedia was deleted after ML processing started
             PostMedia postMedia = postMediaRepository.findById(resultDTO.getMediaId())
-                    .orElseThrow(() -> {
-                        log.error("PostMedia not found for mediaId: {}", resultDTO.getMediaId());
-                        return new PostMediaNotFoundException(resultDTO.getMediaId());
-                    });
+                    .orElse(null);
+
+            if (postMedia == null) {
+                log.warn("PostMedia not found for mediaId: {}. The post/media may have been deleted after ML processing started. Acknowledging message to remove from PEL.",
+                         resultDTO.getMediaId());
+                // Return early - message will be acknowledged and removed from stream
+                // This is expected behavior when posts are deleted during processing
+                return;
+            }
+
             log.info("Retrieved PostMedia for mediaId: {}, postId: {}",
                     postMedia.getMediaId(), postMedia.getPost().getPostId());
 
@@ -120,7 +126,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Successfully processed ML insights for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
 
-        } catch (PostMediaNotFoundException | StreamDeserializationException e) {
+        } catch (StreamDeserializationException e) {
             log.error("Error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
             throw e; // Re-throw the exception to ensure transaction rollback and NO XACK

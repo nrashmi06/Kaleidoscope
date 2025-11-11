@@ -1,18 +1,15 @@
 package com.kaleidoscope.backend.async.consumer;
 
 import com.kaleidoscope.backend.async.dto.FaceRecognitionResultDTO;
-import com.kaleidoscope.backend.async.exception.async.MediaDetectedFaceNotFoundException;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
-import com.kaleidoscope.backend.readmodels.model.FaceSearchReadModel;
-import com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel;
-import com.kaleidoscope.backend.readmodels.repository.FaceSearchReadModelRepository;
-import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
-import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.posts.enums.FaceDetectionStatus;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
+import com.kaleidoscope.backend.readmodels.repository.FaceSearchReadModelRepository;
+import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,10 +54,15 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
 
             // Data Retrieval: Find the MediaDetectedFace entity using the faceId
             MediaDetectedFace detectedFace = mediaDetectedFaceRepository.findById(resultDTO.getFaceId())
-                    .orElseThrow(() -> {
-                        log.error("MediaDetectedFace not found for faceId: {}", resultDTO.getFaceId());
-                        return new MediaDetectedFaceNotFoundException(resultDTO.getFaceId());
-                    });
+                    .orElse(null);
+
+            if (detectedFace == null) {
+                log.warn("MediaDetectedFace not found for faceId: {}. The post/media was likely deleted. Acknowledging message to remove from PEL.",
+                         resultDTO.getFaceId());
+                // Return early - message will be acknowledged and removed from stream
+                return;
+            }
+
             log.info("Retrieved MediaDetectedFace for faceId: {}, mediaId: {}",
                     detectedFace.getId(), detectedFace.getMediaAiInsights().getMediaId());
 
@@ -108,7 +110,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             log.info("Successfully processed face recognition for faceId: {} and messageId: {} - updated with suggested user: {}",
                     resultDTO.getFaceId(), messageId, suggestedUser.getUsername());
 
-        } catch (MediaDetectedFaceNotFoundException | UserNotFoundException | StreamDeserializationException e) {
+        } catch (UserNotFoundException | StreamDeserializationException e) {
             log.error("Error processing face recognition message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
             throw e; // Re-throw specific exceptions to prevent XACK
