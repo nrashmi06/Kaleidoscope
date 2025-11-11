@@ -49,7 +49,7 @@ public class NotificationSseServiceImpl implements NotificationSseService {
         SseEmitter existingEmitter = emitters.get(userId);
         if (existingEmitter != null) {
             log.info("[SSE] Removing existing emitter for userId: {} before creating new one", userId);
-            removeEmitter(userId);
+            removeEmitterSilently(userId);
         }
 
         // Create new emitter with timeout
@@ -59,26 +59,33 @@ public class NotificationSseServiceImpl implements NotificationSseService {
         // Set up callbacks for emitter lifecycle
         emitter.onCompletion(() -> {
             log.info("[SSE] Connection completed gracefully for userId: {}", userId);
-            removeEmitter(userId);
+            removeEmitterSilently(userId);
         });
 
         emitter.onTimeout(() -> {
             log.warn("[SSE] Connection timed out after {} ms for userId: {}", SSE_TIMEOUT_MS, userId);
-            removeEmitter(userId);
+            removeEmitterSilently(userId);
         });
 
         emitter.onError((ex) -> {
             log.error("[SSE] Connection error occurred for userId: {} - Error: {}", userId, ex.getMessage(), ex);
-            removeEmitter(userId);
+            removeEmitterSilently(userId);
         });
 
-        // Store the emitter with timestamp
+        // Store the emitter with timestamp BEFORE sending any data
         emitters.put(userId, emitter);
         emitterTimestamps.put(userId, System.currentTimeMillis());
         log.info("[SSE] Successfully registered SSE emitter for userId: {}. Total active connections: {}", userId, emitters.size());
 
         // Send initial count immediately after registration
-        sendInitialCount(userId, emitter);
+        // This must be done synchronously before returning to ensure the emitter is active
+        try {
+            sendInitialCount(userId, emitter);
+        } catch (Exception e) {
+            log.error("[SSE] Failed to send initial count for userId: {}, removing emitter - {}", userId, e.getMessage());
+            removeEmitterSilently(userId);
+            throw new RuntimeException("Failed to initialize SSE connection", e);
+        }
 
         return emitter;
     }
@@ -100,8 +107,32 @@ public class NotificationSseServiceImpl implements NotificationSseService {
         }
     }
 
+    /**
+     * Silently removes an emitter without logging errors (used for cleanup scenarios)
+     */
+    private void removeEmitterSilently(Long userId) {
+        SseEmitter removed = emitters.remove(userId);
+        emitterTimestamps.remove(userId);
+
+        if (removed != null) {
+            try {
+                removed.complete();
+                log.debug("[SSE] Silently removed emitter for userId: {}. Remaining: {}", userId, emitters.size());
+            } catch (Exception e) {
+                // Silently ignore - emitter might already be completed
+                log.trace("[SSE] Emitter already completed for userId: {}", userId);
+            }
+        }
+    }
+
     private void sendInitialCount(Long userId, SseEmitter emitter) {
         log.info("[SSE] Sending initial unread count for userId: {}", userId);
+
+        // Verify the emitter is still registered (not removed during a race condition)
+        if (!emitters.containsKey(userId) || emitters.get(userId) != emitter) {
+            log.warn("[SSE] Emitter was removed or replaced during initialization for userId: {}, aborting send", userId);
+            return;
+        }
 
         String redisKey = String.format(UNREAD_COUNT_KEY_PATTERN, userId);
         Long count = null;
@@ -140,14 +171,24 @@ public class NotificationSseServiceImpl implements NotificationSseService {
             sendCountToEmitter(emitter, count);
             log.info("[SSE] Successfully sent initial unread count {} to userId: {}", count, userId);
 
+        } catch (IllegalStateException e) {
+            // This can happen if the emitter was completed during the process
+            if (e.getMessage() != null && e.getMessage().contains("already completed")) {
+                log.debug("[SSE] Emitter already completed for userId: {} during initial count send", userId);
+            } else {
+                log.error("[SSE] Error sending initial count for userId: {} - {}", userId, e.getMessage());
+                throw e;
+            }
         } catch (Exception e) {
             log.error("[SSE] Error fetching initial count for userId: {} - {}", userId, e.getMessage(), e);
-            // Send zero as fallback
-            try {
-                sendCountToEmitter(emitter, 0L);
-                log.warn("[SSE] Sent fallback count of 0 to userId: {} due to error", userId);
-            } catch (Exception fallbackError) {
-                log.error("[SSE] Failed to send fallback count for userId: {} - {}", userId, fallbackError.getMessage());
+            // Send zero as fallback only if emitter is still valid
+            if (emitters.containsKey(userId) && emitters.get(userId) == emitter) {
+                try {
+                    sendCountToEmitter(emitter, 0L);
+                    log.warn("[SSE] Sent fallback count of 0 to userId: {} due to error", userId);
+                } catch (Exception fallbackError) {
+                    log.debug("[SSE] Failed to send fallback count for userId: {} - {}", userId, fallbackError.getMessage());
+                }
             }
         }
     }
@@ -197,7 +238,7 @@ public class NotificationSseServiceImpl implements NotificationSseService {
             if (age > SSE_TIMEOUT_MS) {
                 log.info("[SSE] Cleaning up stale SSE connection for userId: {} (age: {} ms, timeout: {} ms)",
                         userId, age, SSE_TIMEOUT_MS);
-                removeEmitter(userId);
+                removeEmitterSilently(userId);
                 removedCount++;
             }
         }
