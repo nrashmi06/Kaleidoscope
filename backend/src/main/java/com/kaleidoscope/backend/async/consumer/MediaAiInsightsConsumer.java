@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.async.consumer;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.MediaAiInsightsResultDTO;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
@@ -195,8 +196,33 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 .caption(resultDTO.getCaption())
                 .tags(resultDTO.getTags() != null ? resultDTO.getTags().toArray(new String[0]) : new String[0])
                 .scenes(resultDTO.getScenes() != null ? resultDTO.getScenes().toArray(new String[0]) : new String[0])
-                .imageEmbedding(resultDTO.getImageEmbedding())
+                .imageEmbedding(parseEmbedding(resultDTO.getImageEmbedding()))
                 .build();
+    }
+
+    private float[] parseEmbedding(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            if (raw.startsWith("[")) {
+                List<Double> values = objectMapper.readValue(raw, new TypeReference<>() {});
+                float[] vector = new float[values.size()];
+                for (int i = 0; i < values.size(); i++) {
+                    vector[i] = values.get(i).floatValue();
+                }
+                return vector;
+            }
+            String[] parts = raw.split(",");
+            float[] vector = new float[parts.length];
+            for (int i = 0; i < parts.length; i++) {
+                vector[i] = Float.parseFloat(parts[i].trim());
+            }
+            return vector;
+        } catch (Exception ex) {
+            log.warn("Failed to parse image embedding, returning null", ex);
+            return null;
+        }
     }
 
     private SearchAssetDocument createSearchAssetDocument(PostMedia postMedia, MediaAiInsights insights) {
@@ -234,12 +260,25 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 .caption(insights.getCaption())
                 .tags(insights.getTags() != null ? Arrays.asList(insights.getTags()) : List.of())
                 .scenes(insights.getScenes() != null ? Arrays.asList(insights.getScenes()) : List.of())
-                .imageEmbedding(insights.getImageEmbedding())
+                .imageEmbedding(convertEmbeddingToString(insights.getImageEmbedding()))
                 .detectedUsers(detectedUsers) // Initialize empty - populated by face pipeline
                 .reactionCount(0) // Initialize to 0 - updated by separate reaction events
                 .commentCount(0) // Initialize to 0 - updated by separate comment events
                 .createdAt(post.getCreatedAt().atOffset(java.time.ZoneOffset.UTC))
                 .lastUpdated(java.time.OffsetDateTime.now())
                 .build();
+    }
+
+    private String convertEmbeddingToString(float[] embedding) {
+        if (embedding == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < embedding.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(embedding[i]);
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }
