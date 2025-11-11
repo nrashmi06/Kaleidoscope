@@ -1,6 +1,7 @@
-import axios from 'axios';
+
 import { UsersResponse } from '@/lib/types/post';
 import { PostMapper } from '@/mapper/postMapper';
+import axiosInstance from '@/hooks/axios';
 
 export const searchUsers = async (
   accessToken: string,
@@ -8,7 +9,7 @@ export const searchUsers = async (
   page: number = 0,
   size: number = 20
 ): Promise<UsersResponse> => {
-  const response = await axios.get<UsersResponse>(
+  const response = await axiosInstance.get<UsersResponse>(
     `${PostMapper.searchUsers}?search=${encodeURIComponent(query)}&page=${page}&size=${size}`,
     {
       headers: {

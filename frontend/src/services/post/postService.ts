@@ -27,7 +27,7 @@ export async function getPostById(
   accessToken?: string
 ): Promise<SinglePostResponse> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL || 'http://localhost:8080';
-  const url = `${baseUrl}/kaleidoscope/api/posts/${postId}`;
+  const url = `${baseUrl}/api/posts/${postId}`;
 
   try {
     const headers: HeadersInit = {

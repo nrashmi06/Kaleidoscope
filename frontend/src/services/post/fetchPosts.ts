@@ -1,9 +1,12 @@
+import axiosInstance from "@/hooks/axios";
+import axios, { AxiosError } from "axios";
+
 export interface Post {
   postId: number;
   title: string;
   body?: string;
   summary: string;
-  visibility: "PUBLIC" | "FOLLOWERS" ;
+  visibility: "PUBLIC" | "FOLLOWERS";
   createdAt: string;
   updatedAt?: string;
   author: {
@@ -62,77 +65,96 @@ export interface FetchPostsResponse {
   path: string;
 }
 
+/** Define a strict type for Axios error response shape */
+interface ApiErrorResponse {
+  message?: string;
+  status?: number;
+  timestamp?: string | number;
+  path?: string;
+}
+
+/** Strict return type */
+interface FetchPostsResult {
+  success: boolean;
+  data?: FetchPostsResponse;
+  error?: string;
+}
+
 export const fetchPostsService = async (
   accessToken: string,
   options?: {
     page?: number;
     size?: number;
-    sort?: string; // Changed to match backend format: "createdAt,desc"
-    sortBy?: string; // Keep for backward compatibility
-    sortDirection?: "ASC" | "DESC"; // Keep for backward compatibility
+    sort?: string;
+    sortBy?: string;
+    sortDirection?: "ASC" | "DESC";
   }
-): Promise<{ success: boolean; data?: FetchPostsResponse; error?: string }> => {
+): Promise<FetchPostsResult> => {
   try {
     const params = new URLSearchParams();
-    
-    if (options?.page !== undefined) params.append('page', options.page.toString());
-    if (options?.size !== undefined) params.append('size', options.size.toString());
-    
-    // Handle sort parameter - prefer new format, fallback to old format
+
+    if (options?.page !== undefined) params.append("page", options.page.toString());
+    if (options?.size !== undefined) params.append("size", options.size.toString());
+
+    // Handle sort logic
     if (options?.sort) {
-      params.append('sort', options.sort);
+      params.append("sort", options.sort);
     } else if (options?.sortBy && options?.sortDirection) {
-      // Convert old format to new format
-      const direction = options.sortDirection.toLowerCase();
-      params.append('sort', `${options.sortBy},${direction}`);
+      params.append("sort", `${options.sortBy},${options.sortDirection.toLowerCase()}`);
     } else if (options?.sortBy) {
-      // Default to desc if no direction specified
-      params.append('sort', `${options.sortBy},desc`);
+      params.append("sort", `${options.sortBy},desc`);
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL 
-    const url = `${baseUrl}/api/posts${params.toString() ? `?${params.toString()}` : ''}`;
-    
-    console.log('Fetching posts from:', url);
-    
-    const response = await fetch(url, {
-      method: "GET",
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL ?? "";
+    const url = `${baseUrl}/api/posts`;
+
+    console.log("Fetching posts from:", `${url}?${params.toString()}`);
+
+    const response = await axiosInstance.get<FetchPostsResponse>(url, {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
+      params,
     });
 
-    console.log('Posts fetch response status:', response.status);
+    console.log("Posts fetch response:", response.data);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('API Error Response:', errorData);
+    if (!response.data.success) {
       return {
         success: false,
-        error: errorData.message || "Failed to fetch posts",
+        error: response.data.message || "Backend returned unsuccessful response",
       };
     }
 
-    const responseData = await response.json();
-    console.log('Posts fetch response:', responseData);
-    
-    if (!responseData.success) {
-      return {
-        success: false,
-        error: responseData.message || "Backend returned unsuccessful response",
-      };
-    }
-    
     return {
       success: true,
-      data: responseData,
+      data: response.data,
     };
-  } catch (error) {
-    console.error('Network error fetching posts:', error);
+  } catch (error: unknown) {
+    // Ensure `error` is narrowed to AxiosError<ApiErrorResponse>
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const message =
+        axiosError.response?.data?.message ??
+        axiosError.message ??
+        "Unknown API error";
+
+      console.error("Axios error response:", axiosError.response?.data);
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+
+    // Fallback for unexpected errors (non-Axios)
+    const genericError =
+      error instanceof Error ? error.message : "Unknown network error";
+    console.error("Unexpected error fetching posts:", error);
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Network error occurred",
+      error: genericError,
     };
   }
 };

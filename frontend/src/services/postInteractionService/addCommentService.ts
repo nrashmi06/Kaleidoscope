@@ -1,9 +1,10 @@
-import axios, { AxiosError } from "axios";
+import axios,  { AxiosError } from "axios";
 import { PostCommentMapper } from "@/mapper/postCommentMapper";
 import {
   AddCommentRequest,
   AddCommentResponse,
 } from "@/lib/types/comment";
+import { axiosInstance } from "@/hooks/axios";
 
 /**
  * Service to add a comment to a post.
@@ -16,7 +17,7 @@ export const addCommentService = async (
   const url = PostCommentMapper.addComment(postId);
 
   try {
-    const response = await axios.post<AddCommentResponse>(url, payload, {
+    const response = await axiosInstance.post<AddCommentResponse>(url, payload, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",

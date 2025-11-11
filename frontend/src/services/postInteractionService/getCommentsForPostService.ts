@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { PostCommentMapper } from "@/mapper/postCommentMapper";
 import { CommentsListResponse } from "@/lib/types/comment";
+import axiosInstance from "@/hooks/axios";
 
 /**
  * Fetch comments for a given post
@@ -19,7 +20,7 @@ export const getCommentsForPostService = async (
   accessToken: string
 ): Promise<CommentsListResponse> => {
   try {
-    const response = await axios.get<CommentsListResponse>(
+    const response = await axiosInstance.get<CommentsListResponse>(
       PostCommentMapper.getCommentsForPost(postId, page, size, sort),
       {
         params: { page, size },

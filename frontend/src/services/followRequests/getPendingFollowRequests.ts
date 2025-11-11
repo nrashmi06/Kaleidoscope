@@ -4,13 +4,22 @@ import type {
   GetPendingFollowRequestsResponse,
   GetPendingFollowRequestsParams,
 } from "@/lib/types/followRequests";
+// ✅ 1. Import axios instance and error types
+import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
 
 export const getPendingFollowRequestsService = async (
   accessToken: string | null,
   options: GetPendingFollowRequestsParams = {}
 ): Promise<{ success: boolean; data?: GetPendingFollowRequestsResponse; error?: string }> => {
   try {
+    // ✅ 2. Token check (same as before)
+    if (!accessToken) {
+      return { success: false, error: "Authentication token is missing." };
+    }
+    
     const base = FollowMapper.pendingRequests();
+
+    // ✅ 3. Replicate params logic exactly as before
     const search = new URLSearchParams();
 
     if (options.page !== undefined) search.append("page", String(options.page));
@@ -21,26 +30,45 @@ export const getPendingFollowRequestsService = async (
         ? options.sort
         : ["createdAt,desc"]; 
     
+    // Append each sort item individually to match 'fetch' behavior
     sortOptions.forEach(s => search.append("sort", s));
 
-    const url = `${base}?${search.toString()}`;
+    // ✅ 4. Define axios config
+    const config = {
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}` 
+      },
+      // Pass the manually constructed URLSearchParams
+      params: search
+    };
 
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+    // ✅ 5. Call axiosInstance.get
+    const res = await axiosInstance.get<GetPendingFollowRequestsResponse>(base, config);
 
-    const res = await fetch(url, { method: "GET", headers });
-    const responseData = await res.json();
+    const responseData = res.data;
     
-    if (!res.ok) {
-        // Handle 401 Unauthorized case
-        if (res.status === 401) {
-            return { success: false, error: "Unauthorized access or invalid token." };
-        }
-        return { success: false, error: responseData?.message || `HTTP ${res.status}: Failed to fetch pending follow requests` };
+    // ✅ 6. Check for backend-defined success flag
+    if (!responseData.success || !responseData.data) {
+      return { success: false, error: responseData?.message || `Failed to fetch pending follow requests` };
     }
 
-    return { success: true, data: responseData as GetPendingFollowRequestsResponse };
+    return { success: true, data: responseData };
+    
   } catch (err) {
+    // ✅ 7. Use isAxiosError to handle non-2xx responses
+    if (isAxiosError(err)) {
+      const error = err as AxiosError<GetPendingFollowRequestsResponse>;
+      const responseData = error.response?.data;
+
+      // Handle 401 Unauthorized case
+      if (error.response?.status === 401) {
+          return { success: false, error: "Unauthorized access or invalid token." };
+      }
+      return { success: false, error: responseData?.message || `HTTP ${error.response?.status}: Failed to fetch pending follow requests` };
+    }
+
+    // Fallback for non-network errors
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 };

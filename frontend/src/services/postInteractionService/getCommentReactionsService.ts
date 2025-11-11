@@ -1,6 +1,7 @@
 import { CommentReactionMapper } from "@/mapper/commentReactionMapper";
 import { ReactionSummaryResponse } from "@/lib/types/reaction";
 import axios, { AxiosError } from "axios";
+import axiosInstance from "@/hooks/axios";
 
 export const getCommentReactionsService = {
   /* -------------------------------------------------------------------------- */
@@ -13,7 +14,7 @@ export const getCommentReactionsService = {
   ): Promise<ReactionSummaryResponse> {
     try {
       const url = CommentReactionMapper.getReactionsForComment(postId, commentId);
-      const response = await axios.get<ReactionSummaryResponse>(url, {
+      const response = await axiosInstance.get<ReactionSummaryResponse>(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",

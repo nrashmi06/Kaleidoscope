@@ -1,6 +1,5 @@
 // services/user_preferences/updateLanguage.ts
-
-import axios from "axios";
+import { axiosInstance } from "@/hooks/axios";
 import {
   UpdateLanguageData,
   UserPreferencesAPIResponse,
@@ -10,6 +9,6 @@ import { UserPreferencesMapper } from "@/mapper/user-preferences";
 export const updateLanguage = async (
   payload: UpdateLanguageData
 ): Promise<UserPreferencesAPIResponse> => {
-  const response = await axios.patch(UserPreferencesMapper.updateLanguage, payload);
+  const response = await axiosInstance.patch(UserPreferencesMapper.updateLanguage, payload);
   return response.data; 
 };

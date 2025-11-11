@@ -1,30 +1,59 @@
 import FollowMapper from "@/mapper/followMapper";
 import type { UnfollowResponse } from "@/lib/types/follow";
+// ✅ 1. Import axios instance and error types
+import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
 
 const unfollowUserService = async (
   accessToken: string | null,
   targetUserId: number
 ): Promise<{ success: boolean; data?: UnfollowResponse; error?: string }> => {
   try {
+    // ✅ 2. Token check
+    if (!accessToken) {
+      return { success: false, error: "Authentication token is missing." };
+    }
+
     const url = FollowMapper.unfollow(targetUserId);
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+    // ✅ 3. Define axios config (headers)
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      // Note: No request body is needed for this DELETE request
+      // as the targetUserId is in the URL query parameter.
     };
-    if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
 
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers,
-    });
+    // ✅ 4. Call axiosInstance.delete
+    const response = await axiosInstance.delete<UnfollowResponse>(url, config);
 
-    const responseData = await res.json();
-    if (!res.ok) {
+    const responseData = response.data;
+
+    // ✅ 5. Check backend-defined success flag
+    if (!responseData.success) {
       return { success: false, error: responseData?.message || "Failed to unfollow user" };
     }
 
-    return { success: true, data: responseData as UnfollowResponse };
+    return { success: true, data: responseData };
+
   } catch (err) {
+    // ✅ 6. Use isAxiosError to handle non-2xx responses
+    if (isAxiosError(err)) {
+      const error = err as AxiosError<UnfollowResponse>;
+      const responseData = error.response?.data;
+
+      if (error.response?.status === 401) {
+        return { success: false, error: "Unauthorized. Please log in again." };
+      }
+      if (error.response?.status === 404) {
+         return { success: false, error: responseData?.message || "User not found." };
+      }
+      
+      return { success: false, error: responseData?.message || `HTTP ${error.response?.status}: Failed to unfollow user` };
+    }
+
+    // Fallback for non-network errors
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 };

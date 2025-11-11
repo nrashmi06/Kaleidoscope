@@ -86,7 +86,7 @@ export async function getTagsByContent(
   const contentType = validateContentType(params.contentType);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL || 'http://localhost:8080';
   const queryString = buildQueryString(params.queryParams || {});
-  const url = `${baseUrl}/kaleidoscope/api/content/${contentType}/${params.contentId}/tags${queryString}`;
+  const url = `${baseUrl}/api/content/${contentType}/${params.contentId}/tags${queryString}`;
 
   try {
     const headers: HeadersInit = {

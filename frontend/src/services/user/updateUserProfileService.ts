@@ -2,6 +2,7 @@
 import { UserMapper } from "@/mapper/userMapper";
 import { UserProfileUpdateResponse } from "@/lib/types/userProfileUpdate";
 import axios, { AxiosError } from "axios";
+import axiosInstance from "@/hooks/axios";
 
 /**
  * Sends a PUT request to update the user's profile using multipart/form-data.
@@ -16,7 +17,7 @@ export async function updateUserProfileService(
   const url = UserMapper.updateUserProfileDetails;
 
   try {
-    const response = await axios.put<UserProfileUpdateResponse>(
+    const response = await axiosInstance.put<UserProfileUpdateResponse>(
       url,
       formData,
       {

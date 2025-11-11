@@ -1,85 +1,152 @@
-// Define the expected response structure from the API
+import axiosInstance from "@/hooks/axios";
+import axios, { AxiosError } from "axios";
+
+// ✅ Define the exact backend response structure
 export interface ReactToPostResponse {
   success: boolean;
   message: string;
-  data?: any;
-  errors: any[];
+  data?: Record<string, unknown> | null; // Avoid 'any'
+  errors: unknown[];
+}
+
+/** ✅ Define error shape from backend */
+interface ApiErrorResponse {
+  message?: string;
+  status?: number;
+  timestamp?: string | number;
+  path?: string;
+  errors?: unknown[];
+}
+
+/** ✅ Define strict result type for our functions */
+interface ReactToPostResult {
+  success: boolean;
+  data?: ReactToPostResponse;
+  error?: string;
 }
 
 /**
- * Sends a request to the backend to add or update a reaction on a post.
+ * ✅ Adds or updates a "LIKE" reaction on a post.
  */
 export const likePostService = async (
   postId: number,
   accessToken: string
-): Promise<{ success: boolean; data?: ReactToPostResponse; error?: string }> => {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/posts/${postId}/reactions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        reactionType: "LIKE" // Hardcoding LIKE as per the social card's functionality
-      }),
-    });
+): Promise<ReactToPostResult> => {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL ?? "";
+  const endpoint = `${baseUrl}/api/posts/${postId}/reactions`;
 
-    if (!response.ok) {
-      const errorData = await response.json();
+  try {
+    const response = await axiosInstance.post<ReactToPostResponse>(
+      endpoint,
+      { reactionType: "LIKE" },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const responseData = response.data;
+
+    if (!responseData.success) {
       return {
         success: false,
-        error: errorData.message || "Failed to like post",
+        error: responseData.message || "Backend returned unsuccessful response",
       };
     }
 
-    const data: ReactToPostResponse = await response.json();
     return {
       success: true,
-      data,
+      data: responseData,
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const message =
+        axiosError.response?.data?.message ??
+        axiosError.message ??
+        "Unknown API error";
+
+      console.error("❌ [likePostService] Axios error:", axiosError.response?.data);
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+
+    const fallbackMessage =
+      error instanceof Error ? error.message : "Unexpected network error";
+
+    console.error("❌ [likePostService] Unexpected error:", error);
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : "An unexpected error occurred",
+      error: fallbackMessage,
     };
   }
 };
 
 /**
- * Sends a request to the backend to unlike (remove a reaction from) a post.
+ * ✅ Removes a "LIKE" (unreact) from a post.
  */
 export const unlikePostService = async (
   postId: number,
   accessToken: string
-): Promise<{ success: boolean; data?: ReactToPostResponse; error?: string }> => {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/kaleidoscope/api/posts/${postId}/reactions?unreact=true`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json", // Important for CORS preflight consistency
-        "Authorization": `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({}), // Sending an empty JSON body ensures CORS preflight works correctly
-    });
+): Promise<ReactToPostResult> => {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL ?? "";
+  const endpoint = `${baseUrl}/api/posts/${postId}/reactions?unreact=true`;
 
-    if (!response.ok) {
-      const errorData = await response.json();
+  try {
+    const response = await axiosInstance.post<ReactToPostResponse>(
+      endpoint,
+      {}, // Sending empty object for CORS consistency
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const responseData = response.data;
+
+    if (!responseData.success) {
       return {
         success: false,
-        error: errorData.message || "Failed to unlike post",
+        error: responseData.message || "Backend returned unsuccessful response",
       };
     }
 
-    const data: ReactToPostResponse = await response.json();
     return {
       success: true,
-      data,
+      data: responseData,
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const message =
+        axiosError.response?.data?.message ??
+        axiosError.message ??
+        "Unknown API error";
+
+      console.error("❌ [unlikePostService] Axios error:", axiosError.response?.data);
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+
+    const fallbackMessage =
+      error instanceof Error ? error.message : "Unexpected network error";
+
+    console.error("❌ [unlikePostService] Unexpected error:", error);
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : "An unexpected error occurred",
+      error: fallbackMessage,
     };
   }
 };

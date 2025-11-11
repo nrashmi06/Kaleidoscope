@@ -1,6 +1,8 @@
 // src/services/followRequests/rejectFollowRequest.ts
 import FollowMapper from "@/mapper/followMapper";
 import type { FollowRequestActionResponse } from "@/lib/types/followRequests";
+// ✅ 1. Import axios instance and error types
+import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
 
 /**
  * Sends a DELETE request to reject a pending follow request.
@@ -14,40 +16,56 @@ export const rejectFollowRequestService = async (
   requesterUserId: number
 ): Promise<{ success: boolean; data?: FollowRequestActionResponse; error?: string }> => {
   try {
+    // ✅ 2. Token check (same as before)
     if (!accessToken) {
       return { success: false, error: "Authentication token is missing." };
     }
     
-    // Endpoint: /api/follows/requests/reject?requesterUserId={id}
+    // Endpoint: /api/follows/requests/reject
     const base = FollowMapper.rejectRequest();
-    const url = `${base}?requesterUserId=${requesterUserId}`;
 
-    const headers: Record<string, string> = { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${accessToken}` 
+    // ✅ 3. Define axios config for headers and params
+    const config = {
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}` 
+      },
+      // Axios will append this as a query param: ?requesterUserId=...
+      params: {
+        requesterUserId: requesterUserId
+      }
+      // No 'data' (body) needed for this DELETE
     };
 
-    // Use DELETE method as required by API details
-    const res = await fetch(url, { 
-      method: "DELETE", 
-      headers,
-    });
+    // ✅ 4. Call axiosInstance.delete
+    const res = await axiosInstance.delete<FollowRequestActionResponse>(base, config);
 
-    const responseData = await res.json();
+    const responseData = res.data;
     
-    if (!res.ok) {
-        // Handle 401, 404, or other errors gracefully
-        if (res.status === 401) {
-            return { success: false, error: "Unauthorized access or invalid token." };
-        }
-        if (res.status === 404 && responseData?.message === "Follow request not found") {
-            return { success: false, error: "The pending follow request was not found." };
-        }
-        return { success: false, error: responseData?.message || `HTTP ${res.status}: Failed to reject follow request` };
+    // ✅ 5. Check for backend-defined success flag
+    if (!responseData.success) {
+      return { success: false, error: responseData?.message || "Failed to reject follow request" };
     }
 
-    return { success: true, data: responseData as FollowRequestActionResponse };
+    return { success: true, data: responseData };
+
   } catch (err) {
+    // ✅ 6. Use isAxiosError to handle non-2xx responses
+    if (isAxiosError(err)) {
+      const error = err as AxiosError<FollowRequestActionResponse>;
+      const responseData = error.response?.data;
+
+      // Handle 401, 404, or other errors gracefully
+      if (error.response?.status === 401) {
+          return { success: false, error: "Unauthorized access or invalid token." };
+      }
+      if (error.response?.status === 404 && responseData?.message === "Follow request not found") {
+          return { success: false, error: "The pending follow request was not found." };
+      }
+      return { success: false, error: responseData?.message || `HTTP ${error.response?.status}: Failed to reject follow request` };
+    }
+
+    // Fallback for non-network errors
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 };
