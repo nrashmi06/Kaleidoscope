@@ -96,15 +96,16 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     }
 
     /**
-     * --- NEW METHOD ---
+     * --- UPDATED METHOD ---
      * Tries to find the MediaAiInsights record with exponential backoff.
+     * Uses findByMediaId instead of findById to be explicit about the lookup.
      * This handles the race condition where this consumer runs before MediaAiInsightsConsumer.
      * Returns null if the MediaAiInsights is not found after all retries (post was deleted).
      */
     private MediaAiInsights findMediaAiInsightsWithRetry(Long mediaId) {
         long currentDelay = INITIAL_RETRY_DELAY_MS;
         for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
-            Optional<MediaAiInsights> insights = mediaAiInsightsRepository.findById(mediaId);
+            Optional<MediaAiInsights> insights = mediaAiInsightsRepository.findByMediaId(mediaId);
             if (insights.isPresent()) {
                 if (attempt > 1) {
                     log.info("Found MediaAiInsights for mediaId: {} on attempt {}", mediaId, attempt);

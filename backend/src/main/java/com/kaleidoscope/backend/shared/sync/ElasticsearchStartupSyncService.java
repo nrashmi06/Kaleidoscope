@@ -86,8 +86,14 @@ public class ElasticsearchStartupSyncService {
             //
             log.info("Starting Redis Stream Message Listener Container...");
             streamMessageListenerContainer.start();
-            log.info("✅ Redis Stream consumers started successfully after data sync.");
 
+            // Verify the container is actually running
+            if (streamMessageListenerContainer.isRunning()) {
+                log.info("✅ Redis Stream consumers started successfully after data sync.");
+                log.info("📡 Consumers are now actively polling for messages using offset '>' (new + pending messages)");
+            } else {
+                log.error("❌ Redis Stream container failed to start! Consumers will not process messages.");
+            }
 
         } catch (Exception e) {
             log.error("==================== ELASTICSEARCH STARTUP SYNC FAILED ====================", e);

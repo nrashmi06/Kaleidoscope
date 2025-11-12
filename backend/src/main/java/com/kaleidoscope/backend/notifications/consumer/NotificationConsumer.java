@@ -50,8 +50,14 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
     public void onMessage(MapRecord<String, String, String> record) {
         // Retrieve the message ID for logging/XACK reference
         String messageId = record.getId().getValue();
+        String streamName = record.getStream();
+
+        log.info("==================== NOTIFICATION CONSUMER INVOKED ====================");
+        log.info("Stream: {}, MessageID: {}, Thread: {}", streamName, messageId, Thread.currentThread().getName());
+        log.info("Raw Record Value: {}", record.getValue());
+
         try {
-            log.info("Received notification event from stream: {}, messageId: {}", record.getStream(), messageId);
+            log.info("Received notification event from stream: {}, messageId: {}", streamName, messageId);
 
             // Deserialize the event
             NotificationEventDTO event = convertMapRecordToDTO(record);
@@ -156,13 +162,16 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
                         event.recipientUserId(), event.type());
             }
 
+            log.info("✅ Successfully processed notification event - messageId: {}, type: {}, recipientUserId: {}",
+                    messageId, event.type(), event.recipientUserId());
+
         } catch (StreamDeserializationException e) {
             log.error("Error deserializing notification event from stream: {}, messageId: {}, error: {}",
-                    record.getStream(), messageId, e.getMessage(), e);
+                    streamName, messageId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
             log.error("Error processing notification event from stream: {}, messageId: {}, error: {}. Message will remain in PEL.",
-                    record.getStream(), messageId, e.getMessage(), e);
+                    streamName, messageId, e.getMessage(), e);
             throw e; // CRITICAL FIX: Re-throw to prevent XACK on failure and avoid data loss
         }
     }
