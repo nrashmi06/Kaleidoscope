@@ -49,10 +49,18 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI customOpenAPI() {
+    public OpenAPI customOpenAPI(
+            @org.springframework.beans.factory.annotation.Value("${spring.app.base-url:http://localhost:8080}") String baseUrl,
+            @org.springframework.beans.factory.annotation.Value("${server.servlet.context-path:/kaleidoscope}") String contextPath
+    ) {
+        String serverUrl = baseUrl + contextPath;
+
         return new OpenAPI()
                 .addServersItem(new Server()
-                        .url("/")
-                        .description("Current Server"));
+                        .url(serverUrl)
+                        .description("Production Server"))
+                .addServersItem(new Server()
+                        .url(contextPath)
+                        .description("Relative Path (Alternative)"));
     }
 }
