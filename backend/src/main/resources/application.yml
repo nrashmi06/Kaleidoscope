@@ -73,6 +73,20 @@ spring:
 server:
   servlet:
     context-path: ${CONTEXT_PATH:/kaleidoscope}
+  forward-headers-strategy: framework
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    disable-swagger-default-url: true
+  use-management-port: false
+  use-root-path: false
 
 allowed:
   origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}

@@ -7,8 +7,9 @@ import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-// We no longer need this import
-// import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
@@ -26,12 +27,6 @@ import org.springframework.context.annotation.Configuration;
                         url = "https://opensource.org/licenses/MIT"
                 )
         ),
-        // --- THIS BLOCK WAS REMOVED ---
-        // servers = {
-        //     @Server(url = "http://localhost:8080", description = "Development Server"),
-        //     @Server(url = "https://api.kaleidoscope.com", description = "Production Server")
-        // },
-        // --- END OF REMOVED BLOCK ---
         security = {
                 @SecurityRequirement(name = "Bearer Authentication"),
                 @SecurityRequirement(name = "Cookie Authentication")
@@ -52,5 +47,12 @@ import org.springframework.context.annotation.Configuration;
         description = "HTTP-only cookie for refresh token"
 )
 public class OpenApiConfig {
-    // Configuration is handled via annotations
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .addServersItem(new Server()
+                        .url("/")
+                        .description("Current Server"));
+    }
 }

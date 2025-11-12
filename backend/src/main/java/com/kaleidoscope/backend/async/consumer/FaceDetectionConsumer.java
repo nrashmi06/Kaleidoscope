@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.async.consumer;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.FaceDetectionResultDTO;
 import com.kaleidoscope.backend.async.exception.async.BboxParsingException;
@@ -23,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component // Changed from @Service for injection into RedisStreamConfig
 @RequiredArgsConstructor
@@ -43,73 +43,50 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
-        // Retrieve the message ID for logging/XACK reference
         String messageId = record.getId().getValue();
         Map<String, String> value = record.getValue();
         String correlationId = value.get("correlationId");
 
         try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
-
             log.info("Received face detection message from Redis Stream: streamKey={}, messageId={}",
                     record.getStream(), messageId);
 
-            // Deserialization: Convert the incoming MapRecord message into FaceDetectionResultDTO
             FaceDetectionResultDTO resultDTO = convertMapRecordToDTO(record);
-            log.info("Successfully deserialized face detection for mediaId: {}, bbox: {}",
-                    resultDTO.getMediaId(), resultDTO.getBbox());
+            List<FaceDetectionResultDTO.FaceDetails> faces = resultDTO.getFaces();
+            int detectedCount = resultDTO.getFacesDetected() != null
+                    ? resultDTO.getFacesDetected()
+                    : (faces != null ? faces.size() : 0);
 
-            // Handle empty bbox (no faces detected) - this is a valid ML result
-            if (resultDTO.getBbox() == null || resultDTO.getBbox().isEmpty()) {
-                log.info("No faces detected for mediaId: {} - this is a valid ML result, acknowledging message",
-                        resultDTO.getMediaId());
-                // Message will be acknowledged successfully without creating face records
+            if (detectedCount == 0 || faces == null || faces.isEmpty()) {
+                log.info("No faces detected for mediaId: {} - acknowledging message", resultDTO.getMediaId());
                 return;
             }
 
-            // Validate bbox has 4 coordinates
-            if (resultDTO.getBbox().size() != 4) {
-                log.warn("Invalid bbox for mediaId: {} - expected 4 coordinates, got {}. Acknowledging message.",
-                        resultDTO.getMediaId(), resultDTO.getBbox().size());
-                // Acknowledge the message to prevent reprocessing of invalid data
-                return;
-            }
-
-            // Data Retrieval with Retry: Find the corresponding MediaAiInsights entity
             MediaAiInsights mediaAiInsights = findMediaAiInsightsWithRetry(resultDTO.getMediaId());
-
             if (mediaAiInsights == null) {
-                log.warn("MediaAiInsights not found for mediaId: {} after retries. The post/media was likely deleted. Acknowledging message to remove from PEL.",
+                log.warn("MediaAiInsights not found for mediaId: {} after retries. Acknowledging message.",
                          resultDTO.getMediaId());
-                // Return early - message will be acknowledged and removed from stream
                 return;
             }
 
-            log.info("Retrieved MediaAiInsights for mediaId: {}, postId: {}",
-                    mediaAiInsights.getMediaId(), mediaAiInsights.getPost().getPostId());
+            log.info("Processing {} faces for mediaId: {}", faces.size(), mediaAiInsights.getMediaId());
 
-            // Create and save MediaDetectedFace entity
-            MediaDetectedFace detectedFace = createMediaDetectedFaceEntity(resultDTO, mediaAiInsights);
-            MediaDetectedFace savedFace = mediaDetectedFaceRepository.save(detectedFace);
-            log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}",
-                    mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
+            for (FaceDetectionResultDTO.FaceDetails face : faces) {
+                MediaDetectedFace detectedFace = createMediaDetectedFaceEntity(face, mediaAiInsights);
+                MediaDetectedFace savedFace = mediaDetectedFaceRepository.save(detectedFace);
+                readModelUpdateService.createFaceSearchReadModel(savedFace);
+                elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
+                log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}",
+                        mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
+            }
 
-
-            // 1. Create the new 'read_model_face_search' record
-            readModelUpdateService.createFaceSearchReadModel(savedFace);
-
-            // 2. Trigger ES Sync for the new face record
-            // Use savedFace.getId() which is the auto-generated primary key
-            elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
-
-            // --- END AI INTEGRATION ---
-
-            log.info("Successfully processed face detection for mediaId: {} and messageId: {} - created face record with ID: {}",
-                    resultDTO.getMediaId(), messageId, savedFace.getId());
+            log.info("Successfully processed face detection for mediaId: {} and messageId: {}",
+                    resultDTO.getMediaId(), messageId);
 
         } catch (StreamDeserializationException | BboxParsingException e) {
             log.error("Error processing face detection message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
-            throw e; // Re-throw specific exceptions to prevent XACK
+            throw e;
         } catch (Exception e) {
             log.error("Unexpected error processing face detection message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
@@ -158,18 +135,21 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     private FaceDetectionResultDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {
         try {
             Map<String, String> recordValue = record.getValue();
-            log.debug("Converting MapRecord to FaceDetectionResultDTO with {} fields", recordValue.size());
+
+            List<FaceDetectionResultDTO.FaceDetails> faces = recordValue.get("faces") != null
+                    ? objectMapper.readValue(
+                            recordValue.get("faces"),
+                            new TypeReference<List<FaceDetectionResultDTO.FaceDetails>>() {})
+                    : List.of();
 
             return FaceDetectionResultDTO.builder()
                     .mediaId(Long.parseLong(recordValue.get("mediaId")))
                     .postId(recordValue.get("postId") != null ? Long.parseLong(recordValue.get("postId")) : null)
-                    .faceId(recordValue.get("faceId"))
-                    .confidence(recordValue.get("confidence") != null ? Double.parseDouble(recordValue.get("confidence")) : null)
-                    .bbox(parseIntegerList(recordValue.get("bbox")))
-                    .embedding(recordValue.get("embedding"))
+                    .facesDetected(recordValue.get("facesDetected") != null
+                            ? Integer.parseInt(recordValue.get("facesDetected"))
+                            : faces.size())
+                    .faces(faces)
                     .build();
-        } catch (BboxParsingException e) {
-            throw e; // Re-throw BboxParsingException as-is
         } catch (Exception e) {
             log.error("Failed to convert MapRecord to FaceDetectionResultDTO: {}", e.getMessage(), e);
             throw new StreamDeserializationException(record.getStream(), record.getId().getValue(),
@@ -177,45 +157,20 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
         }
     }
 
-    private List<Integer> parseIntegerList(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            log.warn("Empty bbox value received");
-            return List.of();
-        }
+    private MediaDetectedFace createMediaDetectedFaceEntity(
+            FaceDetectionResultDTO.FaceDetails face, MediaAiInsights mediaAiInsights) {
 
-        try {
-            // Handle JSON array format: [x, y, width, height]
-            if (value.startsWith("[") && value.endsWith("]")) {
-                List<String> stringList = objectMapper.readValue(value, List.class);
-                return stringList.stream()
-                        .map(Integer::parseInt)
-                        .collect(Collectors.toList());
-            }
-
-            // Handle comma-separated format: "x,y,width,height"
-            String[] parts = value.split(",");
-            return java.util.Arrays.stream(parts)
-                    .map(String::trim)
-                    .map(Integer::parseInt)
-                    .collect(Collectors.toList());
-
-        } catch (Exception e) {
-            log.error("Failed to parse bbox coordinates: {}, error: {}", value, e.getMessage());
-            throw new BboxParsingException(value, e);
-        }
-    }
-
-    private MediaDetectedFace createMediaDetectedFaceEntity(FaceDetectionResultDTO resultDTO, MediaAiInsights mediaAiInsights) {
-        log.debug("Creating MediaDetectedFace entity for mediaId: {}", resultDTO.getMediaId());
-
-        // Convert List<Integer> to Integer[] for the entity
-        Integer[] bboxArray = resultDTO.getBbox() != null ?
-                resultDTO.getBbox().toArray(new Integer[0]) : new Integer[0];
+        Integer[] bboxArray = face.getBbox() != null
+                ? face.getBbox().stream()
+                        .map(value -> value != null ? value.intValue() : null)
+                        .toArray(Integer[]::new)
+                : new Integer[0];
 
         return MediaDetectedFace.builder()
                 .mediaAiInsights(mediaAiInsights)
                 .bbox(bboxArray)
-                .embedding(resultDTO.getEmbedding())
+                .embedding(face.getEmbedding())
+                .confidenceScore(face.getConfidence() != null ? face.getConfidence().floatValue() : null)
                 .status(FaceDetectionStatus.UNIDENTIFIED)
                 .build();
     }
