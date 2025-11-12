@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -38,14 +39,20 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    @Async("taskExecutor")
     public void sendPasswordResetEmail(String email, String code) {
         logger.info("Starting to send password reset email to: {}", email);
-        String subject = "Reset your password";
-        Context context = new Context();
-        context.setVariable("code", code);
-        String body = templateEngine.process("passwordResetEmailTemplate", context);
-        sendHtmlEmail(email, subject, body);
-        logger.info("Password reset email sent to: {}", email);
+        try {
+            String subject = "Reset your password";
+            Context context = new Context();
+            context.setVariable("code", code);
+            String body = templateEngine.process("passwordResetEmailTemplate", context);
+            sendHtmlEmail(email, subject, body);
+            logger.info("Password reset email sent to: {}", email);
+        } catch (Exception e) {
+            logger.error("Failed to send password reset email to: {}", email, e);
+            // Don't rethrow - async method should handle errors gracefully
+        }
     }
 
     private void sendHtmlEmail(String to, String subject, String body) {
@@ -63,20 +70,27 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    @Async("taskExecutor")
     public void sendVerificationEmail(String email, String code) {
         logger.info("Starting to send verification email to: {}", email);
-        String subject = "Verify your email address";
-        String baseUrl = applicationProperties.baseUrl();
-        String contextPath = servletProperties.contextPath();
-        String verificationUrl = baseUrl + contextPath + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
-        Context context = new Context();
-        context.setVariable("verificationUrl", verificationUrl);
-        String body = templateEngine.process("verificationEmailTemplate", context);
-        sendHtmlEmail(email, subject, body);
-        logger.info("Verification email sent to: {}", email);
+        try {
+            String subject = "Verify your email address";
+            String baseUrl = applicationProperties.baseUrl();
+            String contextPath = servletProperties.contextPath();
+            String verificationUrl = baseUrl + contextPath + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
+            Context context = new Context();
+            context.setVariable("verificationUrl", verificationUrl);
+            String body = templateEngine.process("verificationEmailTemplate", context);
+            sendHtmlEmail(email, subject, body);
+            logger.info("Verification email sent to: {}", email);
+        } catch (Exception e) {
+            logger.error("Failed to send verification email to: {}", email, e);
+            // Don't rethrow - async method should handle errors gracefully
+        }
     }
 
     @Override
+    @Async("taskExecutor")
     public void sendNotificationEmail(String to, String subject, String templateName, Map<String, Object> variables) {
         logger.info("Starting to send notification email to: {}, template: {}", to, templateName);
         try {
@@ -97,7 +111,7 @@ public class EmailServiceImpl implements EmailService {
             logger.info("Notification email sent successfully to: {}, template: {}", to, templateName);
         } catch (Exception e) {
             logger.error("Failed to send notification email to: {}, template: {}", to, templateName, e);
-            throw new MailSendException("Failed to send notification email", e);
+            // Don't rethrow - async method should handle errors gracefully
         }
     }
 }

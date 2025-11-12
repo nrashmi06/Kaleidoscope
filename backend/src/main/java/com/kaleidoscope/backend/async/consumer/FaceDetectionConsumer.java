@@ -136,20 +136,53 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
         try {
             Map<String, String> recordValue = record.getValue();
 
-            List<FaceDetectionResultDTO.FaceDetails> faces = recordValue.get("faces") != null
-                    ? objectMapper.readValue(
-                            recordValue.get("faces"),
-                            new TypeReference<List<FaceDetectionResultDTO.FaceDetails>>() {})
-                    : List.of();
+            log.debug("Converting face detection MapRecord to DTO. Keys: {}", recordValue.keySet());
+
+            // Parse faces field - it should be a JSON string in Redis
+            List<FaceDetectionResultDTO.FaceDetails> faces = List.of();
+            String facesStr = recordValue.get("faces");
+
+            if (facesStr != null && !facesStr.trim().isEmpty()) {
+                try {
+                    // Log the raw value for debugging
+                    log.debug("Parsing faces JSON string. Length: {}, Preview: {}",
+                             facesStr.length(),
+                             facesStr.length() > 100 ? facesStr.substring(0, 100) + "..." : facesStr);
+
+                    faces = objectMapper.readValue(
+                            facesStr,
+                            new TypeReference<List<FaceDetectionResultDTO.FaceDetails>>() {});
+
+                    log.debug("Successfully parsed {} faces", faces.size());
+                } catch (Exception e) {
+                    log.error("Failed to parse faces JSON string. Value: {}, Error: {}",
+                             facesStr.length() > 200 ? facesStr.substring(0, 200) + "..." : facesStr,
+                             e.getMessage(), e);
+                    throw new StreamDeserializationException(
+                            record.getStream(),
+                            record.getId().getValue(),
+                            "Failed to deserialize faces JSON: " + e.getMessage(),
+                            e);
+                }
+            } else {
+                log.warn("Faces field is null or empty in Redis stream message");
+            }
+
+            Long mediaId = Long.parseLong(recordValue.get("mediaId"));
+            Long postId = recordValue.get("postId") != null ? Long.parseLong(recordValue.get("postId")) : null;
+
+            Integer facesDetected = recordValue.get("facesDetected") != null
+                    ? Integer.parseInt(recordValue.get("facesDetected"))
+                    : faces.size();
 
             return FaceDetectionResultDTO.builder()
-                    .mediaId(Long.parseLong(recordValue.get("mediaId")))
-                    .postId(recordValue.get("postId") != null ? Long.parseLong(recordValue.get("postId")) : null)
-                    .facesDetected(recordValue.get("facesDetected") != null
-                            ? Integer.parseInt(recordValue.get("facesDetected"))
-                            : faces.size())
+                    .mediaId(mediaId)
+                    .postId(postId)
+                    .facesDetected(facesDetected)
                     .faces(faces)
                     .build();
+        } catch (StreamDeserializationException e) {
+            throw e; // Re-throw deserialization exceptions
         } catch (Exception e) {
             log.error("Failed to convert MapRecord to FaceDetectionResultDTO: {}", e.getMessage(), e);
             throw new StreamDeserializationException(record.getStream(), record.getId().getValue(),

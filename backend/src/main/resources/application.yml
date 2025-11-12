@@ -85,6 +85,8 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     disable-swagger-default-url: true
+    config-url: /kaleidoscope/v3/api-docs/swagger-config
+    url: /kaleidoscope/v3/api-docs
   use-management-port: false
   use-root-path: false
 

@@ -9,6 +9,7 @@ import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.notifications.routes.NotificationRoutes;
 import com.kaleidoscope.backend.shared.config.CorrelationIdFilter;
 import com.kaleidoscope.backend.users.repository.UserRepository;
+import jakarta.servlet.DispatcherType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -76,6 +77,8 @@ public class SecurityConfig {
         return http
                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                 .authorizeHttpRequests(requests -> requests
+                        // Permit ASYNC and ERROR dispatches to prevent security re-evaluation on SSE async events
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 AuthRoutes.FORGOT_PASSWORD,
