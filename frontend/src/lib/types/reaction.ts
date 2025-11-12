@@ -52,7 +52,7 @@ export interface StandardAPIResponse<T> {
   success: boolean;
   message?: string;
   data?: T | null;
-  errors?: string[];
+  errors?: string[] ;
   timestamp?: number;
   path?: string;
 }

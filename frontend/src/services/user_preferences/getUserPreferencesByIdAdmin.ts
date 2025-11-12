@@ -1,4 +1,4 @@
-import axios from "axios";
+import { axiosInstance } from "@/hooks/axios";
 import {
   GetUserPreferencesByIdAdminData,
   UserPreferencesAPIResponse,
@@ -9,7 +9,7 @@ export const fetchUserPreferencesByIdAdmin = async (
   input: GetUserPreferencesByIdAdminData,
   accessToken: string
 ): Promise<UserPreferencesAPIResponse> => {
-  const response = await axios.get<UserPreferencesAPIResponse>(
+  const response = await axiosInstance.get<UserPreferencesAPIResponse>(
     UserPreferencesMapper.getUserPreferencesByIdAdmin(input.userId),
     {
       headers: {

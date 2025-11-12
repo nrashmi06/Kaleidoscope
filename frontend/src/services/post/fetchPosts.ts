@@ -1,138 +1,55 @@
-export interface Post {
-  postId: number;
-  title: string;
-  body?: string;
-  summary: string;
-  visibility: "PUBLIC" | "FOLLOWERS" ;
-  createdAt: string;
-  updatedAt?: string;
-  author: {
-    userId: number;
-    username: string;
-    profilePictureUrl?: string;
-  };
-  location?: {
-    locationId: number;
-    name: string;
-    city: string;
-    country: string;
-  };
-  categories: Array<{
-    categoryId: number;
-    name: string;
-  }>;
-  mediaDetails?: Array<{
-    url: string;
-    mediaType: "IMAGE" | "VIDEO";
-    position: number;
-    width: number;
-    height: number;
-    fileSizeKb: number;
-    durationSeconds?: number | null;
-    extraMetadata?: Record<string, unknown>;
-  }>;
-  taggedUsers?: Array<{
-    userId: number;
-    username: string;
-  }>;
-  thumbnailUrl?: string;
-  likeCount?: number;
-  commentCount: number;
-  reactionCount?: number;
-  shareCount?: number;
-  isLikedByCurrentUser?: boolean;
-}
+// src/services/post/fetchPosts.ts
 
-export interface FetchPostsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    content: Post[];
-    totalElements: number;
-    page: number;
-    size: number;
-    totalPages: number;
-    first: boolean;
-    last: boolean;
-    hasNext: boolean;
-    hasPrevious: boolean;
-  };
-  errors: unknown[];
-  timestamp: number;
-  path: string;
-}
+import { filterPostsService, FilterPostsResult } from "./filterPosts";
+import type { PostFilterParams, PaginatedPostsResponse } from "@/lib/types/postFeed";
+// ✅ NEW IMPORT: Import the heavyweight Post type from the shared types file
+import { Post } from "@/lib/types/post"; 
 
+// ✅ Re-export types from filterPostsService for backward compatibility
+export type FetchPostsResult = FilterPostsResult;
+export type FetchPostsResponse = PaginatedPostsResponse;
+// ✅ NEW EXPORT: Re-export the heavyweight Post type to satisfy consumers
+export type { Post }; 
+
+/**
+ * Fetches posts. This service is now a lightweight wrapper.
+ * It translates its legacy options into PostFilterParams
+ * and calls the main filterPostsService.
+ */
 export const fetchPostsService = async (
   accessToken: string,
   options?: {
     page?: number;
     size?: number;
-    sort?: string; // Changed to match backend format: "createdAt,desc"
-    sortBy?: string; // Keep for backward compatibility
-    sortDirection?: "ASC" | "DESC"; // Keep for backward compatibility
+    sort?: string; 
+    sortBy?: string; // (deprecated)
+    sortDirection?: "ASC" | "DESC"; // (deprecated)
   }
-): Promise<{ success: boolean; data?: FetchPostsResponse; error?: string }> => {
-  try {
-    const params = new URLSearchParams();
-    
-    if (options?.page !== undefined) params.append('page', options.page.toString());
-    if (options?.size !== undefined) params.append('size', options.size.toString());
-    
-    // Handle sort parameter - prefer new format, fallback to old format
-    if (options?.sort) {
-      params.append('sort', options.sort);
-    } else if (options?.sortBy && options?.sortDirection) {
-      // Convert old format to new format
-      const direction = options.sortDirection.toLowerCase();
-      params.append('sort', `${options.sortBy},${direction}`);
-    } else if (options?.sortBy) {
-      // Default to desc if no direction specified
-      params.append('sort', `${options.sortBy},desc`);
-    }
+): Promise<FetchPostsResult> => {
+  
+  // --- Adapt old 'options' to new 'PostFilterParams' ---
+  let sortParams: string[] | undefined = undefined;
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL 
-    const url = `${baseUrl}/api/posts${params.toString() ? `?${params.toString()}` : ''}`;
-    
-    console.log('Fetching posts from:', url);
-    
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    console.log('Posts fetch response status:', response.status);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('API Error Response:', errorData);
-      return {
-        success: false,
-        error: errorData.message || "Failed to fetch posts",
-      };
-    }
-
-    const responseData = await response.json();
-    console.log('Posts fetch response:', responseData);
-    
-    if (!responseData.success) {
-      return {
-        success: false,
-        error: responseData.message || "Backend returned unsuccessful response",
-      };
-    }
-    
-    return {
-      success: true,
-      data: responseData,
-    };
-  } catch (error) {
-    console.error('Network error fetching posts:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Network error occurred",
-    };
+  if (options?.sort) {
+    sortParams = [options.sort];
+  } else if (options?.sortBy && options?.sortDirection) {
+    sortParams = [`${options.sortBy},${options.sortDirection.toLowerCase()}`];
+  } else if (options?.sortBy) {
+    sortParams = [`${options.sortBy},desc`];
   }
+
+  const filterOptions: PostFilterParams = {
+    page: options?.page,
+    size: options?.size,
+    sort: sortParams,
+    // Note: 'q', 'hashtag', 'categoryId', etc., are omitted
+    // as this service was only for basic pagination.
+  };
+  // --- End adaptation ---
+
+  // ✅ Call the single source of truth
+  return filterPostsService(accessToken, filterOptions);
 };
+
+// We can keep the default export for any legacy imports
+export default fetchPostsService;

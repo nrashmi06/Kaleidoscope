@@ -1,26 +1,49 @@
 // src/services/post/filterPosts.ts
-import { PostMapper } from '@/mapper/postMapper';
-// ✅ Import our new, comprehensive types
-import type { PostFilterParams } from '@/lib/types/postFeed';
-import type { PaginatedPostsResponse } from '@/lib/types/postFeed';
+import { AxiosError } from "axios";
+import { PostMapper } from "@/mapper/postMapper";
+import type { PostFilterParams, PaginatedPostsResponse } from "@/lib/types/postFeed";
+import { axiosInstance, isAxiosError } from "@/hooks/axios";
 
-// ✅ Rename the response type for clarity
 export type FilterPostsApiResponse = PaginatedPostsResponse;
 
-// ✅ Update function to use the strict PostFilterParams type
+// Define backend error shape for safer Axios narrowing
+interface ApiErrorResponse {
+  message?: string;
+  status?: number;
+  timestamp?: string | number;
+  path?: string;
+  errors?: unknown[];
+}
+
+// Define the unified return type
+export interface FilterPostsResult {
+  success: boolean;
+  data: PaginatedPostsResponse["data"] | null;
+  message: string;
+  errors?: unknown[];
+  timestamp: number;
+  path: string;
+}
+
+/**
+ * Axios-based service to fetch and filter posts.
+ * This version manually builds the query string to match your backend's requirements.
+ */
 export const filterPostsService = async (
   accessToken: string,
-  filterOptions: PostFilterParams = {} // Default to empty object
-): Promise<FilterPostsApiResponse> => {
+  filterOptions: PostFilterParams = {}
+): Promise<FilterPostsResult> => {
+  
+  // ✅ FIX: Manually build the URL object.
+  // This correctly serializes arrays as multiple params (e.g., ?sort=...&sort=...)
   const url = new URL(PostMapper.filterPosts);
 
   // --- Robust Query Param Serialization ---
-  // Iterate over keys and append only if value is valid
   Object.entries(filterOptions).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== "") {
       if (Array.isArray(value)) {
         // Handle array values, like 'sort'
-        value.forEach((v) => url.searchParams.append(key, v));
+        value.forEach((v) => url.searchParams.append(key, String(v)));
       } else {
         // Handle primitive values
         url.searchParams.append(key, String(value));
@@ -28,41 +51,75 @@ export const filterPostsService = async (
     }
   });
 
+  // ✅ Use the manually constructed endpoint string
   const endpoint = url.toString();
-  
+  console.log("✅ [filterPostsService] Filtering posts via:", endpoint);
+
   try {
-    console.log('✅ [filterPostsService] Filtering posts:', endpoint);
-    
-    const response = await fetch(endpoint, {
-      method: "GET",
+    // ✅ FIX: Pass the 'endpoint' string directly
+    // and REMOVE the 'params: filterOptions' config.
+    const response = await axiosInstance.get<FilterPostsApiResponse>(endpoint, {
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      cache: 'no-store', // Ensure fresh data for feeds
+      // ⛔️ The 'params' key (which caused the bug) is removed.
     });
 
-    const responseData: FilterPostsApiResponse = await response.json();
+    const responseData = response.data;
 
-    if (!response.ok) {
-      console.error('✅ [filterPostsService] API Error:', responseData);
+    // Handle backend-reported failures
+    if (!responseData.success) {
+      console.error("❌ [filterPostsService] Backend unsuccessful response:", responseData);
       return {
-        ...responseData,
         success: false,
-        message: responseData.message || "Failed to filter posts",
+        message: responseData.message || "Backend returned unsuccessful response",
+        data: null,
+        errors: responseData.errors ?? [],
+        timestamp: Date.now(),
+        path: endpoint,
       };
     }
-    
-    return responseData;
 
-  } catch (error) {
-    console.error('✅ [filterPostsService] Network Error:', error);
-    const errorMessage = error instanceof Error ? error.message : "Network error occurred";
+    // ✅ Successful response
+    return {
+      success: true,
+      message: responseData.message,
+      data: responseData.data,
+      errors: responseData.errors ?? [],
+      timestamp: responseData.timestamp,
+      path: responseData.path,
+    };
+
+  } catch (error: unknown) {
+    if (isAxiosError<ApiErrorResponse>(error)) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const message =
+        axiosError.response?.data?.message ??
+        axiosError.message ??
+        "Unknown API error";
+
+      console.error("❌ [filterPostsService] Axios error:", axiosError.response?.data);
+
+      return {
+        success: false,
+        message,
+        data: null,
+        errors: axiosError.response?.data?.errors ?? [],
+        timestamp: Date.now(),
+        path: endpoint,
+      };
+    }
+
+    const fallbackMessage =
+      error instanceof Error ? error.message : "Unexpected network error";
+
+    console.error("❌ [filterPostsService] Unexpected error:", error);
+
     return {
       success: false,
-      message: errorMessage,
+      message: fallbackMessage,
       data: null,
-      errors: [errorMessage],
+      errors: [fallbackMessage],
       timestamp: Date.now(),
       path: endpoint,
     };

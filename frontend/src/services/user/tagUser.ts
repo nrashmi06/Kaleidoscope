@@ -1,51 +1,87 @@
+import axios, { AxiosError } from "axios";
+import axiosInstance from "@/hooks/axios";
 import { TagUserRequest, TagUserResponse } from "@/lib/types/post";
 
+
+/** Backend error response shape for safe narrowing */
+interface ApiErrorResponse {
+  message?: string;
+  status?: number;
+  timestamp?: string | number;
+  path?: string;
+  errors?: unknown[];
+}
+
+/** Uniform return type */
+interface TagUserResult {
+  success: boolean;
+  data?: TagUserResponse;
+  error?: string;
+}
+
+/**
+ * Tags a user on a post or comment.
+ *
+ * @param request - The user tagging request body
+ * @param accessToken - JWT access token for authorization
+ * @returns API response containing tagging result
+ */
 export const tagUserService = async (
   request: TagUserRequest,
   accessToken: string
-): Promise<{ success: boolean; data?: TagUserResponse; error?: string }> => {
+): Promise<TagUserResult> => {
   try {
-    console.log(`[TagUserService] Tagging user:`, request);
+    console.log("[TagUserService] Tagging user:", request);
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api/users/tags`,
+    const response = await axiosInstance.post<TagUserResponse>(
+      "/api/users/tags",
+      request,
       {
-        method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(request),
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMsg = `Failed to tag user: ${response.status} ${response.statusText}`;
+    const responseData = response.data;
 
-      try {
-        const errorData: TagUserResponse = JSON.parse(errorText);
-        if (errorData.errors?.length) {
-          errorMsg = errorData.errors.join(", ");
-        } else if (errorData.message) {
-          errorMsg = errorData.message;
-        }
-      } catch {
-        console.error(`[TagUserService] Failed to parse error response:`, errorText);
-      }
-
-      return { success: false, error: errorMsg };
+    if (!responseData.success) {
+      console.error("[TagUserService] Backend unsuccessful:", responseData.message);
+      return {
+        success: false,
+        error: responseData.message || "Backend returned unsuccessful response",
+      };
     }
 
-    const data: TagUserResponse = await response.json();
-    return { success: true, data };
-  } catch (error) {
+    return {
+      success: true,
+      data: responseData,
+    };
+  } catch (error: unknown) {
+    console.error("❌ [TagUserService] Error tagging user:", error);
+
+    // ✅ Safely narrow Axios error
+    if (axios.isAxiosError?.(error)) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const message =
+        axiosError.response?.data?.message ??
+        axiosError.message ??
+        "Unknown API error";
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+
+    // ✅ Handle non-Axios errors
+    const fallbackMessage =
+      error instanceof Error ? error.message : "Unexpected network error";
+
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred while tagging the user",
+      error: fallbackMessage,
     };
   }
 };

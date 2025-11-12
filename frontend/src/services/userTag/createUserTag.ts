@@ -1,6 +1,7 @@
 import axios from "axios";
 import { UserTagMapper } from "@/mapper/usertagMapper";
 import type { StandardAPIResponse } from "@/lib/types/usertag";
+import axiosInstance from "@/hooks/axios";
 
 export interface CreateUserTagPayload {
   taggedUserId: number;
@@ -13,7 +14,7 @@ export const createUserTag = async (
   payload: CreateUserTagPayload
 ): Promise<StandardAPIResponse<Record<string, unknown>>> => {
   try {
-    const res = await axios.post<StandardAPIResponse<Record<string, unknown>>>(UserTagMapper.createTag(), payload, {
+    const res = await axiosInstance.post<StandardAPIResponse<Record<string, unknown>>>(UserTagMapper.createTag(), payload, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

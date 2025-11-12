@@ -3,6 +3,7 @@
 import axios, { AxiosError } from "axios";
 import { UserBlocksMapper } from "@/mapper/userBlocksMapper";
 import type { BlockUserRequest, BlockUserApiResponse } from "@/lib/types/user-blocks";
+import axiosInstance from "@/hooks/axios";
 
 /**
  * Calls the API to block a user.
@@ -18,7 +19,7 @@ export const blockUserService = async (
   const url = UserBlocksMapper.blockUser;
 
   try {
-    const response = await axios.post<BlockUserApiResponse>(
+    const response = await axiosInstance.post<BlockUserApiResponse>(
       url,
       payload,
       {

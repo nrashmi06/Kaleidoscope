@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { PostCommentMapper } from "../../mapper/postCommentMapper"
 import { DeleteCommentResponse } from "../../lib/types/comment";
+import { axiosInstance } from "@/hooks/axios";
 
 /**
  * Service to delete a comment from a post.
@@ -12,7 +13,7 @@ export const deleteCommentService = async (
 ): Promise<DeleteCommentResponse> => {
   const url = PostCommentMapper.deleteComment(postId, commentId);
   try {
-    const response = await axios.delete(url, {
+    const response = await axiosInstance.delete(url, {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
         "Content-Type": "application/json",

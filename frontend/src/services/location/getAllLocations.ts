@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { axiosInstance } from '@/hooks/axios';
 import { LocationsResponse } from '@/lib/types/post';
 import { PostMapper } from '@/mapper/postMapper';
 
@@ -18,7 +18,7 @@ export const searchLocations = async (
     params.append('search', query);
   }
 
-  const response = await axios.get<LocationsResponse>(
+  const response = await axiosInstance.get<LocationsResponse>(
     `${PostMapper.searchLocations}?${params.toString()}`,
     {
       headers: {

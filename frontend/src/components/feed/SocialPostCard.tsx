@@ -1,38 +1,43 @@
 "use client";
+
 import { useState, useCallback, memo } from "react";
-import { Post } from "@/services/post/fetchPosts";
+import { type Post } from "@/lib/types/post"; // Correct type import
 import { deletePostController } from "@/controllers/postController/deletePost";
 import { useUserData } from "@/hooks/useUserData";
 import { PostHeader } from "./socialMediaPostCardComponents/PostHeader";
 import { PostMedia } from "./socialMediaPostCardComponents/PostMedia";
-import { PostText } from "./socialMediaPostCardComponents/PostText";
 import { PostTaggedUsers } from "./socialMediaPostCardComponents/PostTaggedUsers";
-import { PostActions } from "./socialMediaPostCardComponents/PostActions";
-import CommentDropdown from "./socialMediaPostCardComponents/CommentDropdown";
 import { PostModal } from "@/components/ui/PostModal";
-import { Eye, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Eye } from "lucide-react";
 
+// Types
 interface SocialPostCardProps {
   post: Post;
   onPostDeleted?: (postId: string) => void;
   accessToken: string;
 }
 
-function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPostCardProps) {
+// --- Component ---
+
+function SocialPostCardComponent({
+  post,
+  onPostDeleted,
+  accessToken,
+}: SocialPostCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showComments, setShowComments] = useState(false);
   const currentUser = useUserData();
 
-  // Only allow delete if current user is ADMIN or the author of the post
   const canDeletePost =
-    !!currentUser && (currentUser.role === "ADMIN" || currentUser.userId === post.author.userId);
+    !!currentUser &&
+    (currentUser.role === "ADMIN" || currentUser.userId === post.author.userId);
+
+  // --- Handlers ---
 
   const handleDelete = useCallback(async () => {
     if (!canDeletePost || isDeleting) return;
-    const confirmDelete = window.confirm("Are you sure you want to delete this post?");
-    if (!confirmDelete) return;
 
+    // This part is clean. The confirmation is handled by PostHeader.
     setIsDeleting(true);
     try {
       const result = await deletePostController(accessToken, post.postId);
@@ -41,95 +46,85 @@ function SocialPostCardComponent({ post, onPostDeleted, accessToken }: SocialPos
         onPostDeleted?.(post.postId.toString());
       } else {
         console.error("Failed to delete post:", result.message);
-        alert(result.message || "Failed to delete post");
       }
     } catch (err) {
       console.error("Error deleting post:", err);
-      alert("An error occurred while deleting the post.");
     } finally {
       setIsDeleting(false);
     }
   }, [accessToken, post.postId, onPostDeleted, isDeleting, canDeletePost]);
 
+  // --- Render ---
+
   return (
     <>
-      <article className="w-full max-w-full mx-auto bg-white dark:bg-neutral-900 rounded-xl shadow-md hover:shadow-xl border border-gray-200 dark:border-neutral-800 transition-all duration-300 overflow-hidden">
-        {/* Header */}
+      {/* Card with fixed height */}
+      <article className="w-full max-w-full mx-auto bg-white dark:bg-neutral-900 rounded-xl shadow-md hover:shadow-xl border border-gray-200 dark:border-neutral-800 transition-all duration-300 overflow-hidden flex flex-col h-[520px]">
+        {/* === 1. Header === */}
         <div className="bg-blue-50 dark:bg-blue-950/20 border-b border-gray-200 dark:border-neutral-800">
-          <PostHeader 
-            post={post} 
-            canDelete={canDeletePost} 
-            onDelete={handleDelete} 
-            isDeleting={isDeleting} 
+          <PostHeader
+            post={post}
+            canDelete={canDeletePost}
+            onDelete={handleDelete} // This function is now 100% popup-free
+            isDeleting={isDeleting}
           />
         </div>
 
-        {/* Content */}
-        <div className="px-4 sm:px-6 pb-4">
-          {/* Text Content */}
-          <div className="mb-4 mt-4">
-            <PostText post={post} />
-          </div>
+        {/* === 2. Media === */}
+        <div className="w-full">
+          <PostMedia post={post} />
+        </div>
 
-          {/* Media */}
-          <div className="mb-4 -mx-2 sm:-mx-4">
-            <PostMedia post={post} />
-          </div>
-
-          {/* Tagged Users */}
-          {post.taggedUsers && post.taggedUsers.length > 0 && (
-            <div className="mb-4 pb-4 border-b border-gray-200 dark:border-neutral-800">
-              <PostTaggedUsers post={post} />
+        {/* === 3. Content === */}
+        <div className="p-4 sm:p-6 flex-1 flex flex-col overflow-hidden">
+          
+          {/* ✅ FIX: Added 'custom-scrollbar' class */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* Summary Text */}
+            <div className="mb-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                <span className="font-semibold text-gray-900 dark:text-white mr-1.5">
+                  {post.author.username}
+                </span>
+                {post.summary}
+              </p>
             </div>
-          )}
 
-          {/* Actions - Likes, Hearts, etc. */}
-          <div className="mb-4">
-            <PostActions postId={post.postId} />
+            {/* Tagged Users */}
+            {post.taggedUsers && post.taggedUsers.length > 0 && (
+              <div className="mb-4">
+                <PostTaggedUsers post={post} />
+              </div>
+            )}
           </div>
+          {/* --- End of new scrollable wrapper --- */}
 
-          {/* Action Buttons Row - Responsive */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-4">
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-100 dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-all duration-200 group border border-gray-200 dark:border-neutral-700"
-            >
-              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-              <span className="text-sm sm:text-base">{showComments ? 'Hide' : 'Show'} Comments</span>
-              {showComments ? (
-                <ChevronUp className="w-4 h-4 ml-auto sm:ml-0" />
-              ) : (
-                <ChevronDown className="w-4 h-4 ml-auto sm:ml-0" />
-              )}
-            </button>
-            
+          {/* View Details Button */}
+          <div className="mt-4 flex-shrink-0">
             <button
               onClick={() => setShowDetailModal(true)}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-all duration-200 group shadow-sm hover:shadow-md"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-all duration-200 group border border-blue-200 dark:border-blue-900/50"
             >
               <Eye className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-              <span className="text-sm sm:text-base">View Details</span>
+              <span className="text-sm sm:text-base">
+                View Full Post
+              </span>
             </button>
           </div>
-
-          {/* Comments Section with smooth animation */}
-          {showComments && (
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-neutral-800 animate-in slide-in-from-top-2 duration-300">
-              <CommentDropdown postId={post.postId} />
-            </div>
-          )}
         </div>
       </article>
 
-      {/* Post Detail Modal */}
+      {/* === 4. Post Detail Modal === */}
       <PostModal
         postId={post.postId}
         isOpen={showDetailModal}
         onClose={() => setShowDetailModal(false)}
         accessToken={accessToken}
+        currentUserId={currentUser.userId}
       />
     </>
   );
 }
 
+// Memoize the component
 export const SocialPostCard = memo(SocialPostCardComponent);

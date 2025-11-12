@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { UserTagMapper } from "@/mapper/usertagMapper";
 import { TaggableUsersResponse } from "@/lib/types/usertag";
+import axiosInstance from "@/hooks/axios";
 
 /**
  * Fetches taggable users based on a search query.
@@ -19,7 +20,7 @@ export const getTaggableUsers = async (
   size: number = 20
 ): Promise<TaggableUsersResponse> => {
   try {
-    const response = await axios.get<TaggableUsersResponse>(
+    const response = await axiosInstance.get<TaggableUsersResponse>(
       UserTagMapper.getTaggableUsers(query, page, size),
       {
         headers: {

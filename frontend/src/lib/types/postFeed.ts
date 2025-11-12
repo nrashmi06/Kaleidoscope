@@ -1,25 +1,8 @@
+// src/lib/types/postFeed.ts
+
 import type { StandardAPIResponse } from "./auth"; // Re-using global wrapper
-import { Post } from "@/services/post/fetchPosts"; // Import existing Post type for adapter
-
-// --- API Request Types ---
-
-/**
- * Defines all possible query parameters for the GET /api/posts endpoint.
- */
-export interface PostFilterParams {
-  userId?: number;
-  categoryId?: number;
-  status?: "SCHEDULED" | "PUBLISHED" | "FLAGGED" | "ARCHIVED";
-  visibility?: "PUBLIC" | "FOLLOWERS";
-  q?: string;
-  hashtag?: string;
-  locationId?: number;
-  nearbyLocationId?: number;
-  radiusKm?: number;
-  page?: number;
-  size?: number;
-  sort?: string[];
-}
+import { Post } from "./post"; // Importing heavyweight Post type
+import { CategorySummaryResponseDTO } from "./post"; // Import CategorySummaryResponseDTO
 
 // --- API Response Types ---
 
@@ -28,13 +11,11 @@ export interface PostAuthor {
   email: string;
   username: string;
   accountStatus: string;
-  profilePictureUrl: string;
+  profilePictureUrl: string; // This type is correct (non-null)
 }
 
-export interface PostCategory {
-  categoryId: number;
-  name: string;
-}
+// Re-export this type for userProfile.ts
+export type { CategorySummaryResponseDTO };
 
 /**
  * Represents a single Post item in the feed's 'content' array.
@@ -47,8 +28,12 @@ export interface PostFeedItem {
   visibility: "PUBLIC" | "FOLLOWERS";
   createdAt: string; // ISO date string
   author: PostAuthor;
-  categories: PostCategory[];
-  thumbnailUrl: string;
+  categories: CategorySummaryResponseDTO[];
+  
+  // ✅ *** THIS IS THE FIX ***
+  // Changed from 'string' to 'string | null' to match the API response.
+  thumbnailUrl: string | null; 
+  
   hashtags: string[];
   reactionCount: number;
   commentCount: number;
@@ -73,13 +58,12 @@ export interface PaginatedPostsData {
  */
 export type PaginatedPostsResponse = StandardAPIResponse<PaginatedPostsData | null>;
 
-
 // --- Controller & Component Types ---
 
 /**
  * A normalized Post item for the UI, with formatted dates.
  */
-export interface NormalizedPostFeedItem extends Omit<PostFeedItem, 'createdAt'> {
+export interface NormalizedPostFeedItem extends Omit<PostFeedItem, "createdAt"> {
   createdAt: Date;
   formattedCreatedAt: string; // e.g., "5 hours ago"
 }
@@ -109,7 +93,6 @@ export interface PostFeedControllerResult {
 /**
  * Adapter function to map the new API response (NormalizedPostFeedItem)
  * to the shape your existing <SocialPostCard> expects (Post).
- * This avoids using `any` and maintains type safety.
  */
 export function mapFeedItemToPost(item: NormalizedPostFeedItem): Post {
   return {
@@ -125,26 +108,29 @@ export function mapFeedItemToPost(item: NormalizedPostFeedItem): Post {
       profilePictureUrl: item.author.profilePictureUrl,
     },
     categories: item.categories,
-    thumbnailUrl: item.thumbnailUrl,
+    thumbnailUrl: item.thumbnailUrl ?? undefined, // Handle null
     hashtags: item.hashtags,
     reactionCount: item.reactionCount,
     commentCount: item.commentCount,
     viewCount: item.viewCount,
-    
+
     // Fields required by `Post` but not in `PostFeedItem`
     // We provide safe defaults.
     body: item.summary, // Use summary as fallback for body
     updatedAt: item.createdAt.toISOString(), // Use createdAt as fallback
-    mediaDetails: item.thumbnailUrl ? [{
-      url: item.thumbnailUrl,
-      mediaType: "IMAGE",
-      position: 0,
-      width: 0,
-      height: 0,
-      fileSizeKb: 0,
-    }] : [],
+    mediaDetails: item.thumbnailUrl
+      ? [
+          {
+            url: item.thumbnailUrl,
+            mediaType: "IMAGE",
+            position: 0,
+            width: 0,
+            height: 0,
+            fileSizeKb: 0,
+          },
+        ]
+      : [],
     taggedUsers: [],
-    likeCount: item.reactionCount,
     isLikedByCurrentUser: false, // Cannot know this from this endpoint
   };
 }

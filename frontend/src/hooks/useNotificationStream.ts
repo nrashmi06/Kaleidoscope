@@ -19,13 +19,7 @@ export default function useNotificationStream(active = true) {
   useEffect(() => {
     if (!active) return undefined;
 
-    /**
-     * ✅ MODIFIED LOGIC:
-     * We no longer validate the token's expiry here.
-     * We just check if it exists. If it's invalid, the
-     * getSseTicketController will fail, and the
-     * notificationController's retry logic will handle it.
-     */
+
     if (!token) {
       if (process.env.NODE_ENV !== "production") {
         console.debug('[Notification] SSE not started - no token');

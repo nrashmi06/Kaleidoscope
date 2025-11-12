@@ -1,11 +1,12 @@
 import axios from "axios";
 import { ParentCategoriesResponse } from "@/lib/types/settings/category";
 import { CategoryMapper } from "@/mapper/categoryMapper";
+import axiosInstance from "@/hooks/axios";
 
 // Get all parent categories for onboarding
 export const getOnboardingCategories = async (accessToken: string): Promise<ParentCategoriesResponse> => {
   try {
-    const response = await axios.get<ParentCategoriesResponse>(
+    const response = await axiosInstance.get<ParentCategoriesResponse>(
       CategoryMapper.getAllCategories,
       {
         headers: {

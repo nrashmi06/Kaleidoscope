@@ -1,7 +1,7 @@
 const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api`;
 
 export const UserPreferencesMapper = {
-    getUserPreferencesByIdAdmin: (userId: string) => `${BASE_URL}/user-preferences/${userId}`, // Get user preferences by user ID for admin
+    getUserPreferencesByIdAdmin: (userId: number) => `${BASE_URL}/user-preferences/${userId}`, // Get user preferences by user ID for admin
     getUserPreferences: `${BASE_URL}/user-preferences`, // Get user preferences for the current user // NOT WORKING UNLESS THE PREFERENCES ARE SET SO BETTER USE THE BELOW API CALL WHERE WE SEND THE CURRENT USERS ID TO FETCH THE DETAILS
     updateLanguage: `${BASE_URL}/user-preferences/language`, // Update user's language preference
     updatePrivacy: `${BASE_URL}/user-preferences/privacy`, // Update user's privacy settings

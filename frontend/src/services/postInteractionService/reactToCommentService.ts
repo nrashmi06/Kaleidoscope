@@ -5,6 +5,7 @@ import {
   ReactionType,
 } from "@/lib/types/reaction";
 import axios, { AxiosError } from "axios";
+import axiosInstance from "@/hooks/axios";
 
 export const reactToCommentService = {
   /* -------------------------------------------------------------------------- */
@@ -25,7 +26,7 @@ export const reactToCommentService = {
 
       const body: ReactionRequestBody = { reactionType };
 
-      const response = await axios.post<ReactionUpdateResponse>(url, body, {
+      const response = await axiosInstance.post<ReactionUpdateResponse>(url, body, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",

@@ -1,4 +1,10 @@
+import axios, { AxiosError } from "axios";
 import { PostMapper } from "@/mapper/postMapper";
+import axiosInstance from "@/hooks/axios";
+
+/* -------------------------------------------------------------------------- */
+/*                               Type Definitions                             */
+/* -------------------------------------------------------------------------- */
 
 export interface UploadSignatureRequest {
   fileNames: string[];
@@ -21,53 +27,83 @@ export interface UploadSignatureResponse {
   timestamp: number;
 }
 
+/** Shape of backend error response for safe Axios narrowing */
+interface ApiErrorResponse {
+  message?: string;
+  status?: number;
+  timestamp?: string | number;
+  path?: string;
+  errors?: unknown[];
+}
+
+/** Uniform service return structure */
+interface UploadSignatureResult {
+  success: boolean;
+  data?: UploadSignatureResponse;
+  error?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Axios API Service                             */
+/* -------------------------------------------------------------------------- */
+
 export const generateUploadSignatureService = async (
   accessToken: string,
-  data: UploadSignatureRequest
-): Promise<{ success: boolean; data?: UploadSignatureResponse; error?: string }> => {
+  payload: UploadSignatureRequest
+): Promise<UploadSignatureResult> => {
   try {
-    console.log('Sending request to:', PostMapper.generateUploadSignatures);
-    console.log('Request body:', JSON.stringify(data));
-    
-    const response = await fetch(PostMapper.generateUploadSignatures, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(data),
-    });
+    console.log("📤 [generateUploadSignatureService] Sending request to:", PostMapper.generateUploadSignatures);
+    console.log("🧾 Request body:", JSON.stringify(payload));
 
-    console.log('Response status:', response.status);
+    const response = await axiosInstance.post<UploadSignatureResponse>(
+      PostMapper.generateUploadSignatures,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('API Error Response:', errorData);
+    console.log("📥 [generateUploadSignatureService] Response received:", response.data);
+
+    // ✅ Ensure backend reported success
+    if (!response.data.success) {
       return {
         success: false,
-        error: errorData.message || "Failed to generate upload signature",
+        error: response.data.message || "Backend returned unsuccessful response",
       };
     }
 
-    const responseData = await response.json();
-    console.log('Raw API Response:', responseData);
-    
-    // Check if the backend response indicates success
-    if (!responseData.success) {
-      return {
-        success: false,
-        error: responseData.message || "Backend returned unsuccessful response",
-      };
-    }
-    
     return {
       success: true,
-      data: responseData,
+      data: response.data,
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error("❌ [generateUploadSignatureService] Error:", error);
+
+    // ✅ Safe Axios error narrowing
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const message =
+        axiosError.response?.data?.message ??
+        axiosError.message ??
+        "Unknown API error";
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+
+    // ✅ Handle unexpected (non-Axios) errors
+    const fallbackMessage =
+      error instanceof Error ? error.message : "Unexpected network error";
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Network error occurred",
+      error: fallbackMessage,
     };
   }
 };

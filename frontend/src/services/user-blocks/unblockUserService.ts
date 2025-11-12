@@ -6,6 +6,7 @@ import type {
   UnblockUserRequest, 
   UnblockUserApiResponse 
 } from "@/lib/types/unblockUser";
+import axiosInstance from "@/hooks/axios";
 
 /**
  * Calls the API to unblock a user.
@@ -22,7 +23,7 @@ export const unblockUserService = async (
 
   try {
     // For axios, a DELETE request with a body is sent using the 'data' property.
-    const response = await axios.delete<UnblockUserApiResponse>(url, {
+    const response = await axiosInstance.delete<UnblockUserApiResponse>(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { PostReactionMapper } from "@/mapper/postReactionMapper";
 import { ReactionSummaryResponse } from "@/lib/types/reaction";
+import { axiosInstance } from "@/hooks/axios";
 
 /**
  * Fetches the reaction summary for a given post.
@@ -13,7 +14,7 @@ export const getReactionsForPost = async (
   accessToken?: string
 ): Promise<ReactionSummaryResponse> => {
   try {
-    const response = await axios.get<ReactionSummaryResponse>(
+    const response = await axiosInstance.get<ReactionSummaryResponse>(
       PostReactionMapper.getReactionsForPost(postId),
       {
         withCredentials: true, // in case your backend uses cookies

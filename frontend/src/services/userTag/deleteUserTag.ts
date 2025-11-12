@@ -1,13 +1,14 @@
 import axios from "axios";
 import { UserTagMapper } from "@/mapper/usertagMapper";
 import type { DeleteUserTagResponse } from "@/lib/types/usertag";
+import axiosInstance from "@/hooks/axios";
 
 export const deleteUserTag = async (
   accessToken: string,
   tagId: number
 ): Promise<DeleteUserTagResponse> => {
   try {
-    const res = await axios.delete<DeleteUserTagResponse>(
+    const res = await axiosInstance.delete<DeleteUserTagResponse>(
       UserTagMapper.deleteTag(tagId),
       {
         headers: {

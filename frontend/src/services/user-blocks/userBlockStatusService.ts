@@ -6,6 +6,7 @@ import type {
   UserBlockStatusApiResponse,
   UserBlockStatusRequest,
 } from "@/lib/types/userBlockStatus";
+import axiosInstance from "@/hooks/axios";
 
 /**
  * Calls the API to check the block status of a target user.
@@ -22,7 +23,7 @@ export const userBlockStatusService = async (
   const url = UserBlocksMapper.checkBlockStatus(params.targetUserId);
 
   try {
-    const response = await axios.get<UserBlockStatusApiResponse>(url, {
+    const response = await axiosInstance.get<UserBlockStatusApiResponse>(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
