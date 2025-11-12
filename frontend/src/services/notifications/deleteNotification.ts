@@ -1,25 +1,27 @@
 import NotificationMapper from "@/mapper/notificationMapper";
-// ✅ 1. Import axios instance and error types
 import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
-// ✅ 2. Import the standard response wrapper to type the API response
+// ✅ 1. Import the base StandardAPIResponse type
 import type { StandardAPIResponse } from "@/lib/types/auth";
 
-// Define the expected API response type (data is a string)
-type DeleteNotificationApiResponse = StandardAPIResponse<string>;
+// ✅ 2. Define the expected API response type for this specific call
+// A successful delete likely returns 'null' or a simple message.
+// We'll align with the controller and expect 'null'.
+type DeleteNotificationApiResponse = StandardAPIResponse<null>;
 
 export const deleteNotificationService = async (
   accessToken: string,
   notificationId: number
-): Promise<{ success: boolean; data?: string; error?: string }> => {
+): Promise<DeleteNotificationApiResponse> => { // ✅ 3. Promise the full StandardAPIResponse
+  
+  const url = NotificationMapper.deleteNotification(notificationId);
+
   try {
-    // ✅ 3. Token check
     if (!accessToken) {
-      return { success: false, error: "Authentication token is missing." };
+      // This is an application error. We must manufacture a StandardAPIResponse.
+      throw new Error("Authentication token is missing.");
     }
 
-    const url = NotificationMapper.deleteNotification(notificationId);
-    
-    // ✅ 4. Call axiosInstance.delete
+    // Call axios, expecting the full DeleteNotificationApiResponse in the 'data' field
     const res = await axiosInstance.delete<DeleteNotificationApiResponse>(url, {
       headers: {
         "Content-Type": "application/json",
@@ -27,28 +29,32 @@ export const deleteNotificationService = async (
       },
     });
 
-    const responseData = res.data;
-
-    // ✅ 5. Check backend-defined success flag
-    if (!responseData.success) {
-      return { success: false, error: responseData.message || "Failed to delete notification" };
-    }
-
-    // backend returns data as a string on success
-    return { success: true, data: responseData.data || undefined };
+    // ✅ 4. Return the full standard response from the API
+    return res.data;
 
   } catch (err) {
-    // ✅ 6. Use isAxiosError to handle non-2xx responses
+    // ✅ 5. Handle ALL errors by returning a manufactured StandardAPIResponse
     if (isAxiosError(err)) {
       const error = err as AxiosError<DeleteNotificationApiResponse>;
-      const responseData = error.response?.data;
-
-      // Replicate the original 'fetch' error logic
-      return { success: false, error: responseData?.message || `HTTP ${error.response?.status}` };
+      
+      // If the backend sent its own standard error (e.g., 401, 404),
+      // return that, as it's the most accurate error.
+      if (error.response?.data) {
+        return error.response.data;
+      }
     }
-    
-    // Fallback for non-network errors
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
+
+    // If it's a network error, auth error, or any other JS error,
+    // create a standard error response to satisfy the type contract.
+    const message = err instanceof Error ? err.message : "An unknown error occurred";
+    return {
+      success: false,
+      message: message,
+      data: null, // No data on failure
+      errors: [message],
+      timestamp: Date.now(),
+      path: url,
+    };
   }
 };
 

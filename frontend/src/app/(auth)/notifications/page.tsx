@@ -22,16 +22,21 @@ export default function NotificationsPage() {
     setLoading(true);
 
     (async () => {
+      // 1. 'res' is now the full 'GetNotificationsResponse'
+      // { success: true, data: { unreadCount: ..., notifications: ... }, ... }
       const res = await getNotifications(token, { page: 0, size: 50 });
       if (!mounted) return;
       setLoading(false);
 
       if (!res.success) {
+        // ✅ 2. FIX: Get the error from 'res.message'
         setError(res.error || "Failed to load notifications");
         return;
       }
 
-      const payload = res.data?.data;
+      // 3. 'res.data' is the 'NotificationsPagePayload'
+      const payload = res.data;
+
       if (payload) {
         setItems(payload.notifications.content || []);
         setUnread(payload.unreadCount || 0);

@@ -105,7 +105,7 @@ export default function TopNavbar({
               <button
                 onClick={() => {
                   setShowMenu(false);
-                  router.push("/profile");
+                  router.push(`/profile/${user.userId}`);
                 }}
                 className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700 w-full text-left text-sm"
               >

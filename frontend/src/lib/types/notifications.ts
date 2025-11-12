@@ -1,6 +1,20 @@
-import { StandardAPIResponse } from "@/lib/types/auth";
+// src/lib/types/notifications.ts
 
-// Backend returns flattened actor fields (actorUserId, actorUsername, actorProfilePictureUrl)
+// ✅ 1. IMPORT 'PaginatedResponse' from './post'
+import type { PaginatedResponse } from "./post";
+
+
+export interface StandardAPIResponse<T> {
+  success: boolean;
+  data: T | null;
+  errors: string[];
+  message: string;
+  timestamp: number;
+  path: string;
+}
+
+
+// Backend returns flattened actor fields
 export interface NotificationItem {
   notificationId: number;
   type: string;
@@ -15,23 +29,18 @@ export interface NotificationItem {
   contentType?: string | null;
 }
 
-export interface NotificationsPage {
-  content: NotificationItem[];
-  page: number;
-  size: number;
-  totalPages: number;
-  totalElements: number;
-  first: boolean;
-  last: boolean;
-}
-
+// ✅ 3. EXPORT this interface so the controller can use it
 export interface NotificationsPagePayload {
   unreadCount: number;
-  notifications: NotificationsPage;
+  notifications: PaginatedResponse<NotificationItem>;
 }
 
-// API returns the standard wrapper with data: NotificationsPagePayload
-export type GetNotificationsResponse = StandardAPIResponse<NotificationsPagePayload>;
+/**
+ * The full API response from GET /api/notifications
+ * (Using 'type' alias to fix the ESLint error)
+ */
+export type GetNotificationsResponse =
+  StandardAPIResponse<NotificationsPagePayload>;
 
 export interface GetNotificationsParams {
   page?: number;
@@ -42,3 +51,5 @@ export interface GetNotificationsParams {
 // Response type for PATCH /notifications/read-all
 export type MarkAllReadResponse = StandardAPIResponse<Record<string, string>>;
 
+// Response type for a single notification (e.g., mark as read)
+export type GetNotificationResponse = StandardAPIResponse<NotificationItem>;

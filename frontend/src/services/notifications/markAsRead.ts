@@ -1,55 +1,53 @@
-import NotificationMapper from "@/mapper/notificationMapper";
-import type { NotificationItem } from "@/lib/types/notifications";
+import { NotificationMapper } from "@/mapper/notificationMapper";
+// ✅ 1. Import the correct response type from your types file
+import type { GetNotificationResponse } from "@/lib/types/notifications";
 
 import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
-import type { StandardAPIResponse } from "@/lib/types/auth";
 
-// Define the expected API response type
-type MarkAsReadApiResponse = StandardAPIResponse<NotificationItem>;
 
 export const markAsReadService = async (
   accessToken: string,
   notificationId: number
-): Promise<{ success: boolean; data?: NotificationItem; error?: string }> => {
+): Promise<GetNotificationResponse> => { // ✅ 2. Promise the full StandardAPIResponse
+  
+  const url = NotificationMapper.markAsRead(notificationId);
+
   try {
-    // ✅ 3. Token check
     if (!accessToken) {
-      return { success: false, error: "Authentication token is missing." };
+      // This is an application error. We must manufacture a StandardAPIResponse.
+      throw new Error("Authentication token is missing.");
     }
 
-    const url = NotificationMapper.markAsRead(notificationId);
-
-    // ✅ 4. Call axiosInstance.patch
-    // Pass 'null' as the request body, as this endpoint likely doesn't send one.
-    const res = await axiosInstance.patch<MarkAsReadApiResponse>(url, null, {
+    // Call axios, expecting the full GetNotificationResponse in the 'data' field
+    const res = await axiosInstance.patch<GetNotificationResponse>(url, null, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
     });
 
-    const responseData = res.data;
-
-    // ✅ 5. Check backend-defined success flag
-    if (!responseData.success) {
-      return { success: false, error: responseData.message || "Failed to mark as read" };
-    }
-
-    // Return the nested 'data' property (the updated NotificationItem)
-    return { success: true, data: responseData.data || undefined };
+    // ✅ 3. Return the full standard response from the API
+    return res.data;
 
   } catch (err) {
-    // ✅ 6. Use isAxiosError to handle non-2xx responses
+    // ✅ 4. Handle ALL errors by returning a manufactured StandardAPIResponse
     if (isAxiosError(err)) {
-      const error = err as AxiosError<MarkAsReadApiResponse>;
-      const responseData = error.response?.data;
-
-      // Return the error message from the backend payload, or a fallback
-      return { success: false, error: responseData?.message || `HTTP ${error.response?.status}` };
+      const error = err as AxiosError<GetNotificationResponse>;
+      
+      if (error.response?.data) {
+        return error.response.data;
+      }
     }
-    
-    // Fallback for non-network errors
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
+
+    const message = err instanceof Error ? err.message : "An unknown error occurred";
+    return {
+      success: false,
+      message: message,
+      data: null, // No 'NotificationItem' on failure
+      errors: [message],
+      timestamp: Date.now(),
+      path: url,
+    };
   }
 };
 

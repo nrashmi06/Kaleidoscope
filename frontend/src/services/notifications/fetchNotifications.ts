@@ -1,29 +1,28 @@
 import { NotificationMapper } from "@/mapper/notificationMapper";
-import type { GetNotificationsResponse } from "@/lib/types/notifications";
-// ✅ 1. Import axios instance and error types
+import type {
+  GetNotificationsResponse,
+  GetNotificationsParams,
+} from "@/lib/types/notifications";
 import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
-// ✅ 2. Import the standard response wrapper
-import type { StandardAPIResponse } from "@/lib/types/auth";
 
-// Define the expected API response type, wrapping the original data type
-type GetNotificationsApiResponse = StandardAPIResponse<GetNotificationsResponse>;
+// ❌ The circular 'GetNotificationsApiResponse' type is removed. We use 'GetNotificationsResponse' directly.
 
-export const fetchNotificationsService = async (
+export const getNotificationsService = async (
   accessToken: string,
-  options?: { page?: number; size?: number; isRead?: boolean }
-): Promise<{ success: boolean; data?: GetNotificationsResponse; error?: string }> => {
+  options?: GetNotificationsParams
+): Promise<GetNotificationsResponse> => { // ✅ 1. Promise the full StandardAPIResponse
+  
+  const url = NotificationMapper.getNotifications;
+
   try {
-    // ✅ 3. Token check
     if (!accessToken) {
-      return { success: false, error: "Authentication token is missing." };
+      // This is an application error, not an API error.
+      // We must manufacture a StandardAPIResponse.
+      throw new Error("Authentication token is missing.");
     }
 
-    const url = NotificationMapper.getNotifications;
-
-    // ✅ 4. Call axiosInstance.get, passing options as 'params'
-    // Axios will automatically serialize 'options' into query parameters
-    // e.g., ?page=1&size=10
-    const res = await axiosInstance.get<GetNotificationsApiResponse>(url, {
+    // Call axios, expecting the full GetNotificationsResponse
+    const res = await axiosInstance.get<GetNotificationsResponse>(url, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
@@ -31,29 +30,34 @@ export const fetchNotificationsService = async (
       params: options, // Axios handles query params
     });
 
-    const responseData = res.data;
-
-    // ✅ 5. Check backend-defined success flag
-    if (!responseData.success) {
-      return { success: false, error: responseData.message || "Failed to fetch notifications" };
-    }
-
-    // Return the nested 'data' property from the API response
-    return { success: true, data: responseData.data || undefined };
+    // ✅ 2. Return the full standard response on success
+    // The 'data' field (res.data) is the GetNotificationsResponse
+    return res.data;
 
   } catch (err) {
-    // ✅ 6. Use isAxiosError to handle non-2xx responses
+    // ✅ 3. Handle ALL errors by returning a manufactured StandardAPIResponse
     if (isAxiosError(err)) {
-      const error = err as AxiosError<GetNotificationsApiResponse>;
-      const responseData = error.response?.data;
-
-      // Return the error message from the backend payload, or a fallback
-      return { success: false, error: responseData?.message || `HTTP ${error.response?.status}` };
+      const error = err as AxiosError<GetNotificationsResponse>;
+      
+      // If the backend sent its own standard error (e.g., 401, 404),
+      // return that, as it's the most accurate error.
+      if (error.response?.data) {
+        return error.response.data;
+      }
     }
-    
-    // Fallback for non-network errors
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
+
+    // If it's a network error, auth error, or any other JS error,
+    // create a standard error response to satisfy the type contract.
+    const message = err instanceof Error ? err.message : "An unknown error occurred";
+    return {
+      success: false,
+      message: message,
+      data: null, // No data on failure
+      errors: [message],
+      timestamp: Date.now(),
+      path: url,
+    };
   }
 };
 
-export default fetchNotificationsService;
+export default getNotificationsService;
