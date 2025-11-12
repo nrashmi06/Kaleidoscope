@@ -57,16 +57,18 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         String messageId = record.getId().getValue();
         Map<String, String> value = record.getValue();
         String correlationId = value.get("correlationId");
+        String service = value.get("service"); // Extract service name
 
         // Set correlationId in MDC for this thread
         try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
 
-            log.info("Received ML insights message from Redis Stream: streamKey={}, messageId={}",
-                    record.getStream(), messageId);
+            log.info("Received ML insights message from Redis Stream: streamKey={}, messageId={}, service={}",
+                    record.getStream(), messageId, service);
 
             // Deserialization: Convert the incoming MapRecord message into MediaAiInsightsResultDTO
             MediaAiInsightsResultDTO resultDTO = convertMapRecordToDTO(record);
-            log.info("Successfully deserialized ML insights for mediaId: {}", resultDTO.getMediaId());
+            log.info("Successfully deserialized ML insights for mediaId: {}, service: {}",
+                     resultDTO.getMediaId(), service);
 
             // Data Retrieval: Find the corresponding PostMedia entity
             // Handle case where PostMedia was deleted after ML processing started
@@ -84,11 +86,27 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Retrieved PostMedia for mediaId: {}, postId: {}",
                     postMedia.getMediaId(), postMedia.getPost().getPostId());
 
-            // PostgreSQL Update ("Write" Model): Create and save MediaAiInsights entity
-            MediaAiInsights mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia);
+            // PostgreSQL Update ("Write" Model): Load existing or create new, then merge fields
+            MediaAiInsights existingInsights = mediaAiInsightsRepository
+                    .findByMediaId(resultDTO.getMediaId())
+                    .orElse(null);
+
+            MediaAiInsights mediaAiInsights;
+            if (existingInsights != null) {
+                // Merge new fields into existing entity based on service
+                log.debug("Merging ML insights for existing mediaId: {}, service: {}",
+                         resultDTO.getMediaId(), service);
+                mediaAiInsights = mergeMediaAiInsights(existingInsights, resultDTO, service);
+            } else {
+                // Create new entity
+                log.debug("Creating new MediaAiInsights for mediaId: {}, service: {}",
+                         resultDTO.getMediaId(), service);
+                mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia);
+            }
+
             MediaAiInsights savedInsights = mediaAiInsightsRepository.save(mediaAiInsights);
-            log.info("Saved MediaAiInsights for mediaId: {}, status: {}, isSafe: {}",
-                    savedInsights.getMediaId(), savedInsights.getStatus(), savedInsights.getIsSafe());
+            log.info("Saved MediaAiInsights for mediaId: {}, status: {}, isSafe: {}, service: {}",
+                    savedInsights.getMediaId(), savedInsights.getStatus(), savedInsights.getIsSafe(), service);
 
             // Elasticsearch Update ("Read" Model): Create and save SearchAssetDocument
             SearchAssetDocument searchDocument = createSearchAssetDocument(postMedia, savedInsights);
@@ -145,14 +163,22 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             Map<String, String> recordValue = record.getValue();
             log.debug("Converting MapRecord to DTO with {} fields", recordValue.size());
 
+            // Parse fields based on what's available (different services send different fields)
+            // Handle isSafe - can be null for non-moderation services
+            Boolean isSafe = null;
+            String isSafeStr = recordValue.get("isSafe");
+            if (isSafeStr != null && !isSafeStr.trim().isEmpty()) {
+                isSafe = Boolean.parseBoolean(isSafeStr);
+            }
+
             return MediaAiInsightsResultDTO.builder()
                     .mediaId(Long.parseLong(recordValue.get("mediaId")))
                     .postId(recordValue.get("postId") != null ? Long.parseLong(recordValue.get("postId")) : null)
-                    .isSafe(Boolean.parseBoolean(recordValue.get("isSafe")))
-                    .caption(recordValue.get("caption"))
-                    .tags(parseStringList(recordValue.get("tags")))
-                    .scenes(parseStringList(recordValue.get("scenes")))
-                    .imageEmbedding(recordValue.get("imageEmbedding"))
+                    .isSafe(isSafe) // Can be null for non-moderation services
+                    .caption(recordValue.get("caption")) // Can be null for non-captioning services
+                    .tags(parseStringList(recordValue.get("tags"))) // Can be null for non-tagging services
+                    .scenes(parseStringList(recordValue.get("scenes"))) // Can be null for non-scene services
+                    .imageEmbedding(recordValue.get("imageEmbedding")) // Can be null
                     .build();
         } catch (Exception e) {
             log.error("Failed to convert MapRecord to MediaAiInsightsResultDTO: {}", e.getMessage(), e);
@@ -198,6 +224,64 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 .scenes(resultDTO.getScenes() != null ? resultDTO.getScenes().toArray(new String[0]) : new String[0])
                 .imageEmbedding(parseEmbedding(resultDTO.getImageEmbedding()))
                 .build();
+    }
+
+    /**
+     * Merges new fields from DTO into existing MediaAiInsights entity based on service type.
+     * Only updates fields that are provided by the current service.
+     */
+    private MediaAiInsights mergeMediaAiInsights(
+            MediaAiInsights existing,
+            MediaAiInsightsResultDTO newData,
+            String service) {
+
+        log.debug("Merging insights for service: {}, mediaId: {}", service, existing.getMediaId());
+
+        // Create a builder from existing entity
+        MediaAiInsights.MediaAiInsightsBuilder builder = MediaAiInsights.builder()
+                .mediaId(existing.getMediaId())
+                .postMedia(existing.getPostMedia())
+                .post(existing.getPost())
+                .status(MediaAiStatus.COMPLETED)
+                .version(existing.getVersion()) // Preserve version for optimistic locking
+                // Start with existing values
+                .isSafe(existing.getIsSafe())
+                .caption(existing.getCaption())
+                .tags(existing.getTags() != null ? existing.getTags() : new String[0])
+                .scenes(existing.getScenes() != null ? existing.getScenes() : new String[0])
+                .imageEmbedding(existing.getImageEmbedding());
+
+        // Update fields based on service type
+        if ("moderation".equals(service) && newData.getIsSafe() != null) {
+            builder.isSafe(newData.getIsSafe());
+            log.debug("Updated isSafe: {}", newData.getIsSafe());
+        }
+
+        if ("captioning".equals(service) && newData.getCaption() != null && !newData.getCaption().trim().isEmpty()) {
+            builder.caption(newData.getCaption());
+            log.debug("Updated caption: {}", newData.getCaption());
+        }
+
+        if ("tagging".equals(service) && newData.getTags() != null && !newData.getTags().isEmpty()) {
+            builder.tags(newData.getTags().toArray(new String[0]));
+            log.debug("Updated tags: {}", newData.getTags());
+        }
+
+        if ("scene_recognition".equals(service) && newData.getScenes() != null && !newData.getScenes().isEmpty()) {
+            builder.scenes(newData.getScenes().toArray(new String[0]));
+            log.debug("Updated scenes: {}", newData.getScenes());
+        }
+
+        // Image embedding can come from any service that provides it
+        if (newData.getImageEmbedding() != null && !newData.getImageEmbedding().trim().isEmpty()) {
+            float[] embedding = parseEmbedding(newData.getImageEmbedding());
+            if (embedding != null) {
+                builder.imageEmbedding(embedding);
+                log.debug("Updated image embedding");
+            }
+        }
+
+        return builder.build();
     }
 
     private float[] parseEmbedding(String raw) {
