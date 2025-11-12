@@ -3,6 +3,7 @@ package com.kaleidoscope.backend.auth.security.filter;
 import com.kaleidoscope.backend.notifications.routes.NotificationRoutes;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +32,16 @@ public class SseAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+
+        // Skip filter for ASYNC and ERROR dispatches (e.g., SSE timeout/error callbacks)
+        // Only authenticate on the initial REQUEST dispatch
+        if (request.getDispatcherType() == DispatcherType.ASYNC ||
+            request.getDispatcherType() == DispatcherType.ERROR) {
+            log.trace("Skipping SseAuthenticationFilter for {} dispatch type on {}",
+                     request.getDispatcherType(), request.getRequestURI());
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (response.isCommitted()) {
             log.trace("Response already committed, skipping SseAuthenticationFilter for {}", request.getRequestURI());
