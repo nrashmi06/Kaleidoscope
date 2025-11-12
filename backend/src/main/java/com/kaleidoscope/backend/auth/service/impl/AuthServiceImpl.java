@@ -17,12 +17,11 @@ import com.kaleidoscope.backend.auth.service.RefreshTokenService;
 import com.kaleidoscope.backend.auth.service.UserRegistrationService;
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
 import com.kaleidoscope.backend.shared.enums.Role;
+import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.exception.user.UserAccountSuspendedException;
 import com.kaleidoscope.backend.users.exception.user.UserNotActiveException;
-import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -212,37 +211,19 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         boolean isSecure = !baseUrl.contains("localhost");
         String sameSite = isSecure ? "None" : "Lax"; // Use Lax for localhost
 
-        // Create cookie with security attributes and max-age=0
-        Cookie refreshTokenCookie = new Cookie("refreshToken", null);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(isSecure);
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(0); // Expire immediately
+        // Build the Set-Cookie header to clear the cookie
+        StringBuilder cookieString = new StringBuilder();
+        cookieString.append("refreshToken=");
+        cookieString.append("; Path=/"); // Root path to match cookie setting
+        cookieString.append("; HttpOnly");
+        cookieString.append("; Max-Age=0"); // Expire immediately
+        cookieString.append(String.format("; SameSite=%s", sameSite));
 
-        // Set domain for non-localhost environments
-        if (!baseUrl.contains("localhost")) {
-            String domain = baseUrl.replaceAll("https?://", "")
-                    .replaceAll("/.*$", "")
-                    .split(":")[0]
-                    .trim();
-            refreshTokenCookie.setDomain(domain);
+        if (isSecure) {
+            cookieString.append("; Secure");
         }
 
-        // Add cookie to response
-        response.addCookie(refreshTokenCookie);
-
-        // Set explicit cookie header for additional browser compatibility
-        String cookieString = String.format(
-                "refreshToken=; Path=/; HttpOnly; Max-Age=0; SameSite=%s%s",
-                sameSite,
-                isSecure ? "; Secure" : ""
-        );
-
-        if (!baseUrl.contains("localhost")) {
-            cookieString += "; Domain=" + refreshTokenCookie.getDomain();
-        }
-
-        response.setHeader("Set-Cookie", cookieString);
+        response.setHeader("Set-Cookie", cookieString.toString());
 
         log.info("Cookie cleared - Path: /, MaxAge: 0, Secure: {}, SameSite: {}",
                 isSecure, sameSite);

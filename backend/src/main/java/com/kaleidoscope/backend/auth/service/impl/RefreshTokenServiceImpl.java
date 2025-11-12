@@ -13,7 +13,6 @@ import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.service.UserService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -140,55 +139,50 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         String baseUrl = applicationProperties.baseUrl();
         boolean isSecure = !baseUrl.contains("localhost");
-        String sameSite = isSecure ? "None" : "Strict";
+        String sameSite = isSecure ? "None" : "Lax";
 
         int maxAgeDays = jwtProperties.cookieMaxAgeDays();
         int maxAge = maxAgeDays * 24 * 60 * 60; // Convert days to seconds
 
-        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(isSecure);
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(maxAge);
-
-        // Set domain for non-localhost environments
-        if (!baseUrl.contains("localhost")) {
-            String domain = baseUrl.replaceAll("https?://", "")
-                    .replaceAll("/.*$", "")
-                    .split(":")[0]
-                    .trim();
-            refreshTokenCookie.setDomain(domain);
-        }
-
-        response.addCookie(refreshTokenCookie);
-
+        // Build the Set-Cookie header manually for better control with Nginx proxy
         StringBuilder cookieString = new StringBuilder();
         cookieString.append(String.format("refreshToken=%s", refreshToken));
-        cookieString.append("; Path=/");
+        cookieString.append("; Path=/"); // Use root path since Nginx handles the context path
         cookieString.append("; HttpOnly");
         cookieString.append(String.format("; Max-Age=%d", maxAge));
         cookieString.append(String.format("; SameSite=%s", sameSite));
 
         if (isSecure) {
             cookieString.append("; Secure");
-        }
-
-        if (!baseUrl.contains("localhost")) {
-            cookieString.append(String.format("; Domain=%s", refreshTokenCookie.getDomain()));
+            // For production, don't set domain - let browser use the current domain
+            // This works better with reverse proxies
+            log.debug("Cookie configured for production (Secure=true, SameSite=None)");
+        } else {
+            log.debug("Cookie configured for development (Secure=false, SameSite=Lax)");
         }
 
         response.setHeader("Set-Cookie", cookieString.toString());
-        log.debug("Refresh token cookie set successfully");
+        log.debug("Refresh token cookie set successfully with path=/ and SameSite={}", sameSite);
     }
 
     public void clearRefreshTokenCookie(HttpServletResponse response) {
-        Cookie refreshTokenCookie = new Cookie("refreshToken", null);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(!applicationProperties.baseUrl().contains("localhost"));
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(0);
+        String baseUrl = applicationProperties.baseUrl();
+        boolean isSecure = !baseUrl.contains("localhost");
+        String sameSite = isSecure ? "None" : "Lax";
 
-        response.addCookie(refreshTokenCookie);
+        // Build the Set-Cookie header to clear the cookie
+        StringBuilder cookieString = new StringBuilder();
+        cookieString.append("refreshToken=");
+        cookieString.append("; Path=/");
+        cookieString.append("; HttpOnly");
+        cookieString.append("; Max-Age=0"); // Expire immediately
+        cookieString.append(String.format("; SameSite=%s", sameSite));
+
+        if (isSecure) {
+            cookieString.append("; Secure");
+        }
+
+        response.setHeader("Set-Cookie", cookieString.toString());
         log.info("Refresh token cookie cleared successfully");
     }
 }
