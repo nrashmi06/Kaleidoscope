@@ -1,23 +1,32 @@
+// src/app/(auth)/create-post/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useAccessToken } from "@/hooks/useAccessToken";
-import { PostCreateRequestDTO, LocationOption, User, CategorySummaryResponseDTO } from "@/lib/types/post";
+import {
+  PostCreateRequestDTO,
+  LocationOption,
+  CategorySummaryResponseDTO,
+} from "@/lib/types/post";
 import { createPostController } from "@/controllers/postController/createPost";
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
-import { searchUsersController } from "@/controllers/userController/searchUsers";
+// --- 1. IMPORT REPLACEMENT ---
+import { getTaggableUsersController } from "@/controllers/userTagController/getTaggableUsersController";
+// --- (Removed searchUsersController) ---
+
 import TitleInput from "@/components/post/TitleInput";
 import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
 import SummaryInput from "@/components/post/SummaryInput";
 import VisibilitySelect from "@/components/post/VisibilitySelect";
-import {LocationSearch} from "@/components/post/LocationSearch";
+import { LocationSearch } from "@/components/post/LocationSearch";
 import CategoriesSelect from "@/components/post/CategoriesSelect";
 import MediaUpload from "@/components/post/MediaUpload";
 import TagUsers from "@/components/post/TagUsers";
 import PostPreview from "@/components/post/PostPreview";
 import Header from "@/components/post/Header";
+import { TaggableUser } from "@/lib/types/usertag"; // <-- Import TaggableUser type
 
 export default function CreatePostPage() {
   const router = useRouter();
@@ -35,10 +44,15 @@ export default function CreatePostPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<CategorySummaryResponseDTO[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [categories, setCategories] = useState<CategorySummaryResponseDTO[]>(
+    []
+  );
+  // --- 2. UPDATE STATE TYPE ---
+  // TaggableUser is compatible with User, but good to be specific
+  const [users, setUsers] = useState<TaggableUser[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(null);
+  const [selectedLocation, setSelectedLocation] =
+    useState<LocationOption | null>(null);
 
   // Load categories on mount
   useEffect(() => {
@@ -49,33 +63,48 @@ export default function CreatePostPage() {
     }
   }, [accessToken]);
 
-  // Search users
+  // --- 3. UPDATE USER SEARCH LOGIC ---
   useEffect(() => {
-    if (!userSearchQuery.trim() || !accessToken) return setUsers([]);
+    if (!userSearchQuery.trim() || !accessToken) {
+      setUsers([]);
+      return;
+    }
     const timeout = setTimeout(() => {
-      searchUsersController(accessToken, userSearchQuery)
-        .then((res) => setUsers(res.data?.content || []))
+      // Use getTaggableUsersController
+      getTaggableUsersController(accessToken, userSearchQuery, 0, 20)
+        .then((res) => {
+          // The response structure (res.data.content) is the same
+          setUsers(res.data?.content || []);
+        })
         .catch(() => setUsers([]));
     }, 300);
     return () => clearTimeout(timeout);
   }, [userSearchQuery, accessToken]);
+  // --- END OF CHANGES ---
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken) return;
-    if (!formData.title.trim() || !formData.body.trim() || formData.categoryIds.length === 0) {
+    if (
+      !formData.title.trim() ||
+      !formData.body.trim() ||
+      formData.categoryIds.length === 0
+    ) {
       return toast.error("Title, body and categories are required");
     }
 
     setLoading(true);
     try {
       const createResponse = await createPostController(formData, accessToken);
-      if (!createResponse.success) throw new Error(createResponse.errors?.[0] || "Failed to create post");
+      if (!createResponse.success)
+        throw new Error(createResponse.errors?.[0] || "Failed to create post");
 
       toast.success("Post created successfully!");
       router.push("/feed");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create post");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create post"
+      );
     } finally {
       setLoading(false);
     }
@@ -86,19 +115,27 @@ export default function CreatePostPage() {
       <div className="max-w-4xl mx-auto p-6">
         <Header router={router} />
         <form onSubmit={handleSubmit} className="space-y-6">
-          <TitleInput value={formData.title} onChange={(title) => setFormData({ ...formData, title })} />
-          <EnhancedBodyInput 
-            value={formData.body} 
-            onChange={(body: string) => setFormData({ ...formData, body })} 
-            accessToken={accessToken} 
+          <TitleInput
+            value={formData.title}
+            onChange={(title) => setFormData({ ...formData, title })}
+          />
+          <EnhancedBodyInput
+            value={formData.body}
+            onChange={(body: string) => setFormData({ ...formData, body })}
+            accessToken={accessToken}
             placeholder="Write your post content here... Use # to add hashtags, **bold text**, *italic text*"
             minRows={8}
             maxRows={20}
           />
-          <SummaryInput value={formData.summary} onChange={(summary) => setFormData({ ...formData, summary })} />
-          <VisibilitySelect value={formData.visibility} onChange={(visibility) => setFormData({ ...formData, visibility })} />
-          
-          {/* Updated: Using LocationSearch instead of LocationSelect */}
+          <SummaryInput
+            value={formData.summary}
+            onChange={(summary) => setFormData({ ...formData, summary })}
+          />
+          <VisibilitySelect
+            value={formData.visibility}
+            onChange={(visibility) => setFormData({ ...formData, visibility })}
+          />
+
           <LocationSearch
             selectedLocation={selectedLocation}
             onLocationSelect={(loc) => {
@@ -119,12 +156,16 @@ export default function CreatePostPage() {
               });
             }}
           />
-          <MediaUpload accessToken={accessToken} formData={formData} setFormData={setFormData} />
+          <MediaUpload
+            accessToken={accessToken}
+            formData={formData}
+            setFormData={setFormData}
+          />
           <TagUsers
             accessToken={accessToken}
             userSearchQuery={userSearchQuery}
             setUserSearchQuery={setUserSearchQuery}
-            users={users}
+            users={users} // This prop is compatible with TaggableUser[]
             taggedUserIds={formData.taggedUserIds}
             onToggle={(id) =>
               setFormData({
@@ -135,7 +176,11 @@ export default function CreatePostPage() {
               })
             }
           />
-          <PostPreview formData={formData} mediaPreviewLength={formData.mediaDetails?.length || 0} selectedLocation={selectedLocation} />
+          <PostPreview
+            formData={formData}
+            mediaPreviewLength={formData.mediaDetails?.length || 0}
+            selectedLocation={selectedLocation}
+          />
           <div className="flex gap-4 pt-6">
             <button
               type="button"

@@ -1,4 +1,4 @@
-// Post related types based on backend DTOs
+// src/lib/types/post.ts
 
 export interface MediaUploadRequestDTO {
   url: string;
@@ -268,3 +268,53 @@ export interface SinglePostResponseDTO {
 
 export type SinglePostResponse = StandardAPIResponse<SinglePostResponseDTO>;
 
+
+/**
+ * This is the "heavy" post object used by UI components like SocialPostCard.
+ * It is a consolidated type that can be populated from either a PostFeedItem
+ * (via an adapter) or a SinglePostResponseDTO (via a mapper).
+ */
+export interface Post {
+  postId: number;
+  title: string;
+  body: string; // Non-optional, adapter will provide summary as fallback
+  summary: string;
+  visibility: "PUBLIC" | "FOLLOWERS";
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string, adapter will provide createdAt as fallback
+  author: {
+    userId: number;
+    username: string;
+    profilePictureUrl?: string;
+  };
+  location?: {
+    locationId: number;
+    name: string;
+    city: string;
+    country: string;
+  };
+  categories: Array<{
+    categoryId: number;
+    name: string;
+  }>;
+  mediaDetails: Array<{ // Non-optional, will be [] if empty
+    url: string;
+    mediaType: "IMAGE" | "VIDEO";
+    position: number;
+    width: number;
+    height: number;
+    fileSizeKb: number;
+    durationSeconds?: number | null;
+    extraMetadata?: Record<string, unknown>;
+  }>;
+  taggedUsers: Array<{ // Non-optional, will be [] if empty
+    userId: number;
+    username: string;
+  }>;
+  hashtags: string[]; // <-- ADDED THIS
+  thumbnailUrl?: string;
+  commentCount: number;
+  reactionCount: number; // Renamed from likeCount for consistency
+  viewCount: number; // <-- ADDED THIS
+  isLikedByCurrentUser?: boolean; // This is fine, as it's UI state
+}

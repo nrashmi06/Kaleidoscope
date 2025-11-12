@@ -1,31 +1,32 @@
 // src/lib/types/userProfile.ts
 
-import { PostAuthorResponseDTO, CategorySummaryResponseDTO } from "@/lib/types/post"; 
+import { PaginatedResponse } from "./post";
+// ✅ 1. IMPORT 'CategorySummaryResponseDTO' FROM './post'
+import { type CategorySummaryResponseDTO } from "./post"; 
+// ✅ 2. REMOVED 'CategorySummaryResponseDTO' FROM THIS IMPORT
+import { type NormalizedPostFeedItem } from "./postFeed"; 
 
-export interface StandardAPIResponse<T> {
-  success: boolean;
-  message: string;
-  data: T | null;
-  errors: string[];
-  timestamp: number;
-  path: string;
+export type FollowStatus = "FOLLOWING" | "NOT_FOLLOWING" | "PENDING";
+
+// This is the raw Author type from the profile API
+export interface PostAuthorResponseDTO {
+  userId: number;
+  email: string | null;
+  username: string;
+  accountStatus: string | null;
+  profilePictureUrl: string | null;
 }
-/**
- * Follow status types returned by the backend.
- */
-export type FollowStatus = "FOLLOWING" | "NOT_FOLLOWING" | "PENDING" | "NONE";
 
-/**
- * Simplified Post structure used in the paginated list within the profile.
- */
+// This is the raw Post type from the profile API
 export interface UserPost {
   postId: number;
   title: string;
   summary: string;
-  visibility: "PUBLIC" | "PRIVATE" | "FOLLOWERS_ONLY";
+  // This is the raw visibility type from the API
+  visibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
   createdAt: string;
   author: PostAuthorResponseDTO;
-  categories: CategorySummaryResponseDTO[];
+  categories: CategorySummaryResponseDTO[]; // ✅ 3. This type is now correctly imported
   thumbnailUrl: string | null;
   hashtags: string[];
   reactionCount: number;
@@ -34,64 +35,49 @@ export interface UserPost {
 }
 
 /**
- * Paginated posts structure
+ * The full API response for a user's profile.
  */
-export interface UserPostsPage {
-  content: UserPost[];
-  page: number;
-  size: number;
-  totalPages: number;
-  totalElements: number;
-  first: boolean;
-  last: boolean;
-}
-
-/**
- * Raw User Profile Data from the API
- */
-export interface UserProfileDTO {
+export interface UserProfileResponseDTO {
   userId: number;
   username: string;
-  profilePictureUrl: string | null;
-  coverPhotoUrl: string | null;
-  summary: string | null;
-  designation: string | null;
-  followerCount: number;
-  followingCount: number;
-  isPrivate: boolean;
-  followStatus: FollowStatus;
-  posts: UserPostsPage;
-}
-
-/**
- * Frontend Mapped User Profile Structure (guaranteed non-null fields)
- */
-export interface MappedUserProfile {
-  userId: number;
-  username: string;
-  profilePictureUrl: string; 
-  coverPhotoUrl: string;     
+  profilePictureUrl: string;
+  coverPhotoUrl: string;
   summary: string;
   designation: string;
   followerCount: number;
   followingCount: number;
   isPrivate: boolean;
   followStatus: FollowStatus;
-  posts: UserPostsPage; 
+  posts: PaginatedResponse<UserPost>; // Uses the raw UserPost
 }
 
-/**
- * Final API Response Type
- */
-export type UserProfileResponse = StandardAPIResponse<UserProfileDTO>;
-
-/**
- * Result type for the controller, including structured success/error handling.
- */
-export interface UserProfileControllerResult {
+export type UserProfileApiResponse = {
   success: boolean;
-  data?: MappedUserProfile;
   message: string;
-  errors: string[];
-  statusCode?: number;
+  data: UserProfileResponseDTO | null;
+  // ... other fields
+};
+
+/**
+ * The final, clean, mapped data structure for the frontend component.
+ */
+export interface MappedUserProfile {
+  userId: number;
+  username: string;
+  profilePictureUrl: string;
+  coverPhotoUrl: string;
+  summary: string;
+  designation: string;
+  followerCount: number;
+  followingCount: number;
+  isPrivate: boolean;
+  followStatus: FollowStatus;
+  // The mapped data uses the correct type
+  posts: PaginatedResponse<NormalizedPostFeedItem>;
 }
+
+export type UserProfileControllerResult = {
+  success: boolean;
+  data: MappedUserProfile | null;
+  message?: string;
+};

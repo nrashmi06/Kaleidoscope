@@ -1,160 +1,55 @@
-import axiosInstance from "@/hooks/axios";
-import axios, { AxiosError } from "axios";
+// src/services/post/fetchPosts.ts
 
-export interface Post {
-  postId: number;
-  title: string;
-  body?: string;
-  summary: string;
-  visibility: "PUBLIC" | "FOLLOWERS";
-  createdAt: string;
-  updatedAt?: string;
-  author: {
-    userId: number;
-    username: string;
-    profilePictureUrl?: string;
-  };
-  location?: {
-    locationId: number;
-    name: string;
-    city: string;
-    country: string;
-  };
-  categories: Array<{
-    categoryId: number;
-    name: string;
-  }>;
-  mediaDetails?: Array<{
-    url: string;
-    mediaType: "IMAGE" | "VIDEO";
-    position: number;
-    width: number;
-    height: number;
-    fileSizeKb: number;
-    durationSeconds?: number | null;
-    extraMetadata?: Record<string, unknown>;
-  }>;
-  taggedUsers?: Array<{
-    userId: number;
-    username: string;
-  }>;
-  thumbnailUrl?: string;
-  likeCount?: number;
-  commentCount: number;
-  reactionCount?: number;
-  shareCount?: number;
-  isLikedByCurrentUser?: boolean;
-}
+import { filterPostsService, FilterPostsResult } from "./filterPosts";
+import type { PostFilterParams, PaginatedPostsResponse } from "@/lib/types/postFeed";
+// ✅ NEW IMPORT: Import the heavyweight Post type from the shared types file
+import { Post } from "@/lib/types/post"; 
 
-export interface FetchPostsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    content: Post[];
-    totalElements: number;
-    page: number;
-    size: number;
-    totalPages: number;
-    first: boolean;
-    last: boolean;
-    hasNext: boolean;
-    hasPrevious: boolean;
-  };
-  errors: unknown[];
-  timestamp: number;
-  path: string;
-}
+// ✅ Re-export types from filterPostsService for backward compatibility
+export type FetchPostsResult = FilterPostsResult;
+export type FetchPostsResponse = PaginatedPostsResponse;
+// ✅ NEW EXPORT: Re-export the heavyweight Post type to satisfy consumers
+export type { Post }; 
 
-/** Define a strict type for Axios error response shape */
-interface ApiErrorResponse {
-  message?: string;
-  status?: number;
-  timestamp?: string | number;
-  path?: string;
-}
-
-/** Strict return type */
-interface FetchPostsResult {
-  success: boolean;
-  data?: FetchPostsResponse;
-  error?: string;
-}
-
+/**
+ * Fetches posts. This service is now a lightweight wrapper.
+ * It translates its legacy options into PostFilterParams
+ * and calls the main filterPostsService.
+ */
 export const fetchPostsService = async (
   accessToken: string,
   options?: {
     page?: number;
     size?: number;
-    sort?: string;
-    sortBy?: string;
-    sortDirection?: "ASC" | "DESC";
+    sort?: string; 
+    sortBy?: string; // (deprecated)
+    sortDirection?: "ASC" | "DESC"; // (deprecated)
   }
 ): Promise<FetchPostsResult> => {
-  try {
-    const params = new URLSearchParams();
+  
+  // --- Adapt old 'options' to new 'PostFilterParams' ---
+  let sortParams: string[] | undefined = undefined;
 
-    if (options?.page !== undefined) params.append("page", options.page.toString());
-    if (options?.size !== undefined) params.append("size", options.size.toString());
-
-    // Handle sort logic
-    if (options?.sort) {
-      params.append("sort", options.sort);
-    } else if (options?.sortBy && options?.sortDirection) {
-      params.append("sort", `${options.sortBy},${options.sortDirection.toLowerCase()}`);
-    } else if (options?.sortBy) {
-      params.append("sort", `${options.sortBy},desc`);
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_BACKEND_URL ?? "";
-    const url = `${baseUrl}/api/posts`;
-
-    console.log("Fetching posts from:", `${url}?${params.toString()}`);
-
-    const response = await axiosInstance.get<FetchPostsResponse>(url, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      params,
-    });
-
-    console.log("Posts fetch response:", response.data);
-
-    if (!response.data.success) {
-      return {
-        success: false,
-        error: response.data.message || "Backend returned unsuccessful response",
-      };
-    }
-
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: unknown) {
-    // Ensure `error` is narrowed to AxiosError<ApiErrorResponse>
-    if (axios.isAxiosError<ApiErrorResponse>(error)) {
-      const axiosError = error as AxiosError<ApiErrorResponse>;
-      const message =
-        axiosError.response?.data?.message ??
-        axiosError.message ??
-        "Unknown API error";
-
-      console.error("Axios error response:", axiosError.response?.data);
-
-      return {
-        success: false,
-        error: message,
-      };
-    }
-
-    // Fallback for unexpected errors (non-Axios)
-    const genericError =
-      error instanceof Error ? error.message : "Unknown network error";
-    console.error("Unexpected error fetching posts:", error);
-
-    return {
-      success: false,
-      error: genericError,
-    };
+  if (options?.sort) {
+    sortParams = [options.sort];
+  } else if (options?.sortBy && options?.sortDirection) {
+    sortParams = [`${options.sortBy},${options.sortDirection.toLowerCase()}`];
+  } else if (options?.sortBy) {
+    sortParams = [`${options.sortBy},desc`];
   }
+
+  const filterOptions: PostFilterParams = {
+    page: options?.page,
+    size: options?.size,
+    sort: sortParams,
+    // Note: 'q', 'hashtag', 'categoryId', etc., are omitted
+    // as this service was only for basic pagination.
+  };
+  // --- End adaptation ---
+
+  // ✅ Call the single source of truth
+  return filterPostsService(accessToken, filterOptions);
 };
+
+// We can keep the default export for any legacy imports
+export default fetchPostsService;

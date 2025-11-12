@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/hooks/axios';
+import axios from 'axios';
 import { NominatimLocation } from '@/lib/types/post';
 
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
@@ -12,7 +12,7 @@ export const searchNominatimLocations = async (
   }
 
   try {
-    const response = await axiosInstance.get<NominatimLocation[]>(
+    const response = await axios.get<NominatimLocation[]>(
       `${NOMINATIM_BASE_URL}/search`,
       {
         params: {

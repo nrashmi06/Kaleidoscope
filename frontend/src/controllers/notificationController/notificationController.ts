@@ -11,8 +11,12 @@ const svc = new NotificationStreamService();
 // --- Reconnect Logic ---
 let reconnectTimer: number = 0;
 let reconnectAttempts = 0;
-const baseReconnectDelay = 1000;
-const maxReconnectDelay = 30000;
+// ❌ Removed old delay constants
+// const baseReconnectDelay = 1000;
+// const maxReconnectDelay = 30000;
+
+// ✅ 1. Set the fixed 10-minute delay
+const FIXED_RECONNECT_DELAY = 10 * 60 * 1000; 
 
 /**
  * Start stream and return a cleanup function to stop it.
@@ -31,42 +35,37 @@ export function startNotificationStream(dispatch: AppDispatch, token: string | n
     if (reconnectTimer) return;
 
     reconnectAttempts++;
-    const delay = Math.min(
-      maxReconnectDelay,
-      baseReconnectDelay * Math.pow(2, reconnectAttempts) + (Math.random() * 1000)
-    );
-
-    // ✅ DEBUG: Check if token is still available in this closure
     
-    console.warn(`[SSE Controller] Connection lost. Reconnecting in ${Math.round(delay / 1000)}s... (Attempt ${reconnectAttempts})`);
+    // ❌ 2. Removed the exponential backoff logic
+    // const delay = Math.min(
+    //   maxReconnectDelay,
+    //   baseReconnectDelay * Math.pow(2, reconnectAttempts) + (Math.random() * 100000)
+    // );
+
+    // ✅ 3. Use the fixed 10-minute delay and update the log message
+    console.warn(`[SSE Controller] Connection lost. Reconnecting in 10 minutes... (Attempt ${reconnectAttempts})`);
 
     reconnectTimer = window.setTimeout(() => {
       reconnectTimer = 0;
-      // ✅ FIX: Pass the 'token' from the parent scope
       getTicketAndConnect(token); 
-    }, delay);
+    }, FIXED_RECONNECT_DELAY); // <-- Use the fixed 10-minute delay
   };
 
   /**
    * The core logic: Get a ticket, then connect.
    */
-  // ✅ FIX: 'token' parameter now correctly receives the value
   const getTicketAndConnect = async (currentToken: string | null) => {
     if (!currentToken) {
       dispatch(setError("No auth token, cannot connect to SSE."));
-      // We don't retry if the token is gone (e.g., user logged out)
       return;
     }
-
 
     // 1. Fetch the one-time ticket
     const ticketResult = await getSseTicketController(currentToken);
 
     if (!ticketResult.success || !ticketResult.ticket) {
       dispatch(setError(ticketResult.message || "Failed to get SSE ticket."));
-      // If we fail to get a ticket (e.g., 401), schedule a retry.
-      // The retry will use the same token, which might be expired,
-      // but the axios interceptor should handle refreshing it.
+      // If we fail to get a ticket, schedule the retry
       scheduleRetry();
       return;
     }
@@ -79,11 +78,13 @@ export function startNotificationStream(dispatch: AppDispatch, token: string | n
       },
       onClose: () => {
         dispatch(setConnected(false));
+        // Connection closed (e.g., server restart, network change)
         scheduleRetry();
       },
       onError: (err) => {
         dispatch(setConnected(false));
         dispatch(setError(err?.toString?.() ?? "Connection error"));
+        // An error occurred (e.g., ticket invalid, network error)
         scheduleRetry();
       },
       onUnseenCount: (payload: UnseenCountPayload) => {
@@ -99,7 +100,6 @@ export function startNotificationStream(dispatch: AppDispatch, token: string | n
   };
 
   // Start the connection attempt
-  // ✅ FIX: Pass the initial 'token' to the function
   getTicketAndConnect(token);
 
   // Return the cleanup function
