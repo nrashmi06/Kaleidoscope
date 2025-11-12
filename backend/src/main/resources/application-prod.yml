@@ -1,6 +1,9 @@
 # Production Profile Overrides
 # These settings will override the base application.yml
 spring:
+  app:
+    base-url: ${APP_BASE_URL:https://project-kaleidoscope.tech}
+
   data:
     redis:
       # Overrides base to include a password placeholder
