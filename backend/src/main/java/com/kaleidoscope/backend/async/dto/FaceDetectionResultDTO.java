@@ -26,6 +26,6 @@ public class FaceDetectionResultDTO {
         private String faceId;
         private Double confidence;
         private List<Double> bbox;
-        private String embedding;
+        private List<Double> embedding;  // CHANGED FROM String TO List<Double>
     }
 }
