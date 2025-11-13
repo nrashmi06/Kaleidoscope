@@ -30,7 +30,8 @@ public class ElasticsearchSyncTriggerService {
         "read_model_blog_search", "blog_search",
         "read_model_hashtag_search", "hashtag_search",
         "read_model_location_search", "location_search",
-        "read_model_category_search", "category_search"
+        "read_model_category_search", "category_search",
+        "read_model_face_search", "face_search"  // ADDED: Face search mapping
     );
 
     /**
