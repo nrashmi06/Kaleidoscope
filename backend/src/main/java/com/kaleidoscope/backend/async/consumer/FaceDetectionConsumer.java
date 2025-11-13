@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     private final MediaAiInsightsRepository mediaAiInsightsRepository;
     private final ReadModelUpdateService readModelUpdateService;
     private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
+    private final JdbcTemplate jdbcTemplate;
 
     // --- ADDED FOR RETRY LOGIC ---
     private static final int MAX_RETRY_ATTEMPTS = 5;
@@ -72,8 +74,7 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             log.info("Processing {} faces for mediaId: {}", faces.size(), mediaAiInsights.getMediaId());
 
             for (FaceDetectionResultDTO.FaceDetails face : faces) {
-                MediaDetectedFace detectedFace = createMediaDetectedFaceEntity(face, mediaAiInsights);
-                MediaDetectedFace savedFace = mediaDetectedFaceRepository.save(detectedFace);
+                MediaDetectedFace savedFace = saveFaceWithVectorEmbedding(face, mediaAiInsights);
                 readModelUpdateService.createFaceSearchReadModel(savedFace);
                 elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
                 log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}",
@@ -191,33 +192,93 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
         }
     }
 
-    private MediaDetectedFace createMediaDetectedFaceEntity(
+    /**
+     * NEW METHOD: Saves face with vector embedding using native SQL
+     * This is required because Hibernate doesn't natively support PostgreSQL vector types
+     */
+    private MediaDetectedFace saveFaceWithVectorEmbedding(
             FaceDetectionResultDTO.FaceDetails face, MediaAiInsights mediaAiInsights) {
 
+        // Convert bbox to PostgreSQL array format
         Integer[] bboxArray = face.getBbox() != null
                 ? face.getBbox().stream()
                         .map(value -> value != null ? value.intValue() : null)
                         .toArray(Integer[]::new)
                 : new Integer[0];
+        String bboxArrayStr = arrayToString(bboxArray);
 
-        // Convert List<Double> embedding to JSON string
-        String embeddingJson = null;
-        if (face.getEmbedding() != null && !face.getEmbedding().isEmpty()) {
-            try {
-                embeddingJson = objectMapper.writeValueAsString(face.getEmbedding());
-            } catch (Exception e) {
-                log.error("Failed to convert embedding to JSON string for faceId: {}", face.getFaceId(), e);
-                throw new StreamMessageProcessingException("face-detection",
-                        face.getFaceId(), "Failed to serialize embedding", e);
-            }
+        // Convert embedding to PostgreSQL vector format: [0.0,0.0,0.0,...]
+        String embeddingVector = formatEmbeddingForVector(face.getEmbedding());
+
+        Float confidenceScore = face.getConfidence() != null ? face.getConfidence().floatValue() : null;
+
+        // Use native SQL with CAST to insert vector properly
+        String insertSql = """
+            INSERT INTO media_detected_faces 
+            (media_id, bbox, confidence_score, embedding, identified_user_id, suggested_user_id, status)
+            VALUES (?, ?::integer[], ?, ?::vector, ?, ?, ?)
+            RETURNING id
+            """;
+
+        try {
+            Long faceId = jdbcTemplate.queryForObject(insertSql, Long.class,
+                mediaAiInsights.getMediaId(),
+                bboxArrayStr,
+                confidenceScore,
+                embeddingVector,
+                null, // identified_user_id
+                null, // suggested_user_id
+                FaceDetectionStatus.UNIDENTIFIED.name()
+            );
+
+            // Reload the entity to get all fields
+            MediaDetectedFace savedFace = mediaDetectedFaceRepository.findById(faceId)
+                .orElseThrow(() -> new RuntimeException("Failed to retrieve saved face with id: " + faceId));
+
+            log.debug("Successfully saved MediaDetectedFace with id: {} for mediaId: {}",
+                     faceId, mediaAiInsights.getMediaId());
+
+            return savedFace;
+
+        } catch (Exception e) {
+            log.error("Failed to save MediaDetectedFace for mediaId: {}, faceId: {}",
+                     mediaAiInsights.getMediaId(), face.getFaceId(), e);
+            throw new StreamMessageProcessingException("face-detection",
+                    face.getFaceId(), "Failed to save face with vector embedding", e);
         }
+    }
 
-        return MediaDetectedFace.builder()
-                .mediaAiInsights(mediaAiInsights)
-                .bbox(bboxArray)
-                .embedding(embeddingJson)  // Now accepts JSON string converted from List<Double>
-                .confidenceScore(face.getConfidence() != null ? face.getConfidence().floatValue() : null)
-                .status(FaceDetectionStatus.UNIDENTIFIED)
-                .build();
+    /**
+     * Helper: Formats List<Double> embedding to PostgreSQL vector array format
+     * Format: [0.0,0.0,0.0,...] (plain array string, not JSON)
+     */
+    private String formatEmbeddingForVector(List<Double> embedding) {
+        if (embedding == null || embedding.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < embedding.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(embedding.get(i));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    /**
+     * Helper: Converts Integer[] to PostgreSQL array string format
+     * Format: {1,2,3} for integer arrays
+     */
+    private String arrayToString(Integer[] array) {
+        if (array == null || array.length == 0) {
+            return "{}";
+        }
+        StringBuilder sb = new StringBuilder("{");
+        for (int i = 0; i < array.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(array[i]);
+        }
+        sb.append("}");
+        return sb.toString();
     }
 }
