@@ -9,12 +9,11 @@ interface AuthState {
   accessToken: string;
   profilePictureUrl: string;
   isUserInterestSelected: boolean;
-  // ✅ FOLLOWING STATE
   followingUserIds: number[]; 
-  // ✅ NEW: FOLLOWERS STATE
-  followersUserIds: number[]; // <-- Added for persistent caching
+  followersUserIds: number[]; 
+  pendingRequestUserIds: number[]; // <-- ADD THIS
 }
-// Example to ensure only serializable data is stored in Redux state
+
 const initialState: AuthState = {
     userId: 0,
     email: "",
@@ -23,9 +22,9 @@ const initialState: AuthState = {
     accessToken: "",
     profilePictureUrl: "",
     isUserInterestSelected: false,
-    // ✅ Initialize new states
     followingUserIds: [], 
-    followersUserIds: [], // <-- Initialized
+    followersUserIds: [],
+    pendingRequestUserIds: [], // <-- ADD THIS
   };
   
   const authSlice = createSlice({
@@ -41,8 +40,8 @@ const initialState: AuthState = {
         state.profilePictureUrl = action.payload.profilePictureUrl;
         state.isUserInterestSelected = action.payload.isUserInterestSelected;
         state.followingUserIds = action.payload.followingUserIds || [];
-        // ✅ Preserve new state on login/set
         state.followersUserIds = action.payload.followersUserIds || [];
+        state.pendingRequestUserIds = action.payload.pendingRequestUserIds || []; // <-- ADD THIS
       },
       clearUser(state) {
         state.userId = 0;
@@ -52,9 +51,9 @@ const initialState: AuthState = {
         state.accessToken = "";
         state.profilePictureUrl = "";
         state.isUserInterestSelected = false;
-        // ✅ Clear both states on logout
         state.followingUserIds = []; 
         state.followersUserIds = []; 
+        state.pendingRequestUserIds = []; // <-- ADD THIS
       },
       setInterestSelected(state) {
         state.isUserInterestSelected = true;
@@ -74,7 +73,7 @@ const initialState: AuthState = {
       removeFollowingUserId(state, action: PayloadAction<number>) {
         state.followingUserIds = state.followingUserIds.filter(id => id !== action.payload);
       },
-      // ✅ NEW Reducers: Followers
+      // Followers Reducers
       setFollowersUserIds(state, action: PayloadAction<number[]>) {
         state.followersUserIds = action.payload;
       },
@@ -85,6 +84,18 @@ const initialState: AuthState = {
       },
       removeFollowerUserId(state, action: PayloadAction<number>) {
         state.followersUserIds = state.followersUserIds.filter(id => id !== action.payload);
+      },
+      // --- ADD THESE NEW REDUCERS ---
+      setPendingRequestUserIds(state, action: PayloadAction<number[]>) {
+        state.pendingRequestUserIds = action.payload;
+      },
+      addPendingRequestUserId(state, action: PayloadAction<number>) {
+        if (!state.pendingRequestUserIds.includes(action.payload)) {
+            state.pendingRequestUserIds.push(action.payload);
+        }
+      },
+      removePendingRequestUserId(state, action: PayloadAction<number>) {
+        state.pendingRequestUserIds = state.pendingRequestUserIds.filter(id => id !== action.payload);
       },
     },
   });
@@ -97,9 +108,11 @@ const initialState: AuthState = {
     setFollowingUserIds, 
     addFollowingUserId, 
     removeFollowingUserId,
-    // ✅ Export new actions
     setFollowersUserIds,
     addFollowerUserId,
-    removeFollowerUserId
+    removeFollowerUserId,
+    setPendingRequestUserIds,
+    addPendingRequestUserId,
+    removePendingRequestUserId
   } = authSlice.actions;
   export default authSlice.reducer;

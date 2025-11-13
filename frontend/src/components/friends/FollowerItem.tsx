@@ -14,8 +14,6 @@ type FollowActionPayload = { targetUserId: number; message: string; };
 
 interface Props {
   user: FollowerUser;
-  // This prop should only remove the user if they were followed back/accepted,
-  // but NOT when we unfollow them.
   onItemRemoved: (userId: number) => void; 
   onUserFollowed: (user: FollowerUser) => void;
 }
@@ -29,37 +27,47 @@ const getErrorMessage = (error: unknown, defaultMessage: string): string => {
 
 export default function FollowerItem({ user, onUserFollowed }: Props) {
   const dispatch = useAppDispatch();
-  // Reading following status directly from Redux is correct and already implemented
+  
+  // --- READ BOTH LISTS ---
   const followingUserIds = useAppSelector(state => state.auth.followingUserIds);
+  const pendingUserIds = useAppSelector(state => state.auth.pendingRequestUserIds); // <-- Add this
+  
   const isFollowingRedux = followingUserIds.includes(user.userId);
+  const isPendingRedux = pendingUserIds.includes(user.userId); // <-- Add this
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [label, setLabel] = useState(isFollowingRedux ? "Following" : "Follow Back");
 
-  // Sync label with Redux state on mount or external change
-  // This useEffect ensures the button updates immediately if the Redux state changes externally.
+  // --- UPDATE HELPER & INITIAL STATE ---
+  const getInitialLabel = () => {
+    if (isFollowingRedux) return "Following";
+    if (isPendingRedux) return "Requested";
+    return "Follow Back";
+  };
+  const [label, setLabel] = useState(getInitialLabel());
+
+  // --- UPDATE SYNC EFFECT ---
   useEffect(() => {
-      setLabel(isFollowingRedux ? "Following" : "Follow Back");
-  }, [isFollowingRedux]);
+      if (isProcessing) return; // Don't change label while processing
+      setLabel(getInitialLabel());
+  }, [isFollowingRedux, isPendingRedux, isProcessing]);
 
 
   const handleToggleFollow = useCallback(async () => {
     setIsProcessing(true);
     let result: FollowActionPayload; 
     
-    if (isFollowingRedux) {
+    // Check local state 'label' OR redux state
+    if (label === "Following" || label === "Requested") {
         // --- ACTION: UNFOLLOW ---
         try {
-          // 1. Dispatch Unfollow action (updates Redux cache optimistically)
-          result = await dispatch(startUnfollowUser(user.userId)).unwrap();
+          // Dispatch Unfollow thunk
+          await dispatch(startUnfollowUser(user.userId)).unwrap();
           toast.success("Unfollowed successfully.");
-          
-          // ❌ REMOVAL FIX: DO NOT call onItemRemoved here.
-          // The user is still a follower, so they must remain in this list.
-          // The button text changes via the useEffect listening to isFollowingRedux.
+          setLabel("Follow Back"); // Set local state
           
         } catch (error) { 
           toast.error(getErrorMessage(error, "Failed to unfollow."));
+          // useEffect will resync the label on error
         }
     } else {
         // --- ACTION: FOLLOW BACK ---
@@ -71,31 +79,26 @@ export default function FollowerItem({ user, onUserFollowed }: Props) {
               setLabel("Requested");
           } else {
              setLabel("Following");
-             // ✅ CRITICAL: Add the user object to the parent page's state 
-             // to ensure they show up in the Following tab list immediately.
              onUserFollowed(user); 
           }
 
         } catch (error) { 
           toast.error(getErrorMessage(error, "Failed to follow back."));
+          // useEffect will resync the label on error
         }
     }
     
     setIsProcessing(false);
     
-  }, [dispatch, user, isFollowingRedux, onUserFollowed]); // Removed onItemRemoved from dependencies as it's not used here anymore
+  }, [dispatch, user, label, onUserFollowed]); // Use 'label' as dependency
 
 
-  // Styles derived from FollowButton.tsx for consistency
-  const buttonLabel = isProcessing 
-      ? "..." 
-      : isFollowingRedux 
-      ? "Following" 
-      : (label === "Requested" ? "Requested" : "Follow Back");
+  // --- UPDATE BUTTON LABEL & CLASS ---
+  const buttonLabel = isProcessing ? "..." : label; 
 
   const buttonClass = isProcessing ? 
       "opacity-60 pointer-events-none" : 
-      isFollowingRedux ? 
+      label === "Following" ? 
       "bg-blue-600 text-white hover:bg-blue-700" : 
       label === "Requested" ? 
       "bg-yellow-500/10 text-yellow-600 border border-yellow-500 hover:bg-yellow-500/20" : 

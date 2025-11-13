@@ -7,7 +7,15 @@ import type { NotificationItem } from "@/lib/types/notifications";
 import NotificationItemComponent from "@/components/notifications/NotificationItem";
 import MarkAllAsReadButton from "@/components/notifications/MarkAllAsReadButton";
 import NotificationSkeleton from "@/components/loading/NotificationSkeleton";
-import { Bell, Inbox } from "lucide-react";
+import { Bell, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Import the Button component
+
+// Define a type for our pagination state
+interface PaginationInfo {
+  totalPages: number;
+  isFirst: boolean;
+  isLast: boolean;
+}
 
 export default function NotificationsPage() {
   const token = useAccessToken();
@@ -16,37 +24,59 @@ export default function NotificationsPage() {
   const [unread, setUnread] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
+  // --- New Pagination State ---
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const NOTIFICATIONS_PER_PAGE = 15; // Set a page size
+
+  // --- Updated Data Fetching Logic ---
   useEffect(() => {
     if (!token) return;
     let mounted = true;
     setLoading(true);
+    setError(null);
+    window.scrollTo(0, 0); // Scroll to top on page change
 
     (async () => {
-      // 1. 'res' is now the full 'GetNotificationsResponse'
-      // { success: true, data: { unreadCount: ..., notifications: ... }, ... }
-      const res = await getNotifications(token, { page: 0, size: 50 });
+      const res = await getNotifications(token, {
+        page: currentPage,
+        size: NOTIFICATIONS_PER_PAGE,
+      });
       if (!mounted) return;
       setLoading(false);
 
       if (!res.success) {
-        // ✅ 2. FIX: Get the error from 'res.message'
         setError(res.error || "Failed to load notifications");
+        setItems([]); // Clear items on error
+        setPagination(null); // Clear pagination on error
         return;
       }
 
-      // 3. 'res.data' is the 'NotificationsPagePayload'
       const payload = res.data;
 
       if (payload) {
         setItems(payload.notifications.content || []);
         setUnread(payload.unreadCount || 0);
+        // Store pagination details
+        setPagination({
+          totalPages: payload.notifications.totalPages,
+          isFirst: payload.notifications.first,
+          isLast: payload.notifications.last,
+        });
       }
     })();
 
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, [token, currentPage]); // Re-run effect when currentPage changes
+
+  // --- New Page Change Handler ---
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 0 && (!pagination || newPage < pagination.totalPages)) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="h-full mb-3 bg-gradient-to-br rounded-sm from-neutral-50 to-neutral-100 dark:from-zinc-950 dark:to-zinc-900">
@@ -70,12 +100,13 @@ export default function NotificationsPage() {
         <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-700 p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
+              {/* Total count is now from pagination, not items.length */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   Total
                 </span>
                 <span className="px-3 py-1 bg-neutral-100 dark:bg-zinc-700 rounded-full text-sm font-semibold text-neutral-900 dark:text-white">
-                  {items.length}
+                  {pagination ? pagination.totalPages * NOTIFICATIONS_PER_PAGE : items.length}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -164,6 +195,33 @@ export default function NotificationsPage() {
             </ul>
           )}
         </div>
+
+        {/* --- New Pagination Controls --- */}
+        {!loading && pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 p-4 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-700">
+            <Button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={pagination.isFirst}
+              variant="outline"
+              className="dark:bg-zinc-700 dark:hover:bg-zinc-600 dark:border-zinc-600"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Previous
+            </Button>
+            <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Page {currentPage + 1} of {pagination.totalPages}
+            </span>
+            <Button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={pagination.isLast}
+              variant="outline"
+              className="dark:bg-zinc-700 dark:hover:bg-zinc-600 dark:border-zinc-600"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

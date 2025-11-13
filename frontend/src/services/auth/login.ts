@@ -9,7 +9,6 @@ import { AuthMapper } from '@/mapper/authMapper';
 import { AppDispatch } from '@/store/index';
 import { setUser } from '@/store/authSlice';
 import { fetchAndStoreFollowing, fetchAndStoreFollowers } from '@/store/followThunks'; 
-// ✅ 1. Import the block thunk
 import { fetchAndStoreBlockedUsers } from '@/store/blockThunks';
 
 export const loginUser = async (
@@ -57,13 +56,13 @@ export const loginUser = async (
         isUserInterestSelected,
         followingUserIds: [], 
         followersUserIds: [], 
+        pendingRequestUserIds: [],
       })
     );
     
     // Dispatch all thunks to cache user lists
     dispatch(fetchAndStoreFollowing()); 
     dispatch(fetchAndStoreFollowers());
-    // ✅ 2. Dispatch the block thunk
     dispatch(fetchAndStoreBlockedUsers()); 
 
     return {

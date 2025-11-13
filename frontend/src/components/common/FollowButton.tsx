@@ -3,18 +3,21 @@
 
 import React, { useState, useEffect } from "react";
 import { useUserData } from "@/hooks/useUserData";
-import { useAppDispatch } from "@/hooks/appDispatch"; // ✅ NEW IMPORT
-import { useAppSelector } from "@/hooks/useAppSelector"; // ✅ NEW IMPORT
-import { startFollowUser, startUnfollowUser } from "@/store/followThunks"; // ✅ NEW IMPORT
+import { useAppDispatch } from "@/hooks/appDispatch"; 
+import { useAppSelector } from "@/hooks/useAppSelector"; 
+import { startFollowUser, startUnfollowUser } from "@/store/followThunks"; 
 
 interface FollowButtonProps {
   targetUserId: number;
 }
 
-// Helper to determine initial label state from Redux
-const getInitialLabel = (isFollowing: boolean): "Follow" | "Following" => {
-    // Only relies on "Following" vs "Follow" from Redux persistence
+// --- UPDATE THIS HELPER ---
+const getInitialLabel = (
+  isFollowing: boolean, 
+  isPending: boolean
+): "Follow" | "Following" | "Requested" => {
     if (isFollowing) return "Following";
+    if (isPending) return "Requested"; // <-- Add check
     return "Follow";
 };
 
@@ -25,52 +28,49 @@ export default function FollowButton({ targetUserId }: FollowButtonProps) {
   
   const myUserId = currentUser?.userId ? Number(currentUser.userId) : null;
   
-  // ✅ NEW: Read following status from Redux store
+  // --- READ BOTH LISTS ---
   const followingUserIds = useAppSelector(state => state.auth.followingUserIds);
+  const pendingUserIds = useAppSelector(state => state.auth.pendingRequestUserIds); // <-- Add this
+  
   const isTargetFollowing = followingUserIds.includes(targetUserId);
+  const isTargetPending = pendingUserIds.includes(targetUserId); // <-- Add this
 
   const [loading, setLoading] = useState(false);
-  // Initialize status based on the Redux state check
+  
+  // --- UPDATE INITIAL STATE ---
   const [label, setLabel] = useState<"Follow" | "Following" | "Requested">(
-    getInitialLabel(isTargetFollowing)
+    getInitialLabel(isTargetFollowing, isTargetPending)
   );
 
   const disabled = myUserId === targetUserId;
 
-  // ✅ New useEffect to sync local label state when Redux changes
+  // --- UPDATE SYNC EFFECT ---
   useEffect(() => {
-    // If the component is actively loading (making an API call), don't interrupt.
     if (loading) return; 
 
-    // Update the label based on the latest Redux state
     if (isTargetFollowing) {
-        // If the current label is 'Requested', keep it, as that status is more specific 
-        // (we can't determine 'Requested' from the simple followingUserIds array).
-        // Otherwise, set it to 'Following'.
-        setLabel(prev => (prev === 'Requested' ? 'Requested' : 'Following'));
+        setLabel('Following');
+    } else if (isTargetPending) {
+        setLabel('Requested'); // <-- Add check
     } else {
-        // If the user was removed from the Redux list (via unfollow or rollback)
         setLabel('Follow');
     }
-  }, [isTargetFollowing, loading]);
+  }, [isTargetFollowing, isTargetPending, loading]); // <-- Add dependency
 
 
   const handleFollow = async () => {
     if (disabled || loading) return;
     setLoading(true);
     
-    // Dispatch the thunk for the follow action
     try {
         const result = await dispatch(startFollowUser(targetUserId)).unwrap();
         
-        // Update local label state based on the API response message
+        // This local state set is still good for immediate feedback
         if (/request/i.test(result.message)) setLabel("Requested");
         else setLabel("Following");
         
     } catch (err) {
-        // Error handling is handled in the thunk (which rolls back the optimistic update)
         console.error("Error following user:", err);
-        setLabel("Follow"); 
     } finally {
       setLoading(false);
     }
@@ -80,10 +80,9 @@ export default function FollowButton({ targetUserId }: FollowButtonProps) {
     if (disabled || loading) return;
     setLoading(true);
     
-    // Dispatch the thunk for the unfollow action
     try {
         await dispatch(startUnfollowUser(targetUserId)).unwrap();
-        // Set label to 'Follow' on success (Redux state update handled by thunk/rollback)
+        // This local state set is still good
         setLabel("Follow"); 
     } catch (err) {
         console.error("Error unfollowing user:", err);
@@ -95,7 +94,6 @@ export default function FollowButton({ targetUserId }: FollowButtonProps) {
 
   if (disabled) return null;
 
-  // toggle action based on current label
   const onClick = label === "Follow" ? handleFollow : handleUnfollow;
 
   return (
