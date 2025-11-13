@@ -60,6 +60,24 @@ export type PaginatedPostsResponse = StandardAPIResponse<PaginatedPostsData | nu
 
 // --- Controller & Component Types ---
 
+// ✅ --- THIS IS THE MISSING INTERFACE ---
+/**
+ * Defines the available filter parameters for fetching posts.
+ */
+export interface PostFilterParams {
+  q?: string;
+  hashtag?: string;
+  categoryId?: number;
+  visibility?: "PUBLIC" | "FOLLOWERS" | string; // string allows for 'all'
+  page?: number;
+  size?: number;
+  sort?: string[];
+  locationId?: number;
+  userId?: number;
+}
+// --- END OF FIX ---
+
+
 /**
  * A normalized Post item for the UI, with formatted dates.
  */
