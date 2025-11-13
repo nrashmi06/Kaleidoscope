@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Your existing layout (it can be hidden by the overlay) */}
       <div className="flex flex-col min-h-screen w-full bg-gray-100/70 dark:bg-neutral-900">
         {/* Top Navbar (Fixed) */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+        <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-white dark:bg-neutral-900">
           <div className="relative w-full h-full">
             <button
               className="md:hidden absolute left-4 top-1/2 transform -translate-y-1/2"
@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex flex-1 pt-14 md:flex-row flex-col overflow-hidden w-full">
           {/* Sidebar (desktop - fixed width) */}
           <aside className="hidden md:flex md:w-72 flex-shrink-0 h-full ">
-            <div className="flex flex-col w-full h-full border-r border-gray-200 dark:border-neutral-800">
+            <div className="flex flex-col w-full h-full ">
               <div className="sticky top-0 z-10 dark:bg-neutral-900 px-3 py-3 border-b border-gray-200 dark:border-neutral-800">
                 <UserProfileCard />
               </div>

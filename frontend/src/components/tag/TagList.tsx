@@ -3,12 +3,8 @@
 import { useState, useEffect } from "react";
 import { 
   getTagsByContentController,
-  getTagsNextPageController,
-  getTagsPreviousPageController,
   isTagError,
-  isTagsEmpty,
   getTagErrorMessage,
-  isNetworkTagError,
   isAuthTagError
 } from "@/controllers/tag/tagController";
 import { ContentType } from "@/lib/types/tag";
@@ -49,7 +45,7 @@ export function TagList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [retryCount, setRetryCount] = useState(0);
+  const [, setRetryCount] = useState(0);
 
   const fetchTags = async (page: number = 0) => {
     setLoading(true);

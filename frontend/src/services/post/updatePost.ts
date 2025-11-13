@@ -11,7 +11,7 @@ import { PostMapper } from "@/mapper/postMapper";
  * @param accessToken - Bearer token for authorization
  * @returns StandardAPIResponse<T> - where T can be inferred or `null`
  */
-export const updatePost = async <T = null>(
+export const updatePost = async <T = PostCreateRequestDTO>(
   postId: number,
   input: PostCreateRequestDTO,
   accessToken: string

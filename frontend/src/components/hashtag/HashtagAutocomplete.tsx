@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Hash, TrendingUp, Loader2, X } from 'lucide-react';
+import {  Hash, TrendingUp, Loader2, X } from 'lucide-react';
 import { 
   debouncedHashtagSuggestions,
 } from '@/controllers/hashtag/hashtagController';
@@ -10,7 +10,6 @@ import {
   HashtagAutocompleteState 
 } from '@/lib/types/hashtag';
 import { 
-  formatHashtagName, 
   formatUsageCount 
 } from '@/lib/mappers/hashtagMapper';
 import { useAccessToken } from '@/hooks/useAccessToken';
@@ -46,7 +45,7 @@ export default function HashtagAutocomplete({
   });
   
   const [inputValue, setInputValue] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
+  const [, setIsFocused] = useState(false);
   
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +60,8 @@ export default function HashtagAutocomplete({
       cleanupRef.current = null;
     }
   }, []);
+
+  const token = useAccessToken();
 
   // Handle search input changes
   const handleInputChange = useCallback((value: string) => {
@@ -88,7 +89,6 @@ export default function HashtagAutocomplete({
       return;
     }
 
-    const token= useAccessToken();
     // Start debounced search
     cleanupRef.current = debouncedHashtagSuggestions(
       value.trim(), token,
@@ -323,7 +323,7 @@ export default function HashtagAutocomplete({
           {/* No results message */}
           {!state.isLoading && state.suggestions.length === 0 && inputValue.trim() && (
             <div className="px-4 py-3 text-center text-gray-500 dark:text-gray-400">
-              No hashtags found for "{inputValue}"
+              No hashtags found for &quot;{inputValue}&quot;
             </div>
           )}
         </div>

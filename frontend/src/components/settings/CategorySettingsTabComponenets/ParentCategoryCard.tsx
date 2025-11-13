@@ -82,6 +82,7 @@ export const ParentCategoryCard = React.forwardRef<
   const addSubcategory = (newSubcategory: Category) => {
     setSubcategories(prev => [...prev, newSubcategory]);
     // Mark as fetched so we don't overwrite with API data
+    onSubcategoryAdded?.(categoryId, newSubcategory);
     fetchedOnce.current = true;
   };
 

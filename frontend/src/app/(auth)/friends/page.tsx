@@ -13,6 +13,7 @@ import { useAppDispatch } from "@/hooks/appDispatch";
 import { setFollowingUserIds, setFollowersUserIds } from "@/store/authSlice"; 
 import { fetchAndStoreFollowers } from "@/store/followThunks"; 
 import { useAppSelector } from "@/hooks/useAppSelector"; 
+// ❌ Removed FollowSuggestions import
 
 export default function FriendsPage() {
   const currentUser = useUserData();
@@ -141,31 +142,31 @@ export default function FriendsPage() {
 
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-8">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
         Friends Management
       </h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <PendingFollowRequests />
-        </div>
+      <div className="space-y-8">
         
-        <div className="lg:col-span-2">
-          <FriendsTabContainer
-            // FOLLOWING PROPS
-            followingUsers={filteredFollowingUsers} 
-            followingLoading={followingLoading}
-            
-            // FOLLOWERS CACHED PROPS
-            initialFollowers={initialFetchedFollowers}
-            initialLoading={followersLoading}
-            initialTotalElements={followersTotalElements}
-            
-            currentUserId={userId}
-            onNewFollowingUser={handleNewFollowingUser} 
-          />
-        </div>
+        <PendingFollowRequests />
+        
+        <FriendsTabContainer
+          // FOLLOWING PROPS
+          followingUsers={filteredFollowingUsers} 
+          followingLoading={followingLoading}
+          
+          // FOLLOWERS CACHED PROPS
+          initialFollowers={initialFetchedFollowers}
+          initialLoading={followersLoading}
+          initialTotalElements={followersTotalElements}
+          
+          currentUserId={userId}
+          onNewFollowingUser={handleNewFollowingUser} 
+        />
+        
+        {/* ✅ Right Column (Suggestions) - REMOVED */}
+        
       </div>
     </div>
   );

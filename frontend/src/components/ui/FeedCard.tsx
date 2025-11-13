@@ -24,7 +24,6 @@ export default function FeedCard({
   tags,
   userImage = `/${handle.replace('@', '')}.jpg`,
   onViewDetails,
-  accessToken,
 }: FeedCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [liked, setLiked] = useState(false);

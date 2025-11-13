@@ -1,6 +1,5 @@
 import { 
   getTagsByContent, 
-  getTagsByContentFirstPage,
   TagApiError 
 } from "@/services/tag/tagService";
 import { 

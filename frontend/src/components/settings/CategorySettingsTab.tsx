@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
-import { FlatCategory } from "@/lib/types/settings/category";
+import { Category, FlatCategory } from "@/lib/types/settings/category";
 import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Loader } from "@/components/common/Loader";
 import { ParentCategoryCard, ParentCategoryCardRef } from "@/components/settings/CategorySettingsTabComponenets/ParentCategoryCard";
@@ -129,7 +129,7 @@ export const CategorySettingsTab = () => {
   };
 
   // Function to handle subcategory addition
-  const handleSubcategoryAdded = (parentId: number, subcategory: any) => {
+  const handleSubcategoryAdded = (parentId: number, subcategory: Category) => {
     // This is handled automatically through the ref system
     console.log(`Subcategory ${subcategory.name} added to parent ${parentId}`);
   };

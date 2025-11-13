@@ -2,7 +2,6 @@ import {
   TagApiResponse, 
   TagsByContentParams, 
   TagQueryParams,
-  TagError,
   TagErrorType,
   ContentType 
 } from "@/lib/types/tag";
@@ -111,7 +110,7 @@ export async function getTagsByContent(
 
     // Handle error responses
     if (!response.ok) {
-      let errorData: any;
+        let errorData: TagApiResponse;
       
       try {
         errorData = await response.json();
@@ -120,6 +119,7 @@ export async function getTagsByContent(
         errorData = {
           success: false,
           message: `HTTP ${response.status}: ${response.statusText}`,
+          data: null,
           errors: [`Request failed with status ${response.status}`],
           timestamp: Date.now(),
           path: `/api/content/${contentType}/${params.contentId}/tags`

@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Hash, Type, Bold, Italic, Link, MessageSquare } from 'lucide-react';
-import { fetchHashtagSuggestions } from '@/controllers/hashtag/hashtagController'; // ✅ <-- Correct import
-import { validateHashtagPrefix } from '@/controllers/hashtag/hashtagController';
+import { fetchHashtagSuggestions } from '@/controllers/hashtag/hashtagController'; 
 import { formatUsageCount } from '@/lib/mappers/hashtagMapper';
 
 interface HashtagSuggestion {
@@ -29,7 +28,6 @@ export default function EnhancedBodyInput({
   accessToken = '',
   placeholder = "Write your post content here... Use # to add hashtags",
   minRows = 6,
-  maxRows = 15,
   className = '',
   disabled = false
 }: EnhancedBodyInputProps) {
@@ -368,7 +366,7 @@ export default function EnhancedBodyInput({
                 ))}
                 {hashtagSuggestions.length === 0 && !isLoadingHashtags && (
                   <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                    No hashtags found for "{hashtagSearchTerm}"
+                    No hashtags found for &quot;{hashtagSearchTerm}&quot;
                   </div>
                 )}
               </div>

@@ -6,7 +6,7 @@ export const updatePostController = async (
   postId: number,
   input: PostCreateRequestDTO,
   accessToken: string
-): Promise<StandardAPIResponse<any>> => {
+): Promise<StandardAPIResponse<PostCreateRequestDTO>> => {
   try {
     const response = await updatePost(postId, input, accessToken);
     return response;

@@ -1,6 +1,5 @@
 import { 
   HashtagItem, 
-  PaginatedHashtagData, 
   HashtagSuggestion,
   HashtagSuggestionsResponse 
 } from '@/lib/types/hashtag';
