@@ -55,7 +55,9 @@ export type UserProfileApiResponse = {
   success: boolean;
   message: string;
   data: UserProfileResponseDTO | null;
-  // ... other fields
+  errors: string[] | null;
+  timestamp: number;
+  path: string;
 };
 
 /**

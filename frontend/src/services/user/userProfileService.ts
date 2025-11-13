@@ -2,7 +2,8 @@
 import axios , { AxiosError } from "axios";
 import axiosInstance from "@/hooks/axios";
 import { UserMapper } from "@/mapper/userMapper";
-import { UserProfileResponse } from "@/lib/types/userProfile";
+// ✅ FIX: Change the imported type name
+import { UserProfileApiResponse } from "@/lib/types/userProfile";
 
 /** Shape of backend error response for safe Axios narrowing */
 interface ApiErrorResponse {
@@ -17,18 +18,20 @@ interface ApiErrorResponse {
  * Fetches a user's profile, including their recent posts and follow status.
  * @param userId - The ID of the user whose profile to retrieve.
  * @param accessToken - Optional JWT token for authentication.
- * @returns Strictly typed Promise resolving to UserProfileResponse.
+ * @returns Strictly typed Promise resolving to UserProfileApiResponse.
  */
 export async function getUserProfileService(
   userId: number,
   accessToken?: string
-): Promise<UserProfileResponse> {
+// ✅ FIX: Use the correct type here
+): Promise<UserProfileApiResponse> {
   const url = UserMapper.getUserProfile(userId);
 
   try {
     console.log(`[UserProfileService] Fetching profile for user: ${userId}`);
 
-    const response = await axiosInstance.get<UserProfileResponse>(url, {
+    // ✅ FIX: And use the correct type here for the axios generic
+    const response = await axiosInstance.get<UserProfileApiResponse>(url, {
       headers: {
         ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
         "Content-Type": "application/json",
