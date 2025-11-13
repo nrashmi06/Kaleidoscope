@@ -200,22 +200,30 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                         .toArray(Integer[]::new)
                 : new Integer[0];
 
-        // Convert List<Double> embedding to JSON string
-        String embeddingJson = null;
+        // Convert List<Double> embedding to PostgreSQL vector array format
+        // PostgreSQL pgvector expects format: [0.0,0.0,0.0,...] (plain array string, not JSON)
+        String embeddingVector = null;
         if (face.getEmbedding() != null && !face.getEmbedding().isEmpty()) {
             try {
-                embeddingJson = objectMapper.writeValueAsString(face.getEmbedding());
+                StringBuilder sb = new StringBuilder("[");
+                for (int i = 0; i < face.getEmbedding().size(); i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(face.getEmbedding().get(i));
+                }
+                sb.append("]");
+                embeddingVector = sb.toString();
+                log.debug("Converted embedding to PostgreSQL vector format: length={}", face.getEmbedding().size());
             } catch (Exception e) {
-                log.error("Failed to convert embedding to JSON string for faceId: {}", face.getFaceId(), e);
+                log.error("Failed to convert embedding to PostgreSQL vector format for faceId: {}", face.getFaceId(), e);
                 throw new StreamMessageProcessingException("face-detection",
-                        face.getFaceId(), "Failed to serialize embedding", e);
+                        face.getFaceId(), "Failed to serialize embedding to vector format", e);
             }
         }
 
         return MediaDetectedFace.builder()
                 .mediaAiInsights(mediaAiInsights)
                 .bbox(bboxArray)
-                .embedding(embeddingJson)  // Now accepts JSON string converted from List<Double>
+                .embedding(embeddingVector)  // PostgreSQL vector format: [0.0,0.0,0.0,...]
                 .confidenceScore(face.getConfidence() != null ? face.getConfidence().floatValue() : null)
                 .status(FaceDetectionStatus.UNIDENTIFIED)
                 .build();

@@ -253,12 +253,17 @@ public class RedisStreamConfig {
                             ReadOffset.from("0-0"),
                             StreamingConfigConstants.BACKEND_CONSUMER_GROUP
                     );
-                    log.info("✅ Successfully created consumer group 'backend-group' for stream '{}'", streamName);
+                    log.info("✅ Successfully created consumer group '{}' for stream '{}'", StreamingConfigConstants.BACKEND_CONSUMER_GROUP, streamName);
                 } catch (Exception e) {
-                    if (e.getMessage() != null && e.getMessage().contains("BUSYGROUP")) {
-                        log.debug("Group already exists for '{}'", streamName);
+                    String createErrorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+
+                    // BUSYGROUP means group already exists - this is actually fine
+                    if (createErrorMsg.contains("BUSYGROUP") || createErrorMsg.contains("already exists")) {
+                        log.info("✅ Consumer group '{}' already exists for stream '{}' (created by another thread/instance)",
+                                StreamingConfigConstants.BACKEND_CONSUMER_GROUP, streamName);
                     } else {
-                        log.error("Failed to create group for '{}': {}", streamName, e.getMessage());
+                        log.error("❌ Failed to create consumer group '{}' for stream '{}': {}",
+                                StreamingConfigConstants.BACKEND_CONSUMER_GROUP, streamName, createErrorMsg);
                     }
                 }
                 return; // Don't log as ERROR for NOGROUP, we're handling it
