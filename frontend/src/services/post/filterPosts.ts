@@ -1,7 +1,10 @@
 // src/services/post/filterPosts.ts
 import { AxiosError } from "axios";
 import { PostMapper } from "@/mapper/postMapper";
-import type { PostFilterParams, PaginatedPostsResponse } from "@/lib/types/postFeed";
+import type {
+  PostFilterParams,
+  PaginatedPostsResponse,
+} from "@/lib/types/postFeed";
 import { axiosInstance, isAxiosError } from "@/hooks/axios";
 
 export type FilterPostsApiResponse = PaginatedPostsResponse;
@@ -12,7 +15,7 @@ interface ApiErrorResponse {
   status?: number;
   timestamp?: string | number;
   path?: string;
-  errors?: unknown[];
+  errors?: string[]; // ✅ 1. Changed from unknown[]
 }
 
 // Define the unified return type
@@ -20,7 +23,7 @@ export interface FilterPostsResult {
   success: boolean;
   data: PaginatedPostsResponse["data"] | null;
   message: string;
-  errors?: unknown[];
+  errors: string[]; // ✅ 2. Changed from unknown[] | undefined
   timestamp: number;
   path: string;
 }
@@ -33,9 +36,6 @@ export const filterPostsService = async (
   accessToken: string,
   filterOptions: PostFilterParams = {}
 ): Promise<FilterPostsResult> => {
-  
-  // ✅ FIX: Manually build the URL object.
-  // This correctly serializes arrays as multiple params (e.g., ?sort=...&sort=...)
   const url = new URL(PostMapper.filterPosts);
 
   // --- Robust Query Param Serialization ---
@@ -51,30 +51,30 @@ export const filterPostsService = async (
     }
   });
 
-  // ✅ Use the manually constructed endpoint string
   const endpoint = url.toString();
   console.log("✅ [filterPostsService] Filtering posts via:", endpoint);
 
   try {
-    // ✅ FIX: Pass the 'endpoint' string directly
-    // and REMOVE the 'params: filterOptions' config.
     const response = await axiosInstance.get<FilterPostsApiResponse>(endpoint, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-      // ⛔️ The 'params' key (which caused the bug) is removed.
     });
 
     const responseData = response.data;
 
     // Handle backend-reported failures
     if (!responseData.success) {
-      console.error("❌ [filterPostsService] Backend unsuccessful response:", responseData);
+      console.error(
+        "❌ [filterPostsService] Backend unsuccessful response:",
+        responseData
+      );
       return {
         success: false,
-        message: responseData.message || "Backend returned unsuccessful response",
+        message:
+          responseData.message || "Backend returned unsuccessful response",
         data: null,
-        errors: responseData.errors ?? [],
+        errors: responseData.errors ?? [], // ✅ 3. Ensure this is string[]
         timestamp: Date.now(),
         path: endpoint,
       };
@@ -85,11 +85,10 @@ export const filterPostsService = async (
       success: true,
       message: responseData.message,
       data: responseData.data,
-      errors: responseData.errors ?? [],
+      errors: responseData.errors ?? [], // ✅ 4. Ensure this is string[]
       timestamp: responseData.timestamp,
       path: responseData.path,
     };
-
   } catch (error: unknown) {
     if (isAxiosError<ApiErrorResponse>(error)) {
       const axiosError = error as AxiosError<ApiErrorResponse>;
@@ -98,13 +97,17 @@ export const filterPostsService = async (
         axiosError.message ??
         "Unknown API error";
 
-      console.error("❌ [filterPostsService] Axios error:", axiosError.response?.data);
+      console.error(
+        "❌ [filterPostsService] Axios error:",
+        axiosError.response?.data
+      );
 
       return {
         success: false,
         message,
         data: null,
-        errors: axiosError.response?.data?.errors ?? [],
+        // ✅ 5. Ensure errors is a string array, even in failure
+        errors: axiosError.response?.data?.errors ?? [message],
         timestamp: Date.now(),
         path: endpoint,
       };
@@ -119,7 +122,7 @@ export const filterPostsService = async (
       success: false,
       message: fallbackMessage,
       data: null,
-      errors: [fallbackMessage],
+      errors: [fallbackMessage], // ✅ 6. Ensure this is string[]
       timestamp: Date.now(),
       path: endpoint,
     };
