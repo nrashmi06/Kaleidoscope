@@ -34,10 +34,9 @@ export const refreshToken =
         accessToken: data.accessToken,
         profilePictureUrl: data.profilePictureUrl || "",
         isUserInterestSelected:  false,
-        // Set empty arrays for initial state; thunks will populate them
         followingUserIds: [], 
-        // ✅ NEW: Include the followersUserIds property
         followersUserIds: [],
+        pendingRequestUserIds: [],
         })
       );
 

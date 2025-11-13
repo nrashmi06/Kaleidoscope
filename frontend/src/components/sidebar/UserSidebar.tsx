@@ -4,20 +4,20 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Home,
   Users,
-  FileText,
   ImageIcon,
   Settings,
+  MapPin,
 } from "lucide-react";
 
 const navigationItems = [
   { icon: Home, label: "Feed", path: "/feed" },
   { icon: Users, label: "Friends", path: "/friends" },
-  { icon: FileText, label: "Articles", path: "/articles" },
+  // --- 2. THIS IS THE CHANGE ---
+  { icon: MapPin, label: "Locations", path: "/locations" }, 
+  // --- END OF CHANGE ---
   { icon: ImageIcon, label: "Gallery", path: "/gallery" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
-
-// suggestedUsers removed in favor of backend-driven FollowSuggestions
 
 export function UserSidebar() {
   const router = useRouter();
