@@ -229,6 +229,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     /**
      * Merges new fields from DTO into existing MediaAiInsights entity based on service type.
      * Only updates fields that are provided by the current service.
+     * IMPORTANT: This method modifies the existing entity in-place to ensure proper JPA entity state management.
      */
     private MediaAiInsights mergeMediaAiInsights(
             MediaAiInsights existing,
@@ -237,38 +238,27 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
 
         log.debug("Merging insights for service: {}, mediaId: {}", service, existing.getMediaId());
 
-        // Create a builder from existing entity
-        MediaAiInsights.MediaAiInsightsBuilder builder = MediaAiInsights.builder()
-                .mediaId(existing.getMediaId())
-                .postMedia(existing.getPostMedia())
-                .post(existing.getPost())
-                .status(MediaAiStatus.COMPLETED)
-                .version(existing.getVersion()) // Preserve version for optimistic locking
-                // Start with existing values
-                .isSafe(existing.getIsSafe())
-                .caption(existing.getCaption())
-                .tags(existing.getTags() != null ? existing.getTags() : new String[0])
-                .scenes(existing.getScenes() != null ? existing.getScenes() : new String[0])
-                .imageEmbedding(existing.getImageEmbedding());
+        // Update fields in-place on the existing managed entity
+        // This ensures JPA treats it as an update, not a new insert
 
         // Update fields based on service type
         if ("moderation".equals(service) && newData.getIsSafe() != null) {
-            builder.isSafe(newData.getIsSafe());
+            existing.setIsSafe(newData.getIsSafe());
             log.debug("Updated isSafe: {}", newData.getIsSafe());
         }
 
         if ("captioning".equals(service) && newData.getCaption() != null && !newData.getCaption().trim().isEmpty()) {
-            builder.caption(newData.getCaption());
+            existing.setCaption(newData.getCaption());
             log.debug("Updated caption: {}", newData.getCaption());
         }
 
         if ("tagging".equals(service) && newData.getTags() != null && !newData.getTags().isEmpty()) {
-            builder.tags(newData.getTags().toArray(new String[0]));
+            existing.setTags(newData.getTags().toArray(new String[0]));
             log.debug("Updated tags: {}", newData.getTags());
         }
 
         if ("scene_recognition".equals(service) && newData.getScenes() != null && !newData.getScenes().isEmpty()) {
-            builder.scenes(newData.getScenes().toArray(new String[0]));
+            existing.setScenes(newData.getScenes().toArray(new String[0]));
             log.debug("Updated scenes: {}", newData.getScenes());
         }
 
@@ -276,12 +266,16 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         if (newData.getImageEmbedding() != null && !newData.getImageEmbedding().trim().isEmpty()) {
             float[] embedding = parseEmbedding(newData.getImageEmbedding());
             if (embedding != null) {
-                builder.imageEmbedding(embedding);
+                existing.setImageEmbedding(embedding);
                 log.debug("Updated image embedding");
             }
         }
 
-        return builder.build();
+        // Always update status to COMPLETED when merging
+        existing.setStatus(MediaAiStatus.COMPLETED);
+
+        // Return the modified existing entity (now in managed state)
+        return existing;
     }
 
     private float[] parseEmbedding(String raw) {
