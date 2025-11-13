@@ -1,11 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react"; // Import useEffect
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-// import DottedMap from "dotted-map"; // REMOVE static import
-// import { useTheme } from "next-themes"; // Removed useTheme
-
 
 // Define the types for ALL props this component will accept
 interface Point {
@@ -56,55 +53,6 @@ export function WorldMap({
   onPointClick,
 }: MapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  // const { theme } = useTheme(); // Removed useTheme hook
-
-  // --- Dotted Map Background (Dynamic Import) ---
-  const [svgMap, setSvgMap] = useState<string | null>(null); // Add state for SVG string
-  const [isLoadingMap, setIsLoadingMap] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    setIsLoadingMap(true);
-
-    const generateMap = async () => {
-      try {
-        // Dynamically import the library on the client side
-        // This avoids the build-time error
-        const DottedMapModule = await import("dotted-map");
-        const DottedMap = DottedMapModule.default;
-
-        if (!isMounted) return;
-
-        // ✅ FIX: Changed height to 400.
-        // The library defaults to a 2:1 ratio (width = height * 2),
-        // so height: 400 creates an 800x400 map,
-        // which exactly matches our SVG_WIDTH and SVG_HEIGHT.
-        const map = new DottedMap({ height: 400, grid: "diagonal" });
-
-        const generatedSvgMap = map.getSVG({
-          radius: 0.22,
-          color: "#FFFFFF40", // Hardcoded dark theme color
-          shape: "circle",
-          backgroundColor: "black", // Hardcoded dark theme background
-        });
-
-        setSvgMap(generatedSvgMap);
-      } catch (error) {
-        console.error("Failed to load or generate dotted map:", error);
-      } finally {
-        if (isMounted) {
-          setIsLoadingMap(false);
-        }
-      }
-    };
-
-    generateMap();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []); // Re-generate map if theme changes - Removed theme dependency
-  // --- End Dotted Map Background ---
 
   // --- Interactivity State (for singlePoints) ---
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
@@ -146,21 +94,19 @@ export function WorldMap({
         </motion.div>
       )}
 
-      {/* Dotted Map Background Image */}
-      {isLoadingMap ? (
-        // Show a simple pulsing placeholder while the dotted map generates
-        <div className="w-full h-full bg-gray-50 dark:bg-gray-900 animate-pulse" />
-      ) : (
-        <Image
-          src={`data:image/svg+xml;utf8,${encodeURIComponent(svgMap || "")}`}
-          className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_10%,white_90%,transparent)] pointer-events-none select-none"
-          alt="world map"
-          // ✅ FIX: Use the exact viewBox dimensions
-          height="400"
-          width="800"
-          draggable={false}
-        />
-      )}
+      {/* ✅ --- THIS IS THE FIX ---
+        This now loads your static /public/worldmap.svg file
+        instead of generating it in the browser.
+      */}
+      <Image
+        src="/worldmap.svg" 
+        className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_10%,white_90%,transparent)] pointer-events-none select-none"
+        alt="world map"
+        height="400"
+        width="800"
+        draggable={false}
+        priority // Load it quickly
+      />
 
       {/* SVG Overlay for animations and interactivity */}
       <svg
