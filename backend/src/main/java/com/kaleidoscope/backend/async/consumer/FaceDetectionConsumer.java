@@ -200,10 +200,22 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                         .toArray(Integer[]::new)
                 : new Integer[0];
 
+        // Convert List<Double> embedding to JSON string
+        String embeddingJson = null;
+        if (face.getEmbedding() != null && !face.getEmbedding().isEmpty()) {
+            try {
+                embeddingJson = objectMapper.writeValueAsString(face.getEmbedding());
+            } catch (Exception e) {
+                log.error("Failed to convert embedding to JSON string for faceId: {}", face.getFaceId(), e);
+                throw new StreamMessageProcessingException("face-detection",
+                        face.getFaceId(), "Failed to serialize embedding", e);
+            }
+        }
+
         return MediaDetectedFace.builder()
                 .mediaAiInsights(mediaAiInsights)
                 .bbox(bboxArray)
-                .embedding(face.getEmbedding())
+                .embedding(embeddingJson)  // Now accepts JSON string converted from List<Double>
                 .confidenceScore(face.getConfidence() != null ? face.getConfidence().floatValue() : null)
                 .status(FaceDetectionStatus.UNIDENTIFIED)
                 .build();

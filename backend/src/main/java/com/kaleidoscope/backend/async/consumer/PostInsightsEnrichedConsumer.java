@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.PostInsightsEnrichedDTO;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
+import com.kaleidoscope.backend.posts.model.Post;
+import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel;
 import com.kaleidoscope.backend.readmodels.model.PostSearchReadModel;
 import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
@@ -16,10 +18,12 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Consumes aggregated insights for an entire post *after* all media have been processed.
@@ -34,6 +38,7 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
     private final PostSearchReadModelRepository postSearchReadModelRepository;
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
     private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
+    private final PostRepository postRepository;  // ADDED: To fetch Post entity for author info
 
     @Override
     @Transactional
@@ -57,13 +62,34 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             }
 
             // 1. Update Post Search Read Model
-            PostSearchReadModel postSearch = postSearchReadModelRepository.findById(postId)
-                    .orElse(new PostSearchReadModel()); // Create if not exists
+            Optional<PostSearchReadModel> existingOpt = postSearchReadModelRepository.findById(postId);
+            PostSearchReadModel postSearch = existingOpt.orElse(new PostSearchReadModel());
+            boolean isNew = existingOpt.isEmpty();
 
-            // We assume other services (like a future PostUpdate consumer) populate author, title, etc.
-            // This consumer adds the aggregated AI data.
-            postSearch.setPostId(postId);
+            // If creating a new record, fetch Post entity to populate required author fields
+            if (isNew) {
+                Optional<Post> postOpt = postRepository.findById(postId);
+                if (postOpt.isPresent()) {
+                    Post post = postOpt.get();
+                    postSearch.setPostId(postId);
+                    postSearch.setAuthorId(post.getUser().getUserId());
+                    postSearch.setAuthorUsername(post.getUser().getUsername());
+                    postSearch.setAuthorDepartment(post.getUser().getDesignation());
+                    postSearch.setTitle(post.getTitle());
+                    postSearch.setBody(post.getBody());
+                    postSearch.setCreatedAt(post.getCreatedAt() != null ? post.getCreatedAt().toInstant(java.time.ZoneOffset.UTC) : Instant.now());
+                    log.debug("Populated author info for new PostSearchReadModel: postId={}, authorId={}, authorUsername={}",
+                            postId, post.getUser().getUserId(), post.getUser().getUsername());
+                } else {
+                    log.warn("Post not found for postId: {}. Cannot populate author fields. Skipping.", postId);
+                    return;
+                }
+            } else {
+                // For existing records, just set postId if not already set
+                postSearch.setPostId(postId);
+            }
 
+            // Update AI aggregated fields
             if(enriched.getAllAiTags() != null) {
                 postSearch.setAllAiTags(String.join(",", enriched.getAllAiTags()));
             }
@@ -72,8 +98,6 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             }
             postSearch.setInferredEventType(enriched.getInferredEventType());
             postSearch.setUpdatedAt(Instant.now());
-            // Note: We are not fetching Post/User here to keep this consumer lightweight.
-            // We assume another process (like the initial post creation) populates the other fields.
 
             postSearchReadModelRepository.save(postSearch);
             log.info("Updated read_model_post_search for postId: {}", postId);
