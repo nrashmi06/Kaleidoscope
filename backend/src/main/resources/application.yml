@@ -56,18 +56,18 @@ spring:
       file-size-threshold: ${FILE_SIZE_THRESHOLD:2KB}
       resolve-lazily: true
 
-  # Email Configuration
-  mail:
-    host: ${MAIL_HOST:smtp.example.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:test@example.com}
-    password: ${MAIL_PASSWORD:password123}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+  # Email Configuration (DEPRECATED - Migrating to Resend)
+  # mail:
+  #   host: ${MAIL_HOST:smtp.example.com}
+  #   port: ${MAIL_PORT:587}
+  #   username: ${MAIL_USERNAME:test@example.com}
+  #   password: ${MAIL_PASSWORD:password123}
+  #   properties:
+  #     mail:
+  #       smtp:
+  #         auth: true
+  #         starttls:
+  #           enable: true
 
 # Server Configuration
 server:
@@ -104,3 +104,8 @@ cloudinary:
   api-key: ${CLOUDINARY_API_KEY:test-api-key}
   api-secret: ${CLOUDINARY_API_SECRET:test-api-secret}
   url: ${CLOUDINARY_URL:cloudinary://test-api-key:test-api-secret@test-cloud}
+
+# Resend API Configuration (NEW)
+resend:
+  api-key: ${RESEND_API_KEY:your_api_key_here} # Store your production key in environment variables
+  from-email: ${RESEND_FROM_EMAIL:Kaleidoscope <onboarding@resend.dev>} # Update with your verified domain
