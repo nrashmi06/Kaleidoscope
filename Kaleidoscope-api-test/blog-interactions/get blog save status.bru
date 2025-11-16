@@ -1,0 +1,12 @@
+meta {
+  name: get blog save status
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/blogs/1/saves
+  body: none
+  auth: inherit
+}
+
