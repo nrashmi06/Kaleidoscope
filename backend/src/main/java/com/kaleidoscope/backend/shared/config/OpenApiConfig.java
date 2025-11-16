@@ -56,9 +56,9 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
-        // Use base URL only - nginx handles the /kaleidoscope context path internally
-        // Frontend sees: https://project-kaleidoscope.tech/api/*
-        // Nginx translates to: http://app:8080/kaleidoscope/api/*
+        // Use base URL from configuration
+        // In local dev: http://localhost:8080
+        // In production: https://project-kaleidoscope.tech
 
         Server server = new Server();
         server.setUrl(baseUrl);

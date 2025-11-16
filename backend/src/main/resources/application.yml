@@ -78,8 +78,9 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     disable-swagger-default-url: true
-    config-url: /v3/api-docs/swagger-config
-    url: /v3/api-docs
+    # Use context-aware paths so Swagger UI can load config and docs under the servlet context path
+    config-url: ${server.servlet.context-path}/v3/api-docs/swagger-config
+    url: ${server.servlet.context-path}/v3/api-docs
     enabled: true
   use-management-port: false
   use-root-path: false
