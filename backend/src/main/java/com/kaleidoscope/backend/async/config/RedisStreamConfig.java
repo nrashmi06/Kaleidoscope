@@ -5,6 +5,7 @@ import com.kaleidoscope.backend.async.streaming.ConsumerStreamConstants;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.async.streaming.StreamingConfigConstants;
 import com.kaleidoscope.backend.blogs.consumer.BlogInteractionSyncConsumer;
+import com.kaleidoscope.backend.blogs.consumer.UserProfileBlogSyncConsumer;
 import com.kaleidoscope.backend.notifications.consumer.NotificationConsumer;
 import com.kaleidoscope.backend.posts.consumer.PostInteractionSyncConsumer;
 import com.kaleidoscope.backend.posts.consumer.UserProfilePostSyncConsumer;
@@ -41,6 +42,7 @@ public class RedisStreamConfig {
     private final PostInteractionSyncConsumer postInteractionSyncConsumer;
     private final BlogInteractionSyncConsumer blogInteractionSyncConsumer;
     private final UserProfilePostSyncConsumer userProfilePostSyncConsumer;
+    private final UserProfileBlogSyncConsumer userProfileBlogSyncConsumer;
     private final UserProfileFaceEmbeddingConsumer userProfileFaceEmbeddingConsumer;
     private final NotificationConsumer notificationConsumer;
     private final HashtagUsageSyncConsumer hashtagUsageSyncConsumer;
@@ -78,6 +80,7 @@ public class RedisStreamConfig {
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.BLOG_INTERACTION_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
+        ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.USER_PROFILE_BLOG_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ProducerStreamConstants.HASHTAG_USAGE_SYNC_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
         ensureConsumerGroupExists(redisTemplate, ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
@@ -104,6 +107,7 @@ public class RedisStreamConfig {
         registerConsumer(container, consumerName, ProducerStreamConstants.POST_INTERACTION_SYNC_STREAM, postInteractionSyncConsumer);
         registerConsumer(container, consumerName, ProducerStreamConstants.BLOG_INTERACTION_SYNC_STREAM, blogInteractionSyncConsumer);
         registerConsumer(container, consumerName, ProducerStreamConstants.USER_PROFILE_POST_SYNC_STREAM, userProfilePostSyncConsumer);
+        registerConsumer(container, consumerName, ProducerStreamConstants.USER_PROFILE_BLOG_SYNC_STREAM, userProfileBlogSyncConsumer);
         registerConsumer(container, consumerName, ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, notificationConsumer);
         registerConsumer(container, consumerName, ProducerStreamConstants.HASHTAG_USAGE_SYNC_STREAM, hashtagUsageSyncConsumer);
         registerConsumer(container, consumerName, ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM, postInsightsEnrichedConsumer);

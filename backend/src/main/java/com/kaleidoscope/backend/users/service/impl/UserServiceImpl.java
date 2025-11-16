@@ -199,6 +199,17 @@ public class UserServiceImpl implements UserService {
                 // Continue execution even if stream publishing fails
             }
 
+            // Trigger Elasticsearch sync for denormalized author/reviewer data in blogs
+            try {
+                Map<String, Object> blogSyncPayload = Map.of("userId", userId);
+                redisStreamPublisher.publish(ProducerStreamConstants.USER_PROFILE_BLOG_SYNC_STREAM, blogSyncPayload);
+                log.debug("Published USER_PROFILE_BLOG_SYNC_STREAM event for user {}", userId);
+            } catch (Exception e) {
+                log.error("Failed to publish user profile blog sync event for user {}: {}",
+                         userId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
+
             if (newProfilePictureUrl != null && !newProfilePictureUrl.trim().isEmpty()) {
                 // Publish to Redis Stream for ML processing - only when image URL exists
                 log.info("Publishing profile picture event for user {}: imageUrl={}", userId, newProfilePictureUrl);

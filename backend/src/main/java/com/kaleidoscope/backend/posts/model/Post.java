@@ -6,7 +6,7 @@ import com.kaleidoscope.backend.shared.model.Category;
 import com.kaleidoscope.backend.shared.model.Hashtag;
 import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.model.PostHashtag;
-import com.kaleidoscope.backend.shared.model.UserTag;
+// import com.kaleidoscope.backend.shared.model.UserTag; // <-- REMOVED
 import com.kaleidoscope.backend.users.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -90,14 +90,13 @@ public class Post {
     @Builder.Default
     private Set<PostCategory> categories = new HashSet<>();
 
-    // Using the shared UserTag entity instead of a specific PostTag
-    // Read-only relationship - UserTags are managed through UserTagService
-    // This prevents Hibernate from trying to set content_id to NULL on Post deletion
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "content_id", referencedColumnName = "post_id", insertable = false, updatable = false)
-    @Where(clause = "content_type = 'POST'")
-    @Builder.Default
-    private Set<UserTag> userTags = new HashSet<>();
+    // --- ENTIRE USERTAGS RELATIONSHIP REMOVED ---
+    // @OneToMany(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "content_id", referencedColumnName = "post_id", insertable = false, updatable = false)
+    // @Where(clause = "content_type = 'POST'")
+    // @Builder.Default
+    // private Set<UserTag> userTags = new HashSet<>();
+    // --- END OF REMOVAL ---
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -130,28 +129,10 @@ public class Post {
         }
     }
 
-    public void addUserTag(User taggerUser, User taggedUser) {
-        UserTag userTag = UserTag.builder()
-                .taggerUser(taggerUser)
-                .taggedUser(taggedUser)
-                .contentType(com.kaleidoscope.backend.shared.enums.ContentType.POST)
-                .contentId(this.postId)
-                .build();
-        userTags.add(userTag);
-    }
-
-    public void removeUserTag(User taggedUser) {
-        UserTag toRemove = this.userTags.stream()
-                .filter(ut -> ut.getTaggedUser().equals(taggedUser) &&
-                             ut.getContentId().equals(this.postId) &&
-                             ut.getContentType() == com.kaleidoscope.backend.shared.enums.ContentType.POST)
-                .findFirst()
-                .orElse(null);
-
-        if (toRemove != null) {
-            this.userTags.remove(toRemove);
-        }
-    }
+    // --- HELPER METHODS FOR USERTAGS REMOVED ---
+    // public void addUserTag(User taggerUser, User taggedUser) { ... }
+    // public void removeUserTag(User taggedUser) { ... }
+    // --- END OF REMOVAL ---
 
     /**
      * Helper method to get Hashtag entities directly from PostHashtag relationships

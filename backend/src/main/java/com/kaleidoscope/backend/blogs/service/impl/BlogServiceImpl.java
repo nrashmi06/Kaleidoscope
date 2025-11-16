@@ -1,5 +1,8 @@
 package com.kaleidoscope.backend.blogs.service.impl;
 
+import com.kaleidoscope.backend.async.dto.NotificationEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.blogs.document.BlogDocument;
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
@@ -21,6 +24,7 @@ import com.kaleidoscope.backend.blogs.service.BlogViewService;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
+import com.kaleidoscope.backend.shared.enums.NotificationType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
@@ -34,6 +38,7 @@ import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -60,6 +65,7 @@ public class BlogServiceImpl implements BlogService {
     private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
     private final BlogViewService blogViewService;
     private final BlogSearchRepository blogSearchRepository; // ES repository injected
+    private final RedisStreamPublisher redisStreamPublisher;
 
     @Override
     @Transactional
@@ -310,6 +316,10 @@ public class BlogServiceImpl implements BlogService {
         blog.setReviewedAt(LocalDateTime.now());
 
         Blog savedBlog = blogRepository.save(blog);
+
+        // Publish notification to author
+        publishBlogStatusNotification(savedBlog, reviewerId);
+
         // Sync status update to Elasticsearch
         BlogDocument blogDocument = blogMapper.toBlogDocument(savedBlog);
         blogSearchRepository.save(blogDocument);
@@ -380,6 +390,62 @@ public class BlogServiceImpl implements BlogService {
         blog.getMedia().clear();
         for (BlogMedia media : finalMediaList) {
             blog.addMedia(media);
+        }
+    }
+
+    private void publishBlogStatusNotification(Blog blog, Long actorId) {
+        try {
+            Long recipientId = blog.getUser().getUserId();
+
+            // Don't send a notification if the author is the one changing the status
+            if (recipientId.equals(actorId)) {
+                log.debug("Skipping notification: Author {} is changing their own blog status.", actorId);
+                return;
+            }
+
+            String message;
+            NotificationType notificationType;
+
+            switch (blog.getBlogStatus()) {
+                case APPROVED:
+                    message = String.format("Your blog '%s' has been approved by an admin.", blog.getTitle());
+                    notificationType = NotificationType.SYSTEM_MESSAGE; // Using SYSTEM_MESSAGE as a generic type
+                    break;
+                case REJECTED:
+                    message = String.format("Your blog '%s' has been rejected by an admin.", blog.getTitle());
+                    notificationType = NotificationType.SYSTEM_MESSAGE;
+                    break;
+                case PUBLISHED:
+                    message = String.format("Your blog '%s' has been published.", blog.getTitle());
+                    notificationType = NotificationType.SYSTEM_MESSAGE;
+                    break;
+                default:
+                    // Do not send notifications for other statuses (DRAFT, APPROVAL_PENDING, etc.)
+                    log.debug("Blog status {} does not trigger a notification.", blog.getBlogStatus());
+                    return;
+            }
+
+            Map<String, String> additionalData = Map.of(
+                "message", message,
+                "blogTitle", blog.getTitle()
+            );
+
+            NotificationEventDTO notificationEvent = new NotificationEventDTO(
+                    notificationType,
+                    recipientId,  // The author of the blog
+                    actorId,      // The admin who changed the status
+                    blog.getBlogId(),
+                    ContentType.BLOG,
+                    additionalData,
+                    MDC.get("correlationId")
+            );
+
+            redisStreamPublisher.publish(ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, notificationEvent);
+            log.info("Published blog status update notification ({}) for recipientId: {}", blog.getBlogStatus(), recipientId);
+
+        } catch (Exception e) {
+            log.error("Failed to publish blog status notification for blogId {}: {}", blog.getBlogId(), e.getMessage(), e);
+            // Do not re-throw; notification failure should not fail the main transaction.
         }
     }
 }
