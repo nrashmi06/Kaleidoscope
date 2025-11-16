@@ -1,0 +1,12 @@
+meta {
+  name: unsave blog
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/blogs/1/saves?unsave=true
+  body: none
+  auth: inherit
+}
+

@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.blogs.mapper;
 
+import com.kaleidoscope.backend.blogs.document.BlogDocument;
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.response.BlogCreationResponseDTO;
@@ -10,6 +11,7 @@ import com.kaleidoscope.backend.blogs.dto.response.BlogTagResponseDTO;
 import com.kaleidoscope.backend.blogs.model.Blog;
 import com.kaleidoscope.backend.blogs.model.BlogMedia;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
+import com.kaleidoscope.backend.blogs.service.BlogViewService;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.shared.dto.response.CategorySummaryResponseDTO;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
@@ -34,11 +36,13 @@ public class BlogMapper {
     private final CommentRepository commentRepository;
     private final ReactionRepository reactionRepository;
     private final BlogRepository blogRepository;
+    private final BlogViewService blogViewService;
 
-    public BlogMapper(CommentRepository commentRepository, ReactionRepository reactionRepository, BlogRepository blogRepository) {
+    public BlogMapper(CommentRepository commentRepository, ReactionRepository reactionRepository, BlogRepository blogRepository, BlogViewService blogViewService) {
         this.commentRepository = commentRepository;
         this.reactionRepository = reactionRepository;
         this.blogRepository = blogRepository;
+        this.blogViewService = blogViewService;
     }
 
     public Blog toEntity(BlogCreateRequestDTO dto) {
@@ -98,6 +102,7 @@ public class BlogMapper {
 
         long reactionCount = reactionRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
         long commentCount = commentRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
+        long viewCount = blogViewService.getViewCount(blog.getBlogId());
 
         return BlogDetailResponseDTO.builder()
                 .blogId(blog.getBlogId())
@@ -117,6 +122,7 @@ public class BlogMapper {
                 .location(locationDto)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
+                .viewCount(viewCount)
                 .tags(mapBlogTags(blog))
                 .currentUserReaction(currentUserReaction)
                 .build();
@@ -132,6 +138,7 @@ public class BlogMapper {
 
         long reactionCount = reactionRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
         long commentCount = commentRepository.countByContentIdAndContentType(blog.getBlogId(), ContentType.BLOG);
+        long viewCount = blogViewService.getViewCount(blog.getBlogId());
 
         return BlogSummaryResponseDTO.builder()
                 .blogId(blog.getBlogId())
@@ -143,7 +150,123 @@ public class BlogMapper {
                 .thumbnailUrl(thumbnailUrl)
                 .reactionCount(reactionCount)
                 .commentCount(commentCount)
+                .viewCount(viewCount)
                 .blogStatus(blog.getBlogStatus())
+                .build();
+    }
+
+    public BlogSummaryResponseDTO toBlogSummaryDTO(BlogDocument document) {
+        if (document == null) {
+            return null;
+        }
+        UserDetailsSummaryResponseDTO authorDto = null;
+        if (document.getAuthor() != null) {
+            BlogDocument.Author a = document.getAuthor();
+            authorDto = new UserDetailsSummaryResponseDTO(
+                    a.getUserId(),
+                    a.getEmail(),
+                    a.getUsername(),
+                    a.getAccountStatus(),
+                    a.getProfilePictureUrl()
+            );
+        }
+        List<CategorySummaryResponseDTO> categoryDtos = document.getCategories() != null ? document.getCategories().stream()
+                .map(c -> new CategorySummaryResponseDTO(c.getCategoryId(), c.getName()))
+                .collect(Collectors.toList()) : List.of();
+        return BlogSummaryResponseDTO.builder()
+                .blogId(document.getBlogId())
+                .title(document.getTitle())
+                .summary(document.getSummary())
+                .createdAt(document.getCreatedAt())
+                .author(authorDto)
+                .categories(categoryDtos)
+                .thumbnailUrl(document.getThumbnailUrl())
+                .reactionCount(document.getReactionCount())
+                .commentCount(document.getCommentCount())
+                .viewCount(document.getViewCount())
+                .blogStatus(document.getBlogStatus())
+                .build();
+    }
+
+    public BlogDocument toBlogDocument(Blog blog) {
+        if (blog == null) {
+            return null;
+        }
+        String thumbnailUrl = getThumbnailUrl(blog);
+        BlogDocument.Author author = null;
+        if (blog.getUser() != null) {
+            author = BlogDocument.Author.builder()
+                    .userId(blog.getUser().getUserId())
+                    .username(blog.getUser().getUsername())
+                    .profilePictureUrl(blog.getUser().getProfilePictureUrl())
+                    .email(blog.getUser().getEmail())
+                    .accountStatus(blog.getUser().getAccountStatus() != null ? blog.getUser().getAccountStatus().name() : null)
+                    .build();
+        }
+        BlogDocument.Reviewer reviewer = null;
+        if (blog.getReviewer() != null) {
+            reviewer = BlogDocument.Reviewer.builder()
+                    .userId(blog.getReviewer().getUserId())
+                    .username(blog.getReviewer().getUsername())
+                    .profilePictureUrl(blog.getReviewer().getProfilePictureUrl())
+                    .email(blog.getReviewer().getEmail())
+                    .accountStatus(blog.getReviewer().getAccountStatus() != null ? blog.getReviewer().getAccountStatus().name() : null)
+                    .build();
+        }
+        List<BlogDocument.Category> categories = blog.getCategories().stream()
+                .map(bc -> BlogDocument.Category.builder()
+                        .categoryId(bc.getCategory().getCategoryId())
+                        .name(bc.getCategory().getName())
+                        .build())
+                .collect(Collectors.toList());
+        BlogDocument.LocationInfo locationInfo = null;
+        Location loc = blog.getLocation();
+        if (loc != null) {
+            if (loc.getLatitude() != null && loc.getLongitude() != null) {
+                org.springframework.data.elasticsearch.core.geo.GeoPoint point = new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                        loc.getLatitude().doubleValue(),
+                        loc.getLongitude().doubleValue()
+                );
+                locationInfo = BlogDocument.LocationInfo.builder()
+                        .id(loc.getLocationId())
+                        .name(loc.getName())
+                        .point(point)
+                        .build();
+            } else {
+                locationInfo = BlogDocument.LocationInfo.builder()
+                        .id(loc.getLocationId())
+                        .name(loc.getName())
+                        .point(null)
+                        .build();
+            }
+        }
+        List<BlogDocument.BlogTagInfo> tagInfos = blog.getTaggedBlogs().stream()
+                .map(t -> BlogDocument.BlogTagInfo.builder()
+                        .blogId(t.getTaggedBlog().getBlogId())
+                        .title(t.getTaggedBlog().getTitle())
+                        .build())
+                .collect(Collectors.toList());
+        return BlogDocument.builder()
+                .id(blog.getBlogId().toString())
+                .blogId(blog.getBlogId())
+                .title(blog.getTitle())
+                .body(blog.getBody())
+                .summary(blog.getSummary())
+                .thumbnailUrl(thumbnailUrl)
+                .wordCount(blog.getWordCount())
+                .readTimeMinutes(blog.getReadTimeMinutes())
+                .blogStatus(blog.getBlogStatus())
+                .createdAt(blog.getCreatedAt())
+                .updatedAt(blog.getUpdatedAt())
+                .reviewedAt(blog.getReviewedAt())
+                .author(author)
+                .reviewer(reviewer)
+                .categories(categories)
+                .location(locationInfo)
+                .blogTags(tagInfos)
+                .reactionCount(0L)
+                .commentCount(0L)
+                .viewCount(0L)
                 .build();
     }
 

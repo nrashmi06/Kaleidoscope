@@ -1,0 +1,16 @@
+meta {
+  name: get comment reaction summary
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{base_url}}/api/blogs/1/comments/1/reactions
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
+

@@ -35,6 +35,7 @@ public class BlogDetailResponseDTO {
     private LocationResponseDTO location;
     private long reactionCount;
     private long commentCount;
+    private long viewCount;
     private List<BlogTagResponseDTO> tags;
     private ReactionType currentUserReaction;
 }
