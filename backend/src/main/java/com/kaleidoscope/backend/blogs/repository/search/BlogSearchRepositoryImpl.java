@@ -86,5 +86,48 @@ public class BlogSearchRepositoryImpl implements BlogSearchRepositoryCustom {
         log.info("Blog ES query returned {} / {} hits", docs.size(), hits.getTotalHits());
         return new PageImpl<>(docs, pageable, hits.getTotalHits());
     }
+
+    @Override
+    public Page<BlogDocument> findBlogsThatTag(Long taggedBlogId,
+                                               Long currentUserId,
+                                               boolean isAdmin,
+                                               Pageable pageable) {
+        log.info("Elasticsearch blog query: findBlogsThatTag={}, currentUserId={}, isAdmin={}",
+                taggedBlogId, currentUserId, isAdmin);
+
+        BoolQuery.Builder root = new BoolQuery.Builder();
+
+        // 1. Must be a nested query on 'blogTags' path
+        root.must(NestedQuery.of(n -> n
+                .path("blogTags")
+                .query(TermQuery.of(t -> t
+                        .field("blogTags.blogId") // Search the blogId field within the nested blogTags object
+                        .value(taggedBlogId)
+                )._toQuery())
+        )._toQuery());
+
+        // 2. Security clause for non-admins (same as filterBlogs)
+        if (!isAdmin) {
+            BoolQuery.Builder security = new BoolQuery.Builder();
+            if (currentUserId != null) {
+                // Can see their own blogs
+                security.should(TermQuery.of(t -> t.field("author.userId").value(currentUserId))._toQuery());
+            }
+            // Can see published blogs
+            security.should(TermQuery.of(t -> t.field("blogStatus").value(BlogStatus.PUBLISHED.toString()))._toQuery());
+            security.minimumShouldMatch("1");
+            root.must(security.build()._toQuery());
+        }
+
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(root.build()._toQuery())
+                .withPageable(pageable)
+                .build();
+
+        SearchHits<BlogDocument> hits = elasticsearchTemplate.search(nativeQuery, BlogDocument.class);
+        var docs = hits.getSearchHits().stream().map(SearchHit::getContent).toList();
+        log.info("Blog tagged-by ES query returned {} / {} hits", docs.size(), hits.getTotalHits());
+        return new PageImpl<>(docs, pageable, hits.getTotalHits());
+    }
 }
 

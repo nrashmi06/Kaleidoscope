@@ -20,5 +20,12 @@ public interface BlogSearchRepositoryCustom {
             Long locationId,
             Pageable pageable
     );
+
+    Page<BlogDocument> findBlogsThatTag(
+            Long taggedBlogId,
+            Long currentUserId,
+            boolean isAdmin,
+            Pageable pageable
+    );
 }
 

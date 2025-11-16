@@ -17,4 +17,5 @@ public interface BlogService {
     BlogDetailResponseDTO getBlogById(Long blogId);
     PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q);
     BlogCreationResponseDTO updateBlogStatus(Long blogId, BlogStatusUpdateRequestDTO requestDTO);
+    PaginatedResponse<BlogSummaryResponseDTO> getBlogsThatTag(Long blogId, Pageable pageable);
 }

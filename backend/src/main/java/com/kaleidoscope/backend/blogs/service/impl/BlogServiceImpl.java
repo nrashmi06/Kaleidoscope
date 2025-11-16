@@ -66,6 +66,7 @@ public class BlogServiceImpl implements BlogService {
     private final BlogViewService blogViewService;
     private final BlogSearchRepository blogSearchRepository; // ES repository injected
     private final RedisStreamPublisher redisStreamPublisher;
+    private final com.kaleidoscope.backend.blogs.repository.BlogTagRepository blogTagRepository;
 
     @Override
     @Transactional
@@ -111,6 +112,32 @@ public class BlogServiceImpl implements BlogService {
 
         // Save again to persist the category relationships
         savedBlog = blogRepository.save(savedBlog);
+
+        // Handle blog tags if provided
+        List<Long> blogTagIds = blogCreateRequestDTO.blogTagIds();
+        if (blogTagIds != null && !blogTagIds.isEmpty()) {
+            List<Blog> taggedBlogs = blogRepository.findAllById(blogTagIds);
+            List<com.kaleidoscope.backend.blogs.model.BlogTag> newTags = new ArrayList<>();
+
+            for (Blog taggedBlog : taggedBlogs) {
+                if (taggedBlog.getBlogId().equals(savedBlog.getBlogId())) {
+                    continue; // Prevent self-tagging
+                }
+                com.kaleidoscope.backend.blogs.model.BlogTag newTag = com.kaleidoscope.backend.blogs.model.BlogTag.builder()
+                        .taggingBlog(savedBlog)
+                        .taggedBlog(taggedBlog)
+                        .build();
+                newTags.add(newTag);
+
+                // Publish notification to the author of the tagged blog
+                publishBlogTagNotification(savedBlog, taggedBlog);
+            }
+
+            if (!newTags.isEmpty()) {
+                blogTagRepository.saveAll(newTags);
+                savedBlog.setTaggedBlogs(new HashSet<>(newTags)); // Update in-memory entity for mapping
+            }
+        }
 
         // Handle media if provided
         if (blogCreateRequestDTO.mediaDetails() != null && !blogCreateRequestDTO.mediaDetails().isEmpty()) {
@@ -185,6 +212,11 @@ public class BlogServiceImpl implements BlogService {
             blog.setLocation(location);
         } else {
             blog.setLocation(null);
+        }
+
+        // Handle blog tag updates if provided
+        if (blogUpdateRequestDTO.blogTagIds() != null) {
+            updateBlogTags(blog, blogUpdateRequestDTO.blogTagIds());
         }
 
         Blog savedBlog = blogRepository.save(blog);
@@ -329,6 +361,27 @@ public class BlogServiceImpl implements BlogService {
         return blogMapper.toDTO(savedBlog);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponse<BlogSummaryResponseDTO> getBlogsThatTag(Long blogId, Pageable pageable) {
+        // Check if the blog exists first
+        if (!blogRepository.existsById(blogId)) {
+            throw new BlogNotFoundException(blogId);
+        }
+
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+
+        // Use the search repository to find tagging blogs
+        Page<BlogDocument> docPage = blogSearchRepository.findBlogsThatTag(
+                blogId, currentUserId, isAdmin, pageable
+        );
+
+        Page<BlogSummaryResponseDTO> dtoPage = docPage.map(blogMapper::toBlogSummaryDTO);
+        log.info("Found {} blogs tagging blogId: {}", dtoPage.getTotalElements(), blogId);
+        return PaginatedResponse.fromPage(dtoPage);
+    }
+
     private void updateBlogMedia(Blog blog, List<MediaUploadRequestDTO> mediaDtos) {
         log.debug("Updating media for blogId: {}", blog.getBlogId());
         if (mediaDtos == null) return;
@@ -446,6 +499,95 @@ public class BlogServiceImpl implements BlogService {
         } catch (Exception e) {
             log.error("Failed to publish blog status notification for blogId {}: {}", blog.getBlogId(), e.getMessage(), e);
             // Do not re-throw; notification failure should not fail the main transaction.
+        }
+    }
+
+    private void updateBlogTags(Blog blog, List<Long> incomingBlogTagIds) {
+        Set<Long> incomingIds = (incomingBlogTagIds != null) ? new HashSet<>(incomingBlogTagIds) : Collections.emptySet();
+
+        // 1. Get current tags
+        Map<Long, com.kaleidoscope.backend.blogs.model.BlogTag> existingTagsMap = blog.getTaggedBlogs().stream()
+                .collect(Collectors.toMap(tag -> tag.getTaggedBlog().getBlogId(), tag -> tag));
+        Set<Long> existingIds = existingTagsMap.keySet();
+
+        // 2. Find and remove tags that are no longer present
+        List<com.kaleidoscope.backend.blogs.model.BlogTag> tagsToRemove = existingIds.stream()
+                .filter(id -> !incomingIds.contains(id))
+                .map(existingTagsMap::get)
+                .collect(Collectors.toList());
+
+        if (!tagsToRemove.isEmpty()) {
+            blogTagRepository.deleteAll(tagsToRemove);
+            tagsToRemove.forEach(tag -> blog.getTaggedBlogs().remove(tag));
+            log.debug("Removed {} blog tags from blog ID: {}", tagsToRemove.size(), blog.getBlogId());
+        }
+
+        // 3. Find and add new tags
+        List<Long> idsToAdd = incomingIds.stream()
+                .filter(id -> !existingIds.contains(id))
+                .filter(id -> !id.equals(blog.getBlogId())) // Prevent self-tag
+                .collect(Collectors.toList());
+
+        if (!idsToAdd.isEmpty()) {
+            List<Blog> taggedBlogs = blogRepository.findAllById(idsToAdd);
+            List<com.kaleidoscope.backend.blogs.model.BlogTag> newTags = new ArrayList<>();
+
+            for (Blog taggedBlog : taggedBlogs) {
+                com.kaleidoscope.backend.blogs.model.BlogTag newTag = com.kaleidoscope.backend.blogs.model.BlogTag.builder()
+                        .taggingBlog(blog)
+                        .taggedBlog(taggedBlog)
+                        .build();
+                newTags.add(newTag);
+
+                // 4. Send notification for each new tag
+                publishBlogTagNotification(blog, taggedBlog);
+            }
+
+            if (!newTags.isEmpty()) {
+                blogTagRepository.saveAll(newTags);
+                blog.getTaggedBlogs().addAll(newTags);
+                log.debug("Added {} new blog tags to blog ID: {}", newTags.size(), blog.getBlogId());
+            }
+        }
+    }
+
+    private void publishBlogTagNotification(Blog taggingBlog, Blog taggedBlog) {
+        try {
+            Long recipientId = taggedBlog.getUser().getUserId();
+            Long actorId = taggingBlog.getUser().getUserId();
+
+            // Do not send a notification if the author is tagging their own blog
+            if (recipientId.equals(actorId)) {
+                return;
+            }
+
+            // Craft the message
+            String message = String.format("Your blog '%s' was tagged in '%s'", taggedBlog.getTitle(), taggingBlog.getTitle());
+
+            Map<String, String> additionalData = Map.of(
+                "message", message,
+                "taggingBlogTitle", taggingBlog.getTitle(),
+                "taggedBlogTitle", taggedBlog.getTitle()
+            );
+
+            // Create the notification DTO
+            NotificationEventDTO notificationEvent = new NotificationEventDTO(
+                    NotificationType.SYSTEM_MESSAGE, // Using SYSTEM_MESSAGE
+                    recipientId,  // The author of the tagged blog
+                    actorId,      // The author of the tagging blog
+                    taggingBlog.getBlogId(), // Link to the blog that did the tagging
+                    ContentType.BLOG,
+                    additionalData,
+                    MDC.get("correlationId")
+            );
+
+            // Publish to Redis
+            redisStreamPublisher.publish(ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, notificationEvent);
+            log.info("Published blog tag notification for recipientId: {}", recipientId);
+
+        } catch (Exception e) {
+            log.error("Failed to publish blog tag notification for blogId {}: {}", taggingBlog.getBlogId(), e.getMessage(), e);
+            // Do not re-throw
         }
     }
 }

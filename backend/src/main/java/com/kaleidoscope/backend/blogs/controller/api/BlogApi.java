@@ -176,4 +176,19 @@ public interface BlogApi {
             @Parameter(description = "Blog status update request containing new status and optional review notes")
             @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO
     );
+
+    @Operation(summary = "Get blogs that tag this blog",
+               description = "Returns a paginated list of all blogs that have tagged the specified blog.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Blogs retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "404", description = "Blog not found")
+    })
+    @GetMapping(BlogsRoutes.GET_TAGGED_BY)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> getBlogsThatTag(
+            @Parameter(description = "ID of the blog to find references for", required = true)
+            @PathVariable Long blogId,
+            Pageable pageable
+    );
 }

@@ -160,4 +160,19 @@ public class BlogController implements BlogApi {
                 .data(updatedBlog)
                 .build());
     }
+
+    @Override
+    @GetMapping(BlogsRoutes.GET_TAGGED_BY)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> getBlogsThatTag(
+            @PathVariable Long blogId,
+            Pageable pageable) {
+        log.info("Retrieving blogs that tag blogId: {}", blogId);
+        PaginatedResponse<BlogSummaryResponseDTO> response = blogService.getBlogsThatTag(blogId, pageable);
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
+                .success(true)
+                .message("Blogs retrieved successfully.")
+                .data(response)
+                .build());
+    }
 }
