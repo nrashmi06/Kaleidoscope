@@ -1,7 +1,7 @@
 # Application Configuration
 spring:
   application:
-    name: ${APP_NAME:kaleidoscope-backend} # Ensure APP_NAME is set in your cloud environment variables
+    name: ${APP_NAME:kaleidoscope-backend}
   app:
     base-url: ${APP_BASE_URL:http://localhost:8080}
     defaults:
@@ -55,20 +55,6 @@ spring:
       max-request-size: ${MAX_REQUEST_SIZE:20MB}
       file-size-threshold: ${FILE_SIZE_THRESHOLD:2KB}
       resolve-lazily: true
-
-  # Email Configuration (DEPRECATED - Migrating to Resend)
-  # mail:
-  #   host: ${MAIL_HOST:smtp.example.com}
-  #   port: ${MAIL_PORT:587}
-  #   username: ${MAIL_USERNAME:test@example.com}
-  #   password: ${MAIL_PASSWORD:password123}
-  #   properties:
-  #     mail:
-  #       smtp:
-  #         auth: true
-  #         starttls:
-  #           enable: true
-
 # Server Configuration
 server:
   servlet:
@@ -85,8 +71,8 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
     disable-swagger-default-url: true
-    config-url: /kaleidoscope/v3/api-docs/swagger-config
-    url: /kaleidoscope/v3/api-docs
+    config-url: /v3/api-docs/swagger-config
+    url: /v3/api-docs
   use-management-port: false
   use-root-path: false
 
