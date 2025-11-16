@@ -71,17 +71,20 @@ server:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: true
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
     display-request-duration: true
     disable-swagger-default-url: true
-    config-url: /v3/api-docs/swagger-config
-    url: /v3/api-docs
-    # CRITICAL: Tell Swagger UI about the public-facing URLs
+    # Use context-aware paths so Swagger UI can load config and docs under the servlet context path
+    config-url: ${server.servlet.context-path}/v3/api-docs/swagger-config
+    url: ${server.servlet.context-path}/v3/api-docs
+    enabled: true
   use-management-port: false
   use-root-path: false
+  show-actuator: false
 
 allowed:
   origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}

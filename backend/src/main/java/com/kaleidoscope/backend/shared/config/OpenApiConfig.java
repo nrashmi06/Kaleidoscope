@@ -1,13 +1,19 @@
 package com.kaleidoscope.backend.shared.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 @OpenAPIDefinition(
@@ -44,7 +50,21 @@ import org.springframework.context.annotation.Configuration;
         description = "HTTP-only cookie for refresh token"
 )
 public class OpenApiConfig {
-    // No custom OpenAPI bean needed.
-    // Springdoc will auto-configure server URLs based on
-    // Nginx proxy headers (e.g., X-Forwarded-Host).
+
+    @Value("${spring.app.base-url:http://localhost:8080}")
+    private String baseUrl;
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        // Use base URL from configuration
+        // In local dev: http://localhost:8080
+        // In production: https://project-kaleidoscope.tech
+
+        Server server = new Server();
+        server.setUrl(baseUrl);
+        server.setDescription("Kaleidoscope API Server");
+
+        return new OpenAPI()
+                .servers(List.of(server));
+    }
 }

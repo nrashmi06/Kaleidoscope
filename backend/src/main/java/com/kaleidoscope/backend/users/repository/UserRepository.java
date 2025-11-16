@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.users.repository;
 
 
 import com.kaleidoscope.backend.shared.enums.AccountStatus;
+import com.kaleidoscope.backend.shared.enums.Role;
 import com.kaleidoscope.backend.users.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     User findByEmail(String email);
@@ -31,4 +34,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Page<User> findUsersWithFilters(
             @Param("status") AccountStatus status,
             Pageable pageable);
+
+    // New query: active emails filtered by roles
+    @Query("SELECT u.email FROM User u WHERE u.accountStatus = 'ACTIVE' AND u.role IN :roles")
+    List<String> findActiveEmailsByRoles(@Param("roles") List<Role> roles);
 }
