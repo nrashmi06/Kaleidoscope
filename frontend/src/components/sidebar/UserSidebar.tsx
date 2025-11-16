@@ -7,6 +7,7 @@ import {
   ImageIcon,
   Settings,
   MapPin,
+  Book,
 } from "lucide-react";
 
 const navigationItems = [
@@ -15,6 +16,7 @@ const navigationItems = [
   // --- 2. THIS IS THE CHANGE ---
   { icon: MapPin, label: "Locations", path: "/locations" }, 
   // --- END OF CHANGE ---
+  { icon: Book , label: "Blogs", path: "/blogs" },
   { icon: ImageIcon, label: "Gallery", path: "/gallery" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
