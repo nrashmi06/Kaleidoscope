@@ -171,7 +171,7 @@ public class InteractionServiceImpl implements InteractionService {
             }
         }
 
-        // Trigger Elasticsearch sync for POST interactions only
+        // Trigger Elasticsearch sync for POST interactions
         if (contentType == ContentType.POST) {
             try {
                 // Create a simple event payload with postId for the sync consumer
@@ -185,6 +185,22 @@ public class InteractionServiceImpl implements InteractionService {
 
             } catch (Exception e) {
                 log.error("[reactOrUnreact] Failed to publish interaction sync event for post {}: {}",
+                         contentId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
+        } else if (contentType == ContentType.BLOG) {
+            try {
+                // Create a simple event payload with blogId for the sync consumer
+                Map<String, Object> eventPayload = new HashMap<>();
+                eventPayload.put("contentId", contentId);
+                eventPayload.put("changeType", unreact ? "UNREACT" : "REACT");
+                eventPayload.put("correlationId", org.slf4j.MDC.get("correlationId"));
+
+                redisStreamPublisher.publish(ProducerStreamConstants.BLOG_INTERACTION_SYNC_STREAM, eventPayload);
+                log.debug("[reactOrUnreact] Published BLOG_INTERACTION_SYNC_STREAM event for blog {}", contentId);
+
+            } catch (Exception e) {
+                log.error("[reactOrUnreact] Failed to publish interaction sync event for blog {}: {}",
                          contentId, e.getMessage(), e);
                 // Continue execution even if stream publishing fails
             }
@@ -289,7 +305,7 @@ public class InteractionServiceImpl implements InteractionService {
             .collect(Collectors.toSet());
         log.debug("[addComment] Fetched {} tags for comment {}", tags.size(), savedComment.getCommentId());
 
-        // Trigger Elasticsearch sync for POST comments only
+        // Trigger Elasticsearch sync for POST comments
         if (contentType == ContentType.POST) {
             try {
                 Map<String, Object> eventPayload = Map.of(
@@ -302,6 +318,21 @@ public class InteractionServiceImpl implements InteractionService {
 
             } catch (Exception e) {
                 log.error("[addComment] Failed to publish interaction sync event for post {}: {}",
+                         contentId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
+        } else if (contentType == ContentType.BLOG) {
+            try {
+                Map<String, Object> eventPayload = Map.of(
+                    "contentId", contentId,
+                    "changeType", "ADD_COMMENT"
+                );
+
+                redisStreamPublisher.publish(ProducerStreamConstants.BLOG_INTERACTION_SYNC_STREAM, eventPayload);
+                log.debug("[addComment] Published BLOG_INTERACTION_SYNC_STREAM event for blog {}", contentId);
+
+            } catch (Exception e) {
+                log.error("[addComment] Failed to publish interaction sync event for blog {}: {}",
                          contentId, e.getMessage(), e);
                 // Continue execution even if stream publishing fails
             }
