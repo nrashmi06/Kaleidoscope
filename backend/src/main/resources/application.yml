@@ -71,6 +71,7 @@ server:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: true
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: alpha
@@ -79,9 +80,10 @@ springdoc:
     disable-swagger-default-url: true
     config-url: /v3/api-docs/swagger-config
     url: /v3/api-docs
-    # CRITICAL: Tell Swagger UI about the public-facing URLs
+    enabled: true
   use-management-port: false
   use-root-path: false
+  show-actuator: false
 
 allowed:
   origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
