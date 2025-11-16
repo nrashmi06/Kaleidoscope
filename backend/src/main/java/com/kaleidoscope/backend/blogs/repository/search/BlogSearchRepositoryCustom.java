@@ -5,6 +5,8 @@ import com.kaleidoscope.backend.blogs.enums.BlogStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
+
 /**
  * Custom repository for complex BlogDocument search operations.
  * Mirrors PostSearchRepositoryCustom simplified for Blog security model.
@@ -18,7 +20,14 @@ public interface BlogSearchRepositoryCustom {
             BlogStatus status,
             String query,
             Long locationId,
-            Pageable pageable
+            Pageable pageable,
+            Double latitude,
+            Double longitude,
+            Double radiusKm,
+            Long minReactions,
+            Long minComments,
+            LocalDateTime startDate,
+            LocalDateTime endDate
     );
 
     Page<BlogDocument> findBlogsThatTag(

@@ -14,6 +14,8 @@ import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+
 /**
  * Implementation of BlogSearchRepositoryCustom.
  * Security: Admins see all blogs. Non-admins see their own blogs OR blogs with status PUBLISHED.
@@ -33,9 +35,16 @@ public class BlogSearchRepositoryImpl implements BlogSearchRepositoryCustom {
                                                           BlogStatus status,
                                                           String query,
                                                           Long locationId,
-                                                          Pageable pageable) {
-        log.info("Elasticsearch blog query: authorUserId={}, categoryId={}, status={}, query={}, locationId={}, isAdmin={}",
-                authorUserId, categoryId, status, query, locationId, isAdmin);
+                                                          Pageable pageable,
+                                                          Double latitude,
+                                                          Double longitude,
+                                                          Double radiusKm,
+                                                          Long minReactions,
+                                                          Long minComments,
+                                                          LocalDateTime startDate,
+                                                          LocalDateTime endDate) {
+        log.info("Elasticsearch blog query: authorUserId={}, categoryId={}, status={}, query={}, locationId={}, latitude={}, longitude={}, radiusKm={}, minReactions={}, minComments={}, startDate={}, endDate={}, isAdmin={}",
+                authorUserId, categoryId, status, query, locationId, latitude, longitude, radiusKm, minReactions, minComments, startDate, endDate, isAdmin);
 
         BoolQuery.Builder root = new BoolQuery.Builder();
 
@@ -52,9 +61,22 @@ public class BlogSearchRepositoryImpl implements BlogSearchRepositoryCustom {
         if (status != null) {
             root.must(TermQuery.of(t -> t.field("blogStatus").value(status.toString()))._toQuery());
         }
-        if (locationId != null) {
+
+        // Location filtering - prioritize geo-distance query over exact locationId
+        if (latitude != null && longitude != null && radiusKm != null && radiusKm > 0) {
+            // Use GeoDistanceQuery if nearbyLocationId was provided
+            log.debug("Adding geo-distance filter: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
+            root.filter(GeoDistanceQuery.of(g -> g
+                    .field("location.point")
+                    .location(l -> l.latlon(ll -> ll.lat(latitude).lon(longitude)))
+                    .distance(radiusKm + "km")
+            )._toQuery());
+        } else if (locationId != null) {
+            // Fallback to specific locationId if no radius query
+            log.debug("Adding exact location ID filter: locationId={}", locationId);
             root.must(TermQuery.of(t -> t.field("location.id").value(locationId))._toQuery());
         }
+
         if (query != null && !query.trim().isEmpty()) {
             String q = query.trim().toLowerCase();
             BoolQuery.Builder text = new BoolQuery.Builder();
@@ -63,6 +85,46 @@ public class BlogSearchRepositoryImpl implements BlogSearchRepositoryCustom {
             text.should(MatchQuery.of(m -> m.field("body").query(q))._toQuery());
             text.minimumShouldMatch("1");
             root.must(text.build()._toQuery());
+        }
+
+        // Filter by minimum reactions
+        if (minReactions != null) {
+            log.debug("Adding filter for minReactions: {}", minReactions);
+            root.must(RangeQuery.of(r -> r
+                    .number(n -> n
+                            .field("reactionCount")
+                            .gte(minReactions.doubleValue())
+                    )
+            )._toQuery());
+        }
+
+        // Filter by minimum comments
+        if (minComments != null) {
+            log.debug("Adding filter for minComments: {}", minComments);
+            root.must(RangeQuery.of(r -> r
+                    .number(n -> n
+                            .field("commentCount")
+                            .gte(minComments.doubleValue())
+                    )
+            )._toQuery());
+        }
+
+        // Filter by date range
+        if (startDate != null || endDate != null) {
+            log.debug("Adding date range filter: startDate={}, endDate={}", startDate, endDate);
+            root.must(RangeQuery.of(r -> {
+                r.date(d -> {
+                    d.field("createdAt");
+                    if (startDate != null) {
+                        d.gte(startDate.toString());
+                    }
+                    if (endDate != null) {
+                        d.lte(endDate.toString());
+                    }
+                    return d;
+                });
+                return r;
+            })._toQuery());
         }
 
         // Security clause for non-admins

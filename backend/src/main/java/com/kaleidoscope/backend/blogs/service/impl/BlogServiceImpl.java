@@ -308,7 +308,10 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q) {
+    public PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(
+            Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q,
+            Long locationId, Long nearbyLocationId, Double radiusKm,
+            Long minReactions, Long minComments, LocalDateTime startDate, LocalDateTime endDate) {
         // Replace JPA specification with Elasticsearch query
         Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
@@ -316,6 +319,24 @@ public class BlogServiceImpl implements BlogService {
         if (status != null && !status.isBlank()) {
             try { statusEnum = BlogStatus.valueOf(status); } catch (IllegalArgumentException ignored) { log.warn("Invalid status filter '{}' ignored", status); }
         }
+
+        // Fetch coordinates for geo-distance query if nearbyLocationId is provided
+        Double latitude = null;
+        Double longitude = null;
+        if (nearbyLocationId != null) {
+            log.debug("Fetching coordinates for nearbyLocationId: {}", nearbyLocationId);
+            Location location = locationRepository.findById(nearbyLocationId)
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + nearbyLocationId));
+
+            if (location.getLatitude() != null && location.getLongitude() != null) {
+                latitude = location.getLatitude().doubleValue();
+                longitude = location.getLongitude().doubleValue();
+                log.info("Using geo-distance query for blogs: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
+            } else {
+                log.warn("Location {} exists but has no coordinates. Geo-distance query will be skipped.", nearbyLocationId);
+            }
+        }
+
         Page<BlogDocument> docPage = blogSearchRepository.findVisibleAndFilteredBlogs(
                 currentUserId,
                 isAdmin,
@@ -323,8 +344,15 @@ public class BlogServiceImpl implements BlogService {
                 categoryId,
                 statusEnum,
                 q,
-                null, // location filtering not yet implemented in API signature
-                pageable
+                locationId,
+                pageable,
+                latitude,
+                longitude,
+                radiusKm,
+                minReactions,
+                minComments,
+                startDate,
+                endDate
         );
         Page<BlogSummaryResponseDTO> dtoPage = docPage.map(blogMapper::toBlogSummaryDTO);
         log.info("Blog filter returned {} of {} results via Elasticsearch", dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
