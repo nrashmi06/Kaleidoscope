@@ -1,0 +1,64 @@
+meta {
+  name: get blogs that tag
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{base_url}}/api/blogs/:blogId/tagged-by?page=0&size=10
+  body: none
+  auth: inherit
+}
+
+params:path {
+  blogId: 1
+}
+
+params:query {
+  page: 0
+  size: 10
+}
+
+docs {
+  # Get Blogs That Tag This Blog
+
+  This endpoint returns a paginated list of all blogs that have tagged the specified blog.
+
+  ## Parameters
+  - `blogId`: The ID of the blog to find references for
+  - `page`: Page number (default: 0)
+  - `size`: Page size (default: 10)
+
+  ## Security
+  - Non-admin users can only see:
+    - Their own blogs (regardless of status)
+    - Published blogs from other users
+  - Admin users can see all blogs
+
+  ## Example Response
+  ```json
+  {
+    "success": true,
+    "message": "Blogs retrieved successfully.",
+    "data": {
+      "content": [
+        {
+          "blogId": 2,
+          "title": "Blog that references Blog 1",
+          "summary": "This blog mentions Blog 1",
+          "author": {
+            "userId": 5,
+            "username": "john_doe"
+          },
+          "createdAt": "2024-01-15T10:30:00"
+        }
+      ],
+      "totalElements": 1,
+      "totalPages": 1,
+      "currentPage": 0,
+      "pageSize": 10
+    }
+  }
+  ```
+}
+

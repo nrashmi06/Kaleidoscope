@@ -1,17 +1,16 @@
 package com.kaleidoscope.backend.auth.service.impl;
 
+import com.kaleidoscope.backend.auth.config.ResendProperties;
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.shared.config.ApplicationProperties;
-import com.kaleidoscope.backend.shared.config.ServletProperties;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.MailSendException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -22,20 +21,20 @@ import java.util.Map;
 @Service
 public class EmailServiceImpl implements EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailServiceImpl.class);
-    private final JavaMailSender javaMailSender;
+
+    private final String fromEmail;
+    private final Resend resend;
     private final TemplateEngine templateEngine;
     private final ApplicationProperties applicationProperties;
-    private final ServletProperties servletProperties;
 
     @Autowired
-    public EmailServiceImpl(JavaMailSender javaMailSender,
+    public EmailServiceImpl(ResendProperties resendProperties,
                             TemplateEngine templateEngine,
-                            ApplicationProperties applicationProperties,
-                            ServletProperties servletProperties) {
-        this.javaMailSender = javaMailSender;
+                            ApplicationProperties applicationProperties) {
+        this.resend = new Resend(resendProperties.apiKey());
+        this.fromEmail = resendProperties.fromEmail();
         this.templateEngine = templateEngine;
         this.applicationProperties = applicationProperties;
-        this.servletProperties = servletProperties;
     }
 
     @Override
@@ -55,17 +54,20 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    private void sendHtmlEmail(String to, String subject, String body) {
-        MimeMessage message = javaMailSender.createMimeMessage();
+    private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(body, true);
-            javaMailSender.send(message);
-        } catch (MessagingException e) {
-            logger.error("Failed to send email to: {}", to, e);
-            throw new MailSendException("Failed to send email", e);
+            CreateEmailOptions emailOptions = CreateEmailOptions.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject(subject)
+                    .html(htmlBody)
+                    .build();
+
+            CreateEmailResponse response = resend.emails().send(emailOptions);
+            logger.info("Email sent successfully to: {} with ID: {}", to, response.getId());
+        } catch (ResendException e) {
+            logger.error("Failed to send email to: {} - Error: {}", to, e.getMessage(), e);
+            throw new RuntimeException("Failed to send email", e);
         }
     }
 
@@ -76,8 +78,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             String subject = "Verify your email address";
             String baseUrl = applicationProperties.baseUrl();
-            String contextPath = servletProperties.contextPath();
-            String verificationUrl = baseUrl + contextPath + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
+            String verificationUrl = baseUrl + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
             Context context = new Context();
             context.setVariable("verificationUrl", verificationUrl);
             String body = templateEngine.process("verificationEmailTemplate", context);

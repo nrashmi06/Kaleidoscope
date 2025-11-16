@@ -1,0 +1,91 @@
+meta {
+  name: get blog suggestions
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{base_url}}/api/blogs/suggestions?page=0&size=20&sort=_score,desc
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 20
+  sort: _score,desc
+}
+
+docs {
+  # Get Personalized Blog Suggestions
+
+  This endpoint provides a personalized blog feed based on advanced ranking algorithms.
+
+  ## Ranking Factors
+
+  ### Personalized Ranking (Standard)
+  - **Follows Boost (10.0x)**: Blogs from authors the user follows get highest priority
+  - **Interest Match (5.0x)**: Blogs in categories matching user's interests
+  - **Popularity Boost (2.0x reactions, 1.5x comments, 1.0x views)**: Higher engagement = higher rank
+
+  ### Personalized Ranking (Advanced)
+  - **Recency Boost (6.0x)**: Newer content gets boosted using Gaussian decay
+    - Origin: now
+    - Scale: 7 days (half-life)
+    - Offset: 1 day (full boost for content within last day)
+  - **Author Popularity (1.5x)**: Blogs from authors with more followers get a small boost
+  - **Social Context Boost (8.0x)**: Strong boost for blogs that tag other blogs you've already interacted with (liked or commented on)
+
+  ### Filters Applied
+  - Only `PUBLISHED` blogs
+  - Excludes your own blogs
+  - Excludes blogs from blocked users (both ways)
+  - Excludes blogs you've recently viewed (tracked in Redis)
+
+  ## Pagination
+  - Default size: 20
+  - Sort by relevance score (calculated by Elasticsearch function_score query)
+
+  ## Technical Details
+  - Uses Elasticsearch `function_score` query with `FunctionScoreMode.Sum` and `FunctionBoostMode.Multiply`
+  - Leverages denormalized data in `BlogDocument` for fast retrieval
+  - Redis key for viewed blogs: `viewed_blogs:{userId}`
+
+  ## Example Response
+  ```json
+  {
+    "success": true,
+    "message": "Blog suggestions retrieved successfully.",
+    "data": {
+      "content": [
+        {
+          "blogId": 42,
+          "title": "Building Microservices with Spring Boot",
+          "summary": "A comprehensive guide to microservices architecture...",
+          "createdAt": "2024-11-15T10:30:00",
+          "author": {
+            "userId": 5,
+            "username": "techguru",
+            "profilePictureUrl": "https://...",
+            "accountStatus": "ACTIVE"
+          },
+          "categories": [
+            {"categoryId": 3, "name": "Technology"}
+          ],
+          "thumbnailUrl": "https://...",
+          "reactionCount": 42,
+          "commentCount": 15,
+          "viewCount": 230,
+          "blogStatus": "PUBLISHED"
+        }
+      ],
+      "page": 0,
+      "size": 20,
+      "totalElements": 156,
+      "totalPages": 8,
+      "last": false
+    }
+  }
+  ```
+}
+

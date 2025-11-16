@@ -60,6 +60,10 @@ public class Blog {
     @Column(name = "read_time_minutes")
     private Integer readTimeMinutes;
 
+    @Column(name = "view_count", nullable = false)
+    @Builder.Default
+    private Long viewCount = 0L;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id")
     private Location location;

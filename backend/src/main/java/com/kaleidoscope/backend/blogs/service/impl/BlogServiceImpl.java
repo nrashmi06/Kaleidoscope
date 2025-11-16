@@ -1,6 +1,10 @@
 package com.kaleidoscope.backend.blogs.service.impl;
 
+import com.kaleidoscope.backend.async.dto.NotificationEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
+import com.kaleidoscope.backend.blogs.document.BlogDocument;
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogStatusUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
@@ -14,11 +18,13 @@ import com.kaleidoscope.backend.blogs.mapper.BlogMapper;
 import com.kaleidoscope.backend.blogs.model.Blog;
 import com.kaleidoscope.backend.blogs.model.BlogMedia;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
-import com.kaleidoscope.backend.blogs.repository.specification.BlogSpecification;
+import com.kaleidoscope.backend.blogs.repository.search.BlogSearchRepository;
 import com.kaleidoscope.backend.blogs.service.BlogService;
+import com.kaleidoscope.backend.blogs.service.BlogViewService;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
+import com.kaleidoscope.backend.shared.enums.NotificationType;
 import com.kaleidoscope.backend.shared.enums.ReactionType;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
@@ -32,9 +38,9 @@ import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +63,10 @@ public class BlogServiceImpl implements BlogService {
     private final JwtUtils jwtUtils;
     private final ImageStorageService imageStorageService;
     private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
+    private final BlogViewService blogViewService;
+    private final BlogSearchRepository blogSearchRepository; // ES repository injected
+    private final RedisStreamPublisher redisStreamPublisher;
+    private final com.kaleidoscope.backend.blogs.repository.BlogTagRepository blogTagRepository;
 
     @Override
     @Transactional
@@ -103,6 +113,32 @@ public class BlogServiceImpl implements BlogService {
         // Save again to persist the category relationships
         savedBlog = blogRepository.save(savedBlog);
 
+        // Handle blog tags if provided
+        List<Long> blogTagIds = blogCreateRequestDTO.blogTagIds();
+        if (blogTagIds != null && !blogTagIds.isEmpty()) {
+            List<Blog> taggedBlogs = blogRepository.findAllById(blogTagIds);
+            List<com.kaleidoscope.backend.blogs.model.BlogTag> newTags = new ArrayList<>();
+
+            for (Blog taggedBlog : taggedBlogs) {
+                if (taggedBlog.getBlogId().equals(savedBlog.getBlogId())) {
+                    continue; // Prevent self-tagging
+                }
+                com.kaleidoscope.backend.blogs.model.BlogTag newTag = com.kaleidoscope.backend.blogs.model.BlogTag.builder()
+                        .taggingBlog(savedBlog)
+                        .taggedBlog(taggedBlog)
+                        .build();
+                newTags.add(newTag);
+
+                // Publish notification to the author of the tagged blog
+                publishBlogTagNotification(savedBlog, taggedBlog);
+            }
+
+            if (!newTags.isEmpty()) {
+                blogTagRepository.saveAll(newTags);
+                savedBlog.setTaggedBlogs(new HashSet<>(newTags)); // Update in-memory entity for mapping
+            }
+        }
+
         // Handle media if provided
         if (blogCreateRequestDTO.mediaDetails() != null && !blogCreateRequestDTO.mediaDetails().isEmpty()) {
             List<BlogMedia> blogMediaList = blogMapper.toBlogMediaEntities(blogCreateRequestDTO.mediaDetails());
@@ -126,6 +162,10 @@ public class BlogServiceImpl implements BlogService {
             savedBlog = blogRepository.save(savedBlog);
         }
 
+        // Index new blog in Elasticsearch
+        BlogDocument blogDocument = blogMapper.toBlogDocument(savedBlog);
+        blogSearchRepository.save(blogDocument);
+        log.info("Indexed new blog {} to Elasticsearch", savedBlog.getBlogId());
 
         log.info("User '{}' created new blog with ID: {}", currentUser.getUsername(), savedBlog.getBlogId());
         return blogMapper.toDTO(savedBlog);
@@ -174,7 +214,16 @@ public class BlogServiceImpl implements BlogService {
             blog.setLocation(null);
         }
 
+        // Handle blog tag updates if provided
+        if (blogUpdateRequestDTO.blogTagIds() != null) {
+            updateBlogTags(blog, blogUpdateRequestDTO.blogTagIds());
+        }
+
         Blog savedBlog = blogRepository.save(blog);
+        // Sync updated blog to Elasticsearch
+        BlogDocument blogDocument = blogMapper.toBlogDocument(savedBlog);
+        blogSearchRepository.save(blogDocument);
+        log.info("Updated blog {} in Elasticsearch", savedBlog.getBlogId());
         log.info("User '{}' updated blog with ID: {}", blog.getUser().getUsername(), savedBlog.getBlogId());
         return blogMapper.toDTO(savedBlog);
     }
@@ -192,6 +241,9 @@ public class BlogServiceImpl implements BlogService {
             throw new UnauthorizedBlogActionException("User is not authorized to delete this blog.");
         }
 
+        // Remove from Elasticsearch before DB soft delete
+        blogSearchRepository.deleteById(blogId.toString());
+        log.info("Removed blog {} from Elasticsearch index", blogId);
         blogRepository.delete(blog);
         log.info("Blog {} soft-deleted by user {} (admin? {})", blogId, currentUserId, isAdmin);
     }
@@ -207,6 +259,8 @@ public class BlogServiceImpl implements BlogService {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new BlogNotFoundException(blogId));
 
+        // Delete ES document
+        blogSearchRepository.deleteById(blog.getBlogId().toString());
         // Delete associated comments and reactions
         commentRepository.softDeleteCommentsByContent(blogId, ContentType.BLOG, LocalDateTime.now());
         reactionRepository.softDeleteReactionsByContent(blogId, ContentType.BLOG, LocalDateTime.now());
@@ -240,6 +294,9 @@ public class BlogServiceImpl implements BlogService {
             if (blog.getBlogStatus() != BlogStatus.PUBLISHED) {
                 throw new UnauthorizedBlogActionException("Not allowed to view this blog");
             }
+            // Track view count for non-owners
+            blogViewService.incrementViewAsync(blogId, currentUserId);
+            log.debug("View tracking initiated for blog {} by user {}", blogId, currentUserId);
         }
         ReactionType currentUserReaction = null;
         var reactionOpt = reactionRepository.findByContentAndUser(blogId, ContentType.BLOG, currentUserId);
@@ -251,50 +308,55 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q) {
-        Specification<Blog> spec = Specification.where(null);
-
-        // Check if current user is admin
+    public PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(
+            Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q,
+            Long locationId, Long nearbyLocationId, Double radiusKm,
+            Long minReactions, Long minComments, LocalDateTime startDate, LocalDateTime endDate) {
+        // Replace JPA specification with Elasticsearch query
+        Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
+        BlogStatus statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            try { statusEnum = BlogStatus.valueOf(status); } catch (IllegalArgumentException ignored) { log.warn("Invalid status filter '{}' ignored", status); }
+        }
 
-        // If not admin, only show published blogs (unless filtering by own userId)
-        if (!isAdmin) {
-            Long currentUserId = jwtUtils.getUserIdFromContext();
-            if (userId == null || !userId.equals(currentUserId)) {
-                // For non-admin users viewing other users' blogs or general feed, only show published blogs
-                spec = spec.and(BlogSpecification.hasStatus(BlogStatus.PUBLISHED.name()));
+        // Fetch coordinates for geo-distance query if nearbyLocationId is provided
+        Double latitude = null;
+        Double longitude = null;
+        if (nearbyLocationId != null) {
+            log.debug("Fetching coordinates for nearbyLocationId: {}", nearbyLocationId);
+            Location location = locationRepository.findById(nearbyLocationId)
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + nearbyLocationId));
+
+            if (location.getLatitude() != null && location.getLongitude() != null) {
+                latitude = location.getLatitude().doubleValue();
+                longitude = location.getLongitude().doubleValue();
+                log.info("Using geo-distance query for blogs: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
+            } else {
+                log.warn("Location {} exists but has no coordinates. Geo-distance query will be skipped.", nearbyLocationId);
             }
-            // If userId equals currentUserId, they can see all their own blogs regardless of status
         }
 
-        if (userId != null) {
-            spec = spec.and(BlogSpecification.hasAuthor(userId));
-        }
-        if (categoryId != null) {
-            spec = spec.and(BlogSpecification.hasCategory(categoryId));
-        }
-        if (status != null && isAdmin) {
-            // Only admins can filter by specific status
-            spec = spec.and(BlogSpecification.hasStatus(status));
-        }
-        // If you have a visibility field, add similar logic here
-        if (q != null && !q.isEmpty()) {
-            spec = spec.and(BlogSpecification.containsQuery(q));
-        }
-        Page<Blog> blogPage = blogRepository.findAll(spec, pageable);
-        List<BlogSummaryResponseDTO> dtos = blogPage.getContent().stream()
-                .map(blogMapper::toBlogSummaryDTO)
-                .collect(Collectors.toList());
-        // Use builder for PaginatedResponse
-        return PaginatedResponse.<BlogSummaryResponseDTO>builder()
-                .content(dtos)
-                .page(blogPage.getNumber())
-                .size(blogPage.getSize())
-                .totalPages(blogPage.getTotalPages())
-                .totalElements(blogPage.getTotalElements())
-                .first(blogPage.isFirst())
-                .last(blogPage.isLast())
-                .build();
+        Page<BlogDocument> docPage = blogSearchRepository.findVisibleAndFilteredBlogs(
+                currentUserId,
+                isAdmin,
+                userId,
+                categoryId,
+                statusEnum,
+                q,
+                locationId,
+                pageable,
+                latitude,
+                longitude,
+                radiusKm,
+                minReactions,
+                minComments,
+                startDate,
+                endDate
+        );
+        Page<BlogSummaryResponseDTO> dtoPage = docPage.map(blogMapper::toBlogSummaryDTO);
+        log.info("Blog filter returned {} of {} results via Elasticsearch", dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
+        return PaginatedResponse.fromPage(dtoPage);
     }
 
     @Override
@@ -314,9 +376,38 @@ public class BlogServiceImpl implements BlogService {
         blog.setReviewedAt(LocalDateTime.now());
 
         Blog savedBlog = blogRepository.save(blog);
+
+        // Publish notification to author
+        publishBlogStatusNotification(savedBlog, reviewerId);
+
+        // Sync status update to Elasticsearch
+        BlogDocument blogDocument = blogMapper.toBlogDocument(savedBlog);
+        blogSearchRepository.save(blogDocument);
+        log.info("Updated blog status {} in Elasticsearch", savedBlog.getBlogId());
         log.info("Blog {} status updated to {} by admin {}", blogId, requestDTO.status(), reviewerId);
 
         return blogMapper.toDTO(savedBlog);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginatedResponse<BlogSummaryResponseDTO> getBlogsThatTag(Long blogId, Pageable pageable) {
+        // Check if the blog exists first
+        if (!blogRepository.existsById(blogId)) {
+            throw new BlogNotFoundException(blogId);
+        }
+
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+
+        // Use the search repository to find tagging blogs
+        Page<BlogDocument> docPage = blogSearchRepository.findBlogsThatTag(
+                blogId, currentUserId, isAdmin, pageable
+        );
+
+        Page<BlogSummaryResponseDTO> dtoPage = docPage.map(blogMapper::toBlogSummaryDTO);
+        log.info("Found {} blogs tagging blogId: {}", dtoPage.getTotalElements(), blogId);
+        return PaginatedResponse.fromPage(dtoPage);
     }
 
     private void updateBlogMedia(Blog blog, List<MediaUploadRequestDTO> mediaDtos) {
@@ -380,6 +471,151 @@ public class BlogServiceImpl implements BlogService {
         blog.getMedia().clear();
         for (BlogMedia media : finalMediaList) {
             blog.addMedia(media);
+        }
+    }
+
+    private void publishBlogStatusNotification(Blog blog, Long actorId) {
+        try {
+            Long recipientId = blog.getUser().getUserId();
+
+            // Don't send a notification if the author is the one changing the status
+            if (recipientId.equals(actorId)) {
+                log.debug("Skipping notification: Author {} is changing their own blog status.", actorId);
+                return;
+            }
+
+            String message;
+            NotificationType notificationType;
+
+            switch (blog.getBlogStatus()) {
+                case APPROVED:
+                    message = String.format("Your blog '%s' has been approved by an admin.", blog.getTitle());
+                    notificationType = NotificationType.SYSTEM_MESSAGE; // Using SYSTEM_MESSAGE as a generic type
+                    break;
+                case REJECTED:
+                    message = String.format("Your blog '%s' has been rejected by an admin.", blog.getTitle());
+                    notificationType = NotificationType.SYSTEM_MESSAGE;
+                    break;
+                case PUBLISHED:
+                    message = String.format("Your blog '%s' has been published.", blog.getTitle());
+                    notificationType = NotificationType.SYSTEM_MESSAGE;
+                    break;
+                default:
+                    // Do not send notifications for other statuses (DRAFT, APPROVAL_PENDING, etc.)
+                    log.debug("Blog status {} does not trigger a notification.", blog.getBlogStatus());
+                    return;
+            }
+
+            Map<String, String> additionalData = Map.of(
+                "message", message,
+                "blogTitle", blog.getTitle()
+            );
+
+            NotificationEventDTO notificationEvent = new NotificationEventDTO(
+                    notificationType,
+                    recipientId,  // The author of the blog
+                    actorId,      // The admin who changed the status
+                    blog.getBlogId(),
+                    ContentType.BLOG,
+                    additionalData,
+                    MDC.get("correlationId")
+            );
+
+            redisStreamPublisher.publish(ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, notificationEvent);
+            log.info("Published blog status update notification ({}) for recipientId: {}", blog.getBlogStatus(), recipientId);
+
+        } catch (Exception e) {
+            log.error("Failed to publish blog status notification for blogId {}: {}", blog.getBlogId(), e.getMessage(), e);
+            // Do not re-throw; notification failure should not fail the main transaction.
+        }
+    }
+
+    private void updateBlogTags(Blog blog, List<Long> incomingBlogTagIds) {
+        Set<Long> incomingIds = (incomingBlogTagIds != null) ? new HashSet<>(incomingBlogTagIds) : Collections.emptySet();
+
+        // 1. Get current tags
+        Map<Long, com.kaleidoscope.backend.blogs.model.BlogTag> existingTagsMap = blog.getTaggedBlogs().stream()
+                .collect(Collectors.toMap(tag -> tag.getTaggedBlog().getBlogId(), tag -> tag));
+        Set<Long> existingIds = existingTagsMap.keySet();
+
+        // 2. Find and remove tags that are no longer present
+        List<com.kaleidoscope.backend.blogs.model.BlogTag> tagsToRemove = existingIds.stream()
+                .filter(id -> !incomingIds.contains(id))
+                .map(existingTagsMap::get)
+                .collect(Collectors.toList());
+
+        if (!tagsToRemove.isEmpty()) {
+            blogTagRepository.deleteAll(tagsToRemove);
+            tagsToRemove.forEach(tag -> blog.getTaggedBlogs().remove(tag));
+            log.debug("Removed {} blog tags from blog ID: {}", tagsToRemove.size(), blog.getBlogId());
+        }
+
+        // 3. Find and add new tags
+        List<Long> idsToAdd = incomingIds.stream()
+                .filter(id -> !existingIds.contains(id))
+                .filter(id -> !id.equals(blog.getBlogId())) // Prevent self-tag
+                .collect(Collectors.toList());
+
+        if (!idsToAdd.isEmpty()) {
+            List<Blog> taggedBlogs = blogRepository.findAllById(idsToAdd);
+            List<com.kaleidoscope.backend.blogs.model.BlogTag> newTags = new ArrayList<>();
+
+            for (Blog taggedBlog : taggedBlogs) {
+                com.kaleidoscope.backend.blogs.model.BlogTag newTag = com.kaleidoscope.backend.blogs.model.BlogTag.builder()
+                        .taggingBlog(blog)
+                        .taggedBlog(taggedBlog)
+                        .build();
+                newTags.add(newTag);
+
+                // 4. Send notification for each new tag
+                publishBlogTagNotification(blog, taggedBlog);
+            }
+
+            if (!newTags.isEmpty()) {
+                blogTagRepository.saveAll(newTags);
+                blog.getTaggedBlogs().addAll(newTags);
+                log.debug("Added {} new blog tags to blog ID: {}", newTags.size(), blog.getBlogId());
+            }
+        }
+    }
+
+    private void publishBlogTagNotification(Blog taggingBlog, Blog taggedBlog) {
+        try {
+            Long recipientId = taggedBlog.getUser().getUserId();
+            Long actorId = taggingBlog.getUser().getUserId();
+
+            // Do not send a notification if the author is tagging their own blog
+            if (recipientId.equals(actorId)) {
+                return;
+            }
+
+            // Craft the message
+            String message = String.format("Your blog '%s' was tagged in '%s'", taggedBlog.getTitle(), taggingBlog.getTitle());
+
+            Map<String, String> additionalData = Map.of(
+                "message", message,
+                "taggingBlogTitle", taggingBlog.getTitle(),
+                "taggedBlogTitle", taggedBlog.getTitle()
+            );
+
+            // Create the notification DTO
+            NotificationEventDTO notificationEvent = new NotificationEventDTO(
+                    NotificationType.SYSTEM_MESSAGE, // Using SYSTEM_MESSAGE
+                    recipientId,  // The author of the tagged blog
+                    actorId,      // The author of the tagging blog
+                    taggingBlog.getBlogId(), // Link to the blog that did the tagging
+                    ContentType.BLOG,
+                    additionalData,
+                    MDC.get("correlationId")
+            );
+
+            // Publish to Redis
+            redisStreamPublisher.publish(ProducerStreamConstants.NOTIFICATION_EVENTS_STREAM, notificationEvent);
+            log.info("Published blog tag notification for recipientId: {}", recipientId);
+
+        } catch (Exception e) {
+            log.error("Failed to publish blog tag notification for blogId {}: {}", taggingBlog.getBlogId(), e.getMessage(), e);
+            // Do not re-throw
         }
     }
 }

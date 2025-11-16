@@ -2,6 +2,9 @@ package com.kaleidoscope.backend.blogs.exception;
 
 import com.kaleidoscope.backend.blogs.exception.Blogs.BlogNotFoundException;
 import com.kaleidoscope.backend.blogs.exception.Blogs.UnauthorizedBlogActionException;
+import com.kaleidoscope.backend.shared.exception.Comments.CommentNotFoundException;
+import com.kaleidoscope.backend.shared.exception.Comments.CommentPostMismatchException;
+import com.kaleidoscope.backend.shared.exception.Comments.CommentUnauthorizedException;
 import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
 import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
 import com.kaleidoscope.backend.shared.response.AppResponse;
@@ -25,6 +28,51 @@ public class BlogExceptionHandler {
         log.error("Blog not found: {}", ex.getMessage());
         AppResponse<Object> response = AppResponse.error(ex.getMessage(), ex.getMessage(), "");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(com.kaleidoscope.backend.shared.exception.other.ContentNotFoundException.class)
+    public ResponseEntity<AppResponse<Object>> handleContentNotFoundException(
+            com.kaleidoscope.backend.shared.exception.other.ContentNotFoundException ex) {
+        log.error("Content not found for blog interaction: {}", ex.getMessage());
+        AppResponse<Object> response = AppResponse.error(
+            "Content not found",
+            "The blog you're trying to interact with does not exist or has been removed",
+            ""
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<AppResponse<Object>> handleCommentNotFoundException(CommentNotFoundException ex) {
+        log.error("Comment not found: {}", ex.getMessage());
+        AppResponse<Object> response = AppResponse.error(
+            "Comment not found",
+            "The comment you're trying to access does not exist",
+            ""
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(CommentPostMismatchException.class)
+    public ResponseEntity<AppResponse<Object>> handleCommentPostMismatchException(CommentPostMismatchException ex) {
+        log.error("Comment-blog mismatch: {}", ex.getMessage());
+        AppResponse<Object> response = AppResponse.error(
+            "Invalid request",
+            "The comment does not belong to this blog",
+            ""
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(CommentUnauthorizedException.class)
+    public ResponseEntity<AppResponse<Object>> handleCommentUnauthorizedException(CommentUnauthorizedException ex) {
+        log.error("Unauthorized comment action: {}", ex.getMessage());
+        AppResponse<Object> response = AppResponse.error(
+            "Unauthorized",
+            "You are not authorized to perform this action on this comment",
+            ""
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(UnauthorizedBlogActionException.class)

@@ -1,0 +1,21 @@
+meta {
+  name: react - unreact blog
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/blogs/2/reactions?unreact=false
+  body: json
+  auth: inherit
+}
+
+params:query {
+  unreact: false
+}
+
+body:json {
+  {
+    "reactionType": "LIKE"
+  }
+}

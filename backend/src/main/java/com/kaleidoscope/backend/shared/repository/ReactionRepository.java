@@ -36,4 +36,7 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
     @Query(value = "SELECT * FROM reactions r WHERE r.content_id = :contentId AND r.content_type = :contentType AND r.user_id = :userId ORDER BY r.reaction_id DESC LIMIT 1", nativeQuery = true)
     Optional<Reaction> findAnyByContentAndUserIncludeDeleted(@Param("contentId") Long contentId, @Param("contentType") String contentType, @Param("userId") Long userId);
+
+    @Query("SELECT r.contentId FROM Reaction r WHERE r.user.userId = :userId AND r.contentType = :contentType")
+    List<Long> findContentIdsByUserIdAndContentType(@Param("userId") Long userId, @Param("contentType") ContentType contentType);
 }

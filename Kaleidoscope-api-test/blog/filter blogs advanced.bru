@@ -1,0 +1,142 @@
+meta {
+  name: filter blogs advanced
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{base_url}}/api/blogs/filter?page=0&size=10&sort=reactionCount,desc
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  size: 10
+  ~userId: 1
+  ~categoryId: 5
+  ~status: PUBLISHED
+  ~q: microservices
+  ~locationId: 3
+  ~nearbyLocationId: 1
+  ~radiusKm: 10.0
+  ~minReactions: 5
+  ~minComments: 3
+  ~startDate: 2024-01-01T00:00:00
+  ~endDate: 2024-12-31T23:59:59
+  sort: reactionCount,desc
+}
+
+docs {
+  # Advanced Blog Filtering
+
+  This endpoint provides comprehensive filtering capabilities for blogs, mirroring the post filter functionality.
+
+  ## Available Filters
+
+  ### Basic Filters
+  - `userId`: Filter by author user ID
+  - `categoryId`: Filter by category ID
+  - `status`: Filter by blog status (DRAFT, APPROVAL_PENDING, APPROVED, FLAGGED, ARCHIVED, REJECTED, PUBLISHED)
+  - `q`: Text search across title, summary, and body
+
+  ### Location Filters
+  - `locationId`: Filter by exact location ID
+  - `nearbyLocationId`: Find blogs near this location (requires geo-coordinates)
+  - `radiusKm`: Radius in kilometers for nearby search (default: 5.0)
+
+  **Note:** If both `locationId` and `nearbyLocationId` are provided, `nearbyLocationId` takes precedence.
+
+  ### Engagement Filters
+  - `minReactions`: Minimum number of reactions (likes)
+  - `minComments`: Minimum number of comments
+
+  ### Date Range Filters
+  - `startDate`: Filter blogs created after this date (ISO 8601: YYYY-MM-DDTHH:MM:SS)
+  - `endDate`: Filter blogs created before this date (ISO 8601: YYYY-MM-DDTHH:MM:SS)
+
+  ### Sorting
+  The endpoint supports sorting by any field using the `sort` parameter:
+  - `sort=reactionCount,desc` - Most reactions (likes)
+  - `sort=reactionCount,asc` - Fewest reactions
+  - `sort=commentCount,desc` - Most comments
+  - `sort=commentCount,asc` - Fewest comments
+  - `sort=createdAt,desc` - Newest first
+  - `sort=createdAt,asc` - Oldest first
+  - `sort=viewCount,desc` - Most viewed
+
+  ## Example Queries
+
+  ### 1. Find Popular Blogs
+  ```
+  GET /api/blogs/filter?minReactions=10&minComments=5&sort=reactionCount,desc
+  ```
+
+  ### 2. Find Recent Blogs in a Category
+  ```
+  GET /api/blogs/filter?categoryId=5&startDate=2024-01-01T00:00:00&sort=createdAt,desc
+  ```
+
+  ### 3. Find Nearby Blogs
+  ```
+  GET /api/blogs/filter?nearbyLocationId=1&radiusKm=25.0
+  ```
+
+  ### 4. Find Trending Blogs
+  ```
+  GET /api/blogs/filter?minReactions=20&startDate=2024-11-01T00:00:00&sort=reactionCount,desc
+  ```
+
+  ### 5. Search with Multiple Filters
+  ```
+  GET /api/blogs/filter?q=technology&categoryId=3&minReactions=5&sort=createdAt,desc
+  ```
+
+  ## Security
+  - Non-admin users can only see:
+    - Their own blogs (regardless of status)
+    - Published blogs from other users
+  - Admin users can see all blogs
+
+  ## Pagination
+  - `page`: Page number (0-based, default: 0)
+  - `size`: Page size (default: 10)
+
+  ## Response Example
+  ```json
+  {
+    "success": true,
+    "message": "Blogs retrieved successfully.",
+    "data": {
+      "content": [
+        {
+          "blogId": 123,
+          "title": "Understanding Microservices",
+          "summary": "A comprehensive guide...",
+          "author": {
+            "userId": 5,
+            "username": "john_doe",
+            "profilePictureUrl": "..."
+          },
+          "reactionCount": 25,
+          "commentCount": 12,
+          "viewCount": 150,
+          "createdAt": "2024-10-15T10:30:00",
+          "blogStatus": "PUBLISHED"
+        }
+      ],
+      "totalElements": 42,
+      "totalPages": 5,
+      "currentPage": 0,
+      "pageSize": 10
+    }
+  }
+  ```
+
+  ## Performance Tips
+  1. Use specific filters to reduce result set
+  2. Combine location filters with other criteria for better performance
+  3. Use pagination to limit data transfer
+  4. Sort by indexed fields (reactionCount, commentCount, createdAt) for faster queries
+}
+

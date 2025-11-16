@@ -19,10 +19,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class BlogController implements BlogApi {
     
     private final BlogService blogService;
     private final ImageStorageService imageStorageService;
+    private final com.kaleidoscope.backend.blogs.service.BlogSuggestionService blogSuggestionService;
 
     @Override
     @PostMapping(BlogsRoutes.GENERATE_UPLOAD_SIGNATURES)
@@ -136,9 +140,22 @@ public class BlogController implements BlogApi {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String visibility,
-            @RequestParam(required = false) String q
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Long locationId,
+            @RequestParam(required = false) Long nearbyLocationId,
+            @RequestParam(required = false, defaultValue = "5.0") Double radiusKm,
+            @RequestParam(required = false) Long minReactions,
+            @RequestParam(required = false) Long minComments,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
     ) {
-        PaginatedResponse<BlogSummaryResponseDTO> response = blogService.filterBlogs(pageable, userId, categoryId, status, visibility, q);
+        log.info("Filtering blogs with params: userId={}, categoryId={}, status={}, locationId={}, nearbyLocationId={}, radiusKm={}, minReactions={}, minComments={}, startDate={}, endDate={}",
+                userId, categoryId, status, locationId, nearbyLocationId, radiusKm, minReactions, minComments, startDate, endDate);
+        PaginatedResponse<BlogSummaryResponseDTO> response = blogService.filterBlogs(
+                pageable, userId, categoryId, status, visibility, q,
+                locationId, nearbyLocationId, radiusKm,
+                minReactions, minComments, startDate, endDate
+        );
         return ResponseEntity.ok(AppResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
                 .success(true)
                 .message("Blogs retrieved successfully.")
@@ -158,6 +175,34 @@ public class BlogController implements BlogApi {
                 .success(true)
                 .message("Blog status updated successfully")
                 .data(updatedBlog)
+                .build());
+    }
+
+    @Override
+    @GetMapping(BlogsRoutes.GET_TAGGED_BY)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> getBlogsThatTag(
+            @PathVariable Long blogId,
+            Pageable pageable) {
+        log.info("Retrieving blogs that tag blogId: {}", blogId);
+        PaginatedResponse<BlogSummaryResponseDTO> response = blogService.getBlogsThatTag(blogId, pageable);
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
+                .success(true)
+                .message("Blogs retrieved successfully.")
+                .data(response)
+                .build());
+    }
+
+    @Override
+    @GetMapping(BlogsRoutes.SUGGESTIONS)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> getBlogSuggestions(Pageable pageable) {
+        log.info("Fetching blog suggestions for current user");
+        PaginatedResponse<BlogSummaryResponseDTO> suggestions = blogSuggestionService.getBlogSuggestions(pageable);
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
+                .success(true)
+                .message("Blog suggestions retrieved successfully.")
+                .data(suggestions)
                 .build());
     }
 }

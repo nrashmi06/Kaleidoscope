@@ -1,0 +1,17 @@
+meta {
+  name: react to comment
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}/api/blogs/2/comments/46/reactions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "reactionType": "LOVE"
+  }
+}
