@@ -53,14 +53,13 @@ public class OpenApiConfig {
             @org.springframework.beans.factory.annotation.Value("${spring.app.base-url:http://localhost:8080}") String baseUrl,
             @org.springframework.beans.factory.annotation.Value("${server.servlet.context-path:/kaleidoscope}") String contextPath
     ) {
-        String serverUrl = baseUrl + contextPath;
 
         return new OpenAPI()
                 .addServersItem(new Server()
-                        .url(serverUrl)
+                        .url(baseUrl) // <-- Use the base URL (e.g., https://project-kaleidoscope.tech)
                         .description("Production Server"))
                 .addServersItem(new Server()
-                        .url(contextPath)
+                        .url("/") // <-- Use a relative path from the root
                         .description("Relative Path (Alternative)"));
     }
 }
