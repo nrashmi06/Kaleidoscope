@@ -71,7 +71,14 @@ export interface MappedSinglePost {
 export function mapSinglePost(rawPost: SinglePostResponseDTO): MappedSinglePost {
   // Helper function to safely parse dates
   const parseDate = (dateString: string): Date => {
-    const date = new Date(dateString);
+    
+    // --- START OF FIX ---
+    // Check if the date string already has timezone info (Z or +/-HH:mm)
+    const hasTimezoneInfo = /Z|[+-]\d{2}:\d{2}$/.test(dateString);
+    // If not, append 'Z' to force it to be parsed as UTC
+    const date = new Date(hasTimezoneInfo ? dateString : dateString + 'Z');
+    // --- END OF FIX ---
+    
     return isNaN(date.getTime()) ? new Date() : date;
   };
 
@@ -84,6 +91,7 @@ export function mapSinglePost(rawPost: SinglePostResponseDTO): MappedSinglePost 
 
     if (diffInHours < 1) {
       const minutes = Math.floor(diffInMs / (1000 * 60));
+      if (minutes < 1) return "just now"; // Handle "just now"
       return `${minutes}m ago`;
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h ago`;

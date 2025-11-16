@@ -25,7 +25,15 @@ const defaultPagination: NormalizedPagination = {
  * @returns A normalized post item with formatted dates.
  */
 function normalizePost(post: PostFeedItem): NormalizedPostFeedItem {
-  const createdAt = new Date(post.createdAt);
+  
+  // --- START OF FIX ---
+  // Check if the date string already has timezone info (Z or +/-HH:mm)
+  const dateString = post.createdAt;
+  const hasTimezoneInfo = /Z|[+-]\d{2}:\d{2}$/.test(dateString);
+  // If not, append 'Z' to force it to be parsed as UTC
+  const createdAt = new Date(hasTimezoneInfo ? dateString : dateString + 'Z');
+  // --- END OF FIX ---
+
   const formattedCreatedAt = formatDistanceToNow(createdAt, { addSuffix: true });
 
   return {

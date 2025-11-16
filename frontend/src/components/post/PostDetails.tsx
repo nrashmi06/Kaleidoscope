@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { formatDistanceToNow } from "date-fns";
 import { 
   getPostByIdController, 
   isPostError, 
@@ -36,30 +37,8 @@ interface PostDetailsProps {
   onAuthError?: () => void;
 }
 
-// --- NEW HELPER FUNCTION FOR RELATIVE TIME ---
-const formatRelativeTime = (date: Date): string => {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 5) return 'just now';
-  if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
-  
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-  
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} hours ago`;
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) return `${diffInDays} days ago`;
-  
-  // Use locale-specific date format for older posts
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
+// 2. DELETE the broken formatRelativeTime function
+// const formatRelativeTime = (date: Date): string => { ... };
 
 /**
  * A Next.js component to display detailed information for a single post,
@@ -119,19 +98,19 @@ export function PostDetails({
     }
   }, [postId, accessToken, fetchPost]);
   
-  // --- LIVE TIME UPDATE EFFECT ---
+  // --- LIVE TIME UPDATE EFFECT (FIXED) ---
   useEffect(() => {
     if (!post) return;
 
     const updateTimes = () => {
-        // Use the actual Date object properties (createdAt, updatedAt) for accurate calculation
-        setTimeSinceCreation(formatRelativeTime(post.createdAt));
-        setTimeSinceUpdate(formatRelativeTime(post.updatedAt));
+        // 3. USE the correct date-fns function
+        setTimeSinceCreation(formatDistanceToNow(post.createdAt, { addSuffix: true }));
+        setTimeSinceUpdate(formatDistanceToNow(post.updatedAt, { addSuffix: true }));
     };
 
     updateTimes(); // Initial calculation
 
-    // Update the time every 30 seconds for relative time calculation (e.g., "5 minutes ago" -> "6 minutes ago")
+    // Update the time every 30 seconds
     const intervalId = setInterval(updateTimes, 30000); 
 
     return () => clearInterval(intervalId);
@@ -367,7 +346,7 @@ export function PostDetails({
                 <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-neutral-400">
                     <div className="flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-gray-400 dark:text-neutral-600" />
-                        {/* 🌟 FIX APPLIED HERE: Use timeSinceCreation for dynamic display */}
+                        {/* 4. USE THE STATE VARIABLE */}
                         <span>Posted {timeSinceCreation}</span>
                     </div>
                     {post.location && (
@@ -403,7 +382,7 @@ export function PostDetails({
                 <div className="text-sm text-gray-600 dark:text-neutral-400">
                     {post.updatedAt.getTime() !== post.createdAt.getTime() && (
                       <span className="text-xs text-gray-500 dark:text-neutral-500 italic">
-                        {/* 🌟 FIX APPLIED HERE: Use timeSinceUpdate for dynamic display */}
+                        {/* 5. USE THE STATE VARIABLE */}
                         (Edited: {timeSinceUpdate})
                       </span>
                     )}

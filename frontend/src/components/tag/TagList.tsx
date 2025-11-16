@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link"; // 1. Import Link
 import { 
   getTagsByContentController,
   isTagError,
@@ -224,13 +225,17 @@ export function TagList({
                 </div>
                 <div>
                   <div className="flex items-center space-x-1">
-                    <span className="font-medium text-gray-900 dark:text-white text-sm">
+                    {/* 2. Wrap username in a Link */}
+                    <Link
+                      href={`/profile/${tag.taggedUser.userId}`}
+                      className="font-medium text-gray-900 dark:text-white text-sm hover:underline hover:text-blue-600 dark:hover:text-blue-400"
+                    >
                       @{tag.taggedUser.username}
-                    </span>
+                    </Link>
                     {tag.isCurrentUser && (
                       <span title="This is you">
-  <UserCheck className="w-3 h-3 text-green-500" />
-</span>
+                        <UserCheck className="w-3 h-3 text-green-500" />
+                      </span>
                     )}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-neutral-500">
