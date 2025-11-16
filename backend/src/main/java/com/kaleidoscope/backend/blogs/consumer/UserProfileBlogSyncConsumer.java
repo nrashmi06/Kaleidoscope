@@ -6,6 +6,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import com.kaleidoscope.backend.blogs.document.BlogDocument;
 import com.kaleidoscope.backend.blogs.repository.search.BlogSearchRepository;
 import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.repository.FollowRepository;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class UserProfileBlogSyncConsumer implements StreamListener<String, MapRe
     private final BlogSearchRepository blogSearchRepository;
     private final UserRepository userRepository;
     private final ElasticsearchTemplate elasticsearchTemplate;
+    private final FollowRepository followRepository;
 
     @Override
     public void onMessage(MapRecord<String, String, String> record) {
@@ -86,6 +88,9 @@ public class UserProfileBlogSyncConsumer implements StreamListener<String, MapRe
             log.info("[UserProfileBlogSyncConsumer] Found {} blogs to update for user {}, messageId: {}",
                     blogsToUpdate.size(), userId, messageId);
 
+            // Fetch follower count for the user
+            long followerCount = followRepository.countByFollowing_UserId(userId);
+
             // Create updated author and reviewer objects
             BlogDocument.Author updatedAuthor = BlogDocument.Author.builder()
                     .userId(updatedUser.getUserId())
@@ -93,6 +98,7 @@ public class UserProfileBlogSyncConsumer implements StreamListener<String, MapRe
                     .profilePictureUrl(updatedUser.getProfilePictureUrl())
                     .email(updatedUser.getEmail())
                     .accountStatus(updatedUser.getAccountStatus() != null ? updatedUser.getAccountStatus().name() : null)
+                    .followerCount((int) followerCount)
                     .build();
 
             BlogDocument.Reviewer updatedReviewer = BlogDocument.Reviewer.builder()

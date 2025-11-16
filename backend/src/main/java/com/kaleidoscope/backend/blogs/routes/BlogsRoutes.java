@@ -21,6 +21,7 @@ public class BlogsRoutes {
     public static final String GET_BLOG_BY_ID = BLOGS + "/{blogId}";
     public static final String FILTER_BLOGS = BLOGS + "/filter";
     public static final String GET_TAGGED_BY = BLOGS + "/{blogId}/tagged-by";
+    public static final String SUGGESTIONS = BLOGS + "/suggestions";
 
     // --- Admin Endpoints ---
     public static final String UPDATE_BLOG_STATUS = BLOGS + "/{blogId}/status";

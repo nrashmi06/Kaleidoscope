@@ -96,6 +96,8 @@ public class BlogDocument {
         private String email;
         @Field(type = FieldType.Keyword)
         private String accountStatus;
+        @Field(type = FieldType.Integer)
+        private Integer followerCount;
     }
 
     @Data

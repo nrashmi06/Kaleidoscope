@@ -80,11 +80,6 @@ springdoc:
     config-url: /v3/api-docs/swagger-config
     url: /v3/api-docs
     # CRITICAL: Tell Swagger UI about the public-facing URLs
-    servers:
-      - url: https://project-kaleidoscope.tech
-        description: Production Server
-      - url: http://localhost:8080/kaleidoscope
-        description: Local Development
   use-management-port: false
   use-root-path: false
 

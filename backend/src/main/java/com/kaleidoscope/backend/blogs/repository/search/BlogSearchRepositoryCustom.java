@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Custom repository for complex BlogDocument search operations.
@@ -36,5 +38,18 @@ public interface BlogSearchRepositoryCustom {
             boolean isAdmin,
             Pageable pageable
     );
+
+    Page<BlogDocument> findBlogSuggestions(
+            Long currentUserId,
+            Set<Long> followingIds,
+            List<Long> interestIds,
+            List<Long> blockedUserIds,
+            List<Long> blockedByUserIds,
+            Set<String> viewedBlogIds,
+            List<Long> socialContextBlogIds,
+            Pageable pageable
+    );
+
+    List<Long> findBlogsThatTagAny(Set<Long> taggedBlogIds);
 }
 
