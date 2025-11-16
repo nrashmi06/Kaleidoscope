@@ -21,9 +21,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @Tag(name = "Blog", description = "APIs for managing blogs")
 public interface BlogApi {
@@ -113,7 +116,7 @@ public interface BlogApi {
     @PreAuthorize("isAuthenticated()")
     ResponseEntity<AppResponse<BlogDetailResponseDTO>> getBlogById(@PathVariable Long blogId);
 
-    @Operation(summary = "Filter blogs", description = "Returns paginated, filtered list of blogs.")
+    @Operation(summary = "Filter blogs", description = "Returns paginated, filtered list of blogs with advanced filtering options.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Blogs retrieved successfully",
                 content = @Content(mediaType = "application/json",
@@ -129,7 +132,28 @@ public interface BlogApi {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String visibility,
-            @RequestParam(required = false) String q
+            @RequestParam(required = false) String q,
+
+            @Parameter(description = "Filter by specific location ID")
+            @RequestParam(required = false) Long locationId,
+
+            @Parameter(description = "Find blogs near this location ID (geo-distance query)")
+            @RequestParam(required = false) Long nearbyLocationId,
+
+            @Parameter(description = "Radius in kilometers for nearby location search (default: 5.0)", example = "5.0")
+            @RequestParam(required = false, defaultValue = "5.0") Double radiusKm,
+
+            @Parameter(description = "Filter by minimum number of reactions (likes)")
+            @RequestParam(required = false) Long minReactions,
+
+            @Parameter(description = "Filter by minimum number of comments")
+            @RequestParam(required = false) Long minComments,
+
+            @Parameter(description = "Filter for blogs created after this date (ISO 8601: YYYY-MM-DDTHH:MM:SS)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+
+            @Parameter(description = "Filter for blogs created before this date (ISO 8601: YYYY-MM-DDTHH:MM:SS)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
     );
 
     @Operation(
@@ -175,5 +199,20 @@ public interface BlogApi {
             @PathVariable Long blogId,
             @Parameter(description = "Blog status update request containing new status and optional review notes")
             @Valid @RequestBody BlogStatusUpdateRequestDTO requestDTO
+    );
+
+    @Operation(summary = "Get blogs that tag this blog",
+               description = "Returns a paginated list of all blogs that have tagged the specified blog.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Blogs retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "404", description = "Blog not found")
+    })
+    @GetMapping(BlogsRoutes.GET_TAGGED_BY)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> getBlogsThatTag(
+            @Parameter(description = "ID of the blog to find references for", required = true)
+            @PathVariable Long blogId,
+            Pageable pageable
     );
 }

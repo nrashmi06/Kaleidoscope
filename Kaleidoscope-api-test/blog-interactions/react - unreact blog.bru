@@ -5,9 +5,13 @@ meta {
 }
 
 post {
-  url: {{base_url}}/api/blogs/1/reactions?unreact=false
+  url: {{base_url}}/api/blogs/2/reactions?unreact=false
   body: json
   auth: inherit
+}
+
+params:query {
+  unreact: false
 }
 
 body:json {
@@ -15,4 +19,3 @@ body:json {
     "reactionType": "LIKE"
   }
 }
-
