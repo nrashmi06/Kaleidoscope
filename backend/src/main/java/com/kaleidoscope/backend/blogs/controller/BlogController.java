@@ -34,6 +34,7 @@ public class BlogController implements BlogApi {
     
     private final BlogService blogService;
     private final ImageStorageService imageStorageService;
+    private final com.kaleidoscope.backend.blogs.service.BlogSuggestionService blogSuggestionService;
 
     @Override
     @PostMapping(BlogsRoutes.GENERATE_UPLOAD_SIGNATURES)
@@ -189,6 +190,19 @@ public class BlogController implements BlogApi {
                 .success(true)
                 .message("Blogs retrieved successfully.")
                 .data(response)
+                .build());
+    }
+
+    @Override
+    @GetMapping(BlogsRoutes.SUGGESTIONS)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> getBlogSuggestions(Pageable pageable) {
+        log.info("Fetching blog suggestions for current user");
+        PaginatedResponse<BlogSummaryResponseDTO> suggestions = blogSuggestionService.getBlogSuggestions(pageable);
+        return ResponseEntity.ok(AppResponse.<PaginatedResponse<BlogSummaryResponseDTO>>builder()
+                .success(true)
+                .message("Blog suggestions retrieved successfully.")
+                .data(suggestions)
                 .build());
     }
 }

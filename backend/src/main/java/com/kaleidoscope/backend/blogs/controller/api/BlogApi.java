@@ -215,4 +215,16 @@ public interface BlogApi {
             @PathVariable Long blogId,
             Pageable pageable
     );
+
+    @Operation(summary = "Get personalized blog feed",
+               description = "Returns personalized blog suggestions (feed) based on user's interests, follows, and advanced ranking. Uses Elasticsearch function_score query with recency boost, author popularity, and social context.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Blog suggestions retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    @GetMapping(BlogsRoutes.SUGGESTIONS)
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<AppResponse<PaginatedResponse<BlogSummaryResponseDTO>>> getBlogSuggestions(
+            @Parameter(hidden = true) Pageable pageable
+    );
 }

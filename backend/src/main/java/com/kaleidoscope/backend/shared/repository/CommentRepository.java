@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpecificationExecutor<Comment> {
@@ -38,4 +39,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpec
      * @return The count of comments for the specified content.
      */
     long countByContentIdAndContentType(Long contentId, ContentType contentType);
+
+    @Query("SELECT c.contentId FROM Comment c WHERE c.user.userId = :userId AND c.contentType = :contentType")
+    List<Long> findContentIdsByUserIdAndContentType(@Param("userId") Long userId, @Param("contentType") ContentType contentType);
 }

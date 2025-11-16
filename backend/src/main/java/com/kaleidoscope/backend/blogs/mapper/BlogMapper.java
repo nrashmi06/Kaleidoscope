@@ -37,12 +37,14 @@ public class BlogMapper {
     private final ReactionRepository reactionRepository;
     private final BlogRepository blogRepository;
     private final BlogViewService blogViewService;
+    private final com.kaleidoscope.backend.users.repository.FollowRepository followRepository;
 
-    public BlogMapper(CommentRepository commentRepository, ReactionRepository reactionRepository, BlogRepository blogRepository, BlogViewService blogViewService) {
+    public BlogMapper(CommentRepository commentRepository, ReactionRepository reactionRepository, BlogRepository blogRepository, BlogViewService blogViewService, com.kaleidoscope.backend.users.repository.FollowRepository followRepository) {
         this.commentRepository = commentRepository;
         this.reactionRepository = reactionRepository;
         this.blogRepository = blogRepository;
         this.blogViewService = blogViewService;
+        this.followRepository = followRepository;
     }
 
     public Blog toEntity(BlogCreateRequestDTO dto) {
@@ -195,12 +197,14 @@ public class BlogMapper {
         String thumbnailUrl = getThumbnailUrl(blog);
         BlogDocument.Author author = null;
         if (blog.getUser() != null) {
+            long followerCount = followRepository.countByFollowing_UserId(blog.getUser().getUserId());
             author = BlogDocument.Author.builder()
                     .userId(blog.getUser().getUserId())
                     .username(blog.getUser().getUsername())
                     .profilePictureUrl(blog.getUser().getProfilePictureUrl())
                     .email(blog.getUser().getEmail())
                     .accountStatus(blog.getUser().getAccountStatus() != null ? blog.getUser().getAccountStatus().name() : null)
+                    .followerCount((int) followerCount)
                     .build();
         }
         BlogDocument.Reviewer reviewer = null;
