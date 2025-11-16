@@ -24,5 +24,6 @@ public class BlogSummaryResponseDTO {
 
     private long reactionCount;
     private long commentCount;
+    private long viewCount;
     private BlogStatus blogStatus;
 }

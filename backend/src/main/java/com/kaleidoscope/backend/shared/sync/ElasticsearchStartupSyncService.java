@@ -1,5 +1,10 @@
 package com.kaleidoscope.backend.shared.sync;
 
+import com.kaleidoscope.backend.blogs.document.BlogDocument;
+import com.kaleidoscope.backend.blogs.mapper.BlogMapper;
+import com.kaleidoscope.backend.blogs.model.Blog;
+import com.kaleidoscope.backend.blogs.repository.BlogRepository;
+import com.kaleidoscope.backend.blogs.repository.search.BlogSearchRepository;
 import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
@@ -51,6 +56,11 @@ public class ElasticsearchStartupSyncService {
     private final PostRepository postRepository;
     private final PostSearchRepository postSearchRepository;
 
+    // Blog components
+    private final BlogRepository blogRepository;
+    private final BlogSearchRepository blogSearchRepository;
+    private final BlogMapper blogMapper;
+
     // --- IMPORT ADDED ---
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
 
@@ -76,6 +86,7 @@ public class ElasticsearchStartupSyncService {
             // Sync in order: Users first (as Posts reference Users)
             syncAllUsers();
             syncAllPosts();
+            syncAllBlogs(); // NEW: sync blogs
 
             log.info("==================== ELASTICSEARCH STARTUP SYNC COMPLETED SUCCESSFULLY ====================");
 
@@ -373,6 +384,55 @@ public class ElasticsearchStartupSyncService {
     }
 
     /**
+     * Sync all blogs from PostgreSQL to Elasticsearch
+     */
+    public void syncAllBlogs() {
+        log.info("Starting blog synchronization...");
+        try {
+            long totalBlogs = blogRepository.count();
+            log.info("Found {} total blogs to sync", totalBlogs);
+            if (totalBlogs == 0) {
+                log.info("No blogs found. Skipping blog sync.");
+                return;
+            }
+            int pageNumber = 0;
+            int syncedCount = 0;
+            int errorCount = 0;
+            while (true) {
+                Pageable pageable = PageRequest.of(pageNumber, BATCH_SIZE);
+                Page<Blog> blogPage = blogRepository.findAllWithRelations(pageable);
+                if (blogPage.isEmpty()) {
+                    break;
+                }
+                log.info("Syncing blog batch {}/{} ({} blogs)", pageNumber + 1, blogPage.getTotalPages(), blogPage.getNumberOfElements());
+                for (Blog blog : blogPage.getContent()) {
+                    try {
+                        syncBlogToElasticsearch(blog);
+                        syncedCount++;
+                    } catch (Exception be) {
+                        log.error("Failed to sync blog ID: {}", blog.getBlogId(), be);
+                        errorCount++;
+                    }
+                }
+                if (!blogPage.hasNext()) {
+                    break;
+                }
+                pageNumber++;
+            }
+            log.info("✅ Blog sync completed: {} synced, {} errors", syncedCount, errorCount);
+        } catch (Exception e) {
+            log.error("❌ Critical error during blog sync", e);
+            throw e;
+        }
+    }
+
+    private void syncBlogToElasticsearch(Blog blog) {
+        BlogDocument document = blogMapper.toBlogDocument(blog);
+        blogSearchRepository.save(document);
+        log.debug("Synced blog: {} (ID: {})", blog.getTitle(), blog.getBlogId());
+    }
+
+    /**
      * Manual trigger to re-sync all data (can be called via admin endpoint)
      */
     public void manualSyncAll() {
@@ -413,3 +473,4 @@ public class ElasticsearchStartupSyncService {
         private boolean postsSynced;
     }
 }
+

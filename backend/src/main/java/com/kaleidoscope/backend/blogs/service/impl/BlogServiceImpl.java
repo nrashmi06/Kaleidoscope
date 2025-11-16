@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.blogs.service.impl;
 
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
+import com.kaleidoscope.backend.blogs.document.BlogDocument;
 import com.kaleidoscope.backend.blogs.dto.request.BlogCreateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogStatusUpdateRequestDTO;
 import com.kaleidoscope.backend.blogs.dto.request.BlogUpdateRequestDTO;
@@ -14,8 +15,9 @@ import com.kaleidoscope.backend.blogs.mapper.BlogMapper;
 import com.kaleidoscope.backend.blogs.model.Blog;
 import com.kaleidoscope.backend.blogs.model.BlogMedia;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
-import com.kaleidoscope.backend.blogs.repository.specification.BlogSpecification;
+import com.kaleidoscope.backend.blogs.repository.search.BlogSearchRepository;
 import com.kaleidoscope.backend.blogs.service.BlogService;
+import com.kaleidoscope.backend.blogs.service.BlogViewService;
 import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
@@ -34,7 +36,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +58,8 @@ public class BlogServiceImpl implements BlogService {
     private final JwtUtils jwtUtils;
     private final ImageStorageService imageStorageService;
     private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
+    private final BlogViewService blogViewService;
+    private final BlogSearchRepository blogSearchRepository; // ES repository injected
 
     @Override
     @Transactional
@@ -126,6 +129,10 @@ public class BlogServiceImpl implements BlogService {
             savedBlog = blogRepository.save(savedBlog);
         }
 
+        // Index new blog in Elasticsearch
+        BlogDocument blogDocument = blogMapper.toBlogDocument(savedBlog);
+        blogSearchRepository.save(blogDocument);
+        log.info("Indexed new blog {} to Elasticsearch", savedBlog.getBlogId());
 
         log.info("User '{}' created new blog with ID: {}", currentUser.getUsername(), savedBlog.getBlogId());
         return blogMapper.toDTO(savedBlog);
@@ -175,6 +182,10 @@ public class BlogServiceImpl implements BlogService {
         }
 
         Blog savedBlog = blogRepository.save(blog);
+        // Sync updated blog to Elasticsearch
+        BlogDocument blogDocument = blogMapper.toBlogDocument(savedBlog);
+        blogSearchRepository.save(blogDocument);
+        log.info("Updated blog {} in Elasticsearch", savedBlog.getBlogId());
         log.info("User '{}' updated blog with ID: {}", blog.getUser().getUsername(), savedBlog.getBlogId());
         return blogMapper.toDTO(savedBlog);
     }
@@ -192,6 +203,9 @@ public class BlogServiceImpl implements BlogService {
             throw new UnauthorizedBlogActionException("User is not authorized to delete this blog.");
         }
 
+        // Remove from Elasticsearch before DB soft delete
+        blogSearchRepository.deleteById(blogId.toString());
+        log.info("Removed blog {} from Elasticsearch index", blogId);
         blogRepository.delete(blog);
         log.info("Blog {} soft-deleted by user {} (admin? {})", blogId, currentUserId, isAdmin);
     }
@@ -207,6 +221,8 @@ public class BlogServiceImpl implements BlogService {
         Blog blog = blogRepository.findById(blogId)
                 .orElseThrow(() -> new BlogNotFoundException(blogId));
 
+        // Delete ES document
+        blogSearchRepository.deleteById(blog.getBlogId().toString());
         // Delete associated comments and reactions
         commentRepository.softDeleteCommentsByContent(blogId, ContentType.BLOG, LocalDateTime.now());
         reactionRepository.softDeleteReactionsByContent(blogId, ContentType.BLOG, LocalDateTime.now());
@@ -240,6 +256,9 @@ public class BlogServiceImpl implements BlogService {
             if (blog.getBlogStatus() != BlogStatus.PUBLISHED) {
                 throw new UnauthorizedBlogActionException("Not allowed to view this blog");
             }
+            // Track view count for non-owners
+            blogViewService.incrementViewAsync(blogId, currentUserId);
+            log.debug("View tracking initiated for blog {} by user {}", blogId, currentUserId);
         }
         ReactionType currentUserReaction = null;
         var reactionOpt = reactionRepository.findByContentAndUser(blogId, ContentType.BLOG, currentUserId);
@@ -252,49 +271,26 @@ public class BlogServiceImpl implements BlogService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedResponse<BlogSummaryResponseDTO> filterBlogs(Pageable pageable, Long userId, Long categoryId, String status, String visibility, String q) {
-        Specification<Blog> spec = Specification.where(null);
-
-        // Check if current user is admin
+        // Replace JPA specification with Elasticsearch query
+        Long currentUserId = jwtUtils.getUserIdFromContext();
         boolean isAdmin = jwtUtils.isAdminFromContext();
-
-        // If not admin, only show published blogs (unless filtering by own userId)
-        if (!isAdmin) {
-            Long currentUserId = jwtUtils.getUserIdFromContext();
-            if (userId == null || !userId.equals(currentUserId)) {
-                // For non-admin users viewing other users' blogs or general feed, only show published blogs
-                spec = spec.and(BlogSpecification.hasStatus(BlogStatus.PUBLISHED.name()));
-            }
-            // If userId equals currentUserId, they can see all their own blogs regardless of status
+        BlogStatus statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            try { statusEnum = BlogStatus.valueOf(status); } catch (IllegalArgumentException ignored) { log.warn("Invalid status filter '{}' ignored", status); }
         }
-
-        if (userId != null) {
-            spec = spec.and(BlogSpecification.hasAuthor(userId));
-        }
-        if (categoryId != null) {
-            spec = spec.and(BlogSpecification.hasCategory(categoryId));
-        }
-        if (status != null && isAdmin) {
-            // Only admins can filter by specific status
-            spec = spec.and(BlogSpecification.hasStatus(status));
-        }
-        // If you have a visibility field, add similar logic here
-        if (q != null && !q.isEmpty()) {
-            spec = spec.and(BlogSpecification.containsQuery(q));
-        }
-        Page<Blog> blogPage = blogRepository.findAll(spec, pageable);
-        List<BlogSummaryResponseDTO> dtos = blogPage.getContent().stream()
-                .map(blogMapper::toBlogSummaryDTO)
-                .collect(Collectors.toList());
-        // Use builder for PaginatedResponse
-        return PaginatedResponse.<BlogSummaryResponseDTO>builder()
-                .content(dtos)
-                .page(blogPage.getNumber())
-                .size(blogPage.getSize())
-                .totalPages(blogPage.getTotalPages())
-                .totalElements(blogPage.getTotalElements())
-                .first(blogPage.isFirst())
-                .last(blogPage.isLast())
-                .build();
+        Page<BlogDocument> docPage = blogSearchRepository.findVisibleAndFilteredBlogs(
+                currentUserId,
+                isAdmin,
+                userId,
+                categoryId,
+                statusEnum,
+                q,
+                null, // location filtering not yet implemented in API signature
+                pageable
+        );
+        Page<BlogSummaryResponseDTO> dtoPage = docPage.map(blogMapper::toBlogSummaryDTO);
+        log.info("Blog filter returned {} of {} results via Elasticsearch", dtoPage.getNumberOfElements(), dtoPage.getTotalElements());
+        return PaginatedResponse.fromPage(dtoPage);
     }
 
     @Override
@@ -314,6 +310,10 @@ public class BlogServiceImpl implements BlogService {
         blog.setReviewedAt(LocalDateTime.now());
 
         Blog savedBlog = blogRepository.save(blog);
+        // Sync status update to Elasticsearch
+        BlogDocument blogDocument = blogMapper.toBlogDocument(savedBlog);
+        blogSearchRepository.save(blogDocument);
+        log.info("Updated blog status {} in Elasticsearch", savedBlog.getBlogId());
         log.info("Blog {} status updated to {} by admin {}", blogId, requestDTO.status(), reviewerId);
 
         return blogMapper.toDTO(savedBlog);
