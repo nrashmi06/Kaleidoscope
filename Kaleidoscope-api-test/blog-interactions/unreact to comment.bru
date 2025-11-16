@@ -1,0 +1,20 @@
+meta {
+  name: unreact to comment
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{base_url}}/api/blogs/1/comments/1/reactions?unreact=true
+  body: none
+  auth: inherit
+}
+
+params:query {
+  unreact: true
+}
+
+settings {
+  encodeUrl: true
+}
+

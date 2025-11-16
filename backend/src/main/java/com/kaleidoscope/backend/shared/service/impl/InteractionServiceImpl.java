@@ -372,6 +372,21 @@ public class InteractionServiceImpl implements InteractionService {
                          contentId, e.getMessage(), e);
                 // Continue execution even if stream publishing fails
             }
+        } else if (comment.getContentType() == ContentType.BLOG) {
+            try {
+                Map<String, Object> eventPayload = Map.of(
+                    "contentId", contentId,
+                    "changeType", "DELETE_COMMENT"
+                );
+
+                redisStreamPublisher.publish(ProducerStreamConstants.BLOG_INTERACTION_SYNC_STREAM, eventPayload);
+                log.debug("[deleteComment] Published BLOG_INTERACTION_SYNC_STREAM event for blog {}", contentId);
+
+            } catch (Exception e) {
+                log.error("[deleteComment] Failed to publish interaction sync event for blog {}: {}",
+                         contentId, e.getMessage(), e);
+                // Continue execution even if stream publishing fails
+            }
         }
     }
 }
