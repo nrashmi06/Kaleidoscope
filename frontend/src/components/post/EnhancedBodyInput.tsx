@@ -13,6 +13,7 @@ interface HashtagSuggestion {
 
 interface EnhancedBodyInputProps {
   value: string;
+  inputType?: 'body' | 'summary';
   onChange: (value: string) => void;
   accessToken?: string;
   placeholder?: string;
@@ -26,6 +27,7 @@ export default function EnhancedBodyInput({
   value,
   onChange,
   accessToken = '',
+  inputType = 'body',
   placeholder = "Write your post content here... Use # to add hashtags",
   minRows = 6,
   className = '',
@@ -268,7 +270,7 @@ export default function EnhancedBodyInput({
         <div className="flex items-center space-x-1">
           <Type className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Body Content
+            {inputType === 'body' ? 'Post Content' : 'Summary'}
           </span>
           <span className="text-red-500">*</span>
         </div>

@@ -13,10 +13,8 @@ import {
 const navigationItems = [
   { icon: Home, label: "Feed", path: "/feed" },
   { icon: Users, label: "Friends", path: "/friends" },
-  // --- 2. THIS IS THE CHANGE ---
   { icon: MapPin, label: "Locations", path: "/locations" }, 
-  // --- END OF CHANGE ---
-  { icon: Book , label: "Blogs", path: "/blogs" },
+  { icon: Book , label: "Articles", path: "/articles" },
   { icon: ImageIcon, label: "Gallery", path: "/gallery" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];

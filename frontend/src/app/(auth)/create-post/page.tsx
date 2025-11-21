@@ -18,7 +18,6 @@ import { getTaggableUsersController } from "@/controllers/userTagController/getT
 
 import TitleInput from "@/components/post/TitleInput";
 import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
-import SummaryInput from "@/components/post/SummaryInput";
 import VisibilitySelect from "@/components/post/VisibilitySelect";
 import { LocationSearch } from "@/components/post/LocationSearch";
 import CategoriesSelect from "@/components/post/CategoriesSelect";
@@ -120,6 +119,7 @@ export default function CreatePostPage() {
             onChange={(title) => setFormData({ ...formData, title })}
           />
           <EnhancedBodyInput
+            inputType="body"
             value={formData.body}
             onChange={(body: string) => setFormData({ ...formData, body })}
             accessToken={accessToken}
@@ -127,10 +127,16 @@ export default function CreatePostPage() {
             minRows={8}
             maxRows={20}
           />
-          <SummaryInput
+          <EnhancedBodyInput
+            inputType="summary"
             value={formData.summary}
-            onChange={(summary) => setFormData({ ...formData, summary })}
+            onChange={(summary: string) => setFormData({ ...formData, summary })}
+            accessToken={accessToken}
+            placeholder="A short summary for previews (max 500 characters)"
+            minRows={4}
+            maxRows={8}
           />
+
           <VisibilitySelect
             value={formData.visibility}
             onChange={(visibility) => setFormData({ ...formData, visibility })}

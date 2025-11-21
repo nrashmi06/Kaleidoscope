@@ -1,9 +1,8 @@
-// ✅ 1. Import axios instance and error types
-import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
-// ✅ 2. Import the correct response type
-import { HashtagSuggestionsResponse } from "@/lib/types/hashtag";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_BACKEND_URL || 'http://localhost:8080';
+import { axiosInstance, isAxiosError, AxiosError } from "@/hooks/axios";
+import { HashtagSuggestionsResponse } from "@/lib/types/hashtag";
+import { HashtagMapper } from "@/mapper/hashtagMapper";
+
 
 /**
  * Fetch hashtag suggestions
@@ -26,18 +25,16 @@ export async function getHashtagSuggestions(
     throw new Error('Prefix is required');
   }
 
-  const url = `${API_BASE_URL}/kaleidoscope/api/hashtags/suggest`;
 
   try {
     // ✅ 3. Use axiosInstance.get
-    const response = await axiosInstance.get<HashtagSuggestionsResponse>(url, {
+    const response = await axiosInstance.get<HashtagSuggestionsResponse>(HashtagMapper.getHashtagSuggestions(prefix.trim()), {
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
       // ✅ 4. Use axios params object for clean query string generation
       params: {
-        prefix: prefix.trim(),
         page: page,
         size: size,
       }
