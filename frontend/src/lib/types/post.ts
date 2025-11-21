@@ -162,9 +162,12 @@ export interface GenerateUploadSignatureRequestDTO {
 }
 
 export interface UploadSignature {
-  fileName: string;
-  uploadUrl: string;
-  cloudinaryPublicId: string;
+      signature: string;
+      timestamp: number;
+      publicId: string;
+      folder: string;
+      apiKey: string;
+      cloudName: string;
 }
 
 export interface UploadSignatureResponseDTO {

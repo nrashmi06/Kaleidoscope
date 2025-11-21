@@ -7,7 +7,7 @@ export interface StandardApiResponse<T> {
   path: string;
 }
 
-export type MediaType = "IMAGE" | "VIDEO"; // Enum-like type from existing post.ts
+export type MediaType = "IMAGE" ; // Enum-like type from existing post.ts
 
 // --------------------------------------------------------
 // Nested Types for Request and Response Schemas

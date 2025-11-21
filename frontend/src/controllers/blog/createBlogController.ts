@@ -6,12 +6,6 @@ import {
 } from "@/lib/types/createBlog";
 import { CreateBlogServiceResponse } from "@/lib/types/createBlog";
 
-/**
- * Controller to create a new blog post.
- * * @param payload - The blog request payload.
- * @param accessToken - The user's JWT token.
- * @returns A promise resolving to a normalized result object for the UI.
- */
 export async function createBlogController(
   payload: BlogRequest,
   accessToken: string
@@ -29,12 +23,13 @@ export async function createBlogController(
   try {
     const result: CreateBlogServiceResponse = await createBlog(payload, accessToken);
     
-    // Check for success:true (201 Created)
-    if (result.success && typeof result.data === 'string') {
+    // ✅ FIXED: Check if success is true. 
+    // We accept 'data' as either a string OR an object (the created blog).
+    if (result.success) {
       return {
         success: true,
         message: result.message || "Blog created successfully!",
-        data: result.data // The string response payload
+        data: result.data 
       };
     }
     
@@ -48,7 +43,8 @@ export async function createBlogController(
       console.error("[BlogController] Creation failed:", errorMessage, result.errors);
       
       // Data field may contain the unsuccessful blog object on 4xx errors
-      const errorData = (result as { data: BlogDataResponse }).data; 
+      // We need to cast it safely since result.data implies success types in strict mode
+      const errorData = result.data as BlogDataResponse;
 
       return {
         success: false,
@@ -57,8 +53,7 @@ export async function createBlogController(
       };
     }
 
-    // Fallback for unexpected success structure (e.g., if a full BlogDataResponse was returned on 201)
-    // We treat this as a failed normalization/unexpected path but don't re-throw the error
+    // Fallback for truly unexpected states (should rarely be reached now)
     return {
       success: false,
       message: "Blog created, but the server response format was unexpected. Please check post list.",

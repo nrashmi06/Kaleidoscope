@@ -1,22 +1,28 @@
-// src/components/articles/BlogForm.tsx
-
 'use client';
 
-import React, { useState, FormEvent, useCallback, useEffect } from "react"; // <-- ADD useEffect
+import React, { useState, FormEvent, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation"; // ✅ Added useRouter
 import { createBlogController } from "@/controllers/blog/createBlogController";
-import { BlogRequest, MediaDetailsRequest, BlogDataResponse } from "@/lib/types/createBlog";
+import { BlogRequest, BlogDataResponse } from "@/lib/types/createBlog";
 import { useAccessToken } from "@/hooks/useAccessToken"; 
 import { cn } from "@/lib/utils"; 
-import { Loader2, Zap } from "lucide-react"; 
-import { TagsAndMediaSection } from "./form-components/TagsAndMediaSection"; 
+import { Loader2, Zap, Link, Image as ImageIcon } from "lucide-react";  
 import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
 import TitleInput from "@/components/post/TitleInput"; 
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
 import { LocationOption, CategorySummaryResponseDTO } from "@/lib/types/post"; 
 import { LocationSearch } from "@/components/post/LocationSearch";
 import CategoriesSelect from "@/components/post/CategoriesSelect";
+import LinkedBlogSearch from "./LinkedBlogSearch";
+// ✅ Added BlogMediaUpload import
+import BlogMediaUpload from "./form-components/BlogMediaUpload";
+interface BlogFormLocalState extends BlogRequest {
+    linkedBlogId?: number; 
+    // linkedBlogTitle is purely for local UI display/reference
+    linkedBlogTitle?: string; 
+}
 
-type BlogFormState = BlogRequest; 
+type BlogFormState = BlogFormLocalState; // Use the extended state type
 
 const initialState: BlogFormState = {
   title: "",
@@ -26,60 +32,42 @@ const initialState: BlogFormState = {
   blogTagIds: [],
   locationId: undefined,
   mediaDetails: [],
+  linkedBlogId: undefined, 
+  linkedBlogTitle: undefined, 
 };
 
 const BlogForm: React.FC = () => {
   const [formData, setFormData] = useState<BlogFormState>(initialState);
+  const router = useRouter(); // ✅ Initialize router
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const [, setSubmittedData] = useState<BlogDataResponse | string | null>(null);
   
   const accessToken = useAccessToken(); 
 
   // <-- NEW LOCATION AND CATEGORY STATE -->
   const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(null);
-  const [categories, setCategories] = useState<CategorySummaryResponseDTO[]>([]); // Use the expected type
+  const [categories, setCategories] = useState<CategorySummaryResponseDTO[]>([]);
   // <-- END NEW STATE -->
 
   // --- Core Handlers ---
 
-  // Generic handler is simplified as location/categories are managed by dedicated components
-  const handleEnhancedInputChange = useCallback((name: keyof BlogFormState, value: string) => {
+  const handleEnhancedInputChange = useCallback((name: keyof BlogFormLocalState, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   }, []);
-
-  // Handler for blogTagIds (only keeps this logic for TagsAndMediaSection)
-  const handleArrayChange = useCallback((name: keyof BlogFormState, id: number) => {
-    const currentArray = (formData[name] as number[] | undefined) || [];
-    const newArray = currentArray.includes(id) 
-      ? currentArray.filter(item => item !== id) 
-      : [...currentArray, id];
-    setFormData(prev => ({ ...prev, [name]: newArray }));
-  }, [formData]);
   
-  const mockAddMedia = useCallback(() => {
-    const mockMedia: MediaDetailsRequest = {
-      mediaId: Math.random() * 1000 | 0,
-      url: `https://mock.com/image${Math.random() | 0}.jpg`,
-      mediaType: "IMAGE",
-      position: (formData.mediaDetails?.length || 0),
-      width: 800,
-      height: 600,
-      fileSizeKb: 100,
-      durationSeconds: null,
-      extraMetadata: { key: "value" }
-    };
+  // Handler for setting the linked blog ID from the search component
+  const handleLinkedBlogSelect = useCallback((blogId: number | undefined, title: string | undefined) => {
     setFormData(prev => ({
-      ...prev,
-      mediaDetails: [...(prev.mediaDetails || []), mockMedia]
+        ...prev,
+        linkedBlogId: blogId,
+        linkedBlogTitle: title,
     }));
-    setMessage(`Mock media added. Total: ${formData.mediaDetails?.length || 0 + 1}`);
-  }, [formData.mediaDetails]);
-
+  }, []);
 
   // <-- NEW EFFECT: Load categories on mount using the controller -->
   useEffect(() => {
@@ -87,7 +75,6 @@ const BlogForm: React.FC = () => {
       getParentCategoriesController(accessToken)
         .then((res) => {
           if (res.success && res.data?.content) {
-             // FlatCategory[] is compatible with the expected structure for CategoriesSelect
             setCategories(res.data.content as CategorySummaryResponseDTO[]); 
           }
         })
@@ -100,7 +87,7 @@ const BlogForm: React.FC = () => {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setMessage('');
-    setError('');
+    setError(null); 
     setSubmittedData(null); 
     
     if (!accessToken) {
@@ -113,24 +100,41 @@ const BlogForm: React.FC = () => {
     }
     
     setLoading(true);
+
+    // ✅ PAYLOAD CONSTRUCTION: Extract the local-only fields (Linked Blog ID/Title)
+    const { 
+        linkedBlogId: ignoredLinkedBlogId, 
+        ...apiPayload // This object now contains everything *except* linkedBlogId and linkedBlogTitle
+    } = formData;
     
+    // Ensure strict type match for API call
+    const strictApiPayload: BlogRequest = {
+        title: apiPayload.title,
+        body: apiPayload.body,
+        summary: apiPayload.summary,
+        mediaDetails: apiPayload.mediaDetails,
+        locationId: selectedLocation?.locationId,
+        categoryIds: apiPayload.categoryIds,
+        blogTagIds: apiPayload.blogTagIds,
+    };
+    
+    if (ignoredLinkedBlogId !== undefined) {
+        console.log(`[BlogForm] Note: Linked blog ID \${ignoredLinkedBlogId} captured but NOT sent in strict API body (BlogRequest).`);
+    }
+
     try {
-      const payload: BlogRequest = {
-        ...formData,
-        categoryIds: formData.categoryIds, 
-        blogTagIds: formData.blogTagIds,
-        mediaDetails: formData.mediaDetails,
-        // <-- USE selectedLocation.locationId for the API payload -->
-        locationId: selectedLocation?.locationId 
-      };
-      
-      const result = await createBlogController(payload, accessToken);
+      const result = await createBlogController(strictApiPayload, accessToken);
 
       if (result.success) {
         setMessage(result.message);
         setSubmittedData(result.data ?? null); 
         setFormData(initialState);
-        setSelectedLocation(null); // Reset location state
+        setSelectedLocation(null); 
+
+        setTimeout(() => {
+            router.push("/articles");
+        }, 1500);
+
       } else {
         setError(result.message);
         setSubmittedData(result.data ?? null); 
@@ -183,17 +187,30 @@ const BlogForm: React.FC = () => {
         />
       </div>
 
-      {/* --- 1. LOCATION SEARCH (REPLACEMENT for FormFieldHelper) --- */}
+      {/* ✅ LINKED BLOG SEARCH & SELECT (Uses filterBlogsController) */}
+      <div className="mt-6 p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+            <Link className="w-4 h-4 text-blue-500" /> Select Related Blog (Optional)
+        </label>
+        <LinkedBlogSearch
+            onBlogSelect={handleLinkedBlogSelect}
+            selectedBlogId={formData.linkedBlogId}
+        />
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+            Search for and select a related published blog post to tag it internally. 
+            The ID captured is: <span className="font-medium text-gray-700 dark:text-gray-300">{formData.linkedBlogId || 'None'}</span>
+        </p>
+      </div>
+
+      {/* --- 1. LOCATION SEARCH --- */}
       <div className="mt-6">
         <LocationSearch
           selectedLocation={selectedLocation}
-          onLocationSelect={setSelectedLocation} // Only update location state
+          onLocationSelect={setSelectedLocation}
         />
-        {/* The former FormFieldHelper for locationId is now implicitly handled by LocationSearch */}
       </div>
-      {/* --- END LOCATION SEARCH --- */}
       
-      {/* --- 2. CATEGORY SELECT (ADDITION) --- */}
+      {/* --- 2. CATEGORY SELECT --- */}
       <div className="mt-6">
         <CategoriesSelect
           categories={categories}
@@ -208,21 +225,22 @@ const BlogForm: React.FC = () => {
           }
         />
       </div>
-      {/* --- END CATEGORY SELECT --- */}
       
-      {/* --- TAGS & MEDIA (MODIFIED) --- */}
-      <TagsAndMediaSection
-        formData={formData}
-        // Only keep handling for blogTagIds and mock media here
-        onArrayChange={(name, id) => {
-             if (name === 'blogTagIds') {
-                handleArrayChange(name, id);
-             }
-        }}
-        onMockMediaAdd={mockAddMedia}
-      />
+      {/* --- 3. MEDIA UPLOAD (REPLACED) --- */}
+      <section className="space-y-6 mt-6">
+        <p className="font-bold mb-3 text-gray-800 dark:text-gray-300 flex items-center gap-2">
+          <ImageIcon className="w-4 h-4" /> Media Details
+        </p>
+        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-neutral-800/50">
+          <BlogMediaUpload 
+            accessToken={accessToken}
+            formData={formData}
+            setFormData={setFormData}
+          />
+        </div>
+      </section>
       
-      {/* Feedback Messages... (omitted for brevity) */}
+      {/* Feedback Messages... */}
       {error && (
         <div className="mt-4 p-4 rounded-lg border border-red-400 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center gap-2">
             <span>⚠️</span>
@@ -235,8 +253,6 @@ const BlogForm: React.FC = () => {
             <p className="font-medium text-sm">{message}</p>
         </div>
       )}
-
-      {/* Submitted Data Preview... (omitted for brevity) */}
 
       {/* Submit Button */}
       <button 
