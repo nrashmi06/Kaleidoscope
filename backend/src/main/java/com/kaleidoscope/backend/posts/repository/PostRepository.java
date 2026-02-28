@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificationExecutor<Post> {
     @Modifying
@@ -33,4 +35,15 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
            "LEFT JOIN FETCH pc.category " +
            "LEFT JOIN FETCH p.location")
     Page<Post> findAllWithRelations(Pageable pageable);
+
+    // Cursor-based pagination for efficient batch processing (avoids OFFSET table scans)
+    @Query("SELECT DISTINCT p FROM Post p " +
+           "LEFT JOIN FETCH p.user " +
+           "LEFT JOIN FETCH p.media " +
+           "LEFT JOIN FETCH p.categories pc " +
+           "LEFT JOIN FETCH pc.category " +
+           "LEFT JOIN FETCH p.location " +
+           "WHERE p.postId > :lastSeenId " +
+           "ORDER BY p.postId ASC")
+    List<Post> findNextBatchWithRelations(@Param("lastSeenId") Long lastSeenId, Pageable pageable);
 }

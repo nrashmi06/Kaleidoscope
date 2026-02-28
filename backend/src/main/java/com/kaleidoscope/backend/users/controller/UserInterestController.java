@@ -102,7 +102,7 @@ public class UserInterestController implements UserInterestApi {
 
     @Override
     @GetMapping(UserInterestRoutes.GET_USER_INTERESTS_BY_USER_ID)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<PaginatedResponse<UserInterestResponseDTO>>> getUserInterestsByUserId(@PathVariable Long userId, Pageable pageable) {
         Page<UserInterestResponseDTO> interests = userInterestService.getUserInterestsByUserId(userId, pageable);
         PaginatedResponse<UserInterestResponseDTO> paginated = PaginatedResponse.fromPage(interests);
@@ -116,7 +116,7 @@ public class UserInterestController implements UserInterestApi {
 
     @Override
     @GetMapping(UserInterestRoutes.ADMIN_GET_CATEGORY_ANALYTICS)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<PaginatedResponse<CategoryAnalyticsResponseDTO.CategoryStats>>> getCategoryAnalytics(Pageable pageable) {
         CategoryAnalyticsResponseDTO analytics = userInterestService.getCategoryInterestAnalytics(pageable);
         Page<CategoryAnalyticsResponseDTO.CategoryStats> statsPage = analytics.getCategoryStats();

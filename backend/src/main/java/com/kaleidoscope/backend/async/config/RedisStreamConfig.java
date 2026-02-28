@@ -87,10 +87,12 @@ public class RedisStreamConfig {
         log.info("✅ Consumer group initialization complete");
 
         // 3. Configure Container Options for Manual Acknowledgment
+        // Optimized with Long Polling: 2 second timeout reduces constant polling when stream is empty
+        // Increased batch size to 50 for better throughput
         StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
                 StreamMessageListenerContainerOptions.builder()
-                        .batchSize(10)
-                        .pollTimeout(Duration.ofSeconds(1))
+                        .batchSize(50)
+                        .pollTimeout(Duration.ofSeconds(2))
                         .errorHandler(createErrorHandler())
                         .build();
 

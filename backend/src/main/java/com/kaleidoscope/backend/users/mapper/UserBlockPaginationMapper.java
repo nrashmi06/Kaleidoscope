@@ -1,6 +1,7 @@
 package com.kaleidoscope.backend.users.mapper;
 
 import com.kaleidoscope.backend.users.dto.response.BlockedUsersListResponseDTO;
+import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserBlock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class UserBlockPaginationMapper {
     /**
      * Extract blocked user from UserBlock for getBlockedUsers method
      */
-    public static com.kaleidoscope.backend.users.model.User extractBlockedUser(UserBlock userBlock) {
+    public static User extractBlockedUser(UserBlock userBlock) {
         return userBlock.getBlocked();
     }
 
     /**
      * Extract blocker user from UserBlock for getUsersWhoBlockedMe method
      */
-    public static com.kaleidoscope.backend.users.model.User extractBlockerUser(UserBlock userBlock) {
+    public static User extractBlockerUser(UserBlock userBlock) {
         return userBlock.getBlocker();
     }
 }

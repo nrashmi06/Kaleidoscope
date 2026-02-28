@@ -18,20 +18,19 @@ import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserInterest;
 import com.kaleidoscope.backend.users.repository.*;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.stream.StreamMessageListenerContainer; // <-- IMPORT ADDED
+import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -64,7 +63,8 @@ public class ElasticsearchStartupSyncService {
     // --- IMPORT ADDED ---
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
 
-    private static final int BATCH_SIZE = 100;
+    // Optimized batch size: increased from 100 to 500 to reduce DB round-trips during startup sync
+    private static final int BATCH_SIZE = 500;
 
     @PostConstruct
     public void init() {
@@ -114,6 +114,7 @@ public class ElasticsearchStartupSyncService {
 
     /**
      * Sync all users from PostgreSQL to Elasticsearch
+     * Uses cursor-based pagination to avoid OFFSET table scans
      */
     // @Transactional(readOnly = true) // <-- Removed from here
     public void syncAllUsers() {
@@ -128,35 +129,33 @@ public class ElasticsearchStartupSyncService {
                 return;
             }
 
-            int pageNumber = 0;
+            Long lastSeenId = 0L;
             int syncedCount = 0;
             int errorCount = 0;
+            int batchNumber = 0;
 
             while (true) {
-                Pageable pageable = PageRequest.of(pageNumber, BATCH_SIZE);
-                Page<User> userPage = userRepository.findAll(pageable);
+                // Cursor-based pagination: fetch next batch where userId > lastSeenId
+                Pageable pageable = PageRequest.of(0, BATCH_SIZE);
+                List<User> userBatch = userRepository.findNextBatch(lastSeenId, pageable);
 
-                if (userPage.isEmpty()) {
+                if (userBatch.isEmpty()) {
                     break;
                 }
 
-                log.info("Syncing user batch {}/{} ({} users)",
-                        pageNumber + 1, userPage.getTotalPages(), userPage.getNumberOfElements());
+                batchNumber++;
+                log.info("Syncing user batch {} ({} users)", batchNumber, userBatch.size());
 
-                for (User user : userPage.getContent()) {
+                for (User user : userBatch) {
                     try {
                         syncUserToElasticsearch(user);
                         syncedCount++;
+                        lastSeenId = user.getUserId(); // Update cursor
                     } catch (Exception e) {
                         log.error("Failed to sync user ID: {}", user.getUserId(), e);
                         errorCount++;
                     }
                 }
-
-                if (!userPage.hasNext()) {
-                    break;
-                }
-                pageNumber++;
             }
 
             log.info("✅ User sync completed: {} synced, {} errors", syncedCount, errorCount);
@@ -240,6 +239,7 @@ public class ElasticsearchStartupSyncService {
 
     /**
      * Sync all posts from PostgreSQL to Elasticsearch
+     * Uses cursor-based pagination to avoid OFFSET table scans
      */
     // @Transactional(readOnly = true) // <-- Removed from here
     public void syncAllPosts() {
@@ -254,36 +254,33 @@ public class ElasticsearchStartupSyncService {
                 return;
             }
 
-            int pageNumber = 0;
+            Long lastSeenId = 0L;
             int syncedCount = 0;
             int errorCount = 0;
+            int batchNumber = 0;
 
             while (true) {
-                Pageable pageable = PageRequest.of(pageNumber, BATCH_SIZE);
-                // Use findAllWithRelations to eagerly fetch user and other associations
-                Page<Post> postPage = postRepository.findAllWithRelations(pageable);
+                // Cursor-based pagination: fetch next batch where postId > lastSeenId
+                Pageable pageable = PageRequest.of(0, BATCH_SIZE);
+                List<Post> postBatch = postRepository.findNextBatchWithRelations(lastSeenId, pageable);
 
-                if (postPage.isEmpty()) {
+                if (postBatch.isEmpty()) {
                     break;
                 }
 
-                log.info("Syncing post batch {}/{} ({} posts)",
-                        pageNumber + 1, postPage.getTotalPages(), postPage.getNumberOfElements());
+                batchNumber++;
+                log.info("Syncing post batch {} ({} posts)", batchNumber, postBatch.size());
 
-                for (Post post : postPage.getContent()) {
+                for (Post post : postBatch) {
                     try {
                         syncPostToElasticsearch(post);
                         syncedCount++;
+                        lastSeenId = post.getPostId(); // Update cursor
                     } catch (Exception e) {
                         log.error("Failed to sync post ID: {}", post.getPostId(), e);
                         errorCount++;
                     }
                 }
-
-                if (!postPage.hasNext()) {
-                    break;
-                }
-                pageNumber++;
             }
 
             log.info("✅ Post sync completed: {} synced, {} errors", syncedCount, errorCount);
@@ -385,6 +382,7 @@ public class ElasticsearchStartupSyncService {
 
     /**
      * Sync all blogs from PostgreSQL to Elasticsearch
+     * Uses cursor-based pagination to avoid OFFSET table scans
      */
     public void syncAllBlogs() {
         log.info("Starting blog synchronization...");
@@ -395,29 +393,34 @@ public class ElasticsearchStartupSyncService {
                 log.info("No blogs found. Skipping blog sync.");
                 return;
             }
-            int pageNumber = 0;
+
+            Long lastSeenId = 0L;
             int syncedCount = 0;
             int errorCount = 0;
+            int batchNumber = 0;
+
             while (true) {
-                Pageable pageable = PageRequest.of(pageNumber, BATCH_SIZE);
-                Page<Blog> blogPage = blogRepository.findAllWithRelations(pageable);
-                if (blogPage.isEmpty()) {
+                // Cursor-based pagination: fetch next batch where blogId > lastSeenId
+                Pageable pageable = PageRequest.of(0, BATCH_SIZE);
+                List<Blog> blogBatch = blogRepository.findNextBatchWithRelations(lastSeenId, pageable);
+
+                if (blogBatch.isEmpty()) {
                     break;
                 }
-                log.info("Syncing blog batch {}/{} ({} blogs)", pageNumber + 1, blogPage.getTotalPages(), blogPage.getNumberOfElements());
-                for (Blog blog : blogPage.getContent()) {
+
+                batchNumber++;
+                log.info("Syncing blog batch {} ({} blogs)", batchNumber, blogBatch.size());
+
+                for (Blog blog : blogBatch) {
                     try {
                         syncBlogToElasticsearch(blog);
                         syncedCount++;
+                        lastSeenId = blog.getBlogId(); // Update cursor
                     } catch (Exception be) {
                         log.error("Failed to sync blog ID: {}", blog.getBlogId(), be);
                         errorCount++;
                     }
                 }
-                if (!blogPage.hasNext()) {
-                    break;
-                }
-                pageNumber++;
             }
             log.info("✅ Blog sync completed: {} synced, {} errors", syncedCount, errorCount);
         } catch (Exception e) {

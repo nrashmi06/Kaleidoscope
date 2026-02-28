@@ -120,7 +120,7 @@ public class UserBlockController implements UserBlockApi {
 
     @Override
     @GetMapping(UserBlockRoutes.GET_ALL_BLOCKS_ADMIN)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<Page<UserBlockResponseDTO>>> getAllBlocks(
             @PageableDefault(size = 20) Pageable pageable) {
 
@@ -139,7 +139,7 @@ public class UserBlockController implements UserBlockApi {
 
     @Override
     @DeleteMapping(UserBlockRoutes.REMOVE_BLOCK_ADMIN)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<String>> removeBlock(@RequestParam Long blockId) {
 
         log.info("Admin removing block with ID {}", blockId);

@@ -1,12 +1,14 @@
 package com.kaleidoscope.backend.auth.model;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "email_verifications")
-@Data
+@Getter
+@Setter
 public class EmailVerification {
 
     @Id
@@ -31,4 +33,16 @@ public class EmailVerification {
     @Column(nullable = false)
     private String email;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EmailVerification that = (EmailVerification) o;
+        return verificationId != null && verificationId.equals(that.verificationId);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

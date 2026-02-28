@@ -1,10 +1,12 @@
 package com.kaleidoscope.backend.readmodels.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.Instant;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "read_model_user_search")
 public class UserSearchReadModel {
@@ -38,5 +40,17 @@ public class UserSearchReadModel {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
-}
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserSearchReadModel that = (UserSearchReadModel) o;
+        return userId != null && userId.equals(that.userId);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+}

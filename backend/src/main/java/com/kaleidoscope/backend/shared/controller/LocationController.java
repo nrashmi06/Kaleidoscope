@@ -98,7 +98,7 @@ public class LocationController implements LocationApi {
 
     @Override
     @DeleteMapping(LocationRoutes.DELETE_LOCATION)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<Void>> deleteLocationById(@PathVariable Long locationId) {
         log.info("Admin deleting location by ID: {}", locationId);
         locationService.deleteLocationById(locationId);
