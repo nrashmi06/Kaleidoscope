@@ -783,7 +783,112 @@ The Kaleidoscope Blog System provides a robust platform for long-form content cr
 ✅ **Automatic Metrics**: Word count and read time calculation  
 ✅ **Flexible Filtering**: Search by multiple criteria  
 ✅ **Security**: Author-based permissions with admin override  
-✅ **Media Tracking**: Automatic cleanup of orphaned assets
+✅ **Media Tracking**: Automatic cleanup of orphaned assets  
+✅ **Blog Interactions**: Reactions and comments via shared InteractionService  
+✅ **Blog Saves**: Bookmark/unsave functionality  
+✅ **Blog Suggestions**: Elasticsearch function_score personalized feed  
+✅ **View Counting**: Async Redis-based view tracking with batch DB sync  
+✅ **ES Sync Consumers**: Real-time Elasticsearch document sync
 
-The system balances user freedom with content moderation, ensuring quality while maintaining operational efficiency through automated processes like media cleanup and metric calculation.
+## Additional Components
+
+### Blog Interactions (BlogInteractionController)
+
+Uses the shared `InteractionService` with `ContentType.BLOG`:
+
+| Endpoint                                              | Method | Description                          |
+|-------------------------------------------------------|--------|--------------------------------------|
+| `POST /api/blogs/{blogId}/reactions`                  | POST   | React or unreact to a blog           |
+| `GET /api/blogs/{blogId}/reactions`                   | GET    | Get reaction summary for a blog      |
+| `POST /api/blogs/{blogId}/comments`                   | POST   | Add a comment to a blog              |
+| `GET /api/blogs/{blogId}/comments`                    | GET    | List comments (paginated)            |
+| `DELETE /api/blogs/{blogId}/comments/{commentId}`     | DELETE | Delete a comment                     |
+| `POST /api/blogs/{blogId}/comments/{commentId}/reactions` | POST | React to a comment                |
+| `GET /api/blogs/{blogId}/comments/{commentId}/reactions`  | GET  | Get comment reaction summary      |
+
+### Blog Save/Unsave (BlogSaveController)
+
+| Endpoint                                  | Method | Description                           |
+|-------------------------------------------|--------|---------------------------------------|
+| `POST /api/blogs/{blogId}/save?unsave=`   | POST   | Save or unsave a blog                 |
+| `GET /api/blogs/{blogId}/save`            | GET    | Check save status for current user    |
+| `GET /api/blogs/saved`                    | GET    | Get paginated list of saved blogs     |
+
+### Blog Suggestions (BlogSuggestionService)
+
+Uses Elasticsearch `function_score` query to generate personalized blog recommendations based on:
+- User follows and interests
+- Blog engagement metrics (reactions, comments, views)
+- Content recency
+- Category matching
+
+### Blog View Counting (BlogViewService)
+
+Asynchronous view counting with Redis optimization:
+- **Duplicate prevention**: `user:blog:view:{userId}:{blogId}` keys with 24-hour TTL
+- **Redis-first counting**: Increments `blog:views:{blogId}` in Redis
+- **Batch DB sync**: Scheduled job flushes pending counts to PostgreSQL
+- **Lock mechanism**: `blog:view:batch:lock` prevents concurrent batch runs
+- Runs on dedicated `viewCountExecutor` thread pool
+
+### Redis Stream Consumers
+
+| Consumer                        | Stream                    | Purpose                                         |
+|---------------------------------|---------------------------|--------------------------------------------------|
+| `BlogInteractionSyncConsumer`  | `blog-interaction-sync`   | Syncs reaction/comment counts to ES BlogDocument |
+| `UserProfileBlogSyncConsumer`  | `user-profile-blog-sync`  | Syncs author profile changes to ES BlogDocuments |
+
+### Full Module Structure
+
+```
+blogs/
+├── consumer/
+│   ├── BlogInteractionSyncConsumer.java  # ES interaction count sync
+│   └── UserProfileBlogSyncConsumer.java  # ES author profile sync
+├── controller/
+│   ├── BlogController.java              # Blog CRUD operations
+│   ├── BlogInteractionController.java   # Reactions & comments
+│   ├── BlogSaveController.java          # Save/unsave blogs
+│   └── api/
+│       ├── BlogApi.java
+│       ├── BlogInteractionApi.java
+│       └── BlogSaveApi.java
+├── document/
+│   └── BlogDocument.java                # Elasticsearch blog document
+├── dto/
+│   ├── request/                          # Blog creation/update DTOs
+│   └── response/                         # Blog response DTOs
+├── enums/
+│   ├── BlogCategory.java                # Blog category enum
+│   └── BlogStatus.java                  # APPROVAL_PENDING, APPROVED, REJECTED
+├── exception/                            # Blog-specific exceptions
+├── mapper/                               # Entity-DTO mapping
+├── model/
+│   ├── Blog.java                         # Main blog entity
+│   ├── BlogMedia.java                    # Blog media attachments
+│   ├── BlogCategory.java                 # Blog-category associations
+│   ├── BlogSave.java                     # Saved blogs entity
+│   └── BlogTag.java                      # Blog tagging
+├── repository/
+│   ├── BlogRepository.java
+│   ├── BlogCategoryRepository.java
+│   ├── BlogSaveRepository.java
+│   ├── BlogTagRepository.java
+│   └── search/
+│       ├── BlogSearchRepository.java
+│       ├── BlogSearchRepositoryCustom.java
+│       └── BlogSearchRepositoryImpl.java
+├── routes/
+│   ├── BlogRoutes.java                   # Blog CRUD route constants
+│   └── BlogInteractionRoutes.java        # Interaction route constants
+└── service/
+    ├── BlogService.java                  # Main blog business logic
+    ├── BlogSaveService.java              # Save/unsave blog service
+    ├── BlogSuggestionService.java        # ES-powered blog suggestions
+    ├── BlogViewService.java              # Async view counting
+    └── impl/
+        ├── BlogServiceImpl.java
+        ├── BlogSaveServiceImpl.java
+        └── BlogSuggestionServiceImpl.java
+```
 

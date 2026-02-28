@@ -120,25 +120,9 @@ The ML pipeline uses Redis Streams for reliable, ordered message processing:
 
 ### Consumer Group Configuration
 
-Each stream has a dedicated consumer group (`backend-group`) with specific consumers:
+Each stream has a dedicated consumer group (`backend-group`) with specific consumers. The system has 11 registered consumers covering ML processing, interaction sync, profile sync, notifications, and more.
 
-#### **ML Insights Consumer**
-- **Stream**: `ml-insights-results`
-- **Purpose**: Processes AI safety analysis results
-- **Consumer**: `media-ai-consumer`
-- **Actions**: Updates post safety flags, handles content moderation
-
-#### **Face Detection Consumer**
-- **Stream**: `face-detection-results`
-- **Purpose**: Processes face detection results
-- **Consumer**: `face-detection-consumer`
-- **Actions**: Stores detected faces, prepares for recognition
-
-#### **Face Recognition Consumer**
-- **Stream**: `face-recognition-results`
-- **Purpose**: Processes face recognition matches
-- **Consumer**: `face-recognition-consumer`
-- **Actions**: Links faces to user profiles, updates suggestions
+For the full consumer configuration, stream constants, and processing details, see [ASYNC_PROCESSING_SYSTEM.md](ASYNC_PROCESSING_SYSTEM.md).
 
 ### Message Publishing
 

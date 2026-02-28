@@ -32,6 +32,9 @@ Administrative control center for the Kaleidoscope platform, providing comprehen
 ## Admin-Only Endpoints
 The following endpoints require `ROLE_ADMIN` authorization:
 
+### From Admin Module
+- `POST /api/admin/send-mass-email` - Send bulk email to users by role (multipart/form-data)
+
 ### From User Management
 - `PUT /api/users/profile-status` - Update user account status
 - `GET /api/users` - Search and filter all users

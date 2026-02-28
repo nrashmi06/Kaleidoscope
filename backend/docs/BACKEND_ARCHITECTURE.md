@@ -33,10 +33,13 @@ backend/
 ```
 src/main/java/com/kaleidoscope/backend/
 ├── BackendApplication.java    # Spring Boot main application class
+├── admin/                    # Admin operations (mass email, etc.)
+├── async/                    # Async processing, Redis Stream consumers & ML pipeline
 ├── auth/                     # Authentication & Authorization module
 ├── blogs/                    # Blog management feature
-├── ml/                       # Machine Learning pipeline
+├── notifications/            # Notification system (SSE, email, in-app)
 ├── posts/                    # Photo posts management
+├── readmodels/               # AI/ML read model tables for search
 ├── shared/                   # Common utilities & components
 └── users/                    # User management
 ```
@@ -90,41 +93,100 @@ Each feature module follows a consistent layered architecture:
 **Architecture Pattern**: Multi-faceted user management with separate concerns
 
 #### 3. Shared Module (`shared/`)
-**Purpose**: Common utilities and cross-cutting concerns
+**Purpose**: Cross-cutting concerns and reusable components used across all feature modules
 **Components**:
-- **Response Wrappers**: Standardized API responses (`ApiResponse<T>`, `PaginatedResponse<T>`)
-- **Configuration**: Application-wide configurations
-- **Document Models**: Elasticsearch document definitions
-- **Services**: Common services (image storage, location management)
-- **Utilities**: Helper classes and common functionality
+- **Controllers**: Category, Hashtag, Location, UserTag (shared between posts & blogs)
+- **Services**: InteractionService (unified reactions & comments), ImageStorageService, HashtagService, CategoryService, LocationService, UserTagService
+- **Response Wrappers**: Standardized API responses (`AppResponse<T>`, `PaginatedResponse<T>`)
+- **Models**: Comment, Reaction, Category, Hashtag, Location, UserTag, MediaAssetTracker, PostHashtag
+- **Enums**: ContentType, ReactionType, Role, AccountStatus, MediaType, NotificationType, etc.
+- **Configuration**: AsyncConfig, CloudinaryConfig, CorrelationIdFilter, OpenApiConfig
+- **Scheduler**: MediaAssetCleanupScheduler (hourly orphaned media cleanup)
+- **Sync**: ElasticsearchStartupSyncService (startup data sync to ES)
 
 **Architecture Pattern**: Centralized shared components with dependency injection
 
-#### 4. Machine Learning Module (`ml/`)
-**Purpose**: Asynchronous ML processing pipeline
+For detailed documentation, see [SHARED_MODULE.md](SHARED_MODULE.md)
+
+#### 4. Admin Module (`admin/`)
+**Purpose**: Site-wide administrative operations
+**Key Components**:
+- Mass email broadcasting with file attachments
+- Role-based targeting (ADMIN, MODERATOR, USER)
+- Async email dispatch via Spring `@Async`
+
+**Architecture Pattern**: Admin command pattern with async execution
+
+For detailed documentation, see [ADMIN_SYSTEM.md](ADMIN_SYSTEM.md)
+
+#### 5. Async Processing Module (`async/`)
+**Purpose**: Centralized asynchronous event processing and ML pipeline
 **Components**:
-- **Redis Stream Publisher**: Event publishing for ML processing
-- **Stream Consumers**: Face detection and recognition processors
-- **DTOs**: ML-specific data transfer objects
+- **Redis Stream Publisher**: Event publishing for ML processing and sync
+- **Stream Consumers**: Face detection, face recognition, media AI insights, hashtag usage sync, post insights enrichment
+- **Services**: Read model updates, ES sync triggers, post aggregation triggers, processing status tracking
+- **DTOs**: ML-specific and sync-specific data transfer objects
+- **Config**: Redis connection, stream consumer groups, listener container
 
-**Architecture Pattern**: Event-driven asynchronous processing with Redis Streams
+**Architecture Pattern**: Event-driven asynchronous processing with Redis Streams and consumer groups
 
-#### 5. Posts Module (`posts/`)
+For detailed documentation, see [ASYNC_PROCESSING_SYSTEM.md](ASYNC_PROCESSING_SYSTEM.md)
+
+#### 6. Notifications Module (`notifications/`)
+**Purpose**: Real-time notification system
+**Key Features**:
+- Server-Sent Events (SSE) for real-time browser updates
+- Redis-backed notification caching and unread counts
+- Email notification delivery
+- User notification preference integration
+
+**Architecture Pattern**: Event-driven real-time push with SSE and Redis pub/sub
+
+For detailed documentation, see [NOTIFICATION_SYSTEM.md](NOTIFICATION_SYSTEM.md)
+
+#### 7. Posts Module (`posts/`)
 **Purpose**: Photo post management system
 **Key Features**:
 - Post creation with media upload
-- Post interaction (likes, comments)
+- Post interactions (reactions, comments, comment reactions)
+- Post save/unsave (bookmarking)
 - Post visibility and status management
 - Media AI insights integration
+- Post suggestions via Elasticsearch function_score
+- Async view counting with Redis and batch DB sync
+- Elasticsearch document sync consumers
 
-**Architecture Pattern**: Content management with AI enhancement
+**Architecture Pattern**: Content management with AI enhancement and real-time search
 
-#### 6. Blogs Module (`blogs/`)
-**Purpose**: Blog content management
+For detailed documentation, see [POSTS_SYSTEM.md](POSTS_SYSTEM.md)
+
+#### 8. Blogs Module (`blogs/`)
+**Purpose**: Blog content management with approval workflow
 **Features**:
-- Blog creation and management
-- Media integration
-- Admin controls
+- Blog creation with rich media and categorization
+- Admin review and approval workflow
+- Blog interactions (reactions, comments)
+- Blog save/unsave (bookmarking)
+- Blog suggestions via Elasticsearch function_score
+- Async view counting with Redis and batch DB sync
+- Soft deletion
+- Elasticsearch document sync consumers
+
+**Architecture Pattern**: Content management with editorial workflow
+
+For detailed documentation, see [BLOG_SYSTEM.md](BLOG_SYSTEM.md)
+
+#### 9. Read Models Module (`readmodels/`)
+**Purpose**: Denormalized read model tables for AI-powered search
+**Components**:
+- 7 PostgreSQL read model tables (media_search, post_search, face_search, known_faces, user_search, feed_personalized, recommendations_knn)
+- JPA entities and Spring Data repositories
+- Updated by async consumers and external AI services
+- Synced to Elasticsearch via ES sync queue
+
+**Architecture Pattern**: CQRS-style read model separation
+
+For detailed documentation, see [READ_MODELS_SYSTEM.md](READ_MODELS_SYSTEM.md)
 
 ## Coding Principles & Patterns
 

@@ -87,6 +87,46 @@ Paginated endpoints use `PaginatedResponse<T>` structure:
 - Content organization and tagging
 - Admin content controls
 
+### 📸 Posts APIs
+**Location**: `/api/posts/`
+- Post CRUD (create, read, update, delete)
+- Post interactions (reactions, comments, comment reactions)
+- Post save/unsave (bookmarking)
+- Post suggestions (personalized feed)
+- Post search and filtering
+
+### 📝 Blog APIs
+**Location**: `/api/blogs/`
+- Blog CRUD with approval workflow
+- Blog interactions (reactions, comments, comment reactions)
+- Blog save/unsave (bookmarking)
+- Blog suggestions (personalized feed)
+- Blog status management (admin)
+- Blog search and filtering
+
+### 🔔 Notification APIs
+**Location**: `/api/notifications/`
+- In-app notifications (list, mark as read, delete)
+- Real-time notifications via SSE stream
+- Unread notification count
+
+### #️⃣ Hashtag APIs
+**Location**: `/api/hashtags/`
+- Trending hashtags
+- Hashtag autocomplete suggestions
+- Hashtag details
+
+### 📍 Location APIs
+**Location**: `/api/locations/`
+- Location search and CRUD
+- Geographic location management
+
+### 🏷️ User Tag APIs
+**Location**: `/api/user-tags/`
+- Tag users in posts and blogs
+- Search taggable users
+- Manage content tags
+
 ### 🔧 Admin APIs
 **Location**: `/api/admin/`
 - User administration
@@ -163,6 +203,6 @@ For API support, development questions, or feature requests:
 
 ---
 
-**Last Updated**: January 2025  
+**Last Updated**: February 2026  
 **API Version**: 1.0.0  
-**Documentation Version**: 1.0.0
+**Documentation Version**: 2.0.0
