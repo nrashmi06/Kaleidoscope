@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -87,9 +89,9 @@ public class PostViewService {
     /**
      * Batch sync Redis views to database every 5 minutes
      * Uses distributed locking for multi-instance safety
+     * Processes updates in chunks to prevent long DB locks
      */
     @Scheduled(fixedRate = 300000) // 5 minutes
-    @Transactional
     public void syncViewsToDatabase() {
         try {
             // Acquire distributed lock to prevent multiple instances from syncing
@@ -109,66 +111,93 @@ public class PostViewService {
                 return;
             }
             
-            int syncedCount = 0;
-            for (String postIdStr : postIds) {
-                try {
-                    Long postId = Long.parseLong(postIdStr);
-                    String viewCountKey = String.format(VIEW_COUNT_KEY, postId);
-                    
-                    String redisCountStr = redisTemplate.opsForValue().get(viewCountKey);
-                    if (redisCountStr != null) {
-                        long redisCount = Long.parseLong(redisCountStr);
-                        
-                        // Update database with Redis view count
-                        int updatedRows = postRepository.incrementViewCount(postId, redisCount);
-                        
-                        if (updatedRows > 0) {
-                            // CRUCIAL: Synchronously update Elasticsearch with the new view count
-                            try {
-                                // Get current DB view count after increment
-                                Long currentDbViewCount = postRepository.findViewCountByPostId(postId);
-                                long totalViewCount = currentDbViewCount != null ? currentDbViewCount : redisCount;
+            // Process in chunks of 500 to prevent locking DB for too long
+            final int CHUNK_SIZE = 500;
+            List<String> postIdList = new ArrayList<>(postIds);
+            int totalSynced = 0;
 
-                                // Find and update the PostDocument in Elasticsearch
-                                postSearchRepository.findById(postId.toString()).ifPresentOrElse(
-                                    document -> {
-                                        // Update the viewCount field
-                                        PostDocument updatedDocument = document.toBuilder()
-                                                .viewCount(totalViewCount)
-                                                .build();
-                                        postSearchRepository.save(updatedDocument);
-                                        log.debug("Updated Elasticsearch viewCount for post {} to {}", postId, totalViewCount);
-                                    },
-                                    () -> log.warn("PostDocument not found in Elasticsearch for postId: {}", postId)
-                                );
+            for (int i = 0; i < postIdList.size(); i += CHUNK_SIZE) {
+                int end = Math.min(i + CHUNK_SIZE, postIdList.size());
+                List<String> chunk = postIdList.subList(i, end);
 
-                            } catch (Exception esException) {
-                                log.error("Failed to sync viewCount to Elasticsearch for post {}: {}",
-                                         postId, esException.getMessage(), esException);
-                                // Continue processing other posts even if ES sync fails
-                            }
+                int chunkSynced = syncViewsChunk(chunk);
+                totalSynced += chunkSynced;
 
-                            // Clear Redis count and remove from pending set
-                            redisTemplate.delete(viewCountKey);
-                            redisTemplate.opsForSet().remove(PENDING_VIEWS_SET, postIdStr);
-                            
-                            syncedCount++;
-                            log.debug("Synced {} views for post {}", redisCount, postId);
-                        }
-                    }
-                    
-                } catch (Exception e) {
-                    log.error("Failed to sync views for post {}", postIdStr, e);
-                }
+                log.debug("Synced chunk {}/{}: {} posts",
+                    (i / CHUNK_SIZE) + 1,
+                    (postIdList.size() + CHUNK_SIZE - 1) / CHUNK_SIZE,
+                    chunkSynced);
             }
-            
-            log.info("Completed batch sync: {} posts synced", syncedCount);
-            
+
+            log.info("Completed batch sync: {} posts synced", totalSynced);
+
         } catch (Exception e) {
             log.error("Failed to sync views to database", e);
         } finally {
             // Release lock
             redisTemplate.delete(VIEW_BATCH_LOCK);
         }
+    }
+
+    /**
+     * Process a chunk of view updates in a single transaction
+     */
+    @Transactional
+    protected int syncViewsChunk(List<String> postIds) {
+        int syncedCount = 0;
+
+        for (String postIdStr : postIds) {
+            try {
+                Long postId = Long.parseLong(postIdStr);
+                String viewCountKey = String.format(VIEW_COUNT_KEY, postId);
+
+                String redisCountStr = redisTemplate.opsForValue().get(viewCountKey);
+                if (redisCountStr != null) {
+                    long redisCount = Long.parseLong(redisCountStr);
+
+                    // Update database with Redis view count
+                    int updatedRows = postRepository.incrementViewCount(postId, redisCount);
+
+                    if (updatedRows > 0) {
+                        // CRUCIAL: Synchronously update Elasticsearch with the new view count
+                        try {
+                            // Get current DB view count after increment
+                            Long currentDbViewCount = postRepository.findViewCountByPostId(postId);
+                            long totalViewCount = currentDbViewCount != null ? currentDbViewCount : redisCount;
+
+                            // Find and update the PostDocument in Elasticsearch
+                            postSearchRepository.findById(postId.toString()).ifPresentOrElse(
+                                document -> {
+                                    // Update the viewCount field
+                                    PostDocument updatedDocument = document.toBuilder()
+                                            .viewCount(totalViewCount)
+                                            .build();
+                                    postSearchRepository.save(updatedDocument);
+                                    log.debug("Updated Elasticsearch viewCount for post {} to {}", postId, totalViewCount);
+                                },
+                                () -> log.warn("PostDocument not found in Elasticsearch for postId: {}", postId)
+                            );
+
+                        } catch (Exception esException) {
+                            log.error("Failed to sync viewCount to Elasticsearch for post {}: {}",
+                                     postId, esException.getMessage(), esException);
+                            // Continue processing other posts even if ES sync fails
+                        }
+
+                        // Clear Redis count and remove from pending set
+                        redisTemplate.delete(viewCountKey);
+                        redisTemplate.opsForSet().remove(PENDING_VIEWS_SET, postIdStr);
+
+                        syncedCount++;
+                        log.debug("Synced {} views for post {}", redisCount, postId);
+                    }
+                }
+
+            } catch (Exception e) {
+                log.error("Failed to sync views for post {}", postIdStr, e);
+            }
+        }
+
+        return syncedCount;
     }
 }

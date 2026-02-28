@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -87,9 +89,9 @@ public class BlogViewService {
     /**
      * Batch sync Redis views to database every 5 minutes
      * Uses distributed locking for multi-instance safety
+     * Processes updates in chunks to prevent long DB locks
      */
     @Scheduled(fixedRate = 300000) // 5 minutes
-    @Transactional
     public void syncViewsToDatabase() {
         try {
             // Acquire distributed lock to prevent multiple instances from syncing
@@ -109,59 +111,86 @@ public class BlogViewService {
                 return;
             }
             
-            int syncedCount = 0;
-            for (String blogIdStr : blogIds) {
-                try {
-                    Long blogId = Long.parseLong(blogIdStr);
-                    String viewCountKey = String.format(VIEW_COUNT_KEY, blogId);
+            // Process in chunks of 500 to prevent locking DB for too long
+            final int CHUNK_SIZE = 500;
+            List<String> blogIdList = new ArrayList<>(blogIds);
+            int totalSynced = 0;
 
-                    String redisCountStr = redisTemplate.opsForValue().get(viewCountKey);
-                    if (redisCountStr != null) {
-                        long redisCount = Long.parseLong(redisCountStr);
+            for (int i = 0; i < blogIdList.size(); i += CHUNK_SIZE) {
+                int end = Math.min(i + CHUNK_SIZE, blogIdList.size());
+                List<String> chunk = blogIdList.subList(i, end);
 
-                        // Update database with Redis view count
-                        int updatedRows = blogRepository.incrementViewCount(blogId, redisCount);
+                int chunkSynced = syncViewsChunk(chunk);
+                totalSynced += chunkSynced;
 
-                        if (updatedRows > 0) {
-                            // --- Elasticsearch viewCount sync ---
-                            try {
-                                Long currentDbViewCount = blogRepository.findViewCountByBlogId(blogId);
-                                long totalViewCount = currentDbViewCount != null ? currentDbViewCount : redisCount;
-                                blogSearchRepository.findById(blogIdStr).ifPresentOrElse(
-                                        document -> {
-                                            BlogDocument updatedDocument = document.toBuilder()
-                                                    .viewCount(totalViewCount)
-                                                    .build();
-                                            blogSearchRepository.save(updatedDocument);
-                                            log.debug("Updated Elasticsearch viewCount for blog {} to {}", blogIdStr, totalViewCount);
-                                        },
-                                        () -> log.warn("BlogDocument not found in Elasticsearch for blogId: {}", blogIdStr)
-                                );
-                            } catch (Exception esException) {
-                                log.error("Failed to sync viewCount to Elasticsearch for blog {}: {}", blogIdStr, esException.getMessage(), esException);
-                            }
-
-                            // Clear Redis count and remove from pending set
-                            redisTemplate.delete(viewCountKey);
-                            redisTemplate.opsForSet().remove(PENDING_VIEWS_SET, blogIdStr);
-
-                            syncedCount++;
-                            log.debug("Synced {} views for blog {}", redisCount, blogId);
-                        }
-                    }
-
-                } catch (Exception e) {
-                    log.error("Failed to sync views for blog {}", blogIdStr, e);
-                }
+                log.debug("Synced chunk {}/{}: {} blogs",
+                    (i / CHUNK_SIZE) + 1,
+                    (blogIdList.size() + CHUNK_SIZE - 1) / CHUNK_SIZE,
+                    chunkSynced);
             }
-            
-            log.info("Completed batch sync: {} blogs synced", syncedCount);
-            
+
+            log.info("Completed batch sync: {} blogs synced", totalSynced);
+
         } catch (Exception e) {
             log.error("Failed to sync views to database", e);
         } finally {
             // Release lock
             redisTemplate.delete(VIEW_BATCH_LOCK);
         }
+    }
+
+    /**
+     * Process a chunk of view updates in a single transaction
+     */
+    @Transactional
+    protected int syncViewsChunk(List<String> blogIds) {
+        int syncedCount = 0;
+
+        for (String blogIdStr : blogIds) {
+            try {
+                Long blogId = Long.parseLong(blogIdStr);
+                String viewCountKey = String.format(VIEW_COUNT_KEY, blogId);
+
+                String redisCountStr = redisTemplate.opsForValue().get(viewCountKey);
+                if (redisCountStr != null) {
+                    long redisCount = Long.parseLong(redisCountStr);
+
+                    // Update database with Redis view count
+                    int updatedRows = blogRepository.incrementViewCount(blogId, redisCount);
+
+                    if (updatedRows > 0) {
+                        // --- Elasticsearch viewCount sync ---
+                        try {
+                            Long currentDbViewCount = blogRepository.findViewCountByBlogId(blogId);
+                            long totalViewCount = currentDbViewCount != null ? currentDbViewCount : redisCount;
+                            blogSearchRepository.findById(blogIdStr).ifPresentOrElse(
+                                    document -> {
+                                        BlogDocument updatedDocument = document.toBuilder()
+                                                .viewCount(totalViewCount)
+                                                .build();
+                                        blogSearchRepository.save(updatedDocument);
+                                        log.debug("Updated Elasticsearch viewCount for blog {} to {}", blogIdStr, totalViewCount);
+                                    },
+                                    () -> log.warn("BlogDocument not found in Elasticsearch for blogId: {}", blogIdStr)
+                            );
+                        } catch (Exception esException) {
+                            log.error("Failed to sync viewCount to Elasticsearch for blog {}: {}", blogIdStr, esException.getMessage(), esException);
+                        }
+
+                        // Clear Redis count and remove from pending set
+                        redisTemplate.delete(viewCountKey);
+                        redisTemplate.opsForSet().remove(PENDING_VIEWS_SET, blogIdStr);
+
+                        syncedCount++;
+                        log.debug("Synced {} views for blog {}", redisCount, blogId);
+                    }
+                }
+
+            } catch (Exception e) {
+                log.error("Failed to sync views for blog {}", blogIdStr, e);
+            }
+        }
+
+        return syncedCount;
     }
 }

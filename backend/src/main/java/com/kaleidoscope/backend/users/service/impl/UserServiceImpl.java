@@ -138,6 +138,9 @@ public class UserServiceImpl implements UserService {
         user.setAccountStatus(newAccountStatus);
         userRepository.save(user);
 
+        // Sync user document after account status update
+        userDocumentSyncService.syncOnProfileUpdate(userId);
+
         log.info("Updated account status for user ID {} to {}", userId, newAccountStatus);
     }
 
@@ -265,7 +268,6 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserNotFoundException("User profile not found with ID: " + profileUserId));
 
         // 3. Get profile privacy settings DIRECTLY from the UserDocument
-        // This assumes profileVisibility is correctly synced, which it is.
         Visibility profileVisibility = Visibility.PUBLIC; // Default to public
         if (profileUserDoc.getProfileVisibility() != null) {
             try {

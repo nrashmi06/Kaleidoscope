@@ -131,7 +131,6 @@ public class EmailServiceImpl implements EmailService {
         logger.info("Starting to send notification email to: {}, template: {}, attachments: {}", to, templateName, attachments != null ? attachments.size() : 0);
         try {
             Context context = new Context();
-
             // Add all variables to context
             if (variables != null) {
                 variables.forEach(context::setVariable);

@@ -48,7 +48,7 @@ public class CategoryController implements CategoryApi {
 
     @Override
     @PostMapping(CategoryRoutes.CREATE_CATEGORY)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<CategoryResponseDTO>> createCategory(
             @Valid @RequestBody CategoryRequestDTO categoryRequestDTO) {
         log.info("Creating category with name: {}", categoryRequestDTO.name());
@@ -68,7 +68,7 @@ public class CategoryController implements CategoryApi {
 
     @Override
     @PutMapping(CategoryRoutes.UPDATE_CATEGORY)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<CategoryResponseDTO>> updateCategory(
             @PathVariable Long categoryId,
             @Valid @RequestBody CategoryRequestDTO categoryRequestDTO) {
@@ -89,7 +89,7 @@ public class CategoryController implements CategoryApi {
 
     @Override
     @DeleteMapping(CategoryRoutes.DELETE_CATEGORY)
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<String>> deleteCategory(@PathVariable Long categoryId) {
         log.info("Deleting category ID: {}", categoryId);
         categoryService.deleteCategory(categoryId);

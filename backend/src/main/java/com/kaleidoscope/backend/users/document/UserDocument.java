@@ -56,15 +56,15 @@ public class UserDocument {
     private Integer followingCount;
 
     // --- User Interests (Optimized for Filtering) ---
-    @Field(type = FieldType.Long) // Correct type to match Category ID
+    @Field(type = FieldType.Long)
     private List<Long> interests;
 
     // --- User Block Information ---
     @Field(type = FieldType.Long)
-    private List<Long> blockedByUserIds; // IDs of users who have blocked this user
+    private List<Long> blockedByUserIds;
 
     @Field(type = FieldType.Long)
-    private List<Long> blockedUserIds; // IDs of users this user has blocked
+    private List<Long> blockedUserIds;
 
     // --- User Tagging Preference ---
     @Field(type = FieldType.Keyword)

@@ -1,10 +1,12 @@
 package com.kaleidoscope.backend.readmodels.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.Instant;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "read_model_feed_personalized")
 public class FeedPersonalizedReadModel {
@@ -42,5 +44,17 @@ public class FeedPersonalizedReadModel {
 
     @Column(name = "expires_at")
     private Instant expiresAt;
-}
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FeedPersonalizedReadModel that = (FeedPersonalizedReadModel) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+}
