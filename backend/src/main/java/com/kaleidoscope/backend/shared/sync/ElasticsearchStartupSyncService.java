@@ -22,6 +22,21 @@ import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserInterest;
 import com.kaleidoscope.backend.users.repository.*;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
+
+import com.kaleidoscope.backend.posts.document.FeedItemDocument;
+import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
+import com.kaleidoscope.backend.posts.document.RecommendationDocument;
+import com.kaleidoscope.backend.posts.document.SearchAssetDocument;
+import com.kaleidoscope.backend.posts.document.MediaDetectedFaceDocument;
+import com.kaleidoscope.backend.posts.document.MediaAiInsightsDocument;
+import com.kaleidoscope.backend.users.document.UserProfileDocument;
+import com.kaleidoscope.backend.users.document.UserFaceEmbeddingDocument;
+import com.kaleidoscope.backend.users.document.FaceSearchDocument;
+
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHitsIterator;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +53,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 
 /**
  * Service to synchronize all data from PostgreSQL to Elasticsearch on
@@ -70,6 +86,7 @@ public class ElasticsearchStartupSyncService {
 
     // --- IMPORT ADDED ---
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
+    private final ElasticsearchOperations elasticsearchOperations;
 
     // Optimized batch size: increased from 100 to 500 to reduce DB round-trips
     // during startup sync
@@ -131,39 +148,9 @@ public class ElasticsearchStartupSyncService {
      * Clears PostgreSQL read models for deleted content.
      */
     private void cleanOrphanedData() {
-        log.info("Starting orphaned data cleanup...");
+        log.info("Starting robust orphaned data cleanup...");
         try {
-            // 1. Elasticsearch Document Cleanup
-            log.info("Checking for orphaned Elasticsearch Users...");
-            int deletedUsers = 0;
-            for (UserDocument esUser : userSearchRepository.findAll()) {
-                if (!userRepository.existsById(esUser.getUserId())) {
-                    userSearchRepository.delete(esUser);
-                    deletedUsers++;
-                }
-            }
-
-            log.info("Checking for orphaned Elasticsearch Posts...");
-            int deletedPosts = 0;
-            for (PostDocument esPost : postSearchRepository.findAll()) {
-                if (!postRepository.existsById(esPost.getPostId())) {
-                    postSearchRepository.delete(esPost);
-                    deletedPosts++;
-                }
-            }
-
-            log.info("Checking for orphaned Elasticsearch Blogs...");
-            int deletedBlogs = 0;
-            for (BlogDocument esBlog : blogSearchRepository.findAll()) {
-                if (!blogRepository.existsById(esBlog.getBlogId())) {
-                    blogSearchRepository.delete(esBlog);
-                    deletedBlogs++;
-                }
-            }
-            log.info("Deleted orphaned ES documents: {} Users, {} Posts, {} Blogs", deletedUsers, deletedPosts,
-                    deletedBlogs);
-
-            // 2. PostgreSQL Read Model Cleanup
+            // 1. PostgreSQL Read Model Cleanup
             log.info("Cleaning orphaned PostgreSQL Read Models...");
             int rmPosts = jdbcTemplate.update(
                     "DELETE FROM read_model_post_search WHERE post_id NOT IN (SELECT post_id FROM posts WHERE deleted_at IS NULL)");
@@ -176,8 +163,67 @@ public class ElasticsearchStartupSyncService {
             log.info("Cleaned orphaned PG Read Models: {} PostSearch, {} MediaSearch, {} FaceSearch, {} Knn", rmPosts,
                     rmMedia, rmFaces, rmKnn);
 
+            // 2. Load Valid IDs from PostgreSQL into memory sets (extremely fast)
+            log.info("Loading valid IDs from PostgreSQL into memory...");
+            Set<Long> validUserIds = new HashSet<>(jdbcTemplate.queryForList("SELECT user_id FROM users", Long.class));
+            Set<Long> validPostIds = new HashSet<>(
+                    jdbcTemplate.queryForList("SELECT post_id FROM posts WHERE deleted_at IS NULL", Long.class));
+            Set<Long> validBlogIds = new HashSet<>(jdbcTemplate.queryForList("SELECT blog_id FROM blogs", Long.class));
+            Set<Long> validMediaIds = new HashSet<>(
+                    jdbcTemplate.queryForList("SELECT media_id FROM media_ai_insights", Long.class));
+            log.info("Loaded {} user IDs, {} post IDs, {} blog IDs, {} media IDs.", validUserIds.size(),
+                    validPostIds.size(), validBlogIds.size(), validMediaIds.size());
+
+            // 3. Clear out User-dependent Elasticsearch indices
+            log.info("Cleaning User-dependent Elasticsearch indices...");
+            cleanIndex(UserDocument.class, UserDocument::getUserId, validUserIds);
+            cleanIndex(UserProfileDocument.class, UserProfileDocument::getUserId, validUserIds);
+            cleanIndex(UserFaceEmbeddingDocument.class, UserFaceEmbeddingDocument::getUserId, validUserIds);
+
+            // 4. Clear out Post-dependent Elasticsearch indices
+            log.info("Cleaning Post-dependent Elasticsearch indices...");
+            cleanIndex(PostDocument.class, PostDocument::getPostId, validPostIds);
+            cleanIndex(FeedItemDocument.class, FeedItemDocument::getPostId, validPostIds);
+            cleanIndex(MediaSearchDocument.class, MediaSearchDocument::getPostId, validPostIds);
+            cleanIndex(FaceSearchDocument.class, FaceSearchDocument::getPostId, validPostIds);
+            cleanIndex(MediaAiInsightsDocument.class, MediaAiInsightsDocument::getPostId, validPostIds);
+            cleanIndex(MediaDetectedFaceDocument.class, MediaDetectedFaceDocument::getMediaId, validMediaIds);
+            cleanIndex(SearchAssetDocument.class, SearchAssetDocument::getPostId, validPostIds);
+
+            // 5. Clear out Blog-dependent Elasticsearch indices
+            log.info("Cleaning Blog-dependent Elasticsearch indices...");
+            cleanIndex(BlogDocument.class, BlogDocument::getBlogId, validBlogIds);
+
+            // 6. Clear out Media-dependent Elasticsearch indices (Recommendations)
+            log.info("Cleaning Media-dependent Elasticsearch indices...");
+            cleanIndex(RecommendationDocument.class, RecommendationDocument::getMediaId, validMediaIds);
+
+            log.info("Successfully finished Elasticsearch streaming cleanup.");
         } catch (Exception e) {
             log.error("Failed to clean orphaned data", e);
+        }
+    }
+
+    /**
+     * Streams through an entire Elasticsearch index, deleting any document whose
+     * primary associated ID
+     * (e.g. userId, postId) is NOT found in the set of valid IDs from PostgreSQL.
+     */
+    private <T> void cleanIndex(Class<T> docClass, Function<T, Long> idExtractor, Set<Long> validIds) {
+        int deletedCount = 0;
+        try (SearchHitsIterator<T> stream = elasticsearchOperations.searchForStream(
+                NativeQuery.builder().withQuery(q -> q.matchAll(m -> m)).build(), docClass)) {
+            while (stream.hasNext()) {
+                T doc = stream.next().getContent();
+                Long docId = idExtractor.apply(doc);
+                if (docId != null && !validIds.contains(docId)) {
+                    elasticsearchOperations.delete(doc);
+                    deletedCount++;
+                }
+            }
+            log.debug("Cleaned index for {}: Deleted {} orphaned documents.", docClass.getSimpleName(), deletedCount);
+        } catch (Exception e) {
+            log.error("Error while cleaning index for " + docClass.getSimpleName(), e);
         }
     }
 
