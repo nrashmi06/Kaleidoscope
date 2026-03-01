@@ -89,14 +89,21 @@ public class ProfilePictureEventDTO {
 ```
 
 ### Stream Constants
-Stream names are centralized in `RedisStreamConstants`:
-```java
-public final class RedisStreamConstants {
-    public static final String PROFILE_PICTURE_PROCESSING_STREAM = "profile-picture-processing";
-    public static final String POST_IMAGE_PROCESSING_STREAM = "post-image-processing";
-    public static final String POST_UPDATE_STREAM = "post-update-processing";
-}
-```
+
+For the complete stream constants reference, see [ASYNC_PROCESSING_SYSTEM.md → Stream Constants](ASYNC_PROCESSING_SYSTEM.md#stream-constants).
+
+**Key streams for ML integration:**
+
+| Direction | Stream Name | Purpose |
+|-----------|------------|---------|
+| Backend → ML | `post-image-processing` | Post image analysis requests |
+| Backend → ML | `profile-picture-processing` | Profile picture analysis requests |
+| Backend → ML | `post-update-processing` | Post update re-analysis |
+| ML → Backend | `ml-insights-results` | AI insights (captions, tags, safety) |
+| ML → Backend | `face-detection-results` | Detected face bounding boxes |
+| ML → Backend | `face-recognition-results` | Face identity matching |
+| ML → Backend | `user-profile-face-embedding-results` | Profile face embeddings |
+| ML → Backend | `post-insights-enriched` | Aggregated post-level insights |
 
 ### Publishing Workflow
 ```mermaid
@@ -142,7 +149,7 @@ public class PostService {
                 .build();
                 
             redisStreamPublisher.publish(
-                RedisStreamConstants.POST_IMAGE_PROCESSING_STREAM, 
+                ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, 
                 event
             );
             
@@ -180,7 +187,7 @@ public class UserService {
             .build();
             
         redisStreamPublisher.publish(
-            RedisStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM,
+            ProducerStreamConstants.PROFILE_PICTURE_PROCESSING_STREAM,
             event
         );
         
@@ -193,172 +200,59 @@ public class UserService {
 
 ## Consumer Implementation (ML Server → Backend)
 
-### Stream Consumer Configuration
-The backend consumes ML results through configured stream listeners:
+For detailed consumer processing logic, read model updates, and error handling, see [ASYNC_PROCESSING_SYSTEM.md](ASYNC_PROCESSING_SYSTEM.md).
 
-```java
-@Configuration
-public class RedisStreamConfig {
-    
-    // Stream names for ML results
-    private static final String ML_INSIGHTS_STREAM = "ml-insights-results";
-    private static final String FACE_DETECTION_STREAM = "face-detection-results";
-    private static final String FACE_RECOGNITION_STREAM = "face-recognition-results";
-    
-    // Consumer group
-    private static final String CONSUMER_GROUP = "backend-group";
-    
-    @Bean
-    public StreamMessageListenerContainer streamMessageListenerContainer() {
-        // Configure container with consumers
-        container.receive(
-            Consumer.from(CONSUMER_GROUP, "media-ai-consumer"),
-            StreamOffset.create(ML_INSIGHTS_STREAM, ReadOffset.latest()),
-            mediaAiInsightsConsumer
-        );
-        // ... other consumers
-    }
-}
-```
+The backend consumes ML results through 5 stream listeners registered in `RedisStreamConfig`, all under consumer group `backend-group`:
 
-### Consumer Services
+| Consumer | Stream | What it processes |
+|----------|--------|-------------------|
+| `MediaAiInsightsConsumer` | `ml-insights-results` | AI insights → PostgreSQL + Read Models + ES |
+| `FaceDetectionConsumer` | `face-detection-results` | Detected faces → PostgreSQL + Read Models + ES |
+| `FaceRecognitionConsumer` | `face-recognition-results` | Face identity matches → PostgreSQL + Read Models + ES |
+| `UserProfileFaceEmbeddingConsumer` | `user-profile-face-embedding-results` | Profile face embeddings → ES |
+| `PostInsightsEnrichedConsumer` | `post-insights-enriched` | Aggregated post insights → Read Models + ES |
 
-#### 1. MediaAiInsightsConsumer
-Processes general AI insights from ML server:
+### Result DTOs (Contract for ML Server)
 
-```java
-@Service
-@RequiredArgsConstructor  
-@Slf4j
-public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord<String, String, String>> {
-    
-    @Override
-    @Transactional
-    public void onMessage(MapRecord<String, String, String> record) {
-        // 1. Deserialize incoming message
-        MediaAiInsightsResultDTO resultDTO = convertMapRecordToDTO(record);
-        
-        // 2. Find associated PostMedia
-        PostMedia postMedia = postMediaRepository.findById(resultDTO.getMediaId())
-            .orElseThrow(() -> new RuntimeException("PostMedia not found"));
-            
-        // 3. Save AI insights to database
-        MediaAiInsights insights = createOrUpdateInsights(postMedia, resultDTO);
-        mediaAiInsightsRepository.save(insights);
-        
-        // 4. Index for search capabilities
-        updateSearchIndex(postMedia, insights);
-    }
-}
-```
-
-#### 2. FaceDetectionConsumer
-Processes face detection results:
-
-```java
-@Service
-@RequiredArgsConstructor
-@Slf4j  
-public class FaceDetectionConsumer implements StreamListener<String, MapRecord<String, String, String>> {
-    
-    @Override
-    @Transactional
-    public void onMessage(MapRecord<String, String, String> record) {
-        // 1. Deserialize face detection results
-        FaceDetectionResultDTO resultDTO = convertMapRecordToDTO(record);
-        
-        // 2. Save detected faces to database  
-        List<MediaDetectedFace> detectedFaces = createDetectedFaces(resultDTO);
-        mediaDetectedFaceRepository.saveAll(detectedFaces);
-        
-        // 3. Update face detection status
-        updateFaceDetectionStatus(resultDTO.getMediaId(), FaceDetectionStatus.COMPLETED);
-    }
-}
-```
-
-#### 3. FaceRecognitionConsumer
-Processes face recognition results:
-
-```java
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class FaceRecognitionConsumer implements StreamListener<String, MapRecord<String, String, String>> {
-    
-    @Override  
-@Transactional
-    public void onMessage(MapRecord<String, String, String> record) {
-        // 1. Deserialize face recognition results
-        FaceRecognitionResultDTO resultDTO = convertMapRecordToDTO(record);
-        
-        // 2. Update face recognition data
-        updateFaceRecognitionData(resultDTO);
-        
-        // 3. Link recognized faces to user profiles
-        linkFacesToUsers(resultDTO);
-    }
-}
-```
-
-### Result DTOs from ML Server
+The ML server must publish results matching these field contracts:
 
 #### MediaAiInsightsResultDTO
-```java
-@Data
-@Builder
-public class MediaAiInsightsResultDTO {
-    private Long mediaId;
-    private List<String> detectedObjects;    // ["person", "car", "tree"]
-    private List<String> scenes;             // ["outdoor", "urban"]  
-    private List<String> colors;             // ["blue", "green", "red"]
-    private Double qualityScore;             // 0.0 to 1.0
-    private Boolean hasAdultContent;         // Content moderation
-    private Boolean hasViolentContent;       // Violence detection
-    private String dominantEmotion;          // "happy", "sad", etc.
-    private String correlationId;            // Request tracking
+```json
+{
+    "mediaId": 12345,
+    "caption": "A group of people at a park",
+    "tags": "[\"people\", \"park\", \"outdoor\"]",
+    "scenes": "[\"outdoor\", \"recreation\"]",
+    "isSafe": true,
+    "imageEmbedding": "[0.1, 0.2, ...]",
+    "correlationId": "req-abc-123"
 }
 ```
 
 #### FaceDetectionResultDTO
-```java
-@Data
-@Builder
-public class FaceDetectionResultDTO {
-    private Long mediaId;
-    private List<DetectedFace> faces;        // Face bounding boxes
-    private String correlationId;
-    
-    @Data
-    @Builder
-    public static class DetectedFace {
-        private Double boundingBoxX;         // Face location
-        private Double boundingBoxY;
-        private Double boundingBoxWidth;
-        private Double boundingBoxHeight;
-        private Double confidence;           // Detection confidence 0-1
-        private Integer estimatedAge;        // Age estimation
-        private String estimatedGender;      // Gender estimation  
-        private String dominantEmotion;      // Primary emotion
-    }
+```json
+{
+    "mediaId": 12345,
+    "facesDetected": 2,
+    "faces": [
+        {
+            "bbox": "[100, 200, 50, 60]",
+            "faceEmbedding": "[0.1, 0.2, ...]",
+            "confidence": 0.95
+        }
+    ],
+    "correlationId": "req-abc-123"
 }
 ```
 
-## Consumer Group Benefits
-
-### Reliability Features
-- **Message Persistence**: Messages remain in stream until acknowledged
-- **Consumer Groups**: Multiple backend instances can process messages
-- **Load Balancing**: Messages distributed across group members
-- **Failure Handling**: Failed messages can be retried or moved to dead letter queue
-
-### Consumer Group Configuration
-```java
-// Consumer group: "backend-group"
-// Individual consumers:
-// - "media-ai-consumer" → MediaAiInsightsConsumer  
-// - "face-detection-consumer" → FaceDetectionConsumer
-// - "face-recognition-consumer" → FaceRecognitionConsumer
+#### FaceRecognitionResultDTO
+```json
+{
+    "faceId": 67890,
+    "suggestedUserId": 42,
+    "confidenceScore": 0.92,
+    "correlationId": "req-abc-123"
+}
 ```
 
 ## Error Handling & Reliability
@@ -407,30 +301,8 @@ public class RedisStreamPublisher {
 ```
 
 ### Consumer Error Handling
-```java
-@Override
-@Transactional
-public void onMessage(MapRecord<String, String, String> record) {
-    try {
-        // Process ML result
-        processMLResult(record);
-        
-        // Acknowledge message (automatic with Spring Data Redis)
-        log.info("Successfully processed message: messageId={}", record.getId());
-        
-    } catch (DataIntegrityViolationException e) {
-        log.error("Database constraint violation: messageId={}, error={}", 
-                 record.getId(), e.getMessage());
-        // Message will be retried by consumer group
-        
-    } catch (Exception e) {
-        log.error("Unexpected error processing message: messageId={}, error={}", 
-                 record.getId(), e.getMessage(), e);
-        // Could implement dead letter queue logic here
-        throw e; // Rethrow to trigger retry
-    }
-}
-```
+
+For detailed consumer error handling (exception hierarchy, retry strategy, PEL management), see [ASYNC_PROCESSING_SYSTEM.md → Error Handling](ASYNC_PROCESSING_SYSTEM.md#error-handling).
 
 ## ML Server Requirements
 

@@ -6,8 +6,10 @@ import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.readmodels.model.FaceSearchReadModel;
 import com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel;
+import com.kaleidoscope.backend.readmodels.model.RecommendationsKnnReadModel;
 import com.kaleidoscope.backend.readmodels.repository.FaceSearchReadModelRepository;
 import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
+import com.kaleidoscope.backend.readmodels.repository.RecommendationsKnnReadModelRepository;
 import com.kaleidoscope.backend.users.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ public class ReadModelUpdateService {
 
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
     private final FaceSearchReadModelRepository faceSearchReadModelRepository;
+    private final RecommendationsKnnReadModelRepository recommendationsKnnReadModelRepository;
     // Note: We are not injecting PostRepository here to get author info,
     // as PostMedia -> Post -> User is already available.
 
@@ -46,12 +49,12 @@ public class ReadModelUpdateService {
             readModel.setMediaId(postMedia.getMediaId());
             readModel.setPostId(post.getPostId());
             readModel.setPostTitle(post.getTitle());
-            
+
             // postAllTags is updated later by the PostAggregation consumer
 
             readModel.setMediaUrl(postMedia.getMediaUrl());
             readModel.setAiCaption(insights.getCaption());
-            
+
             // Convert arrays to comma-separated strings
             if (insights.getTags() != null) {
                 readModel.setAiTags(String.join(",", insights.getTags()));
@@ -62,15 +65,15 @@ public class ReadModelUpdateService {
 
             readModel.setImageEmbedding(convertEmbeddingToString(insights.getImageEmbedding()));
             readModel.setIsSafe(insights.getIsSafe());
-            
+
             // detected_user_ids/usernames are updated by the FaceDetection consumer
-            
+
             readModel.setUploaderId(uploader.getUserId());
             readModel.setUploaderUsername(uploader.getUsername());
             readModel.setUploaderDepartment(uploader.getDesignation()); // Using designation as department
 
             // Counts will be updated by a separate interaction sync
-            readModel.setReactionCount(0); 
+            readModel.setReactionCount(0);
             readModel.setCommentCount(0);
 
             readModel.setCreatedAt(post.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
@@ -79,7 +82,44 @@ public class ReadModelUpdateService {
             mediaSearchReadModelRepository.save(readModel);
             log.info("Successfully updated MediaSearchReadModel for mediaId: {}", postMedia.getMediaId());
         } catch (Exception e) {
-            log.error("Failed to update MediaSearchReadModel for mediaId: {}: {}", postMedia.getMediaId(), e.getMessage(), e);
+            log.error("Failed to update MediaSearchReadModel for mediaId: {}: {}", postMedia.getMediaId(),
+                    e.getMessage(), e);
+            // Don't re-throw, just log the error
+        }
+    }
+
+    /**
+     * Creates or updates a record in the 'read_model_recommendations_knn' table.
+     * This backs up the embedding + media metadata needed for KNN-based
+     * recommendations.
+     * Called by MediaAiInsightsConsumer alongside updateMediaSearchReadModel.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateRecommendationsKnnReadModel(MediaAiInsights insights, PostMedia postMedia) {
+        log.debug("Updating RecommendationsKnnReadModel for mediaId: {}", postMedia.getMediaId());
+        try {
+            String embeddingStr = convertEmbeddingToString(insights.getImageEmbedding());
+            if (embeddingStr == null) {
+                log.debug("Skipping RecommendationsKnnReadModel for mediaId: {} - no image embedding available yet",
+                        postMedia.getMediaId());
+                return;
+            }
+
+            Post post = postMedia.getPost();
+
+            RecommendationsKnnReadModel readModel = new RecommendationsKnnReadModel();
+            readModel.setMediaId(postMedia.getMediaId());
+            readModel.setImageEmbedding(embeddingStr);
+            readModel.setMediaUrl(postMedia.getMediaUrl());
+            readModel.setCaption(insights.getCaption());
+            readModel.setIsSafe(insights.getIsSafe());
+            readModel.setCreatedAt(post.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
+
+            recommendationsKnnReadModelRepository.save(readModel);
+            log.info("Successfully updated RecommendationsKnnReadModel for mediaId: {}", postMedia.getMediaId());
+        } catch (Exception e) {
+            log.error("Failed to update RecommendationsKnnReadModel for mediaId: {}: {}",
+                    postMedia.getMediaId(), e.getMessage(), e);
             // Don't re-throw, just log the error
         }
     }
@@ -101,12 +141,12 @@ public class ReadModelUpdateService {
             readModel.setMediaId(face.getMediaAiInsights().getMediaId());
             readModel.setPostId(post.getPostId());
             readModel.setFaceEmbedding(face.getEmbedding()); // This is already a JSON string
-            
+
             // Convert bbox array to JSON string
             if (face.getBbox() != null) {
                 String bboxString = "[" + java.util.Arrays.stream(face.getBbox())
-                                         .map(String::valueOf)
-                                         .collect(Collectors.joining(",")) + "]";
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(",")) + "]";
                 readModel.setBbox(bboxString);
             }
 
@@ -114,7 +154,7 @@ public class ReadModelUpdateService {
             readModel.setIdentifiedUserId(null);
             readModel.setIdentifiedUsername(null);
             readModel.setMatchConfidence(null);
-            
+
             readModel.setUploaderId(uploader.getUserId());
             readModel.setPostTitle(post.getTitle());
             readModel.setMediaUrl(face.getMediaAiInsights().getPostMedia().getMediaUrl());
@@ -137,11 +177,11 @@ public class ReadModelUpdateService {
         }
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < embedding.length; i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append(embedding[i]);
         }
         sb.append("]");
         return sb.toString();
     }
 }
-

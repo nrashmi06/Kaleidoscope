@@ -1,0 +1,23 @@
+meta {
+  name: send mass email
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/admin/send-mass-email
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+      "subject": "Important System Announcement",
+      "body": "<h2>Urgent Notice</h2><p>This is an <strong>emergency broadcast</strong> to selected roles.</p>",
+      "targetRoles": ["USER", "MODERATOR"]
+  }
+}
+
+settings {
+  encodeUrl: true
+}

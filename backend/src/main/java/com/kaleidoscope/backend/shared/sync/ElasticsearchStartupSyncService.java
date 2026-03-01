@@ -6,8 +6,12 @@ import com.kaleidoscope.backend.blogs.model.Blog;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
 import com.kaleidoscope.backend.blogs.repository.search.BlogSearchRepository;
 import com.kaleidoscope.backend.posts.document.PostDocument;
+import com.kaleidoscope.backend.posts.model.MediaAiInsights;
+import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
+import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
+import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.shared.model.Category;
@@ -31,13 +35,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Service to synchronize all data from PostgreSQL to Elasticsearch on application startup
+ * Service to synchronize all data from PostgreSQL to Elasticsearch on
+ * application startup
  * This ensures Elasticsearch indices are always in sync with the database
  */
 @Service
@@ -54,6 +57,8 @@ public class ElasticsearchStartupSyncService {
 
     private final PostRepository postRepository;
     private final PostSearchRepository postSearchRepository;
+    private final MediaAiInsightsRepository mediaAiInsightsRepository;
+    private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
 
     // Blog components
     private final BlogRepository blogRepository;
@@ -63,7 +68,8 @@ public class ElasticsearchStartupSyncService {
     // --- IMPORT ADDED ---
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
 
-    // Optimized batch size: increased from 100 to 500 to reduce DB round-trips during startup sync
+    // Optimized batch size: increased from 100 to 500 to reduce DB round-trips
+    // during startup sync
     private static final int BATCH_SIZE = 500;
 
     @PostConstruct
@@ -101,7 +107,8 @@ public class ElasticsearchStartupSyncService {
             // Verify the container is actually running
             if (streamMessageListenerContainer.isRunning()) {
                 log.info("✅ Redis Stream consumers started successfully after data sync.");
-                log.info("📡 Consumers are now actively polling for messages using offset '>' (new + pending messages)");
+                log.info(
+                        "📡 Consumers are now actively polling for messages using offset '>' (new + pending messages)");
             } else {
                 log.error("❌ Redis Stream container failed to start! Consumers will not process messages.");
             }
@@ -198,15 +205,16 @@ public class ElasticsearchStartupSyncService {
         // Fetch tagging preference
         String allowTagging = userPreferencesRepository
                 .findByUser_UserId(user.getUserId())
-                .map(prefs -> prefs.getAllowTagging() != null ? prefs.getAllowTagging().name() : Visibility.PUBLIC.name())
+                .map(prefs -> prefs.getAllowTagging() != null ? prefs.getAllowTagging().name()
+                        : Visibility.PUBLIC.name())
                 .orElse(Visibility.PUBLIC.name());
 
         // Fetch profile visibility
         String profileVisibility = userPreferencesRepository
                 .findByUser_UserId(user.getUserId())
-                .map(prefs -> prefs.getProfileVisibility() != null ? prefs.getProfileVisibility().name() : Visibility.PUBLIC.name())
+                .map(prefs -> prefs.getProfileVisibility() != null ? prefs.getProfileVisibility().name()
+                        : Visibility.PUBLIC.name())
                 .orElse(Visibility.PUBLIC.name());
-
 
         // Build UserDocument
         UserDocument userDocument = UserDocument.builder()
@@ -320,11 +328,9 @@ public class ElasticsearchStartupSyncService {
             Long locationId = location.getLocationId();
             String locationName = location.getName();
             if (location.getLatitude() != null && location.getLongitude() != null) {
-                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
-                        new org.springframework.data.elasticsearch.core.geo.GeoPoint(
-                                location.getLatitude().doubleValue(),
-                                location.getLongitude().doubleValue()
-                        );
+                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint = new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                        location.getLatitude().doubleValue(),
+                        location.getLongitude().doubleValue());
                 locationInfo = PostDocument.LocationInfo.builder()
                         .id(locationId)
                         .name(locationName)
@@ -349,10 +355,47 @@ public class ElasticsearchStartupSyncService {
                 .orElse(null);
 
         // Extract hashtag names from post
-        List<String> hashtagNames = post.getPostHashtags().stream() // <-- This is where the fix takes effect
+        List<String> hashtagNames = post.getPostHashtags().stream()
                 .map(ph -> ph.getHashtag().getName())
                 .collect(Collectors.toList());
         log.debug("Synced {} hashtags for post {}", hashtagNames.size(), post.getPostId());
+
+        // --- ML INSIGHTS: Aggregate from MediaAiInsights + MediaDetectedFace ---
+        List<String> aggregatedTags = new ArrayList<>();
+        List<String> aggregatedCaptions = new ArrayList<>();
+        List<String> aggregatedScenes = new ArrayList<>();
+        int totalFaceCount = 0;
+
+        try {
+            List<MediaAiInsights> allInsights = mediaAiInsightsRepository.findByPost_PostId(post.getPostId());
+            for (MediaAiInsights insight : allInsights) {
+                if (insight.getTags() != null) {
+                    aggregatedTags.addAll(Arrays.asList(insight.getTags()));
+                }
+                if (insight.getCaption() != null && !insight.getCaption().isBlank()) {
+                    aggregatedCaptions.add(insight.getCaption());
+                }
+                if (insight.getScenes() != null) {
+                    aggregatedScenes.addAll(Arrays.asList(insight.getScenes()));
+                }
+                // Count faces for this media
+                List<MediaDetectedFace> faces = mediaDetectedFaceRepository
+                        .findByMediaAiInsights_MediaId(insight.getMediaId());
+                totalFaceCount += faces.size();
+            }
+            // Deduplicate tags and scenes
+            aggregatedTags = aggregatedTags.stream().distinct().collect(Collectors.toList());
+            aggregatedScenes = aggregatedScenes.stream().distinct().collect(Collectors.toList());
+
+            if (!allInsights.isEmpty()) {
+                log.debug("Populated ML insights for post {}: {} tags, {} captions, {} scenes, {} faces",
+                        post.getPostId(), aggregatedTags.size(), aggregatedCaptions.size(),
+                        aggregatedScenes.size(), totalFaceCount);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load ML insights for post {}: {}. Using empty defaults.",
+                    post.getPostId(), e.getMessage());
+        }
 
         // Build PostDocument
         PostDocument postDocument = PostDocument.builder()
@@ -371,9 +414,11 @@ public class ElasticsearchStartupSyncService {
                 .reactionCount(0L) // Initial value, will be updated by interaction events
                 .commentCount(0L) // Initial value, will be updated by interaction events
                 .viewCount(0L) // Initial value, will be updated by view tracking
-                .mlImageTags(new ArrayList<>()) // Will be updated by ML service
-                .peopleCount(null) // Will be updated by ML service
-                .hashtags(hashtagNames) // Add hashtags to document
+                .mlImageTags(aggregatedTags)
+                .mlCaptions(aggregatedCaptions)
+                .mlScenes(aggregatedScenes)
+                .peopleCount(totalFaceCount > 0 ? totalFaceCount : null)
+                .hashtags(hashtagNames)
                 .build();
 
         postSearchRepository.save(postDocument);
@@ -476,4 +521,3 @@ public class ElasticsearchStartupSyncService {
         private boolean postsSynced;
     }
 }
-
