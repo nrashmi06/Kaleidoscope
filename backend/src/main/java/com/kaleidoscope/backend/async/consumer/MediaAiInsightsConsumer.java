@@ -65,10 +65,11 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Received ML insights message from Redis Stream: streamKey={}, messageId={}, service={}",
                     record.getStream(), messageId, service);
 
-            // Deserialization: Convert the incoming MapRecord message into MediaAiInsightsResultDTO
+            // Deserialization: Convert the incoming MapRecord message into
+            // MediaAiInsightsResultDTO
             MediaAiInsightsResultDTO resultDTO = convertMapRecordToDTO(record);
             log.info("Successfully deserialized ML insights for mediaId: {}, service: {}",
-                     resultDTO.getMediaId(), service);
+                    resultDTO.getMediaId(), service);
 
             // Data Retrieval: Find the corresponding PostMedia entity
             // Handle case where PostMedia was deleted after ML processing started
@@ -76,8 +77,9 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                     .orElse(null);
 
             if (postMedia == null) {
-                log.warn("PostMedia not found for mediaId: {}. The post/media may have been deleted after ML processing started. Acknowledging message to remove from PEL.",
-                         resultDTO.getMediaId());
+                log.warn(
+                        "PostMedia not found for mediaId: {}. The post/media may have been deleted after ML processing started. Acknowledging message to remove from PEL.",
+                        resultDTO.getMediaId());
                 // Return early - message will be acknowledged and removed from stream
                 // This is expected behavior when posts are deleted during processing
                 return;
@@ -86,7 +88,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Retrieved PostMedia for mediaId: {}, postId: {}",
                     postMedia.getMediaId(), postMedia.getPost().getPostId());
 
-            // PostgreSQL Update ("Write" Model): Load existing or create new, then merge fields
+            // PostgreSQL Update ("Write" Model): Load existing or create new, then merge
+            // fields
             MediaAiInsights existingInsights = mediaAiInsightsRepository
                     .findByMediaId(resultDTO.getMediaId())
                     .orElse(null);
@@ -95,12 +98,12 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             if (existingInsights != null) {
                 // Merge new fields into existing entity based on service
                 log.debug("Merging ML insights for existing mediaId: {}, service: {}",
-                         resultDTO.getMediaId(), service);
+                        resultDTO.getMediaId(), service);
                 mediaAiInsights = mergeMediaAiInsights(existingInsights, resultDTO, service);
             } else {
                 // Create new entity
                 log.debug("Creating new MediaAiInsights for mediaId: {}, service: {}",
-                         resultDTO.getMediaId(), service);
+                        resultDTO.getMediaId(), service);
                 mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia);
             }
 
@@ -114,10 +117,12 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.info("Saved SearchAssetDocument to Elasticsearch for mediaId: {}, documentId: {}",
                     postMedia.getMediaId(), savedDocument.getId());
 
-
             // 1. Update the new 'read_model_media_search' table
             // This runs in a new transaction
             readModelUpdateService.updateMediaSearchReadModel(savedInsights, postMedia);
+
+            // 1b. Update the 'read_model_recommendations_knn' backup table
+            readModelUpdateService.updateRecommendationsKnnReadModel(savedInsights, postMedia);
 
             // 2. Trigger ES Sync for the read model
             elasticsearchSyncTriggerService.triggerSync("read_model_media_search", postMedia.getMediaId());
@@ -128,9 +133,11 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 log.info("All media for postId: {} have been processed. Triggering aggregation.", postId);
 
                 // Get all media IDs for this post to send to the aggregator
-                Post post = postRepository.findById(postId).orElseThrow(() ->
-                        new IllegalStateException("Post not found for postId: " + postId) // Should not happen
-                );
+                Post post = postRepository.findById(postId)
+                        .orElseThrow(() -> new IllegalStateException("Post not found for postId: " + postId) // Should
+                                                                                                             // not
+                                                                                                             // happen
+                        );
                 List<Long> allMediaIds = post.getMedia().stream()
                         .map(PostMedia::getMediaId)
                         .collect(Collectors.toList());
@@ -146,11 +153,13 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                     resultDTO.getMediaId(), messageId);
 
         } catch (StreamDeserializationException e) {
-            log.error("Error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+            log.error(
+                    "Error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
             throw e; // Re-throw the exception to ensure transaction rollback and NO XACK
         } catch (Exception e) {
-            log.error("Unexpected error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
+            log.error(
+                    "Unexpected error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
             throw new StreamMessageProcessingException(record.getStream(), messageId,
                     "Unexpected error during ML insights processing", e); // Re-throw fatal exception
@@ -163,7 +172,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             Map<String, String> recordValue = record.getValue();
             log.debug("Converting MapRecord to DTO with {} fields", recordValue.size());
 
-            // Parse fields based on what's available (different services send different fields)
+            // Parse fields based on what's available (different services send different
+            // fields)
             // Handle isSafe - can be null for non-moderation services
             Boolean isSafe = null;
             String isSafeStr = recordValue.get("isSafe");
@@ -227,9 +237,11 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     }
 
     /**
-     * Merges new fields from DTO into existing MediaAiInsights entity based on service type.
+     * Merges new fields from DTO into existing MediaAiInsights entity based on
+     * service type.
      * Only updates fields that are provided by the current service.
-     * IMPORTANT: This method modifies the existing entity in-place to ensure proper JPA entity state management.
+     * IMPORTANT: This method modifies the existing entity in-place to ensure proper
+     * JPA entity state management.
      */
     private MediaAiInsights mergeMediaAiInsights(
             MediaAiInsights existing,
@@ -284,7 +296,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         }
         try {
             if (raw.startsWith("[")) {
-                List<Double> values = objectMapper.readValue(raw, new TypeReference<>() {});
+                List<Double> values = objectMapper.readValue(raw, new TypeReference<>() {
+                });
                 float[] vector = new float[values.size()];
                 for (int i = 0; i < values.size(); i++) {
                     vector[i] = values.get(i).floatValue();
@@ -325,7 +338,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         postInfo.put("status", post.getStatus().toString());
         postInfo.put("createdAt", post.getCreatedAt());
 
-        // Initialize empty detectedUsers map (will be populated by face recognition pipeline)
+        // Initialize empty detectedUsers map (will be populated by face recognition
+        // pipeline)
         Map<String, Object> detectedUsers = new HashMap<>();
 
         return SearchAssetDocument.builder()
@@ -353,7 +367,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         }
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < embedding.length; i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append(embedding[i]);
         }
         sb.append("]");
