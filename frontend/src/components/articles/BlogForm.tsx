@@ -1,12 +1,15 @@
+
+// src/components/articles/BlogForm.tsx
+
 'use client';
 
 import React, { useState, FormEvent, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation"; // ✅ Added useRouter
+import { useRouter } from "next/navigation";
 import { createBlogController } from "@/controllers/blog/createBlogController";
 import { BlogRequest, BlogDataResponse } from "@/lib/types/createBlog";
 import { useAccessToken } from "@/hooks/useAccessToken"; 
 import { cn } from "@/lib/utils"; 
-import { Loader2, Zap, Link, Image as ImageIcon } from "lucide-react";  
+import { Loader2, Zap, Link, Image as ImageIcon } from "lucide-react"; 
 import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
 import TitleInput from "@/components/post/TitleInput"; 
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
@@ -14,31 +17,25 @@ import { LocationOption, CategorySummaryResponseDTO } from "@/lib/types/post";
 import { LocationSearch } from "@/components/post/LocationSearch";
 import CategoriesSelect from "@/components/post/CategoriesSelect";
 import LinkedBlogSearch from "./LinkedBlogSearch";
-// ✅ Added BlogMediaUpload import
 import BlogMediaUpload from "./form-components/BlogMediaUpload";
-interface BlogFormLocalState extends BlogRequest {
-    linkedBlogId?: number; 
-    // linkedBlogTitle is purely for local UI display/reference
-    linkedBlogTitle?: string; 
-}
 
-type BlogFormState = BlogFormLocalState; // Use the extended state type
+// ✅ REMOVED: interface BlogFormLocalState
+type BlogFormState = BlogRequest; // Use BlogRequest directly
 
 const initialState: BlogFormState = {
   title: "",
   body: "",
   summary: "",
   categoryIds: [],
-  blogTagIds: [],
+  blogTagIds: [], 
   locationId: undefined,
   mediaDetails: [],
-  linkedBlogId: undefined, 
-  linkedBlogTitle: undefined, 
+  // ✅ REMOVED: linkedBlogTitle: undefined, 
 };
 
 const BlogForm: React.FC = () => {
+  const router = useRouter(); 
   const [formData, setFormData] = useState<BlogFormState>(initialState);
-  const router = useRouter(); // ✅ Initialize router
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -46,30 +43,24 @@ const BlogForm: React.FC = () => {
   
   const accessToken = useAccessToken(); 
 
-  // <-- NEW LOCATION AND CATEGORY STATE -->
   const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(null);
   const [categories, setCategories] = useState<CategorySummaryResponseDTO[]>([]);
-  // <-- END NEW STATE -->
 
-  // --- Core Handlers ---
-
-  const handleEnhancedInputChange = useCallback((name: keyof BlogFormLocalState, value: string) => {
+  // ✅ UPDATED: Used keyof BlogRequest
+  const handleEnhancedInputChange = useCallback((name: keyof BlogRequest, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   }, []);
   
-  // Handler for setting the linked blog ID from the search component
-  const handleLinkedBlogSelect = useCallback((blogId: number | undefined, title: string | undefined) => {
+  const handleLinkedBlogSelect = useCallback((linkedBlogIds: number[]) => {
     setFormData(prev => ({
         ...prev,
-        linkedBlogId: blogId,
-        linkedBlogTitle: title,
+        blogTagIds: linkedBlogIds,
     }));
   }, []);
 
-  // <-- NEW EFFECT: Load categories on mount using the controller -->
   useEffect(() => {
     if (accessToken) {
       getParentCategoriesController(accessToken)
@@ -81,7 +72,6 @@ const BlogForm: React.FC = () => {
         .catch(console.error);
     }
   }, [accessToken]);
-  // <-- END NEW EFFECT -->
 
 
   const onSubmit = async (e: FormEvent) => {
@@ -101,13 +91,9 @@ const BlogForm: React.FC = () => {
     
     setLoading(true);
 
-    // ✅ PAYLOAD CONSTRUCTION: Extract the local-only fields (Linked Blog ID/Title)
-    const { 
-        linkedBlogId: ignoredLinkedBlogId, 
-        ...apiPayload // This object now contains everything *except* linkedBlogId and linkedBlogTitle
-    } = formData;
+    // ✅ REMOVED DESTRUCTURING: formData now strictly matches BlogRequest
+    const apiPayload = formData; 
     
-    // Ensure strict type match for API call
     const strictApiPayload: BlogRequest = {
         title: apiPayload.title,
         body: apiPayload.body,
@@ -115,13 +101,9 @@ const BlogForm: React.FC = () => {
         mediaDetails: apiPayload.mediaDetails,
         locationId: selectedLocation?.locationId,
         categoryIds: apiPayload.categoryIds,
-        blogTagIds: apiPayload.blogTagIds,
+        blogTagIds: apiPayload.blogTagIds, 
     };
     
-    if (ignoredLinkedBlogId !== undefined) {
-        console.log(`[BlogForm] Note: Linked blog ID \${ignoredLinkedBlogId} captured but NOT sent in strict API body (BlogRequest).`);
-    }
-
     try {
       const result = await createBlogController(strictApiPayload, accessToken);
 
@@ -129,8 +111,8 @@ const BlogForm: React.FC = () => {
         setMessage(result.message);
         setSubmittedData(result.data ?? null); 
         setFormData(initialState);
-        setSelectedLocation(null); 
-
+        setSelectedLocation(null);
+        
         setTimeout(() => {
             router.push("/articles");
         }, 1500);
@@ -187,18 +169,18 @@ const BlogForm: React.FC = () => {
         />
       </div>
 
-      {/* ✅ LINKED BLOG SEARCH & SELECT (Uses filterBlogsController) */}
+      {/* ✅ LINKED BLOG SEARCH & SELECT (Passing the array of IDs) */}
       <div className="mt-6 p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-            <Link className="w-4 h-4 text-blue-500" /> Select Related Blog (Optional)
+            <Link className="w-4 h-4 text-blue-500" /> Link Related Blog(s) (Optional)
         </label>
         <LinkedBlogSearch
             onBlogSelect={handleLinkedBlogSelect}
-            selectedBlogId={formData.linkedBlogId}
+            selectedBlogIds={formData.blogTagIds} // Pass the array
         />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-            Search for and select a related published blog post to tag it internally. 
-            The ID captured is: <span className="font-medium text-gray-700 dark:text-gray-300">{formData.linkedBlogId || 'None'}</span>
+            Search for and link related published blog posts. 
+            Total linked IDs: <span className="font-medium text-gray-700 dark:text-gray-300">{formData.blogTagIds.length}</span>
         </p>
       </div>
 
@@ -226,7 +208,7 @@ const BlogForm: React.FC = () => {
         />
       </div>
       
-      {/* --- 3. MEDIA UPLOAD (REPLACED) --- */}
+      {/* --- 3. MEDIA UPLOAD --- */}
       <section className="space-y-6 mt-6">
         <p className="font-bold mb-3 text-gray-800 dark:text-gray-300 flex items-center gap-2">
           <ImageIcon className="w-4 h-4" /> Media Details

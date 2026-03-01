@@ -45,6 +45,7 @@ export async function filterBlogsController(
   const finalFilters: BlogFilterRequest = {
     page: 0,
     sort: "createdAt,desc",
+    status: "PUBLISHED",
     ...filters,
   };
 
