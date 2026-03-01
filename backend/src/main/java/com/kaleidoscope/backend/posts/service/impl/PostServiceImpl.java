@@ -41,6 +41,7 @@ import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,13 +71,14 @@ public class PostServiceImpl implements PostService {
     private final PostSearchRepository postSearchRepository;
     private final StringRedisTemplate stringRedisTemplate;
     private final HashtagService hashtagService;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
     public PostCreationResponseDTO createPost(PostCreateRequestDTO postCreateRequestDTO) {
         log.info("Starting post creation process for user request with {} categories and {} media items",
-                 postCreateRequestDTO.categoryIds().size(),
-                 postCreateRequestDTO.mediaDetails() != null ? postCreateRequestDTO.mediaDetails().size() : 0);
+                postCreateRequestDTO.categoryIds().size(),
+                postCreateRequestDTO.mediaDetails() != null ? postCreateRequestDTO.mediaDetails().size() : 0);
 
         Long userId = jwtUtils.getUserIdFromContext();
         log.debug("Fetched userId from JWT context: {}", userId);
@@ -93,14 +95,17 @@ public class PostServiceImpl implements PostService {
         Post post = postMapper.toEntity(postCreateRequestDTO);
         post.setUser(currentUser);
 
-        log.info("Post creation initiated by user '{}' with title: '{}'", currentUser.getUsername(), postCreateRequestDTO.title());
+        log.info("Post creation initiated by user '{}' with title: '{}'", currentUser.getUsername(),
+                postCreateRequestDTO.title());
 
         // Handle location if provided
         if (postCreateRequestDTO.locationId() != null) {
             Location location = locationRepository.findById(postCreateRequestDTO.locationId())
-                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + postCreateRequestDTO.locationId()));
+                    .orElseThrow(() -> new LocationNotFoundException(
+                            "Location not found with ID: " + postCreateRequestDTO.locationId()));
             post.setLocation(location);
-            log.debug("Location associated with post: locationId={}, name={}", postCreateRequestDTO.locationId(), location.getName());
+            log.debug("Location associated with post: locationId={}, name={}", postCreateRequestDTO.locationId(),
+                    location.getName());
         }
 
         // Validate and process categories
@@ -113,7 +118,7 @@ public class PostServiceImpl implements PostService {
                     .filter(id -> !foundCategoryIds.contains(id))
                     .collect(Collectors.toSet());
             log.error("Category validation failed: requested={}, found={}, missing={}",
-                      postCreateRequestDTO.categoryIds(), foundCategoryIds, missingCategoryIds);
+                    postCreateRequestDTO.categoryIds(), foundCategoryIds, missingCategoryIds);
             throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
         }
 
@@ -153,14 +158,18 @@ public class PostServiceImpl implements PostService {
 
                 MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
                         .orElseThrow(() -> {
-                            log.error("Media asset tracking failed: publicId={} not found in tracker database", publicId);
-                            return new IllegalStatePostActionException("Media asset not tracked for public_id: " + publicId);
+                            log.error("Media asset tracking failed: publicId={} not found in tracker database",
+                                    publicId);
+                            return new IllegalStatePostActionException(
+                                    "Media asset not tracked for public_id: " + publicId);
                         });
 
                 if (tracker.getStatus() != MediaAssetStatus.PENDING) {
                     log.error("Media asset state validation failed: expected=PENDING, actual={}, publicId={}",
-                             tracker.getStatus(), publicId);
-                    throw new IllegalStatePostActionException("Media asset must be in PENDING state to be associated. Current state: " + tracker.getStatus());
+                            tracker.getStatus(), publicId);
+                    throw new IllegalStatePostActionException(
+                            "Media asset must be in PENDING state to be associated. Current state: "
+                                    + tracker.getStatus());
                 }
 
                 log.debug("Associating media with post: publicId={}, mediaType={}", publicId, mediaItem.getMediaType());
@@ -169,7 +178,8 @@ public class PostServiceImpl implements PostService {
                 tracker.setStatus(MediaAssetStatus.ASSOCIATED);
                 tracker.setContentType(ContentType.POST.name());
                 tracker.setContentId(savedPost.getPostId());
-                log.info("Media asset successfully associated: publicId={}, postId={}", publicId, savedPost.getPostId());
+                log.info("Media asset successfully associated: publicId={}, postId={}", publicId,
+                        savedPost.getPostId());
             }
 
             // Save again to persist the new media relationships
@@ -177,20 +187,21 @@ public class PostServiceImpl implements PostService {
             log.debug("Persisting post with associated media to database");
 
             // Iterate through the saved media and publish an event for each one
-            log.info("Publishing {} post image events to Redis Stream for post {}", finalSavedPost.getMedia().size(), finalSavedPost.getPostId());
+            log.info("Publishing {} post image events to Redis Stream for post {}", finalSavedPost.getMedia().size(),
+                    finalSavedPost.getPostId());
 
             // Get the current user ID for the uploaderId field
             Long uploaderId = currentUser.getUserId();
 
             finalSavedPost.getMedia().forEach(mediaItem -> {
                 PostImageEventDTO event = PostImageEventDTO.builder()
-                    .postId(finalSavedPost.getPostId())
-                    .mediaId(mediaItem.getMediaId())
-                    .mediaUrl(mediaItem.getMediaUrl()) // RENAMED
-                    .uploaderId(uploaderId) // ADDED
-                    .timestamp(java.time.Instant.now().toString()) // ADDED
-                    .correlationId(MDC.get("correlationId")) // KEPT
-                    .build();
+                        .postId(finalSavedPost.getPostId())
+                        .mediaId(mediaItem.getMediaId())
+                        .mediaUrl(mediaItem.getMediaUrl()) // RENAMED
+                        .uploaderId(uploaderId) // ADDED
+                        .timestamp(java.time.Instant.now().toString()) // ADDED
+                        .correlationId(MDC.get("correlationId")) // KEPT
+                        .build();
                 redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
 
@@ -205,10 +216,12 @@ public class PostServiceImpl implements PostService {
 
             for (Long taggedUserId : postCreateRequestDTO.taggedUserIds()) {
                 try {
-                    CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(taggedUserId, ContentType.POST, savedPost.getPostId());
+                    CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(taggedUserId, ContentType.POST,
+                            savedPost.getPostId());
                     log.debug("Creating user tag: taggedUserId={}, postId={}", taggedUserId, savedPost.getPostId());
                     userTagService.createUserTag(tagRequest);
-                    log.info("User tag successfully created: taggedUserId={}, postId={}", taggedUserId, savedPost.getPostId());
+                    log.info("User tag successfully created: taggedUserId={}, postId={}", taggedUserId,
+                            savedPost.getPostId());
 
                 } catch (Exception e) {
                     log.warn("User tag creation failed for taggedUserId={}, postId={}, error={}",
@@ -220,7 +233,8 @@ public class PostServiceImpl implements PostService {
             log.debug("No user tags to process for this post");
         }
 
-        // 6. Index the new post to Elasticsearch with initial/default denormalized values
+        // 6. Index the new post to Elasticsearch with initial/default denormalized
+        // values
         try {
             // Use mapper to create PostDocument from Post entity
             PostDocument postDocument = postMapper.toPostDocument(savedPost);
@@ -228,8 +242,8 @@ public class PostServiceImpl implements PostService {
             // Log location info if present
             if (postDocument.getLocation() != null) {
                 log.debug("Including location in ES index for post {}: locationId={}, name={}, hasCoordinates={}",
-                         savedPost.getPostId(), postDocument.getLocation().getId(),
-                         postDocument.getLocation().getName(), postDocument.getLocation().getPoint() != null);
+                        savedPost.getPostId(), postDocument.getLocation().getId(),
+                        postDocument.getLocation().getName(), postDocument.getLocation().getPoint() != null);
             }
 
             // Index to Elasticsearch
@@ -300,7 +314,8 @@ public class PostServiceImpl implements PostService {
         Post savedPost = postRepository.save(post);
         log.info("User '{}' updated post with ID: {}", post.getUser().getUsername(), savedPost.getPostId());
 
-        // Publish update event to Redis Stream for post updates - only if there are images
+        // Publish update event to Redis Stream for post updates - only if there are
+        // images
         if (!savedPost.getMedia().isEmpty()) {
             // Get the first media item with its ID and URL
             PostMedia firstMedia = savedPost.getMedia().stream().findFirst().orElse(null);
@@ -328,7 +343,8 @@ public class PostServiceImpl implements PostService {
         log.debug("Updating tags for postId: {}", post.getPostId());
         Set<Long> incomingIds = (incomingTaggedUserIds != null) ? incomingTaggedUserIds : Collections.emptySet();
 
-        List<UserTag> existingTags = userTagRepository.findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged()).getContent();
+        List<UserTag> existingTags = userTagRepository
+                .findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged()).getContent();
         Map<Long, UserTag> existingTagsMap = existingTags.stream()
                 .collect(Collectors.toMap(tag -> tag.getTaggedUser().getUserId(), tag -> tag));
 
@@ -344,7 +360,8 @@ public class PostServiceImpl implements PostService {
         for (Long incomingId : incomingIds) {
             if (!existingTagsMap.containsKey(incomingId)) {
                 log.debug("Adding new tag for userId: {}", incomingId);
-                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(incomingId, ContentType.POST, post.getPostId());
+                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(incomingId, ContentType.POST,
+                        post.getPostId());
                 userTagService.createUserTag(tagRequest);
             }
         }
@@ -352,7 +369,8 @@ public class PostServiceImpl implements PostService {
 
     private void updatePostMedia(Post post, List<MediaUploadRequestDTO> mediaDtos) {
         log.debug("Updating media for postId: {}", post.getPostId());
-        if (mediaDtos == null) return;
+        if (mediaDtos == null)
+            return;
 
         Map<Long, PostMedia> existingMediaMap = post.getMedia().stream()
                 .collect(Collectors.toMap(PostMedia::getMediaId, media -> media));
@@ -368,12 +386,15 @@ public class PostServiceImpl implements PostService {
                 MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
                         .orElseThrow(() -> {
                             log.error("Media asset not tracked for public_id: {}", publicId);
-                            return new IllegalStatePostActionException("Media asset not tracked for public_id: " + publicId);
+                            return new IllegalStatePostActionException(
+                                    "Media asset not tracked for public_id: " + publicId);
                         });
 
                 if (tracker.getStatus() != MediaAssetStatus.PENDING) {
-                    log.error("Cannot associate a media asset that is not in PENDING state. Status: {}", tracker.getStatus());
-                    throw new IllegalStatePostActionException("Cannot associate a media asset that is not in PENDING state.");
+                    log.error("Cannot associate a media asset that is not in PENDING state. Status: {}",
+                            tracker.getStatus());
+                    throw new IllegalStatePostActionException(
+                            "Cannot associate a media asset that is not in PENDING state.");
                 }
 
                 PostMedia newMedia = postMapper.toPostMediaEntities(Collections.singletonList(dto)).get(0);
@@ -408,26 +429,27 @@ public class PostServiceImpl implements PostService {
         }
 
         post.getMedia().clear();
-        for(PostMedia media : finalMediaList) {
+        for (PostMedia media : finalMediaList) {
             post.addMedia(media);
         }
 
         // Publish Redis Stream events for newly added media during update
         if (!newMediaItems.isEmpty()) {
-            log.info("Publishing {} new media events to Redis Stream for post update {}", newMediaItems.size(), post.getPostId());
+            log.info("Publishing {} new media events to Redis Stream for post update {}", newMediaItems.size(),
+                    post.getPostId());
 
             // Get the current user ID for the uploaderId field
             Long uploaderId = jwtUtils.getUserIdFromContext();
 
             newMediaItems.forEach(mediaItem -> {
                 PostImageEventDTO event = PostImageEventDTO.builder()
-                    .postId(post.getPostId())
-                    .mediaId(mediaItem.getMediaId())
-                    .mediaUrl(mediaItem.getMediaUrl()) // RENAMED
-                    .uploaderId(uploaderId) // ADDED
-                    .timestamp(java.time.Instant.now().toString()) // ADDED
-                    .correlationId(MDC.get("correlationId")) // KEPT
-                    .build();
+                        .postId(post.getPostId())
+                        .mediaId(mediaItem.getMediaId())
+                        .mediaUrl(mediaItem.getMediaUrl()) // RENAMED
+                        .uploaderId(uploaderId) // ADDED
+                        .timestamp(java.time.Instant.now().toString()) // ADDED
+                        .correlationId(MDC.get("correlationId")) // KEPT
+                        .build();
                 redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
             });
         }
@@ -456,7 +478,8 @@ public class PostServiceImpl implements PostService {
             hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
         }
 
-        List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
+        List<UserTag> tagsToDelete = userTagRepository
+                .findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
         if (!tagsToDelete.isEmpty()) {
             log.debug("Soft deleting {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
             userTagRepository.deleteAll(tagsToDelete);
@@ -469,6 +492,19 @@ public class PostServiceImpl implements PostService {
         } catch (Exception e) {
             log.error("Failed to remove post {} from Elasticsearch during soft delete: {}", postId, e.getMessage(), e);
             // Continue with soft delete even if ES removal fails
+        }
+
+        // Wipe from PostgreSQL Read Models directly
+        try {
+            jdbcTemplate.update("DELETE FROM read_model_post_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_media_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_face_search WHERE post_id = ?", postId);
+            jdbcTemplate.update(
+                    "DELETE FROM read_model_recommendations_knn WHERE media_id IN (SELECT media_id FROM media_ai_insights WHERE post_id = ?)",
+                    postId);
+            log.info("Removed Read Model entries for soft-deleted post {}", postId);
+        } catch (Exception e) {
+            log.error("Failed to clean up Read Models for post {} during soft delete: {}", postId, e.getMessage());
         }
 
         postRepository.delete(post);
@@ -492,10 +528,32 @@ public class PostServiceImpl implements PostService {
             hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
         }
 
-        List<UserTag> tagsToDelete = userTagRepository.findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
+        List<UserTag> tagsToDelete = userTagRepository
+                .findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
         if (!tagsToDelete.isEmpty()) {
             log.debug("Hard deleting {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
             userTagRepository.deleteAll(tagsToDelete);
+        }
+
+        // Remove from Elasticsearch
+        try {
+            postSearchRepository.deleteById(String.valueOf(postId));
+            log.info("Removed post {} from Elasticsearch index during hard delete", postId);
+        } catch (Exception e) {
+            log.error("Failed to remove post {} from Elasticsearch during hard delete: {}", postId, e.getMessage(), e);
+        }
+
+        // Wipe from PostgreSQL Read Models directly
+        try {
+            jdbcTemplate.update("DELETE FROM read_model_post_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_media_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_face_search WHERE post_id = ?", postId);
+            jdbcTemplate.update(
+                    "DELETE FROM read_model_recommendations_knn WHERE media_id IN (SELECT media_id FROM media_ai_insights WHERE post_id = ?)",
+                    postId);
+            log.info("Removed Read Model entries for hard-deleted post {}", postId);
+        } catch (Exception e) {
+            log.error("Failed to clean up Read Models for post {} during hard delete: {}", postId, e.getMessage());
         }
 
         for (PostMedia media : post.getMedia()) {
@@ -539,7 +597,7 @@ public class PostServiceImpl implements PostService {
             // For FOLLOWERS visibility, check if current user follows the author
             if (post.getVisibility() == PostVisibility.FOLLOWERS) {
                 boolean isFollowing = followRepository.existsByFollower_UserIdAndFollowing_UserId(
-                    currentUserId, post.getUser().getUserId());
+                        currentUserId, post.getUser().getUserId());
                 if (!isFollowing) {
                     log.error("Access denied: User {} is not following author {} for FOLLOWERS post {}",
                             currentUserId, post.getUser().getUserId(), postId);
@@ -586,20 +644,20 @@ public class PostServiceImpl implements PostService {
         }
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public PaginatedResponse<PostSummaryResponseDTO> filterPosts(Pageable pageable,
-                                                                 Long userId,
-                                                                 Long categoryId,
-                                                                 PostStatus status,
-                                                                 PostVisibility visibility,
-                                                                 String query,
-                                                                 String hashtag,
-                                                                 Long locationId,
-                                                                 Long nearbyLocationId,
-                                                                 Double radiusKm) {
-        log.info("Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, nearbyLocationId={}, radiusKm={}",
+            Long userId,
+            Long categoryId,
+            PostStatus status,
+            PostVisibility visibility,
+            String query,
+            String hashtag,
+            Long locationId,
+            Long nearbyLocationId,
+            Double radiusKm) {
+        log.info(
+                "Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, nearbyLocationId={}, radiusKm={}",
                 userId, categoryId, status, visibility, query, hashtag, locationId, nearbyLocationId, radiusKm);
 
         Long currentUserId = jwtUtils.getUserIdFromContext();
@@ -618,14 +676,16 @@ public class PostServiceImpl implements PostService {
         if (nearbyLocationId != null) {
             log.debug("Fetching coordinates for nearbyLocationId: {}", nearbyLocationId);
             Location location = locationRepository.findById(nearbyLocationId)
-                    .orElseThrow(() -> new LocationNotFoundException("Location not found with ID: " + nearbyLocationId));
+                    .orElseThrow(
+                            () -> new LocationNotFoundException("Location not found with ID: " + nearbyLocationId));
 
             if (location.getLatitude() != null && location.getLongitude() != null) {
                 latitude = location.getLatitude().doubleValue();
                 longitude = location.getLongitude().doubleValue();
                 log.info("Using geo-distance query: center=({}, {}), radius={}km", latitude, longitude, radiusKm);
             } else {
-                log.warn("Location {} exists but has no coordinates. Geo-distance query will be skipped.", nearbyLocationId);
+                log.warn("Location {} exists but has no coordinates. Geo-distance query will be skipped.",
+                        nearbyLocationId);
             }
         }
 
@@ -643,10 +703,10 @@ public class PostServiceImpl implements PostService {
                 latitude,
                 longitude,
                 radiusKm,
-                pageable
-        );
+                pageable);
 
-        // Map PostDocument to PostSummaryResponseDTO using the new overloaded mapper method
+        // Map PostDocument to PostSummaryResponseDTO using the new overloaded mapper
+        // method
         Page<PostSummaryResponseDTO> dtoPage = documentPage.map(postMapper::toPostSummaryDTO);
 
         log.info("Elasticsearch query returned {} posts out of {} total",

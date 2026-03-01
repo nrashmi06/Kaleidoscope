@@ -31,6 +31,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +66,8 @@ public class ElasticsearchStartupSyncService {
     private final BlogSearchRepository blogSearchRepository;
     private final BlogMapper blogMapper;
 
+    private final JdbcTemplate jdbcTemplate;
+
     // --- IMPORT ADDED ---
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
 
@@ -89,6 +92,9 @@ public class ElasticsearchStartupSyncService {
         log.info("Thread: {}", Thread.currentThread().getName());
 
         try {
+            // 0. Clean orphaned data
+            cleanOrphanedData();
+
             // Sync in order: Users first (as Posts reference Users)
             syncAllUsers();
             syncAllPosts();
@@ -116,6 +122,62 @@ public class ElasticsearchStartupSyncService {
         } catch (Exception e) {
             log.error("==================== ELASTICSEARCH STARTUP SYNC FAILED ====================", e);
             // Don't throw - allow application to start even if ES sync fails
+        }
+    }
+
+    /**
+     * Cleans up orphaned data in Elasticsearch and PostgreSQL Read Models.
+     * Removes ES documents that have been hard/soft deleted from PostgreSQL.
+     * Clears PostgreSQL read models for deleted content.
+     */
+    private void cleanOrphanedData() {
+        log.info("Starting orphaned data cleanup...");
+        try {
+            // 1. Elasticsearch Document Cleanup
+            log.info("Checking for orphaned Elasticsearch Users...");
+            int deletedUsers = 0;
+            for (UserDocument esUser : userSearchRepository.findAll()) {
+                if (!userRepository.existsById(esUser.getUserId())) {
+                    userSearchRepository.delete(esUser);
+                    deletedUsers++;
+                }
+            }
+
+            log.info("Checking for orphaned Elasticsearch Posts...");
+            int deletedPosts = 0;
+            for (PostDocument esPost : postSearchRepository.findAll()) {
+                if (!postRepository.existsById(esPost.getPostId())) {
+                    postSearchRepository.delete(esPost);
+                    deletedPosts++;
+                }
+            }
+
+            log.info("Checking for orphaned Elasticsearch Blogs...");
+            int deletedBlogs = 0;
+            for (BlogDocument esBlog : blogSearchRepository.findAll()) {
+                if (!blogRepository.existsById(esBlog.getBlogId())) {
+                    blogSearchRepository.delete(esBlog);
+                    deletedBlogs++;
+                }
+            }
+            log.info("Deleted orphaned ES documents: {} Users, {} Posts, {} Blogs", deletedUsers, deletedPosts,
+                    deletedBlogs);
+
+            // 2. PostgreSQL Read Model Cleanup
+            log.info("Cleaning orphaned PostgreSQL Read Models...");
+            int rmPosts = jdbcTemplate.update(
+                    "DELETE FROM read_model_post_search WHERE post_id NOT IN (SELECT post_id FROM posts WHERE deleted_at IS NULL)");
+            int rmMedia = jdbcTemplate.update(
+                    "DELETE FROM read_model_media_search WHERE post_id NOT IN (SELECT post_id FROM posts WHERE deleted_at IS NULL)");
+            int rmFaces = jdbcTemplate.update(
+                    "DELETE FROM read_model_face_search WHERE post_id NOT IN (SELECT post_id FROM posts WHERE deleted_at IS NULL)");
+            int rmKnn = jdbcTemplate.update(
+                    "DELETE FROM read_model_recommendations_knn WHERE media_id NOT IN (SELECT media_id FROM media_ai_insights)");
+            log.info("Cleaned orphaned PG Read Models: {} PostSearch, {} MediaSearch, {} FaceSearch, {} Knn", rmPosts,
+                    rmMedia, rmFaces, rmKnn);
+
+        } catch (Exception e) {
+            log.error("Failed to clean orphaned data", e);
         }
     }
 
