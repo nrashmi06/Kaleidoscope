@@ -12,6 +12,7 @@ import com.resend.services.emails.model.CreateEmailResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,14 +35,18 @@ public class EmailServiceImpl implements EmailService {
     private final TemplateEngine templateEngine;
     private final ApplicationProperties applicationProperties;
 
+    private final String contextPath;
+
     @Autowired
     public EmailServiceImpl(ResendProperties resendProperties,
-                            TemplateEngine templateEngine,
-                            ApplicationProperties applicationProperties) {
+            TemplateEngine templateEngine,
+            ApplicationProperties applicationProperties,
+            @Value("${server.servlet.context-path:/kaleidoscope}") String contextPath) {
         this.resend = new Resend(resendProperties.apiKey());
         this.fromEmail = resendProperties.fromEmail();
         this.templateEngine = templateEngine;
         this.applicationProperties = applicationProperties;
+        this.contextPath = contextPath;
     }
 
     @Override
@@ -106,7 +111,19 @@ public class EmailServiceImpl implements EmailService {
         try {
             String subject = "Verify your email address";
             String baseUrl = applicationProperties.baseUrl();
-            String verificationUrl = baseUrl + AuthRoutes.VERIFY_EMAIL + "?token=" + code;
+
+            // Ensure context path is correctly appended to baseUrl
+            String normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+            String normalizedContextPath = contextPath.equals("/") ? "" : contextPath;
+            if (!normalizedContextPath.startsWith("/")) {
+                normalizedContextPath = "/" + normalizedContextPath;
+            }
+            if (normalizedContextPath.endsWith("/")) {
+                normalizedContextPath = normalizedContextPath.substring(0, normalizedContextPath.length() - 1);
+            }
+
+            String verificationUrl = normalizedBaseUrl + normalizedContextPath + AuthRoutes.VERIFY_EMAIL + "?token="
+                    + code;
             Context context = new Context();
             context.setVariable("verificationUrl", verificationUrl);
             String body = templateEngine.process("verificationEmailTemplate", context);
@@ -127,8 +144,10 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async("taskExecutor")
-    public void sendNotificationEmail(String to, String subject, String templateName, Map<String, Object> variables, List<MultipartFile> attachments) {
-        logger.info("Starting to send notification email to: {}, template: {}, attachments: {}", to, templateName, attachments != null ? attachments.size() : 0);
+    public void sendNotificationEmail(String to, String subject, String templateName, Map<String, Object> variables,
+            List<MultipartFile> attachments) {
+        logger.info("Starting to send notification email to: {}, template: {}, attachments: {}", to, templateName,
+                attachments != null ? attachments.size() : 0);
         try {
             Context context = new Context();
             // Add all variables to context
