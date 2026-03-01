@@ -20,6 +20,7 @@ auth/
 ├── config/
 │   ├── CorsConfig.java              # Cross-Origin Resource Sharing configuration
 │   ├── JwtProperties.java           # JWT configuration properties
+│   ├── ResendProperties.java        # Resend email API configuration (apiKey, fromEmail)
 │   └── SecurityConfig.java          # Main security configuration
 ├── controller/
 │   ├── AuthController.java          # Authentication REST endpoints
@@ -129,36 +130,7 @@ sequenceDiagram
 
 ## Security Configuration
 
-### HTTP Security Configuration
-The `SecurityConfig` class configures:
-
-1. **CORS**: Cross-origin requests handling
-2. **CSRF**: Disabled for stateless API
-3. **Session Management**: Stateless (no server-side sessions)
-4. **Authentication Entry Point**: Custom JWT error handling
-5. **Access Denied Handler**: Custom access denied responses
-
-### Protected vs Public Endpoints
-
-**Public Endpoints** (No authentication required):
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `POST /auth/verify-email` - Email verification
-- `POST /auth/forgot-password` - Password reset request
-- `POST /auth/reset-password` - Password reset
-- `POST /auth/renew-token` - Token refresh
-- `GET /auth/check-username` - Username availability
-- API documentation endpoints (`/api-docs/**`, `/swagger-ui/**`)
-- Health check endpoints (`/actuator/health`)
-
-**Protected Endpoints** (Authentication required):
-- All other endpoints require valid JWT token
-- Role-based access control applied based on user roles
-
-### Filter Chain Order
-1. **CorrelationIdFilter**: Adds correlation ID for request tracking
-2. **AuthTokenFilter**: JWT token validation and authentication
-3. **UsernamePasswordAuthenticationFilter**: Spring Security default
+For detailed security filter chain, CORS, SSE authentication, and authorization rules, see [SECURITY_CONFIGURATION.md](SECURITY_CONFIGURATION.md).
 
 ## JWT Token System
 
@@ -232,33 +204,9 @@ public class EmailVerification {
 ### Global Exception Handler
 The `AuthExceptionHandler` provides centralized handling of authentication-related exceptions with appropriate HTTP status codes and error messages.
 
-## Security Best Practices Implemented
+## Security Best Practices
 
-### 1. Token Security
-- JWT tokens are stateless and self-contained
-- Refresh tokens stored securely in HTTP-only cookies
-- Token expiration times configured appropriately
-- Refresh token rotation on use (optional)
-
-### 2. Password Security
-- Strong password hashing with BCrypt
-- Password complexity requirements (configurable)
-- Secure password reset flow with time-limited tokens
-
-### 3. Session Security
-- Stateless authentication (no server-side sessions)
-- CSRF protection disabled (appropriate for stateless APIs)
-- Secure cookie configuration for refresh tokens
-
-### 4. Error Handling
-- Generic error messages to prevent information leakage
-- Proper HTTP status codes for different scenarios
-- Detailed logging for security monitoring
-
-### 5. CORS Configuration
-- Configurable CORS policies
-- Specific allowed origins, methods, and headers
-- Credential support for authenticated requests
+For comprehensive security best practices including JWT security, password security, CORS, and session management, see [SECURITY_CONFIGURATION.md](SECURITY_CONFIGURATION.md).
 
 ## Configuration Properties
 

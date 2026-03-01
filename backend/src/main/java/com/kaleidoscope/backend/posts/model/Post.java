@@ -21,7 +21,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "posts", indexes = {
+        @Index(name = "idx_post_user_id", columnList = "user_id"),
+        @Index(name = "idx_post_location_id", columnList = "location_id")
+})
 @EntityListeners(AuditingEntityListener.class)
 @SQLDelete(sql = "UPDATE posts SET deleted_at = NOW() WHERE post_id = ?")
 @Where(clause = "deleted_at IS NULL")

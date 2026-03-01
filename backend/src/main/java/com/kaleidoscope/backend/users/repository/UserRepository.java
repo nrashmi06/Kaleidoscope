@@ -38,4 +38,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // New query: active emails filtered by roles
     @Query("SELECT u.email FROM User u WHERE u.accountStatus = 'ACTIVE' AND u.role IN :roles")
     List<String> findActiveEmailsByRoles(@Param("roles") List<Role> roles);
+
+    // Cursor-based pagination for efficient batch processing (avoids OFFSET table scans)
+    @Query("SELECT u FROM User u WHERE u.userId > :lastSeenId ORDER BY u.userId ASC")
+    List<User> findNextBatch(@Param("lastSeenId") Long lastSeenId, Pageable pageable);
 }

@@ -6,8 +6,12 @@ import com.kaleidoscope.backend.blogs.model.Blog;
 import com.kaleidoscope.backend.blogs.repository.BlogRepository;
 import com.kaleidoscope.backend.blogs.repository.search.BlogSearchRepository;
 import com.kaleidoscope.backend.posts.document.PostDocument;
+import com.kaleidoscope.backend.posts.model.MediaAiInsights;
+import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
+import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
+import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.shared.model.Category;
@@ -18,27 +22,42 @@ import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.model.UserInterest;
 import com.kaleidoscope.backend.users.repository.*;
 import com.kaleidoscope.backend.users.repository.search.UserSearchRepository;
+
+import com.kaleidoscope.backend.posts.document.FeedItemDocument;
+import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
+import com.kaleidoscope.backend.posts.document.RecommendationDocument;
+import com.kaleidoscope.backend.posts.document.SearchAssetDocument;
+import com.kaleidoscope.backend.posts.document.MediaDetectedFaceDocument;
+import com.kaleidoscope.backend.posts.document.MediaAiInsightsDocument;
+import com.kaleidoscope.backend.users.document.UserProfileDocument;
+import com.kaleidoscope.backend.users.document.UserFaceEmbeddingDocument;
+import com.kaleidoscope.backend.users.document.FaceSearchDocument;
+
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHitsIterator;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.stream.StreamMessageListenerContainer; // <-- IMPORT ADDED
+import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 
 /**
- * Service to synchronize all data from PostgreSQL to Elasticsearch on application startup
+ * Service to synchronize all data from PostgreSQL to Elasticsearch on
+ * application startup
  * This ensures Elasticsearch indices are always in sync with the database
  */
 @Service
@@ -55,16 +74,23 @@ public class ElasticsearchStartupSyncService {
 
     private final PostRepository postRepository;
     private final PostSearchRepository postSearchRepository;
+    private final MediaAiInsightsRepository mediaAiInsightsRepository;
+    private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
 
     // Blog components
     private final BlogRepository blogRepository;
     private final BlogSearchRepository blogSearchRepository;
     private final BlogMapper blogMapper;
 
+    private final JdbcTemplate jdbcTemplate;
+
     // --- IMPORT ADDED ---
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
+    private final ElasticsearchOperations elasticsearchOperations;
 
-    private static final int BATCH_SIZE = 100;
+    // Optimized batch size: increased from 100 to 500 to reduce DB round-trips
+    // during startup sync
+    private static final int BATCH_SIZE = 500;
 
     @PostConstruct
     public void init() {
@@ -83,6 +109,9 @@ public class ElasticsearchStartupSyncService {
         log.info("Thread: {}", Thread.currentThread().getName());
 
         try {
+            // 0. Clean orphaned data
+            cleanOrphanedData();
+
             // Sync in order: Users first (as Posts reference Users)
             syncAllUsers();
             syncAllPosts();
@@ -101,7 +130,8 @@ public class ElasticsearchStartupSyncService {
             // Verify the container is actually running
             if (streamMessageListenerContainer.isRunning()) {
                 log.info("✅ Redis Stream consumers started successfully after data sync.");
-                log.info("📡 Consumers are now actively polling for messages using offset '>' (new + pending messages)");
+                log.info(
+                        "📡 Consumers are now actively polling for messages using offset '>' (new + pending messages)");
             } else {
                 log.error("❌ Redis Stream container failed to start! Consumers will not process messages.");
             }
@@ -113,7 +143,93 @@ public class ElasticsearchStartupSyncService {
     }
 
     /**
+     * Cleans up orphaned data in Elasticsearch and PostgreSQL Read Models.
+     * Removes ES documents that have been hard/soft deleted from PostgreSQL.
+     * Clears PostgreSQL read models for deleted content.
+     */
+    private void cleanOrphanedData() {
+        log.info("Starting robust orphaned data cleanup...");
+        try {
+            // 1. PostgreSQL Read Model Cleanup
+            log.info("Cleaning orphaned PostgreSQL Read Models...");
+            int rmPosts = jdbcTemplate.update(
+                    "DELETE FROM read_model_post_search WHERE post_id NOT IN (SELECT post_id FROM posts WHERE deleted_at IS NULL)");
+            int rmMedia = jdbcTemplate.update(
+                    "DELETE FROM read_model_media_search WHERE post_id NOT IN (SELECT post_id FROM posts WHERE deleted_at IS NULL)");
+            int rmFaces = jdbcTemplate.update(
+                    "DELETE FROM read_model_face_search WHERE post_id NOT IN (SELECT post_id FROM posts WHERE deleted_at IS NULL)");
+            int rmKnn = jdbcTemplate.update(
+                    "DELETE FROM read_model_recommendations_knn WHERE media_id NOT IN (SELECT media_id FROM media_ai_insights)");
+            log.info("Cleaned orphaned PG Read Models: {} PostSearch, {} MediaSearch, {} FaceSearch, {} Knn", rmPosts,
+                    rmMedia, rmFaces, rmKnn);
+
+            // 2. Load Valid IDs from PostgreSQL into memory sets (extremely fast)
+            log.info("Loading valid IDs from PostgreSQL into memory...");
+            Set<Long> validUserIds = new HashSet<>(jdbcTemplate.queryForList("SELECT user_id FROM users", Long.class));
+            Set<Long> validPostIds = new HashSet<>(
+                    jdbcTemplate.queryForList("SELECT post_id FROM posts WHERE deleted_at IS NULL", Long.class));
+            Set<Long> validBlogIds = new HashSet<>(jdbcTemplate.queryForList("SELECT blog_id FROM blogs", Long.class));
+            Set<Long> validMediaIds = new HashSet<>(
+                    jdbcTemplate.queryForList("SELECT media_id FROM media_ai_insights", Long.class));
+            log.info("Loaded {} user IDs, {} post IDs, {} blog IDs, {} media IDs.", validUserIds.size(),
+                    validPostIds.size(), validBlogIds.size(), validMediaIds.size());
+
+            // 3. Clear out User-dependent Elasticsearch indices
+            log.info("Cleaning User-dependent Elasticsearch indices...");
+            cleanIndex(UserDocument.class, UserDocument::getUserId, validUserIds);
+            cleanIndex(UserProfileDocument.class, UserProfileDocument::getUserId, validUserIds);
+            cleanIndex(UserFaceEmbeddingDocument.class, UserFaceEmbeddingDocument::getUserId, validUserIds);
+
+            // 4. Clear out Post-dependent Elasticsearch indices
+            log.info("Cleaning Post-dependent Elasticsearch indices...");
+            cleanIndex(PostDocument.class, PostDocument::getPostId, validPostIds);
+            cleanIndex(FeedItemDocument.class, FeedItemDocument::getPostId, validPostIds);
+            cleanIndex(MediaSearchDocument.class, MediaSearchDocument::getPostId, validPostIds);
+            cleanIndex(FaceSearchDocument.class, FaceSearchDocument::getPostId, validPostIds);
+            cleanIndex(MediaAiInsightsDocument.class, MediaAiInsightsDocument::getPostId, validPostIds);
+            cleanIndex(MediaDetectedFaceDocument.class, MediaDetectedFaceDocument::getMediaId, validMediaIds);
+            cleanIndex(SearchAssetDocument.class, SearchAssetDocument::getPostId, validPostIds);
+
+            // 5. Clear out Blog-dependent Elasticsearch indices
+            log.info("Cleaning Blog-dependent Elasticsearch indices...");
+            cleanIndex(BlogDocument.class, BlogDocument::getBlogId, validBlogIds);
+
+            // 6. Clear out Media-dependent Elasticsearch indices (Recommendations)
+            log.info("Cleaning Media-dependent Elasticsearch indices...");
+            cleanIndex(RecommendationDocument.class, RecommendationDocument::getMediaId, validMediaIds);
+
+            log.info("Successfully finished Elasticsearch streaming cleanup.");
+        } catch (Exception e) {
+            log.error("Failed to clean orphaned data", e);
+        }
+    }
+
+    /**
+     * Streams through an entire Elasticsearch index, deleting any document whose
+     * primary associated ID
+     * (e.g. userId, postId) is NOT found in the set of valid IDs from PostgreSQL.
+     */
+    private <T> void cleanIndex(Class<T> docClass, Function<T, Long> idExtractor, Set<Long> validIds) {
+        int deletedCount = 0;
+        try (SearchHitsIterator<T> stream = elasticsearchOperations.searchForStream(
+                NativeQuery.builder().withQuery(q -> q.matchAll(m -> m)).build(), docClass)) {
+            while (stream.hasNext()) {
+                T doc = stream.next().getContent();
+                Long docId = idExtractor.apply(doc);
+                if (docId != null && !validIds.contains(docId)) {
+                    elasticsearchOperations.delete(doc);
+                    deletedCount++;
+                }
+            }
+            log.debug("Cleaned index for {}: Deleted {} orphaned documents.", docClass.getSimpleName(), deletedCount);
+        } catch (Exception e) {
+            log.error("Error while cleaning index for " + docClass.getSimpleName(), e);
+        }
+    }
+
+    /**
      * Sync all users from PostgreSQL to Elasticsearch
+     * Uses cursor-based pagination to avoid OFFSET table scans
      */
     // @Transactional(readOnly = true) // <-- Removed from here
     public void syncAllUsers() {
@@ -128,35 +244,33 @@ public class ElasticsearchStartupSyncService {
                 return;
             }
 
-            int pageNumber = 0;
+            Long lastSeenId = 0L;
             int syncedCount = 0;
             int errorCount = 0;
+            int batchNumber = 0;
 
             while (true) {
-                Pageable pageable = PageRequest.of(pageNumber, BATCH_SIZE);
-                Page<User> userPage = userRepository.findAll(pageable);
+                // Cursor-based pagination: fetch next batch where userId > lastSeenId
+                Pageable pageable = PageRequest.of(0, BATCH_SIZE);
+                List<User> userBatch = userRepository.findNextBatch(lastSeenId, pageable);
 
-                if (userPage.isEmpty()) {
+                if (userBatch.isEmpty()) {
                     break;
                 }
 
-                log.info("Syncing user batch {}/{} ({} users)",
-                        pageNumber + 1, userPage.getTotalPages(), userPage.getNumberOfElements());
+                batchNumber++;
+                log.info("Syncing user batch {} ({} users)", batchNumber, userBatch.size());
 
-                for (User user : userPage.getContent()) {
+                for (User user : userBatch) {
                     try {
                         syncUserToElasticsearch(user);
                         syncedCount++;
+                        lastSeenId = user.getUserId(); // Update cursor
                     } catch (Exception e) {
                         log.error("Failed to sync user ID: {}", user.getUserId(), e);
                         errorCount++;
                     }
                 }
-
-                if (!userPage.hasNext()) {
-                    break;
-                }
-                pageNumber++;
             }
 
             log.info("✅ User sync completed: {} synced, {} errors", syncedCount, errorCount);
@@ -196,18 +310,16 @@ public class ElasticsearchStartupSyncService {
                 .map(block -> block.getBlocker().getUserId())
                 .collect(Collectors.toList());
 
-        // Fetch tagging preference
-        String allowTagging = userPreferencesRepository
-                .findByUser_UserId(user.getUserId())
-                .map(prefs -> prefs.getAllowTagging() != null ? prefs.getAllowTagging().name() : Visibility.PUBLIC.name())
-                .orElse(Visibility.PUBLIC.name());
+        // Fetch user preferences in a single call
+        var prefs = userPreferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
 
-        // Fetch profile visibility
-        String profileVisibility = userPreferencesRepository
-                .findByUser_UserId(user.getUserId())
-                .map(prefs -> prefs.getProfileVisibility() != null ? prefs.getProfileVisibility().name() : Visibility.PUBLIC.name())
-                .orElse(Visibility.PUBLIC.name());
+        String allowTagging = (prefs != null && prefs.getAllowTagging() != null)
+                ? prefs.getAllowTagging().name()
+                : Visibility.PUBLIC.name();
 
+        String profileVisibility = (prefs != null && prefs.getProfileVisibility() != null)
+                ? prefs.getProfileVisibility().name()
+                : Visibility.PUBLIC.name();
 
         // Build UserDocument
         UserDocument userDocument = UserDocument.builder()
@@ -240,6 +352,7 @@ public class ElasticsearchStartupSyncService {
 
     /**
      * Sync all posts from PostgreSQL to Elasticsearch
+     * Uses cursor-based pagination to avoid OFFSET table scans
      */
     // @Transactional(readOnly = true) // <-- Removed from here
     public void syncAllPosts() {
@@ -254,36 +367,33 @@ public class ElasticsearchStartupSyncService {
                 return;
             }
 
-            int pageNumber = 0;
+            Long lastSeenId = 0L;
             int syncedCount = 0;
             int errorCount = 0;
+            int batchNumber = 0;
 
             while (true) {
-                Pageable pageable = PageRequest.of(pageNumber, BATCH_SIZE);
-                // Use findAllWithRelations to eagerly fetch user and other associations
-                Page<Post> postPage = postRepository.findAllWithRelations(pageable);
+                // Cursor-based pagination: fetch next batch where postId > lastSeenId
+                Pageable pageable = PageRequest.of(0, BATCH_SIZE);
+                List<Post> postBatch = postRepository.findNextBatchWithRelations(lastSeenId, pageable);
 
-                if (postPage.isEmpty()) {
+                if (postBatch.isEmpty()) {
                     break;
                 }
 
-                log.info("Syncing post batch {}/{} ({} posts)",
-                        pageNumber + 1, postPage.getTotalPages(), postPage.getNumberOfElements());
+                batchNumber++;
+                log.info("Syncing post batch {} ({} posts)", batchNumber, postBatch.size());
 
-                for (Post post : postPage.getContent()) {
+                for (Post post : postBatch) {
                     try {
                         syncPostToElasticsearch(post);
                         syncedCount++;
+                        lastSeenId = post.getPostId(); // Update cursor
                     } catch (Exception e) {
                         log.error("Failed to sync post ID: {}", post.getPostId(), e);
                         errorCount++;
                     }
                 }
-
-                if (!postPage.hasNext()) {
-                    break;
-                }
-                pageNumber++;
             }
 
             log.info("✅ Post sync completed: {} synced, {} errors", syncedCount, errorCount);
@@ -323,11 +433,9 @@ public class ElasticsearchStartupSyncService {
             Long locationId = location.getLocationId();
             String locationName = location.getName();
             if (location.getLatitude() != null && location.getLongitude() != null) {
-                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
-                        new org.springframework.data.elasticsearch.core.geo.GeoPoint(
-                                location.getLatitude().doubleValue(),
-                                location.getLongitude().doubleValue()
-                        );
+                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint = new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                        location.getLatitude().doubleValue(),
+                        location.getLongitude().doubleValue());
                 locationInfo = PostDocument.LocationInfo.builder()
                         .id(locationId)
                         .name(locationName)
@@ -352,10 +460,47 @@ public class ElasticsearchStartupSyncService {
                 .orElse(null);
 
         // Extract hashtag names from post
-        List<String> hashtagNames = post.getPostHashtags().stream() // <-- This is where the fix takes effect
+        List<String> hashtagNames = post.getPostHashtags().stream()
                 .map(ph -> ph.getHashtag().getName())
                 .collect(Collectors.toList());
         log.debug("Synced {} hashtags for post {}", hashtagNames.size(), post.getPostId());
+
+        // --- ML INSIGHTS: Aggregate from MediaAiInsights + MediaDetectedFace ---
+        List<String> aggregatedTags = new ArrayList<>();
+        List<String> aggregatedCaptions = new ArrayList<>();
+        List<String> aggregatedScenes = new ArrayList<>();
+        int totalFaceCount = 0;
+
+        try {
+            List<MediaAiInsights> allInsights = mediaAiInsightsRepository.findByPost_PostId(post.getPostId());
+            for (MediaAiInsights insight : allInsights) {
+                if (insight.getTags() != null) {
+                    aggregatedTags.addAll(Arrays.asList(insight.getTags()));
+                }
+                if (insight.getCaption() != null && !insight.getCaption().isBlank()) {
+                    aggregatedCaptions.add(insight.getCaption());
+                }
+                if (insight.getScenes() != null) {
+                    aggregatedScenes.addAll(Arrays.asList(insight.getScenes()));
+                }
+                // Count faces for this media
+                List<MediaDetectedFace> faces = mediaDetectedFaceRepository
+                        .findByMediaAiInsights_MediaId(insight.getMediaId());
+                totalFaceCount += faces.size();
+            }
+            // Deduplicate tags and scenes
+            aggregatedTags = aggregatedTags.stream().distinct().collect(Collectors.toList());
+            aggregatedScenes = aggregatedScenes.stream().distinct().collect(Collectors.toList());
+
+            if (!allInsights.isEmpty()) {
+                log.debug("Populated ML insights for post {}: {} tags, {} captions, {} scenes, {} faces",
+                        post.getPostId(), aggregatedTags.size(), aggregatedCaptions.size(),
+                        aggregatedScenes.size(), totalFaceCount);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load ML insights for post {}: {}. Using empty defaults.",
+                    post.getPostId(), e.getMessage());
+        }
 
         // Build PostDocument
         PostDocument postDocument = PostDocument.builder()
@@ -374,9 +519,11 @@ public class ElasticsearchStartupSyncService {
                 .reactionCount(0L) // Initial value, will be updated by interaction events
                 .commentCount(0L) // Initial value, will be updated by interaction events
                 .viewCount(0L) // Initial value, will be updated by view tracking
-                .mlImageTags(new ArrayList<>()) // Will be updated by ML service
-                .peopleCount(null) // Will be updated by ML service
-                .hashtags(hashtagNames) // Add hashtags to document
+                .mlImageTags(aggregatedTags)
+                .mlCaptions(aggregatedCaptions)
+                .mlScenes(aggregatedScenes)
+                .peopleCount(totalFaceCount > 0 ? totalFaceCount : null)
+                .hashtags(hashtagNames)
                 .build();
 
         postSearchRepository.save(postDocument);
@@ -385,6 +532,7 @@ public class ElasticsearchStartupSyncService {
 
     /**
      * Sync all blogs from PostgreSQL to Elasticsearch
+     * Uses cursor-based pagination to avoid OFFSET table scans
      */
     public void syncAllBlogs() {
         log.info("Starting blog synchronization...");
@@ -395,29 +543,34 @@ public class ElasticsearchStartupSyncService {
                 log.info("No blogs found. Skipping blog sync.");
                 return;
             }
-            int pageNumber = 0;
+
+            Long lastSeenId = 0L;
             int syncedCount = 0;
             int errorCount = 0;
+            int batchNumber = 0;
+
             while (true) {
-                Pageable pageable = PageRequest.of(pageNumber, BATCH_SIZE);
-                Page<Blog> blogPage = blogRepository.findAllWithRelations(pageable);
-                if (blogPage.isEmpty()) {
+                // Cursor-based pagination: fetch next batch where blogId > lastSeenId
+                Pageable pageable = PageRequest.of(0, BATCH_SIZE);
+                List<Blog> blogBatch = blogRepository.findNextBatchWithRelations(lastSeenId, pageable);
+
+                if (blogBatch.isEmpty()) {
                     break;
                 }
-                log.info("Syncing blog batch {}/{} ({} blogs)", pageNumber + 1, blogPage.getTotalPages(), blogPage.getNumberOfElements());
-                for (Blog blog : blogPage.getContent()) {
+
+                batchNumber++;
+                log.info("Syncing blog batch {} ({} blogs)", batchNumber, blogBatch.size());
+
+                for (Blog blog : blogBatch) {
                     try {
                         syncBlogToElasticsearch(blog);
                         syncedCount++;
+                        lastSeenId = blog.getBlogId(); // Update cursor
                     } catch (Exception be) {
                         log.error("Failed to sync blog ID: {}", blog.getBlogId(), be);
                         errorCount++;
                     }
                 }
-                if (!blogPage.hasNext()) {
-                    break;
-                }
-                pageNumber++;
             }
             log.info("✅ Blog sync completed: {} synced, {} errors", syncedCount, errorCount);
         } catch (Exception e) {
@@ -473,4 +626,3 @@ public class ElasticsearchStartupSyncService {
         private boolean postsSynced;
     }
 }
-

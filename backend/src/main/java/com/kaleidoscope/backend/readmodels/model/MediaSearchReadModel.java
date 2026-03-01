@@ -1,10 +1,16 @@
 package com.kaleidoscope.backend.readmodels.model;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "read_model_media_search")
 public class MediaSearchReadModel {
@@ -65,4 +71,17 @@ public class MediaSearchReadModel {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MediaSearchReadModel that = (MediaSearchReadModel) o;
+        return mediaId != null && mediaId.equals(that.mediaId);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

@@ -1,17 +1,19 @@
 package com.kaleidoscope.backend.users.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "follows",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}))
-@Data
+        uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}),
+        indexes = {
+                @Index(name = "idx_follow_follower_id", columnList = "follower_id"),
+                @Index(name = "idx_follow_following_id", columnList = "following_id")
+        })
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -36,5 +38,18 @@ public class Follow {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Follow follow = (Follow) o;
+        return followId != null && followId.equals(follow.followId);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

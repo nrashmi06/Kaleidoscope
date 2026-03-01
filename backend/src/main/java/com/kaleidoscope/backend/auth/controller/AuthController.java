@@ -2,15 +2,19 @@ package com.kaleidoscope.backend.auth.controller;
 
 import com.kaleidoscope.backend.auth.controller.api.AuthApi;
 import com.kaleidoscope.backend.auth.dto.request.*;
-import com.kaleidoscope.backend.auth.dto.response.*;
+import com.kaleidoscope.backend.auth.dto.response.SseTicketResponseDTO;
+import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
+import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
+import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
 import com.kaleidoscope.backend.auth.exception.token.MissingRequestCookieException;
-import com.kaleidoscope.backend.auth.service.AuthService;
-import com.kaleidoscope.backend.shared.response.AppResponse;
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
-import com.kaleidoscope.backend.users.service.UserService;
+import com.kaleidoscope.backend.auth.service.AuthService;
 import com.kaleidoscope.backend.auth.service.impl.RefreshTokenServiceImpl;
+import com.kaleidoscope.backend.shared.response.AppResponse;
+import com.kaleidoscope.backend.users.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -66,7 +69,7 @@ public class AuthController implements AuthApi {
     @Override
     @PostMapping(AuthRoutes.LOGIN)
     public ResponseEntity<AppResponse<UserLoginResponseDTO>> authenticateUser(
-            @RequestBody UserLoginRequestDTO loginRequest,
+            @Valid @RequestBody UserLoginRequestDTO loginRequest,
             HttpServletResponse response) {
 
         log.debug("Processing login request for email: {}", loginRequest.email());
@@ -122,7 +125,7 @@ public class AuthController implements AuthApi {
     @Override
     @PostMapping(AuthRoutes.FORGOT_PASSWORD)
     public ResponseEntity<AppResponse<String>> forgotPassword(
-            @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
+            @Valid @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         authService.forgotPassword(verifyEmailRequestDTO.email());
 
         AppResponse<String> response = AppResponse.success(
@@ -137,7 +140,7 @@ public class AuthController implements AuthApi {
     @Override
     @PostMapping(AuthRoutes.RESET_PASSWORD)
     public ResponseEntity<AppResponse<String>> resetPassword(
-            @RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
+            @Valid @RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
         authService.resetPassword(resetPasswordRequestDTO.token(), resetPasswordRequestDTO.newPassword());
 
         AppResponse<String> response = AppResponse.success(
@@ -152,7 +155,7 @@ public class AuthController implements AuthApi {
     @Override
     @PutMapping(AuthRoutes.CHANGE_PASSWORD)
     public ResponseEntity<AppResponse<String>> changePassword(
-            @RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
+            @Valid @RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
         Long userId = jwtUtils.getUserIdFromContext();
         authService.changePasswordById(userId, changePasswordRequestDTO.oldPassword(), changePasswordRequestDTO.newPassword());
 
@@ -199,7 +202,7 @@ public class AuthController implements AuthApi {
     @PostMapping(AuthRoutes.VERIFY_EMAIL)
     @PreAuthorize("permitAll()")
     public ResponseEntity<AppResponse<String>> sendVerificationEmail(
-            @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
+            @Valid @RequestBody VerifyEmailRequestDTO verifyEmailRequestDTO) {
         authService.sendVerificationEmail(verifyEmailRequestDTO.email());
 
         AppResponse<String> response = AppResponse.success(

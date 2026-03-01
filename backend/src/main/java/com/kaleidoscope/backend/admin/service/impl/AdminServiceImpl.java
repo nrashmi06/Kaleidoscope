@@ -2,10 +2,11 @@ package com.kaleidoscope.backend.admin.service.impl;
 
 import com.kaleidoscope.backend.admin.service.AdminService;
 import com.kaleidoscope.backend.auth.service.EmailService;
-import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.shared.enums.Role;
+import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +17,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Primary
 public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
@@ -25,7 +27,6 @@ public class AdminServiceImpl implements AdminService {
     @Async("taskExecutor")
     public void sendMassEmail(String subject, String body, List<Role> targetRoles, List<MultipartFile> attachments) {
         log.info("Starting emergency mass email job with subject: {} to roles: {}", subject, targetRoles);
-        // MODIFIED: Use the new repository method
         List<String> recipientEmails = userRepository.findActiveEmailsByRoles(targetRoles);
 
         if (recipientEmails.isEmpty()) {
@@ -35,7 +36,6 @@ public class AdminServiceImpl implements AdminService {
 
         log.info("Found {} active users for roles {}. Begin sending emails...", recipientEmails.size(), targetRoles);
 
-        // This part remains the same
         Map<String, Object> emailVariables = Map.of("subject", subject, "body", body);
 
         for (int i = 0; i < recipientEmails.size(); i++) {

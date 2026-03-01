@@ -35,387 +35,388 @@ import java.util.stream.Collectors;
 
 @Component
 public class PostMapper {
-    @Autowired
-    private UserTagRepository userTagRepository;
-    @Autowired
-    private UserTagMapper userTagMapper;
-    @Autowired
-    private CommentRepository commentRepository;
-    @Autowired
-    private ReactionRepository reactionRepository;
-    @Autowired
-    private PostViewService postViewService;
+        @Autowired
+        private UserTagRepository userTagRepository;
+        @Autowired
+        private UserTagMapper userTagMapper;
+        @Autowired
+        private CommentRepository commentRepository;
+        @Autowired
+        private ReactionRepository reactionRepository;
+        @Autowired
+        private PostViewService postViewService;
 
-    public Post toEntity(PostCreateRequestDTO dto) {
-        if (dto == null) {
-            return null;
-        }
-        return Post.builder()
-                .title(dto.title())
-                .body(dto.body())
-                .summary(dto.summary())
-                .visibility(dto.visibility())
-                .build();
-    }
-
-    public PostCreationResponseDTO toDTO(Post post) {
-        if (post == null) {
-            return null;
+        public Post toEntity(PostCreateRequestDTO dto) {
+                if (dto == null) {
+                        return null;
+                }
+                return Post.builder()
+                                .title(dto.title())
+                                .body(dto.body())
+                                .summary(dto.summary())
+                                .visibility(dto.visibility())
+                                .build();
         }
 
-        User user = post.getUser();
-        UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
-                user.getUserId(),
-                user.getEmail(),
-                user.getUsername(),
-                user.getAccountStatus().name(),
-                user.getProfilePictureUrl()
-        ) : null;
+        public PostCreationResponseDTO toDTO(Post post) {
+                if (post == null) {
+                        return null;
+                }
 
-        Location location = post.getLocation();
-        LocationResponseDTO locationDto = null;
-        if (location != null) {
-            locationDto = LocationResponseDTO.builder()
-                    .locationId(location.getLocationId())
-                    .name(location.getName())
-                    .latitude(location.getLatitude())
-                    .longitude(location.getLongitude())
-                    .address(location.getAddress())
-                    .build();
+                User user = post.getUser();
+                UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
+                                user.getUserId(),
+                                user.getEmail(),
+                                user.getUsername(),
+                                user.getAccountStatus().name(),
+                                user.getProfilePictureUrl()) : null;
+
+                Location location = post.getLocation();
+                LocationResponseDTO locationDto = null;
+                if (location != null) {
+                        locationDto = LocationResponseDTO.builder()
+                                        .locationId(location.getLocationId())
+                                        .name(location.getName())
+                                        .latitude(location.getLatitude())
+                                        .longitude(location.getLongitude())
+                                        .address(location.getAddress())
+                                        .build();
+                }
+
+                List<UserTagResponseDTO> taggedUsers = userTagRepository
+                                .findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged())
+                                .stream()
+                                .map(userTagMapper::toDTO)
+                                .collect(Collectors.toList());
+                return PostCreationResponseDTO.builder()
+                                .postId(post.getPostId())
+                                .title(post.getTitle())
+                                .body(post.getBody())
+                                .summary(post.getSummary())
+                                .visibility(post.getVisibility())
+                                .status(post.getStatus())
+                                .createdAt(post.getCreatedAt())
+                                .updatedAt(post.getUpdatedAt())
+                                .author(authorDto)
+                                .categories(post.getCategories().stream()
+                                                .map(pc -> {
+                                                        Category cat = pc.getCategory();
+                                                        return new CategorySummaryResponseDTO(
+                                                                        cat.getCategoryId(),
+                                                                        cat.getName());
+                                                })
+                                                .collect(Collectors.toList()))
+                                .media(post.getMedia().stream()
+                                                .sorted(Comparator.comparing(PostMedia::getPosition))
+                                                .map(pm -> PostMediaResponseDTO.builder()
+                                                                .mediaId(pm.getMediaId())
+                                                                .mediaUrl(pm.getMediaUrl())
+                                                                .mediaType(pm.getMediaType())
+                                                                .position(pm.getPosition())
+                                                                .width(pm.getWidth())
+                                                                .height(pm.getHeight())
+                                                                .fileSizeKb(pm.getFileSizeKb())
+                                                                .durationSeconds(pm.getDurationSeconds())
+                                                                .extraMetadata(pm.getExtraMetadata())
+                                                                .createdAt(pm.getCreatedAt())
+                                                                .build())
+                                                .collect(Collectors.toList()))
+                                .location(locationDto)
+                                .taggedUsers(taggedUsers)
+                                .build();
         }
 
-        List<UserTagResponseDTO> taggedUsers = userTagRepository.findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged())
-            .stream()
-            .map(userTagMapper::toDTO)
-            .collect(Collectors.toList());
-        return PostCreationResponseDTO.builder()
-                .postId(post.getPostId())
-                .title(post.getTitle())
-                .body(post.getBody())
-                .summary(post.getSummary())
-                .visibility(post.getVisibility())
-                .status(post.getStatus())
-                .createdAt(post.getCreatedAt())
-                .updatedAt(post.getUpdatedAt())
-                .author(authorDto)
-                .categories(post.getCategories().stream()
-                        .map(pc -> {
-                            Category cat = pc.getCategory();
-                            return new CategorySummaryResponseDTO(
-                                    cat.getCategoryId(),
-                                    cat.getName()
-                            );
-                        })
-                        .collect(Collectors.toList()))
-                .media(post.getMedia().stream()
-                        .sorted(Comparator.comparing(PostMedia::getPosition))
-                        .map(pm -> PostMediaResponseDTO.builder()
-                                .mediaId(pm.getMediaId())
-                                .mediaUrl(pm.getMediaUrl())
-                                .mediaType(pm.getMediaType())
-                                .position(pm.getPosition())
-                                .width(pm.getWidth())
-                                .height(pm.getHeight())
-                                .fileSizeKb(pm.getFileSizeKb())
-                                .durationSeconds(pm.getDurationSeconds())
-                                .extraMetadata(pm.getExtraMetadata())
-                                .createdAt(pm.getCreatedAt())
-                                .build())
-                        .collect(Collectors.toList()))
-                .location(locationDto)
-                .taggedUsers(taggedUsers)
-                .build();
-    }
-
-    public List<PostMedia> toPostMediaEntities(List<MediaUploadRequestDTO> mediaDtos) {
-        if (mediaDtos == null) {
-            return List.of();
-        }
-        AtomicInteger autoPosition = new AtomicInteger(0);
-        return mediaDtos.stream().map(mediaDto -> PostMedia.builder()
-                .mediaUrl(mediaDto.url())
-                .mediaType(mediaDto.mediaType())
-                .position(mediaDto.position() != null ? mediaDto.position() : autoPosition.getAndIncrement())
-                .width(mediaDto.width())
-                .height(mediaDto.height())
-                .fileSizeKb(mediaDto.fileSizeKb())
-                .durationSeconds(mediaDto.durationSeconds())
-                .extraMetadata(mediaDto.extraMetadata())
-                .build()
-        ).collect(Collectors.toList());
-    }
-
-    public PostDetailResponseDTO toPostDetailDTO(Post post, ReactionType currentUserReaction) {
-        if (post == null) {
-            return null;
+        public List<PostMedia> toPostMediaEntities(List<MediaUploadRequestDTO> mediaDtos) {
+                if (mediaDtos == null) {
+                        return List.of();
+                }
+                AtomicInteger autoPosition = new AtomicInteger(0);
+                return mediaDtos.stream().map(mediaDto -> PostMedia.builder()
+                                .mediaUrl(mediaDto.url())
+                                .mediaType(mediaDto.mediaType())
+                                .position(mediaDto.position() != null ? mediaDto.position()
+                                                : autoPosition.getAndIncrement())
+                                .width(mediaDto.width())
+                                .height(mediaDto.height())
+                                .fileSizeKb(mediaDto.fileSizeKb())
+                                .durationSeconds(mediaDto.durationSeconds())
+                                .extraMetadata(mediaDto.extraMetadata())
+                                .build()).collect(Collectors.toList());
         }
 
-        User user = post.getUser();
-        UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
-                user.getUserId(),
-                user.getEmail(),
-                user.getUsername(),
-                user.getAccountStatus().name(),
-                user.getProfilePictureUrl()
-        ) : null;
+        public PostDetailResponseDTO toPostDetailDTO(Post post, ReactionType currentUserReaction) {
+                if (post == null) {
+                        return null;
+                }
 
-        Location location = post.getLocation();
-        LocationResponseDTO locationDto = null;
-        if (location != null) {
-            locationDto = LocationResponseDTO.builder()
-                    .locationId(location.getLocationId())
-                    .name(location.getName())
-                    .latitude(location.getLatitude())
-                    .longitude(location.getLongitude())
-                    .address(location.getAddress())
-                    .build();
+                User user = post.getUser();
+                UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
+                                user.getUserId(),
+                                user.getEmail(),
+                                user.getUsername(),
+                                user.getAccountStatus().name(),
+                                user.getProfilePictureUrl()) : null;
+
+                Location location = post.getLocation();
+                LocationResponseDTO locationDto = null;
+                if (location != null) {
+                        locationDto = LocationResponseDTO.builder()
+                                        .locationId(location.getLocationId())
+                                        .name(location.getName())
+                                        .latitude(location.getLatitude())
+                                        .longitude(location.getLongitude())
+                                        .address(location.getAddress())
+                                        .build();
+                }
+
+                List<UserTagResponseDTO> taggedUsers = userTagRepository
+                                .findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged())
+                                .stream()
+                                .map(userTagMapper::toDTO)
+                                .collect(Collectors.toList());
+
+                // Extract hashtag names from post
+                List<String> hashtagNames = post.getHashtags().stream()
+                                .map(Hashtag::getName)
+                                .sorted()
+                                .collect(Collectors.toList());
+
+                // Get reaction and comment counts
+                long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(),
+                                ContentType.POST);
+                long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(),
+                                ContentType.POST);
+                long viewCount = postViewService.getViewCount(post.getPostId()); // Get Redis-optimized view count
+
+                return PostDetailResponseDTO.builder()
+                                .postId(post.getPostId())
+                                .title(post.getTitle())
+                                .body(post.getBody())
+                                .summary(post.getSummary())
+                                .visibility(post.getVisibility())
+                                .status(post.getStatus())
+                                .createdAt(post.getCreatedAt())
+                                .updatedAt(post.getUpdatedAt())
+                                .author(authorDto)
+                                .categories(post.getCategories().stream()
+                                                .map(pc -> {
+                                                        Category cat = pc.getCategory();
+                                                        return new CategorySummaryResponseDTO(
+                                                                        cat.getCategoryId(),
+                                                                        cat.getName());
+                                                })
+                                                .collect(Collectors.toList()))
+                                .media(post.getMedia().stream()
+                                                .sorted(Comparator.comparing(PostMedia::getPosition))
+                                                .map(pm -> PostMediaResponseDTO.builder()
+                                                                .mediaId(pm.getMediaId())
+                                                                .mediaUrl(pm.getMediaUrl())
+                                                                .mediaType(pm.getMediaType())
+                                                                .position(pm.getPosition())
+                                                                .width(pm.getWidth())
+                                                                .height(pm.getHeight())
+                                                                .fileSizeKb(pm.getFileSizeKb())
+                                                                .durationSeconds(pm.getDurationSeconds())
+                                                                .extraMetadata(pm.getExtraMetadata())
+                                                                .createdAt(pm.getCreatedAt())
+                                                                .build())
+                                                .collect(Collectors.toList()))
+                                .location(locationDto)
+                                .taggedUsers(taggedUsers)
+                                .hashtags(hashtagNames)
+                                .reactionCount(reactionCount)
+                                .commentCount(commentCount)
+                                .viewCount(viewCount) // Add view count to response
+                                .currentUserReaction(currentUserReaction)
+                                .build();
         }
 
-        List<UserTagResponseDTO> taggedUsers = userTagRepository.findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged())
-                .stream()
-                .map(userTagMapper::toDTO)
-                .collect(Collectors.toList());
+        public PostSummaryResponseDTO toPostSummaryDTO(Post post) {
+                if (post == null) {
+                        return null;
+                }
 
-        // Extract hashtag names from post
-        List<String> hashtagNames = post.getHashtags().stream()
-                .map(Hashtag::getName)
-                .sorted()
-                .collect(Collectors.toList());
+                User user = post.getUser();
+                UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
+                                user.getUserId(),
+                                user.getEmail(),
+                                user.getUsername(),
+                                user.getAccountStatus().name(),
+                                user.getProfilePictureUrl()) : null;
 
-        // Get reaction and comment counts
-        long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
-        long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
-        long viewCount = postViewService.getViewCount(post.getPostId()); // Get Redis-optimized view count
+                // Find thumbnail URL from media with lowest position
+                String thumbnailUrl = post.getMedia().stream()
+                                .min(Comparator.comparing(PostMedia::getPosition))
+                                .map(PostMedia::getMediaUrl)
+                                .orElse(null);
 
-        return PostDetailResponseDTO.builder()
-                .postId(post.getPostId())
-                .title(post.getTitle())
-                .body(post.getBody())
-                .summary(post.getSummary())
-                .visibility(post.getVisibility())
-                .status(post.getStatus())
-                .createdAt(post.getCreatedAt())
-                .updatedAt(post.getUpdatedAt())
-                .author(authorDto)
-                .categories(post.getCategories().stream()
-                        .map(pc -> {
-                            Category cat = pc.getCategory();
-                            return new CategorySummaryResponseDTO(
-                                    cat.getCategoryId(),
-                                    cat.getName()
-                            );
-                        })
-                        .collect(Collectors.toList()))
-                .media(post.getMedia().stream()
-                        .sorted(Comparator.comparing(PostMedia::getPosition))
-                        .map(pm -> PostMediaResponseDTO.builder()
-                                .mediaId(pm.getMediaId())
-                                .mediaUrl(pm.getMediaUrl())
-                                .mediaType(pm.getMediaType())
-                                .position(pm.getPosition())
-                                .width(pm.getWidth())
-                                .height(pm.getHeight())
-                                .fileSizeKb(pm.getFileSizeKb())
-                                .durationSeconds(pm.getDurationSeconds())
-                                .extraMetadata(pm.getExtraMetadata())
-                                .createdAt(pm.getCreatedAt())
-                                .build())
-                        .collect(Collectors.toList()))
-                .location(locationDto)
-                .taggedUsers(taggedUsers)
-                .hashtags(hashtagNames)
-                .reactionCount(reactionCount)
-                .commentCount(commentCount)
-                .viewCount(viewCount) // Add view count to response
-                .currentUserReaction(currentUserReaction)
-                .build();
-    }
+                // Extract hashtag names from post
+                List<String> hashtagNames = post.getHashtags().stream()
+                                .map(Hashtag::getName)
+                                .sorted()
+                                .collect(Collectors.toList());
 
-    public PostSummaryResponseDTO toPostSummaryDTO(Post post) {
-        if (post == null) {
-            return null;
+                // Get reaction and comment counts
+                long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(),
+                                ContentType.POST);
+                long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(),
+                                ContentType.POST);
+                long viewCount = postViewService.getViewCount(post.getPostId()); // Get Redis-optimized view count
+
+                return PostSummaryResponseDTO.builder()
+                                .postId(post.getPostId())
+                                .title(post.getTitle())
+                                .summary(post.getSummary())
+                                .visibility(post.getVisibility())
+                                .createdAt(post.getCreatedAt())
+                                .author(authorDto)
+                                .categories(post.getCategories().stream()
+                                                .map(pc -> {
+                                                        Category cat = pc.getCategory();
+                                                        return new CategorySummaryResponseDTO(
+                                                                        cat.getCategoryId(),
+                                                                        cat.getName());
+                                                })
+                                                .collect(Collectors.toList()))
+                                .thumbnailUrl(thumbnailUrl)
+                                .hashtags(hashtagNames)
+                                .reactionCount(reactionCount)
+                                .commentCount(commentCount)
+                                .viewCount(viewCount) // Add view count to response
+                                .build();
         }
 
-        User user = post.getUser();
-        UserDetailsSummaryResponseDTO authorDto = user != null ? new UserDetailsSummaryResponseDTO(
-                user.getUserId(),
-                user.getEmail(),
-                user.getUsername(),
-                user.getAccountStatus().name(),
-                user.getProfilePictureUrl()
-        ) : null;
+        /**
+         * Overloaded method to map PostDocument directly to PostSummaryResponseDTO
+         * Uses denormalized data from Elasticsearch, avoiding database calls for better
+         * performance
+         */
+        public PostSummaryResponseDTO toPostSummaryDTO(PostDocument document) {
+                if (document == null) {
+                        return null;
+                }
 
-        // Find thumbnail URL from media with lowest position
-        String thumbnailUrl = post.getMedia().stream()
-                .min(Comparator.comparing(PostMedia::getPosition))
-                .map(PostMedia::getMediaUrl)
-                .orElse(null);
+                // Map author from denormalized document data
+                UserDetailsSummaryResponseDTO authorDto = null;
+                if (document.getAuthor() != null) {
+                        PostDocument.Author author = document.getAuthor();
+                        authorDto = new UserDetailsSummaryResponseDTO(
+                                        author.getUserId(),
+                                        author.getEmail(),
+                                        author.getUsername(),
+                                        author.getAccountStatus(),
+                                        author.getProfilePictureUrl());
+                }
 
-        // Extract hashtag names from post
-        List<String> hashtagNames = post.getHashtags().stream()
-                .map(Hashtag::getName)
-                .sorted()
-                .collect(Collectors.toList());
+                // Map categories from denormalized document data
+                List<CategorySummaryResponseDTO> categoryDtos = List.of();
+                if (document.getCategories() != null) {
+                        categoryDtos = document.getCategories().stream()
+                                        .map(cat -> new CategorySummaryResponseDTO(
+                                                        cat.getCategoryId(),
+                                                        cat.getName()))
+                                        .collect(Collectors.toList());
+                }
 
-        // Get reaction and comment counts
-        long reactionCount = reactionRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
-        long commentCount = commentRepository.countByContentIdAndContentType(post.getPostId(), ContentType.POST);
-        long viewCount = postViewService.getViewCount(post.getPostId()); // Get Redis-optimized view count
+                // Map hashtags from denormalized document data
+                List<String> hashtags = document.getHashtags() != null ? document.getHashtags() : List.of();
 
-        return PostSummaryResponseDTO.builder()
-                .postId(post.getPostId())
-                .title(post.getTitle())
-                .summary(post.getSummary())
-                .visibility(post.getVisibility())
-                .createdAt(post.getCreatedAt())
-                .author(authorDto)
-                .categories(post.getCategories().stream()
-                        .map(pc -> {
-                            Category cat = pc.getCategory();
-                            return new CategorySummaryResponseDTO(
-                                    cat.getCategoryId(),
-                                    cat.getName()
-                            );
-                        })
-                        .collect(Collectors.toList()))
-                .thumbnailUrl(thumbnailUrl)
-                .hashtags(hashtagNames)
-                .reactionCount(reactionCount)
-                .commentCount(commentCount)
-                .viewCount(viewCount) // Add view count to response
-                .build();
-    }
-
-    /**
-     * Overloaded method to map PostDocument directly to PostSummaryResponseDTO
-     * Uses denormalized data from Elasticsearch, avoiding database calls for better performance
-     */
-    public PostSummaryResponseDTO toPostSummaryDTO(PostDocument document) {
-        if (document == null) {
-            return null;
+                return PostSummaryResponseDTO.builder()
+                                .postId(document.getPostId())
+                                .title(document.getTitle())
+                                .summary(document.getSummary())
+                                .visibility(document.getVisibility())
+                                .createdAt(document.getCreatedAt())
+                                .author(authorDto)
+                                .categories(categoryDtos)
+                                .thumbnailUrl(document.getThumbnailUrl())
+                                .hashtags(hashtags)
+                                .reactionCount(document.getReactionCount())
+                                .commentCount(document.getCommentCount())
+                                .viewCount(document.getViewCount()) // Use denormalized view count directly
+                                .build();
         }
 
-        // Map author from denormalized document data
-        UserDetailsSummaryResponseDTO authorDto = null;
-        if (document.getAuthor() != null) {
-            PostDocument.Author author = document.getAuthor();
-            authorDto = new UserDetailsSummaryResponseDTO(
-                    author.getUserId(),
-                    author.getEmail(),
-                    author.getUsername(),
-                    author.getAccountStatus(),
-                    author.getProfilePictureUrl()
-            );
+        /**
+         * Create PostDocument from Post entity with denormalized data for Elasticsearch
+         * indexing
+         * Migrated from PostServiceImpl.createPost
+         */
+        public PostDocument toPostDocument(Post post) {
+                if (post == null) {
+                        return null;
+                }
+
+                // Find thumbnail URL from media with lowest position
+                String thumbnailUrl = post.getMedia().stream()
+                                .min(Comparator.comparing(PostMedia::getPosition))
+                                .map(PostMedia::getMediaUrl)
+                                .orElse(null);
+
+                // Build author object for denormalized data
+                User currentUser = post.getUser();
+                PostDocument.Author author = PostDocument.Author.builder()
+                                .userId(currentUser.getUserId())
+                                .username(currentUser.getUsername())
+                                .profilePictureUrl(currentUser.getProfilePictureUrl())
+                                .build();
+
+                // Build categories list for denormalized data
+                List<PostDocument.Category> documentCategories = post.getCategories().stream()
+                                .map(pc -> {
+                                        Category cat = pc.getCategory();
+                                        return PostDocument.Category.builder()
+                                                        .categoryId(cat.getCategoryId())
+                                                        .name(cat.getName())
+                                                        .build();
+                                })
+                                .collect(Collectors.toList());
+
+                // Build location info for denormalized data
+                PostDocument.LocationInfo locationInfo = null;
+                Location location = post.getLocation();
+                if (location != null) {
+                        Long locationId = location.getLocationId();
+                        String locationName = location.getName();
+                        if (location.getLatitude() != null && location.getLongitude() != null) {
+                                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint = new org.springframework.data.elasticsearch.core.geo.GeoPoint(
+                                                location.getLatitude().doubleValue(),
+                                                location.getLongitude().doubleValue());
+                                locationInfo = PostDocument.LocationInfo.builder()
+                                                .id(locationId)
+                                                .name(locationName)
+                                                .point(geoPoint)
+                                                .build();
+                        } else {
+                                // Location exists but has no coordinates
+                                locationInfo = PostDocument.LocationInfo.builder()
+                                                .id(locationId)
+                                                .name(locationName)
+                                                .point(null)
+                                                .build();
+                        }
+                }
+
+                // Create PostDocument with initial values
+                return PostDocument.builder()
+                                .id(post.getPostId().toString())
+                                .postId(post.getPostId())
+                                .title(post.getTitle())
+                                .body(post.getBody())
+                                .summary(post.getSummary())
+                                .thumbnailUrl(thumbnailUrl)
+                                .visibility(post.getVisibility())
+                                .status(post.getStatus())
+                                .createdAt(post.getCreatedAt())
+                                .author(author)
+                                .categories(documentCategories)
+                                .location(locationInfo)
+                                .reactionCount(0L) // Initial value
+                                .commentCount(0L) // Initial value
+                                .viewCount(0L) // Initial value
+                                .mlImageTags(new java.util.ArrayList<>()) // Populated later by ML pipeline
+                                .mlCaptions(new java.util.ArrayList<>()) // Populated later by ML pipeline
+                                .mlScenes(new java.util.ArrayList<>()) // Populated later by ML pipeline
+                                .build();
         }
-
-        // Map categories from denormalized document data
-        List<CategorySummaryResponseDTO> categoryDtos = List.of();
-        if (document.getCategories() != null) {
-            categoryDtos = document.getCategories().stream()
-                    .map(cat -> new CategorySummaryResponseDTO(
-                            cat.getCategoryId(),
-                            cat.getName()
-                    ))
-                    .collect(Collectors.toList());
-        }
-
-        // Map hashtags from denormalized document data
-        List<String> hashtags = document.getHashtags() != null ? document.getHashtags() : List.of();
-
-        return PostSummaryResponseDTO.builder()
-                .postId(document.getPostId())
-                .title(document.getTitle())
-                .summary(document.getSummary())
-                .visibility(document.getVisibility())
-                .createdAt(document.getCreatedAt())
-                .author(authorDto)
-                .categories(categoryDtos)
-                .thumbnailUrl(document.getThumbnailUrl())
-                .hashtags(hashtags)
-                .reactionCount(document.getReactionCount())
-                .commentCount(document.getCommentCount())
-                .viewCount(document.getViewCount()) // Use denormalized view count directly
-                .build();
-    }
-
-    /**
-     * Create PostDocument from Post entity with denormalized data for Elasticsearch indexing
-     * Migrated from PostServiceImpl.createPost
-     */
-    public PostDocument toPostDocument(Post post) {
-        if (post == null) {
-            return null;
-        }
-
-        // Find thumbnail URL from media with lowest position
-        String thumbnailUrl = post.getMedia().stream()
-                .min(Comparator.comparing(PostMedia::getPosition))
-                .map(PostMedia::getMediaUrl)
-                .orElse(null);
-
-        // Build author object for denormalized data
-        User currentUser = post.getUser();
-        PostDocument.Author author = PostDocument.Author.builder()
-                .userId(currentUser.getUserId())
-                .username(currentUser.getUsername())
-                .profilePictureUrl(currentUser.getProfilePictureUrl())
-                .build();
-
-        // Build categories list for denormalized data
-        List<PostDocument.Category> documentCategories = post.getCategories().stream()
-                .map(pc -> {
-                    Category cat = pc.getCategory();
-                    return PostDocument.Category.builder()
-                            .categoryId(cat.getCategoryId())
-                            .name(cat.getName())
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        // Build location info for denormalized data
-        PostDocument.LocationInfo locationInfo = null;
-        Location location = post.getLocation();
-        if (location != null) {
-            Long locationId = location.getLocationId();
-            String locationName = location.getName();
-            if (location.getLatitude() != null && location.getLongitude() != null) {
-                org.springframework.data.elasticsearch.core.geo.GeoPoint geoPoint =
-                    new org.springframework.data.elasticsearch.core.geo.GeoPoint(
-                        location.getLatitude().doubleValue(),
-                        location.getLongitude().doubleValue()
-                    );
-                locationInfo = PostDocument.LocationInfo.builder()
-                        .id(locationId)
-                        .name(locationName)
-                        .point(geoPoint)
-                        .build();
-            } else {
-                // Location exists but has no coordinates
-                locationInfo = PostDocument.LocationInfo.builder()
-                        .id(locationId)
-                        .name(locationName)
-                        .point(null)
-                        .build();
-            }
-        }
-
-        // Create PostDocument with initial values
-        return PostDocument.builder()
-                .id(post.getPostId().toString())
-                .postId(post.getPostId())
-                .title(post.getTitle())
-                .body(post.getBody())
-                .summary(post.getSummary())
-                .thumbnailUrl(thumbnailUrl)
-                .visibility(post.getVisibility())
-                .status(post.getStatus())
-                .createdAt(post.getCreatedAt())
-                .author(author)
-                .categories(documentCategories)
-                .location(locationInfo)
-                .reactionCount(0L)       // Initial value
-                .commentCount(0L)        // Initial value
-                .viewCount(0L)           // Initial value
-                .build();
-    }
 }

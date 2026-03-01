@@ -40,22 +40,35 @@ The Kaleidoscope Posts Management System handles photo posts with media processi
 
 ```
 posts/
+├── config/
+│   └── PostAsyncConfig.java             # viewCountExecutor thread pool config
+├── consumer/
+│   ├── PostInteractionSyncConsumer.java # Syncs reaction/comment counts to ES
+│   └── UserProfilePostSyncConsumer.java # Syncs author profile changes to ES
 ├── controller/
 │   ├── PostController.java              # Main posts CRUD operations
-│   ├── PostInteractionController.java   # Post interactions (if implemented)
+│   ├── PostInteractionController.java   # Reactions & comments (posts + comments)
+│   ├── PostSaveController.java          # Save/unsave (bookmark) posts
 │   └── api/                            # OpenAPI interface definitions
+│       ├── PostApi.java
+│       ├── PostInteractionApi.java
+│       └── PostSaveApi.java
 ├── document/
 │   ├── PostDocument.java              # Elasticsearch post document
+│   ├── FeedItemDocument.java          # Feed item search document
 │   ├── MediaSearchDocument.java       # Media search indexing
 │   ├── MediaAiInsightsDocument.java   # AI insights for search
-│   └── MediaDetectedFaceDocument.java  # Face detection search
+│   ├── MediaDetectedFaceDocument.java # Face detection search
+│   ├── RecommendationDocument.java    # Recommendation search document
+│   └── SearchAssetDocument.java       # Search asset document
 ├── dto/
 │   ├── request/                        # Post creation/update requests
 │   └── response/                       # Post response formats
 ├── enums/
+│   ├── FaceDetectionStatus.java       # PENDING, DETECTED, RECOGNIZED
+│   ├── MediaAiStatus.java             # PENDING, PROCESSING, COMPLETED, FAILED
 │   ├── PostStatus.java                # DRAFT, PUBLISHED, ARCHIVED
-│   ├── PostVisibility.java            # PUBLIC, PRIVATE, FRIENDS_ONLY
-│   └── MediaType.java                 # IMAGE, VIDEO, AUDIO
+│   └── PostVisibility.java            # PUBLIC, PRIVATE, FRIENDS_ONLY
 ├── exception/
 │   └── posts/                         # Post-specific exceptions
 ├── mapper/
@@ -70,13 +83,60 @@ posts/
 ├── repository/
 │   ├── PostRepository.java          # Post data access
 │   ├── PostMediaRepository.java     # Media queries
+│   ├── PostCategoryRepository.java  # Category associations
+│   ├── PostSaveRepository.java      # Saved posts queries
+│   ├── MediaAiInsightsRepository.java  # AI insights queries
+│   ├── MediaDetectedFaceRepository.java # Face detection queries
+│   ├── search/                      # Elasticsearch repositories
+│   │   ├── PostSearchRepository.java
+│   │   ├── PostSearchRepositoryCustom.java
+│   │   ├── PostSearchRepositoryImpl.java
+│   │   ├── FeedItemSearchRepository.java
+│   │   ├── MediaSearchRepository.java
+│   │   ├── MediaAiInsightsSearchRepository.java
+│   │   ├── MediaDetectedFaceSearchRepository.java
+│   │   ├── RecommendationSearchRepository.java
+│   │   └── SearchAssetSearchRepository.java
 │   └── specification/               # Dynamic query building
 ├── routes/
-│   └── PostsRoutes.java            # Route constants
+│   ├── PostsRoutes.java             # Post CRUD route constants
+│   └── PostInteractionRoutes.java   # Interaction route constants
 └── service/
-    ├── PostService.java            # Main business logic
-    └── impl/                       # Service implementations
+    ├── PostService.java             # Main post business logic
+    ├── PostSaveService.java         # Save/unsave post service
+    ├── PostSuggestionService.java   # ES-powered post suggestions
+    ├── PostViewService.java         # Async view counting with Redis
+    └── impl/
+        ├── PostServiceImpl.java
+        ├── PostSaveServiceImpl.java
+        └── PostSuggestionServiceImpl.java
 ```
+
+### Additional Components
+
+#### PostViewService
+Handles **asynchronous view counting** with Redis optimization:
+- **Duplicate prevention**: Uses `user:view:{userId}:{postId}` keys with 24-hour TTL
+- **Redis-first counting**: Increments `post:views:{postId}` in Redis immediately
+- **Batch DB sync**: Scheduled job (`@Scheduled`) flushes pending view counts from Redis to PostgreSQL
+- **Lock mechanism**: Uses `view:batch:lock` Redis key to prevent concurrent batch runs
+- Runs on dedicated `viewCountExecutor` thread pool (2-5 threads)
+
+#### PostSaveController
+Handles post bookmarking:
+- `POST /save` — Save or unsave a post (toggle with `?unsave=true`)
+- `GET /save` — Check if current user has saved a specific post
+- `GET /saved` — Get paginated list of user's saved posts
+
+#### PostInteractionController
+Unified interactions using the shared `InteractionService`:
+- **Post reactions**: React/unreact to posts, get reaction summary
+- **Comments**: Add, list (paginated), delete comments
+- **Comment reactions**: React/unreact to comments, get comment reaction summary
+
+#### Redis Stream Consumers
+- **PostInteractionSyncConsumer**: Listens to `post-interaction-sync` stream, syncs reaction/comment counts to Elasticsearch `PostDocument`
+- **UserProfilePostSyncConsumer**: Listens to `user-profile-post-sync` stream, bulk-updates denormalized author info across all user's posts in Elasticsearch
 
 ## Core Data Models
 

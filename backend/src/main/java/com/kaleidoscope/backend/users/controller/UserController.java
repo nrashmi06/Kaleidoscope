@@ -10,6 +10,7 @@ import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO
 import com.kaleidoscope.backend.users.dto.response.UserProfileResponseDTO;
 import com.kaleidoscope.backend.users.routes.UserRoutes;
 import com.kaleidoscope.backend.users.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -75,7 +76,7 @@ public class UserController implements UserApi {
     }
 
     @Override
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(UserRoutes.GET_ALL_USERS_BY_PROFILE_STATUS)
     public ResponseEntity<AppResponse<Page<UserDetailsSummaryResponseDTO>>> getAllUsers(
             @RequestParam(required = false) String status,
@@ -94,10 +95,10 @@ public class UserController implements UserApi {
     }
 
     @Override
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(UserRoutes.UPDATE_USER_PROFILE_STATUS)
     public ResponseEntity<AppResponse<String>> updateUserProfileStatus(
-            @RequestBody UpdateUserProfileStatusRequestDTO updateUserProfileStatusRequestDTO) {
+            @Valid @RequestBody UpdateUserProfileStatusRequestDTO updateUserProfileStatusRequestDTO) {
 
         userService.updateUserProfileStatus(
                 updateUserProfileStatusRequestDTO.userId(),

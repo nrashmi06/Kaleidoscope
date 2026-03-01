@@ -3,8 +3,9 @@ package com.kaleidoscope.backend.users.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +17,8 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_requester_id", columnList = "requester_id"),
                 @Index(name = "idx_created_at", columnList = "created_at")
         })
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -42,5 +44,17 @@ public class FollowRequest {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
-}
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FollowRequest that = (FollowRequest) o;
+        return requestId != null && requestId.equals(that.requestId);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+}

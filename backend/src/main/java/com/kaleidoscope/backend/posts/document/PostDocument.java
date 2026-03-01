@@ -67,9 +67,15 @@ public class PostDocument {
     @Field(type = FieldType.Long)
     private Long viewCount;
 
-    // --- ML Image Tags and People Count ---
+    // --- ML Image Tags, Captions, Scenes, and People Count ---
     @Field(type = FieldType.Keyword)
     private List<String> mlImageTags;
+
+    @Field(type = FieldType.Text)
+    private List<String> mlCaptions; // AI captions from all media (full-text searchable)
+
+    @Field(type = FieldType.Keyword)
+    private List<String> mlScenes; // AI scene classifications from all media
 
     @Field(type = FieldType.Integer)
     private Integer peopleCount;

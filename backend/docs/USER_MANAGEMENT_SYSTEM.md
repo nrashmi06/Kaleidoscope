@@ -43,51 +43,94 @@ The Kaleidoscope User Management System provides comprehensive user profile mana
 
 ```
 users/
+├── consumer/
+│   └── UserProfileFaceEmbeddingConsumer.java  # Syncs face embeddings to ES
 ├── controller/
-│   ├── UserController.java              # Main user profile operations
-│   ├── UserPreferencesController.java   # User preferences management
-│   ├── UserInterestController.java      # Interest management
-│   ├── UserBlockController.java         # User blocking features
-│   ├── UserTaggingController.java       # User tagging in posts
-│   └── api/                            # OpenAPI interface definitions
+│   ├── UserController.java                    # Main user profile operations
+│   ├── FollowController.java                  # Follow/unfollow & suggestions
+│   ├── UserBlockController.java               # User blocking features
+│   ├── UserInterestController.java            # Interest management
+│   ├── UserNotificationPreferencesController.java # Notification settings
+│   ├── UserPreferencesController.java         # User preferences management
+│   └── api/                                   # OpenAPI interface definitions
+│       ├── UserApi.java
+│       ├── FollowApi.java
+│       ├── UserBlockApi.java
+│       ├── UserInterestApi.java
+│       ├── UserNotificationPreferencesApi.java
+│       └── UserPreferencesApi.java
 ├── document/
-│   └── UserSearchDocument.java         # Elasticsearch user indexing
+│   ├── UserDocument.java                      # Elasticsearch user document
+│   ├── UserProfileDocument.java               # User profile search document
+│   ├── FollowDocument.java                    # Follow relationship ES document
+│   ├── FaceSearchDocument.java                # Face search ES document
+│   └── UserFaceEmbeddingDocument.java         # Face embedding ES document
 ├── dto/
-│   ├── request/                        # User update/preference requests
-│   └── response/                       # User profile responses
+│   ├── request/                               # User update/preference requests
+│   └── response/                              # User profile responses
 ├── enums/
-│   ├── Theme.java                      # UI theme preferences
-│   ├── Language.java                   # Supported languages
-│   ├── NotificationFrequency.java      # Notification timing
-│   └── PrivacyLevel.java              # Privacy setting levels
+│   ├── FollowStatus.java                      # PENDING, ACCEPTED, REJECTED
+│   ├── Theme.java                             # UI theme preferences
+│   └── Visibility.java                        # Profile visibility settings
 ├── exception/
-│   └── user/                          # User-specific exceptions
-├── mapper/
-│   ├── UserMapper.java                # Entity-DTO mapping
-│   └── UserPreferencesMapper.java     # Preferences mapping
+│   └── user/                                  # User-specific exceptions
+├── mapper/                                    # Entity-DTO mapping
 ├── model/
-│   ├── User.java                      # Main user entity
-│   ├── UserPreferences.java           # User preferences
-│   ├── UserInterest.java             # User interests/categories
-│   ├── UserNotificationPreferences.java # Notification settings
-│   ├── UserBlock.java                # Blocking relationships
-│   ├── UserFollowing.java            # Following relationships
-│   └── UserTag.java                  # User tagging in content
+│   ├── User.java                              # Main user entity
+│   ├── UserPreferences.java                   # User preferences
+│   ├── UserInterest.java                      # User interests/categories
+│   ├── UserNotificationPreferences.java       # Notification settings
+│   ├── UserBlock.java                         # Blocking relationships
+│   ├── Follow.java                            # Follow relationships
+│   ├── FollowRequest.java                     # Pending follow requests
+│   └── UserFaceEmbedding.java                 # User face embedding data
 ├── repository/
-│   ├── UserRepository.java           # User data access
-│   ├── UserPreferencesRepository.java # Preferences queries
-│   ├── UserInterestRepository.java    # Interest management
-│   ├── UserBlockRepository.java      # Blocking queries
-│   └── UserFollowingRepository.java  # Social graph queries
-├── routes/
-│   └── UserRoutes.java              # Route constants
+│   ├── UserRepository.java                    # User data access
+│   ├── UserPreferencesRepository.java         # Preferences queries
+│   ├── UserInterestRepository.java            # Interest management
+│   ├── UserNotificationPreferencesRepository.java # Notification prefs queries
+│   ├── UserBlockRepository.java               # Blocking queries
+│   ├── FollowRepository.java                  # Follow relationship queries
+│   ├── FollowRequestRepository.java           # Follow request queries
+│   ├── UserFaceEmbeddingRepository.java       # Face embedding queries
+│   ├── search/                                # Elasticsearch repositories
+│   │   ├── UserSearchRepository.java
+│   │   ├── UserSearchRepositoryCustom.java
+│   │   ├── UserSearchRepositoryImpl.java
+│   │   ├── UserProfileSearchRepository.java
+│   │   ├── FollowSearchRepository.java
+│   │   ├── FaceSearchRepository.java
+│   │   └── UserFaceEmbeddingSearchRepository.java
+│   └── specifications/                        # Dynamic query building
+├── routes/                                    # Route constants
 └── service/
-    ├── UserService.java             # Main user business logic
-    ├── UserPreferencesService.java  # Preferences management
-    ├── UserInterestService.java     # Interest management
-    ├── UserSocialService.java       # Social features
-    └── impl/                        # Service implementations
+    ├── UserService.java                       # Main user business logic
+    ├── FollowService.java                     # Follow/unfollow & suggestions
+    ├── FollowDocumentSyncService.java         # ES follow document sync
+    ├── UserDocumentSyncService.java           # ES user document sync
+    ├── UserBlockService.java                  # User blocking service
+    ├── UserInterestService.java               # Interest management
+    ├── UserNotificationPreferencesService.java # Notification preferences
+    ├── UserPreferencesService.java            # User preferences management
+    └── impl/
+        ├── UserServiceImpl.java
+        ├── FollowServiceImpl.java
+        ├── FollowDocumentSyncServiceImpl.java
+        ├── UserDocumentSyncServiceImpl.java
+        ├── UserBlockServiceImpl.java
+        ├── UserInterestServiceImpl.java
+        ├── UserNotificationPreferencesServiceImpl.java
+        └── UserPreferencesServiceImpl.java
 ```
+
+### Redis Stream Consumer
+
+**UserProfileFaceEmbeddingConsumer**: Listens to `user-profile-face-embedding-results` stream from the ML service, parses the face embedding vector, and syncs it to the `UserDocument` in Elasticsearch via `UserDocumentSyncService`.
+
+### Elasticsearch Sync Services
+
+- **UserDocumentSyncService**: Syncs user profile data and face embeddings to `UserDocument` in Elasticsearch
+- **FollowDocumentSyncService**: Syncs follow relationships to `FollowDocument` in Elasticsearch
 
 ## Core Data Models
 
@@ -121,38 +164,56 @@ Comprehensive user preferences management:
 @Entity
 public class UserPreferences {
     private Long preferenceId;
-    private User user;                       // Associated user
-    private Theme theme;                     // LIGHT, DARK, AUTO
-    private Language language;               // Preferred language
-    private String timezone;                 // User timezone
-    private Boolean profileVisibility;       // Public profile visibility
-    private Boolean showEmail;               // Email visibility in profile
-    private Boolean allowTagging;            // Allow others to tag user
-    private Boolean showOnlineStatus;        // Show online/offline status
-    private Boolean allowDirectMessages;     // Accept DMs from non-friends
-    private PrivacyLevel postVisibility;     // Default post visibility
-    private Boolean indexProfile;            // Allow search engine indexing
+    private User user;                       // Associated user (OneToOne)
+    private Theme theme;                     // LIGHT, DARK, SYSTEM (default: SYSTEM)
+    private String language;                 // Language code e.g. "en-US" (default: "en-US")
+    private Visibility profileVisibility;    // PUBLIC, PRIVATE, FRIENDS_ONLY (default: PUBLIC)
+    private Visibility allowMessages;        // Who can message (default: FRIENDS_ONLY)
+    private Visibility allowTagging;         // Who can tag user (default: PUBLIC)
+    private Visibility viewActivity;         // Who sees activity (default: FRIENDS_ONLY)
+    private Boolean showEmail;               // Email visibility in profile (default: false)
+    private Boolean showPhone;               // Phone visibility (default: false)
+    private Boolean showOnlineStatus;        // Show online/offline status (default: true)
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
 ```
 
 ### UserNotificationPreferences Entity
-Granular notification control:
+Granular per-channel notification control (email + push for each event type):
 
 ```java
 @Entity
 public class UserNotificationPreferences {
-    private Long notificationPreferenceId;
-    private User user;                       // Associated user
-    private Boolean emailNotifications;      // Email notifications enabled
-    private Boolean pushNotifications;       // Push notifications enabled
-    private Boolean likeNotifications;       // Notify on post likes
-    private Boolean commentNotifications;    // Notify on comments
-    private Boolean followNotifications;     // Notify on new followers
-    private Boolean mentionNotifications;    // Notify on user mentions
-    private Boolean messageNotifications;    // Notify on direct messages
-    private NotificationFrequency frequency; // IMMEDIATE, DAILY, WEEKLY
-    private LocalTime quietHoursStart;       // Do not disturb start time
-    private LocalTime quietHoursEnd;         // Do not disturb end time
+    private Long preferenceId;
+    private User user;                       // Associated user (OneToOne)
+    
+    // Likes - separate email and push toggles
+    private Boolean likesEmail;              // Email on likes (default: true)
+    private Boolean likesPush;               // Push on likes (default: true)
+    
+    // Comments
+    private Boolean commentsEmail;           // Email on comments (default: true)
+    private Boolean commentsPush;            // Push on comments (default: true)
+    
+    // Follows
+    private Boolean followsEmail;            // Email on new followers (default: true)
+    private Boolean followsPush;             // Push on new followers (default: true)
+    
+    // Mentions
+    private Boolean mentionsEmail;           // Email on mentions (default: true)
+    private Boolean mentionsPush;            // Push on mentions (default: true)
+    
+    // System notifications
+    private Boolean systemEmail;             // Email for system alerts (default: true)
+    private Boolean systemPush;              // Push for system alerts (default: true)
+    
+    // Follow requests
+    private Boolean followRequestPush;       // Push on follow requests (default: true)
+    private Boolean followAcceptPush;        // Push on follow accepts (default: true)
+    
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
 ```
 
@@ -173,15 +234,27 @@ public class UserInterest {
 
 ### Social Relationship Entities
 
-#### UserFollowing Entity
+#### Follow Entity
 ```java
 @Entity
-public class UserFollowing {
-    private Long followingId;
+public class Follow {
+    private Long followId;
     private User follower;                   // User who follows
     private User following;                  // User being followed
+    private FollowStatus status;             // PENDING, ACCEPTED, REJECTED
     private LocalDateTime followedAt;        // When relationship started
-    private Boolean notificationsEnabled;   // Notify on their posts
+}
+```
+
+#### FollowRequest Entity
+```java
+@Entity
+public class FollowRequest {
+    private Long requestId;
+    private User requester;                  // User requesting to follow
+    private User target;                     // User being requested
+    private FollowStatus status;             // PENDING, ACCEPTED, REJECTED
+    private LocalDateTime requestedAt;
 }
 ```
 
@@ -322,20 +395,24 @@ public class UserInterest {
 ### Granular Controls
 ```java
 public class UserNotificationPreferences {
-    private Boolean likeNotifications;       // Post likes
-    private Boolean commentNotifications;    // Post comments
-    private Boolean followNotifications;     // New followers
-    private Boolean mentionNotifications;    // User mentions in posts
-    private Boolean messageNotifications;    // Direct messages
-    private NotificationFrequency frequency; // Batching frequency
-    private LocalTime quietHoursStart;       // Do not disturb period
-    private LocalTime quietHoursEnd;
+    // Per-event email + push toggle pairs
+    private Boolean likesEmail;              // Email on likes
+    private Boolean likesPush;               // Push on likes
+    private Boolean commentsEmail;           // Email on comments
+    private Boolean commentsPush;            // Push on comments
+    private Boolean followsEmail;            // Email on new followers
+    private Boolean followsPush;             // Push on new followers
+    private Boolean mentionsEmail;           // Email on mentions
+    private Boolean mentionsPush;            // Push on mentions
+    private Boolean systemEmail;             // Email for system alerts
+    private Boolean systemPush;              // Push for system alerts
+    private Boolean followRequestPush;       // Push on follow requests
+    private Boolean followAcceptPush;        // Push on follow accepts
 }
 ```
 
 ### Smart Notification Features
-- **Batching**: Group similar notifications
-- **Quiet Hours**: Respect user's do-not-disturb times
+- **Per-Channel Control**: Independent email and push toggles per event type
 - **Intelligent Filtering**: Reduce notification fatigue
 - **Priority System**: Important notifications bypass filters
 
@@ -344,7 +421,7 @@ public class UserNotificationPreferences {
 ### Elasticsearch Integration
 ```java
 @Document(indexName = "users")
-public class UserSearchDocument {
+public class UserDocument {
     private String userId;
     private String username;
     private String email;                    // Searchable if public

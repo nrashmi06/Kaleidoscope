@@ -24,20 +24,17 @@ public class ElasticsearchSyncTriggerService {
      * Maps full table names to short index types expected by ES sync service.
      */
     private static final Map<String, String> TABLE_TO_INDEX_TYPE = Map.of(
-        "read_model_media_search", "media_search",
-        "read_model_post_search", "post_search",
-        "read_model_user_search", "user_search",
-        "read_model_blog_search", "blog_search",
-        "read_model_hashtag_search", "hashtag_search",
-        "read_model_location_search", "location_search",
-        "read_model_category_search", "category_search",
-        "read_model_face_search", "face_search"  // ADDED: Face search mapping
+            "read_model_media_search", "media_search",
+            "read_model_post_search", "post_search",
+            "read_model_user_search", "user_search",
+            "read_model_face_search", "face_search" // ADDED: Face search mapping
     );
 
     /**
      * Publishes a message to the es-sync-queue to index a document.
      *
-     * @param indexName  The name of the read model table (e.g., "read_model_media_search").
+     * @param indexName  The name of the read model table (e.g.,
+     *                   "read_model_media_search").
      * @param documentId The ID of the record that was updated/created.
      */
     public void triggerSync(String indexName, Long documentId) {
@@ -47,7 +44,8 @@ public class ElasticsearchSyncTriggerService {
     /**
      * Publishes a message to the es-sync-queue.
      *
-     * @param indexName  The name of the read model table (e.g., "read_model_media_search").
+     * @param indexName  The name of the read model table (e.g.,
+     *                   "read_model_media_search").
      * @param operation  The operation type (e.g., "INDEX", "DELETE").
      * @param documentId The ID of the record.
      */
@@ -60,7 +58,7 @@ public class ElasticsearchSyncTriggerService {
         }
 
         log.debug("Triggering ES Sync for indexType: {}, operation: {}, documentId: {}",
-                 indexType, operation, documentId);
+                indexType, operation, documentId);
         try {
             Map<String, Object> message = new HashMap<>();
             message.put("indexType", indexType);
@@ -70,9 +68,8 @@ public class ElasticsearchSyncTriggerService {
             message.put("correlationId", MDC.get("correlationId")); // Pass on the correlation ID
 
             redisStreamPublisher.publish(
-                ProducerStreamConstants.ES_SYNC_QUEUE_STREAM,
-                message
-            );
+                    ProducerStreamConstants.ES_SYNC_QUEUE_STREAM,
+                    message);
 
             log.debug("Successfully published es-sync-queue message for document: {}", documentId);
         } catch (Exception e) {
