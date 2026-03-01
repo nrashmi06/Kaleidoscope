@@ -264,19 +264,16 @@ public class ElasticsearchStartupSyncService {
                 .map(block -> block.getBlocker().getUserId())
                 .collect(Collectors.toList());
 
-        // Fetch tagging preference
-        String allowTagging = userPreferencesRepository
-                .findByUser_UserId(user.getUserId())
-                .map(prefs -> prefs.getAllowTagging() != null ? prefs.getAllowTagging().name()
-                        : Visibility.PUBLIC.name())
-                .orElse(Visibility.PUBLIC.name());
+        // Fetch user preferences in a single call
+        var prefs = userPreferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
 
-        // Fetch profile visibility
-        String profileVisibility = userPreferencesRepository
-                .findByUser_UserId(user.getUserId())
-                .map(prefs -> prefs.getProfileVisibility() != null ? prefs.getProfileVisibility().name()
-                        : Visibility.PUBLIC.name())
-                .orElse(Visibility.PUBLIC.name());
+        String allowTagging = (prefs != null && prefs.getAllowTagging() != null)
+                ? prefs.getAllowTagging().name()
+                : Visibility.PUBLIC.name();
+
+        String profileVisibility = (prefs != null && prefs.getProfileVisibility() != null)
+                ? prefs.getProfileVisibility().name()
+                : Visibility.PUBLIC.name();
 
         // Build UserDocument
         UserDocument userDocument = UserDocument.builder()
