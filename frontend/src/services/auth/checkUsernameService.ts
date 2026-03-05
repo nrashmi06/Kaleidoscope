@@ -1,42 +1,37 @@
 // src/services/auth/checkUsernameService.ts
 import type { UsernameCheckPayload, UsernameCheckAPIResponse } from "@/lib/types/usernameCheck";
-import { AuthMapper } from "@/mapper/authMapper"; 
+import { AuthMapper } from "@/mapper/authMapper";
+import axios from "axios";
 
 export async function checkUsernameService(username: string): Promise<UsernameCheckAPIResponse> {
   const endpoint = `${AuthMapper.checkUsername}?username=${encodeURIComponent(username)}`;
-  // Default payload used when a network error prevents parsing the full response.
-  const defaultPayload: UsernameCheckPayload = { available: false, username }; 
+  const defaultPayload: UsernameCheckPayload = { available: false, username };
 
   try {
-    const res = await fetch(endpoint, {
-      method: "GET",
+    const res = await axios.get<UsernameCheckAPIResponse>(endpoint, {
       headers: { "Content-Type": "application/json" },
     });
 
-    const data: UsernameCheckAPIResponse = await res.json();
-    
-    if (!res.ok) {
-        // If data is missing from the API's error body (which shouldn't happen based on your example), 
-        // we insert the default payload to maintain type integrity.
-        return {
-            success: false,
-            message: data.message || `HTTP ${res.status} error`,
-            data: data.data || defaultPayload, 
-            errors: data.errors || [],
-            timestamp: data.timestamp || Date.now(),
-            path: data.path || endpoint,
-        } as UsernameCheckAPIResponse;
-    }
-    
-    return data;
+    return res.data;
 
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const data = error.response.data as UsernameCheckAPIResponse;
+      return {
+        success: false,
+        message: data.message || `HTTP ${error.response.status} error`,
+        data: data.data || defaultPayload,
+        errors: data.errors || [],
+        timestamp: data.timestamp || Date.now(),
+        path: data.path || endpoint,
+      } as UsernameCheckAPIResponse;
+    }
+
     console.error("Error checking username availability:", error);
-    // Fabricate a full failure response that adheres to the strict type
     return {
       success: false,
       message: "Network error checking username availability",
-      data: defaultPayload, 
+      data: defaultPayload,
       errors: [String(error)],
       timestamp: Date.now(),
       path: endpoint,

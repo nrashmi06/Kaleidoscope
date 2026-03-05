@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -44,10 +44,10 @@ export default function SignupForm() {
 
   const isPasswordStrong = (password: string) => getPasswordErrors(password).length === 0;
 
-  const handleAvailabilityChange = (isAvailable: boolean, message: string) => {
+  const handleAvailabilityChange = useCallback((isAvailable: boolean, message: string) => {
     setIsUsernameAvailable(isAvailable);
     setUsernameMessage(message);
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -159,7 +159,7 @@ export default function SignupForm() {
               onChange={(username) => setFormState({ ...formState, username })}
               onAvailabilityChange={handleAvailabilityChange}
             />
-            {formState.username.length > 0 && (
+            {usernameMessage && (
               <p
                 className={cn(
                   "mt-1 text-xs flex items-center gap-1",

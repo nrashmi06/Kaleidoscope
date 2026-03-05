@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { checkUsernameController } from "@/controllers/auth/checkUsernameController";
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
@@ -21,71 +21,63 @@ export default function UsernameCheckInput({
   onAvailabilityChange,
 }: UsernameCheckInputProps) {
   const [status, setStatus] = useState<Status>("initial");
-  const [isFocused, setIsFocused] = useState(false);
-  const debouncedUsername = useDebounce(value, 1000); // ✅ 1-second debounce
+  const debouncedUsername = useDebounce(value, 500);
   const firstRender = useRef(true);
+  const onAvailabilityChangeRef = useRef(onAvailabilityChange);
+  onAvailabilityChangeRef.current = onAvailabilityChange;
 
-  /** --- Client-side validation --- **/
-  const isValidFormat = /^[a-zA-Z0-9_]{3,}$/.test(value);
-  const isLongEnough = value.length >= 3;
-
-  /** --- API check --- **/
-  const checkAvailability = useCallback(
-    async (username: string) => {
-      if (!username || username.trim().length < 3) {
-        setStatus("initial");
-        onAvailabilityChange(false, "");
-        return;
-      }
-
-      if (!isValidFormat) {
-        setStatus("invalid");
-        onAvailabilityChange(
-          false,
-          "Username must contain only letters, numbers, or underscores (min 3 chars)."
-        );
-        return;
-      }
-
-      setStatus("loading");
-      try {
-        const res = await checkUsernameController(username);
-
-        if (res.success && res.data?.available) {
-          setStatus("available");
-          onAvailabilityChange(true, "");
-        } else if (res.data?.available === false) {
-          setStatus("taken");
-          onAvailabilityChange(false, res.message || "That username is taken.");
-        } else {
-          setStatus("error");
-          onAvailabilityChange(false, res.message || "Unable to check availability.");
-        }
-      } catch (err) {
-        console.error("Error checking username:", err);
-        setStatus("error");
-        onAvailabilityChange(false, "Network error during username check.");
-      }
-    },
-    [isValidFormat, onAvailabilityChange]
-  );
-
-  /** --- Debounced effect (runs ONLY when user is typing in username field) --- **/
+  /** --- Debounced effect (only re-runs when debouncedUsername changes) --- **/
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
       return;
     }
 
-    if (!isFocused) return; // ✅ Only check when typing in username field
-
-    if (debouncedUsername && isLongEnough) {
-      checkAvailability(debouncedUsername);
-    } else {
+    if (!debouncedUsername || debouncedUsername.trim().length < 3) {
       setStatus("initial");
-      onAvailabilityChange(false, "");
+      onAvailabilityChangeRef.current(false, "");
+      return;
     }
-  }, [debouncedUsername, isFocused, checkAvailability, isLongEnough, onAvailabilityChange]);
+
+    if (!/^[a-zA-Z0-9_]{3,}$/.test(debouncedUsername)) {
+      setStatus("invalid");
+      onAvailabilityChangeRef.current(
+        false,
+        "Username must contain only letters, numbers, or underscores (min 3 chars)."
+      );
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkAvailability = async () => {
+      setStatus("loading");
+      try {
+        const res = await checkUsernameController(debouncedUsername);
+        if (cancelled) return;
+
+        if (res.success && res.data?.available) {
+          setStatus("available");
+          onAvailabilityChangeRef.current(true, "");
+        } else if (res.data?.available === false) {
+          setStatus("taken");
+          onAvailabilityChangeRef.current(false, res.message || "That username is taken.");
+        } else {
+          setStatus("error");
+          onAvailabilityChangeRef.current(false, res.message || "Unable to check availability.");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Error checking username:", err);
+        setStatus("error");
+        onAvailabilityChangeRef.current(false, "Network error during username check.");
+      }
+    };
+
+    checkAvailability();
+
+    return () => { cancelled = true; };
+  }, [debouncedUsername]);
 
   /** --- UI: status icon --- **/
   const getStatusIcon = (currentStatus: Status) => {
@@ -137,8 +129,6 @@ export default function UsernameCheckInput({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
           required
           className={`
             pr-10 text-sm transition-all duration-200 
