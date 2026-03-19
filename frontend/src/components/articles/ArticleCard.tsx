@@ -3,6 +3,8 @@ import React, { useMemo } from "react";
 interface ArticleCardProps {
   title: string;
   views: number;
+  blogId?: number;
+  onClick?: () => void;
 }
 
 const gradients = [
@@ -13,7 +15,7 @@ const gradients = [
   "from-red-700 via-orange-500 to-yellow-500",
 ];
 
-export const ArticleCard: React.FC<ArticleCardProps> = ({ title, views }) => {
+export const ArticleCard: React.FC<ArticleCardProps> = ({ title, views, onClick }) => {
   // Random gradient per instance
   const background = useMemo(() => {
     const randomIndex = Math.floor(Math.random() * gradients.length);
@@ -51,7 +53,10 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ title, views }) => {
           </h2>
         </div>
 
-        <button className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-100 transition-all shadow-md">
+        <button
+          onClick={onClick}
+          className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-gray-100 transition-all shadow-md"
+        >
           Read Now
         </button>
       </div>

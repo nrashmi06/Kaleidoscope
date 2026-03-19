@@ -79,7 +79,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="h-full mb-3 bg-gradient-to-br rounded-sm from-neutral-50 to-neutral-100 dark:from-zinc-950 dark:to-zinc-900">
+    <div className="h-full mb-3 bg-gradient-to-br rounded-sm from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="mb-8">
@@ -97,7 +97,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Stats and Actions Bar */}
-        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-700 p-4 mb-6">
+        <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               {/* Total count is now from pagination, not items.length */}
@@ -105,7 +105,7 @@ export default function NotificationsPage() {
                 <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   Total
                 </span>
-                <span className="px-3 py-1 bg-neutral-100 dark:bg-zinc-700 rounded-full text-sm font-semibold text-neutral-900 dark:text-white">
+                <span className="px-3 py-1 bg-neutral-100 dark:bg-neutral-700 rounded-full text-sm font-semibold text-neutral-900 dark:text-white">
                   {pagination ? pagination.totalPages * NOTIFICATIONS_PER_PAGE : items.length}
                 </span>
               </div>
@@ -130,10 +130,10 @@ export default function NotificationsPage() {
         </div>
 
         {/* Notifications List */}
-        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-700 overflow-hidden">
+        <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 overflow-hidden">
           {/* Skeleton Loader */}
           {loading && (
-            <div className="divide-y divide-neutral-200 dark:divide-zinc-700">
+            <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
               {Array.from({ length: 6 }).map((_, i) => (
                 <NotificationSkeleton key={i} />
               ))}
@@ -156,7 +156,7 @@ export default function NotificationsPage() {
           {/* Empty State */}
           {!loading && !error && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 px-4">
-              <div className="w-20 h-20 bg-neutral-100 dark:bg-zinc-700 rounded-full flex items-center justify-center mb-4">
+              <div className="w-20 h-20 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mb-4">
                 <Inbox className="w-10 h-10 text-neutral-400 dark:text-neutral-500" />
               </div>
               <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
@@ -170,7 +170,7 @@ export default function NotificationsPage() {
 
           {/* Notifications */}
           {!loading && !error && items.length > 0 && (
-            <ul className="divide-y divide-neutral-200 dark:divide-zinc-700">
+            <ul className="divide-y divide-neutral-200 dark:divide-neutral-700">
               {items.map((n) => (
                 <NotificationItemComponent
                   key={n.notificationId}
@@ -198,12 +198,12 @@ export default function NotificationsPage() {
 
         {/* --- New Pagination Controls --- */}
         {!loading && pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 p-4 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-neutral-200 dark:border-zinc-700">
+          <div className="flex items-center justify-between mt-6 p-4 bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
             <Button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={pagination.isFirst}
               variant="outline"
-              className="dark:bg-zinc-700 dark:hover:bg-zinc-600 dark:border-zinc-600"
+              className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:border-neutral-600"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous
@@ -215,7 +215,7 @@ export default function NotificationsPage() {
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={pagination.isLast}
               variant="outline"
-              className="dark:bg-zinc-700 dark:hover:bg-zinc-600 dark:border-zinc-600"
+              className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:border-neutral-600"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-2" />

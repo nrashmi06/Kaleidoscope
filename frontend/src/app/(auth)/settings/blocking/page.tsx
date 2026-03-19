@@ -21,7 +21,7 @@ const BlockedUserListPlaceholder: React.FC = () => {
       {/* Empty State */}
       <div className="text-center py-12 bg-gray-50 dark:bg-neutral-800 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
         <ShieldAlert className="w-10 h-10 mx-auto text-gray-400 dark:text-neutral-500 mb-3" />
-        <h3 className="font-semibold text-gray-700 dark:text-gray-300">No Blocked Users</h3>
+        <h3 className="font-semibold text-gray-700 dark:text-neutral-300">No Blocked Users</h3>
         <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
           Users you block will appear here.
         </p>

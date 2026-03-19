@@ -100,13 +100,13 @@ export default function LocationsPage() {
   }));
 
   return (
-    <div className="min-h-screen w-full bg-white dark:bg-gray-950 py-10 px-4">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-neutral-950 py-10 px-4">
       {/* Header */}
       <div className="max-w-7xl mx-auto text-center mb-10">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
           Interactive Location Map
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600 dark:text-neutral-400">
           Click on any of the pulsing dots to see posts from that location.
         </p>
       </div>
@@ -133,7 +133,7 @@ export default function LocationsPage() {
         {isLoading && (
           <div className="aspect-[2/1] flex items-center justify-center">
             <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-            <p className="ml-3 text-lg text-gray-700 dark:text-gray-300">
+            <p className="ml-3 text-lg text-gray-700 dark:text-neutral-300">
               Loading locations...
             </p>
           </div>

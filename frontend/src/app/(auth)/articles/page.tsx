@@ -142,11 +142,11 @@ export default function ArticlesPage() {
     if (blogs.length === 0) {
         return (
           <div className="max-w-xl mx-auto flex flex-col items-center justify-center text-center py-16 px-6 bg-gray-50 dark:bg-neutral-800/50 border border-dashed border-gray-200 dark:border-neutral-700 rounded-xl">
-              <Inbox className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <Inbox className="w-12 h-12 text-gray-400 dark:text-neutral-500 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 dark:text-neutral-300 mb-2">
                   No Articles Found
               </h3>
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-gray-500 dark:text-neutral-400">
                   {debouncedQuery.trim() ? `No articles matching "${debouncedQuery}" were found.` : 'There are no articles to display yet.'}
               </p>
           </div>
@@ -157,10 +157,11 @@ export default function ArticlesPage() {
         <div className="max-w-7xl mx-auto grid gap-8 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 px-2 sm:px-4">
             {blogs.map((blog) => (
               <div key={blog.blogId} className="flex justify-center">
-                <ArticleCard 
-                    // Using uppercase title for consistency with mock data style
-                    title={blog.title.toUpperCase()} 
-                    views={blog.viewCount} 
+                <ArticleCard
+                    title={blog.title.toUpperCase()}
+                    views={blog.viewCount}
+                    blogId={blog.blogId}
+                    onClick={() => router.push(`/articles/${blog.blogId}`)}
                 />
               </div>
             ))}
@@ -170,7 +171,7 @@ export default function ArticlesPage() {
   
   // --- Main Component Render ---
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 py-10 px-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 py-10 px-4">
       {/* Page Header */}
       <div className="max-w-7xl mx-auto mb-10 px-4 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
@@ -178,7 +179,7 @@ export default function ArticlesPage() {
             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-2">
               Explore Featured Articles
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl">
+            <p className="text-gray-600 dark:text-neutral-400 text-lg max-w-2xl">
               Discover insightful reads on cutting-edge technology and more.
             </p>
           </div>
@@ -194,7 +195,7 @@ export default function ArticlesPage() {
         
         {/* --- NEW SEARCH BAR --- */}
         <div className="relative max-w-lg mx-auto sm:mx-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-neutral-500" />
           <Input
             type="text"
             value={query}
@@ -211,7 +212,7 @@ export default function ArticlesPage() {
       
       {/* --- NEW PAGINATION CONTROLS --- */}
       {!loading && blogs.length > 0 && pagination.totalPages > 1 && (
-        <div className="max-w-7xl mx-auto flex items-center justify-between mt-10 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between mt-10 p-4 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-md">
           <Button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={pagination.first || loading}
@@ -221,10 +222,10 @@ export default function ArticlesPage() {
             Previous
           </Button>
           <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-700 dark:text-neutral-300">
               Page {currentPage + 1} of {pagination.totalPages}
             </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-gray-500 dark:text-neutral-400">
               Showing {pagination.totalElements} results
             </span>
           </div>

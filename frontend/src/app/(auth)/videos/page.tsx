@@ -20,7 +20,7 @@ export default function VideosPage() {
   const filteredVideos = dummyVideos.filter(() => true); // Replace with actual filtering logic later
 
   return (
-    <div className="min-h-screen w-full bg-white dark:bg-gray-900 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-neutral-950 py-6 px-4 sm:px-6 lg:px-8">
 
         {/* Live Stream Section */ }
         <div className="max-w-7xl mx-auto mb-1">
@@ -35,7 +35,7 @@ export default function VideosPage() {
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
           Video Library
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600 dark:text-neutral-400">
           Browse trending videos, explore topics, and discover creators.
         </p>
       </div>
@@ -47,7 +47,7 @@ export default function VideosPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search videos..."
-          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+          className="w-full px-4 py-3 border border-gray-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-800 dark:text-white"
         />
       </div>
 

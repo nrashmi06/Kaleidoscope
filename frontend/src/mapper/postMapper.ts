@@ -9,6 +9,7 @@ export const PostMapper = {
   hardDeletePost: (postId: number) => `${BASE_URL}/posts/${postId}/hard`,
   getPostById: (postId: number) => `${BASE_URL}/posts/${postId}`,
   filterPosts: `${BASE_URL}/posts`,
+  suggestions: `${BASE_URL}/posts/suggestions`,
 
   // Location endpoints
   searchLocations: `${BASE_URL}/locations/search`,

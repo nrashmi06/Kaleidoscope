@@ -4,4 +4,12 @@ export const BLOG_ENDPOINTS = {
   CREATE: `${BASE_URL}/blogs`,
   FILTER: `${BASE_URL}/blogs/filter`,
   GENERATE_SIGNATURE: `${BASE_URL}/blogs/generate-upload-signatures`,
+  SUGGESTIONS: `${BASE_URL}/blogs/suggestions`,
+  SAVED: `${BASE_URL}/blogs/saved`,
+  getBlogById: (blogId: number) => `${BASE_URL}/blogs/${blogId}`,
+  updateBlog: (blogId: number) => `${BASE_URL}/blogs/${blogId}`,
+  deleteBlog: (blogId: number) => `${BASE_URL}/blogs/${blogId}`,
+  getTaggedBy: (blogId: number) => `${BASE_URL}/blogs/${blogId}/tagged-by`,
+  getSaveStatus: (blogId: number) => `${BASE_URL}/blogs/${blogId}/saves`,
+  saveOrUnsave: (blogId: number) => `${BASE_URL}/blogs/${blogId}/saves`,
 } as const;

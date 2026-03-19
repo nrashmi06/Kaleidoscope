@@ -142,7 +142,7 @@ export default function FriendsPage() {
 
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-8 bg-gray-50 dark:bg-neutral-950 min-h-screen">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
         Friends Management
       </h1>

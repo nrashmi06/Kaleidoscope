@@ -12,11 +12,11 @@ export const metadata = {
 
 export default function SignInPage() {
   return (
-    <main className="flex flex-row h-screen w-full bg-white dark:bg-black transition-colors duration-500">
+    <main className="flex flex-row h-screen w-full bg-white dark:bg-neutral-950 transition-colors duration-500">
       {/* Left side: Aurora visual background (client component) */}
       <div className="w-1/2 hidden md:block relative">
         <AuroraBackground className="absolute inset-0 w-full h-full">
-          <div className="absolute inset-0 w-full h-full bg-transparent dark:bg-black/80">
+          <div className="absolute inset-0 w-full h-full bg-transparent dark:bg-neutral-950/80">
             <div className="absolute top-1/2 transform -translate-y-1/2 text-center w-full px-6">
               <div className="space-y-4">
                 {/* SEO-friendly server-rendered heading */}
@@ -30,7 +30,7 @@ export default function SignInPage() {
                 />
                 <TextGenerateEffect
                   words="Sign in to explore the other side!"
-                  className="text-sm font-semibold text-gray-600 dark:text-gray-400"
+                  className="text-sm font-semibold text-gray-600 dark:text-neutral-400"
                 />
               </div>
             </div>
@@ -39,7 +39,7 @@ export default function SignInPage() {
       </div>
 
       {/* Right side: Fullscreen Signin Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center h-full p-6 md:p-12 bg-white dark:bg-black transition-colors duration-500">
+      <div className="w-full md:w-1/2 flex items-center justify-center h-full p-6 md:p-12 bg-white dark:bg-neutral-950 transition-colors duration-500">
         <div className="w-full max-w-md shadow-input md:shadow-none md:rounded-2xl bg-white dark:bg-neutral-900 transition-colors duration-500">
           <SigninForm />
         </div>
