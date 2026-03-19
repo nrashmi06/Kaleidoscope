@@ -10,7 +10,7 @@ import PostFeed from "@/components/feed/PostFeed";
 
 export default function FeedPage() {
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-neutral-950">
       {/* ✅ 3. Render the new self-contained PostFeed component */}
       <PostFeed />
       

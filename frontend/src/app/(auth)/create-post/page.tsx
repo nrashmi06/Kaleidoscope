@@ -110,7 +110,7 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       <div className="max-w-4xl mx-auto p-6">
         <Header router={router} />
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -191,7 +191,7 @@ export default function CreatePostPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-6 py-3 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
             >
               Cancel
             </button>

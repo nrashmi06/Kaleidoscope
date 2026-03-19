@@ -5,7 +5,7 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 
 function ForgotPasswordPage() {
   return (
-    <div className="flex flex-row h-screen w-full">
+    <div className="flex flex-row h-screen w-full bg-white dark:bg-neutral-950">
       {/* Left side: Aurora visual background */}
       <div className="w-1/2 hidden md:block relative">
         <AuroraBackground className="absolute inset-0 w-full h-full">

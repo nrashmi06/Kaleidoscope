@@ -16,8 +16,8 @@ export default function SettingsPage() {
   }, [activeTab, role]);
 
   return (
-    <div className="max-w-full mx-4 sm:mx-2 md:mx-auto p-3">
-      <h1 className="text-3xl font-bold mb-4">Settings</h1>
+    <div className="max-w-full mx-4 sm:mx-2 md:mx-auto p-3 bg-gray-50 dark:bg-neutral-950 min-h-screen">
+      <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Settings</h1>
       <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );

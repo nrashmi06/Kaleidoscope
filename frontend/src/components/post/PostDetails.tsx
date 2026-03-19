@@ -26,7 +26,8 @@ import {
   User,
   Image as ImageIcon
 } from "lucide-react";
-import { PostActions } from "@/components/feed/socialMediaPostCardComponents/PostActions"; 
+import { PostActions } from "@/components/feed/socialMediaPostCardComponents/PostActions";
+import { PostSaveButton } from "@/components/feed/socialMediaPostCardComponents/PostSaveButton";
 import CommentDropdown from "@/components/feed/socialMediaPostCardComponents/CommentDropdown";
 
 interface PostDetailsProps {
@@ -446,10 +447,13 @@ export function PostDetails({
                 {/* Post Actions & Views */}
                 <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-neutral-800">
                     <PostActions postId={post.postId} />
-                    <span className="flex items-center gap-1.5 text-base font-semibold text-gray-700 dark:text-neutral-300">
-                       <Eye className="w-5 h-5 text-indigo-500" />
-                       {post.viewCount.toLocaleString()} Views
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <PostSaveButton postId={post.postId} />
+                      <span className="flex items-center gap-1.5 text-base font-semibold text-gray-700 dark:text-neutral-300">
+                         <Eye className="w-5 h-5 text-indigo-500" />
+                         {post.viewCount.toLocaleString()} Views
+                      </span>
+                    </div>
                 </div>
 
               </footer>

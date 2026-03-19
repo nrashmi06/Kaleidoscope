@@ -1,5 +1,6 @@
 import { ParentCategoriesResponse } from "@/lib/types/settings/category";
 import { CategoryMapper } from "@/mapper/categoryMapper";
+import { UserInterestMapper } from "@/mapper/userInterestMapper";
 import axiosInstance, { isAxiosError } from "@/hooks/axios";
 
 // Get all parent categories for onboarding
@@ -31,7 +32,7 @@ export const addUserInterestsBulk = async (
   categoryIds: number[]
 ): Promise<{ success: boolean; message: string }> => {
   const response = await axiosInstance.post(
-    `${process.env.NEXT_PUBLIC_BASE_BACKEND_URL}/api/users/interests/bulk`,
+    UserInterestMapper.addUserInterestsBulk,
     { categoryIds },
     {
       headers: {

@@ -201,10 +201,10 @@ const OnboardingCategoriesPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading categories...</p>
+          <p className="mt-4 text-gray-600 dark:text-neutral-400">Loading categories...</p>
         </div>
       </div>
     );
@@ -212,9 +212,9 @@ const OnboardingCategoriesPage = () => {
 
   if (categoryGroups.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950">
         <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400">No categories available</p>
+          <p className="text-gray-600 dark:text-neutral-400">No categories available</p>
         </div>
       </div>
     );
@@ -229,19 +229,19 @@ const OnboardingCategoriesPage = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 py-8 px-4 transition-colors duration-200">
       <div className="max-w-5xl mx-auto">
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <span className="text-sm font-medium text-gray-600 dark:text-neutral-400">
               Step {currentGroupIndex + 1} of {categoryGroups.length}
             </span>
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <span className="text-sm font-medium text-gray-600 dark:text-neutral-400">
               {Math.round(((currentGroupIndex + 1) / categoryGroups.length) * 100)}% Complete
             </span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-2">
             <div 
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${((currentGroupIndex + 1) / categoryGroups.length) * 100}%` }}
@@ -254,7 +254,7 @@ const OnboardingCategoriesPage = () => {
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
             {currentGroup.name}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">
+          <p className="text-gray-600 dark:text-neutral-400 text-lg mb-4">
             {currentGroup.description}
           </p>
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md mx-auto">
@@ -278,16 +278,16 @@ const OnboardingCategoriesPage = () => {
 
         {/* Selection Status */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg px-4 py-2 border border-gray-200 dark:border-gray-700">
+          <div className="inline-flex items-center gap-2 bg-white dark:bg-neutral-800 rounded-lg px-4 py-2 border border-gray-200 dark:border-neutral-700">
             {isCurrentGroupValid() ? (
               <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
             ) : (
-              <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600"></div>
+              <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-neutral-600"></div>
             )}
             <span className={`text-sm font-medium ${
               isCurrentGroupValid() 
                 ? 'text-green-600 dark:text-green-400' 
-                : 'text-gray-600 dark:text-gray-400'
+                : 'text-gray-600 dark:text-neutral-400'
             }`}>
               {currentSelections.length} of {currentGroup.minRequired} minimum selected
             </span>
@@ -299,7 +299,7 @@ const OnboardingCategoriesPage = () => {
           <button
             onClick={handlePrevious}
             disabled={currentGroupIndex === 0}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             <ChevronLeft className="w-5 h-5" />
             Previous
@@ -314,7 +314,7 @@ const OnboardingCategoriesPage = () => {
                     ? 'bg-blue-600 scale-125'
                     : index < currentGroupIndex
                     ? 'bg-green-500'
-                    : 'bg-gray-300 dark:bg-gray-600'
+                    : 'bg-gray-300 dark:bg-neutral-600'
                 }`}
               ></div>
             ))}
@@ -326,7 +326,7 @@ const OnboardingCategoriesPage = () => {
               disabled={submitting || !allGroupsCompleted}
               className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${
                 submitting || !allGroupsCompleted
-                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-300 dark:bg-neutral-600 text-gray-500 dark:text-neutral-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
               }`}
             >
@@ -348,7 +348,7 @@ const OnboardingCategoriesPage = () => {
               disabled={!isCurrentGroupValid()}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
                 !isCurrentGroupValid()
-                  ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-300 dark:bg-neutral-600 text-gray-500 dark:text-neutral-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
               }`}
             >
@@ -360,7 +360,7 @@ const OnboardingCategoriesPage = () => {
 
         {/* Summary */}
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-neutral-400">
             Total selected: {selectedCategories.length} categories across {Object.keys(groupSelections).filter(key => groupSelections[parseInt(key)].length > 0).length} groups
           </p>
         </div>
