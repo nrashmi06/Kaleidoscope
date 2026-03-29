@@ -230,6 +230,7 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     }
 
     @Override
+    @Transactional
     public void verifyUser(String verificationCode) {
         EmailVerification emailVerification = emailVerificationRepository.findByVerificationCode(verificationCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid verification code"));
