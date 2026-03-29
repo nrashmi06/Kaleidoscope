@@ -112,18 +112,24 @@ public class EmailServiceImpl implements EmailService {
             String subject = "Verify your email address";
             String baseUrl = applicationProperties.baseUrl();
 
-            // Ensure context path is correctly appended to baseUrl
-            String normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-            String normalizedContextPath = contextPath.equals("/") ? "" : contextPath;
-            if (!normalizedContextPath.startsWith("/")) {
-                normalizedContextPath = "/" + normalizedContextPath;
-            }
-            if (normalizedContextPath.endsWith("/")) {
-                normalizedContextPath = normalizedContextPath.substring(0, normalizedContextPath.length() - 1);
+            org.springframework.web.util.UriComponentsBuilder builder = org.springframework.web.util.UriComponentsBuilder.fromHttpUrl(baseUrl);
+            String currentPath = builder.build().getPath();
+            String normalizedContextPath = (contextPath == null || contextPath.equals("/")) ? "" : contextPath;
+
+            if (currentPath == null || !currentPath.endsWith(normalizedContextPath)) {
+                if (!normalizedContextPath.isEmpty() && !normalizedContextPath.startsWith("/")) {
+                    builder.path("/" + normalizedContextPath);
+                } else {
+                    builder.path(normalizedContextPath);
+                }
             }
 
-            String verificationUrl = normalizedBaseUrl + normalizedContextPath + AuthRoutes.VERIFY_EMAIL + "?token="
-                    + code;
+            String verificationUrl = builder
+                    .path(AuthRoutes.VERIFY_EMAIL)
+                    .queryParam("token", code)
+                    .build()
+                    .toUriString();
+
             Context context = new Context();
             context.setVariable("verificationUrl", verificationUrl);
             String body = templateEngine.process("verificationEmailTemplate", context);
