@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { MessageSquare, Loader2, Sparkles } from "lucide-react";
 import { getCommentsForBlogController } from "@/controllers/blogInteractionController/getCommentsForBlogController";
 import { addBlogCommentController } from "@/controllers/blogInteractionController/addBlogCommentController";
@@ -200,6 +201,7 @@ function BlogCommentItem({
   currentUserId?: number;
   onDelete: (commentId: number) => void;
 }) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const isAuthor = currentUserId === comment.author.userId;
 
@@ -210,12 +212,18 @@ function BlogCommentItem({
         alt={comment.author.username}
         width={36}
         height={36}
-        className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+        onClick={() => router.push(`/profile/${comment.author.userId}`)}
+        className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80 transition-opacity"
       />
       <div className="flex-1">
         <header className="flex items-start justify-between">
           <div>
-            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{comment.author.username}</div>
+            <div
+              onClick={() => router.push(`/profile/${comment.author.userId}`)}
+              className="text-sm font-semibold text-gray-800 dark:text-gray-200 cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+            >
+              {comment.author.username}
+            </div>
             <time className="text-xs text-gray-400 dark:text-gray-500">{new Date(comment.createdAt).toLocaleString()}</time>
           </div>
           {isAuthor && (

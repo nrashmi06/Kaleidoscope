@@ -6,6 +6,7 @@
 import React, { useState, FormEvent, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBlogController } from "@/controllers/blog/createBlogController";
+import { updateBlogController } from "@/controllers/blog/updateBlogController";
 import { BlogRequest, BlogDataResponse } from "@/lib/types/createBlog";
 import { useAccessToken } from "@/hooks/useAccessToken"; 
 import { cn } from "@/lib/utils"; 
@@ -33,9 +34,15 @@ const initialState: BlogFormState = {
   // ✅ REMOVED: linkedBlogTitle: undefined, 
 };
 
-const BlogForm: React.FC = () => {
-  const router = useRouter(); 
-  const [formData, setFormData] = useState<BlogFormState>(initialState);
+interface BlogFormProps {
+  editBlogId?: number;
+  initialData?: BlogRequest;
+}
+
+const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
+  const isEditMode = !!editBlogId && !!initialData;
+  const router = useRouter();
+  const [formData, setFormData] = useState<BlogFormState>(initialData ?? initialState);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -105,23 +112,36 @@ const BlogForm: React.FC = () => {
     };
     
     try {
-      const result = await createBlogController(strictApiPayload, accessToken);
+      if (isEditMode && editBlogId) {
+        const result = await updateBlogController(accessToken, editBlogId, strictApiPayload);
 
-      if (result.success) {
-        setMessage(result.message);
-        setSubmittedData(result.data ?? null); 
-        setFormData(initialState);
-        setSelectedLocation(null);
-        
-        setTimeout(() => {
-            router.push("/articles");
-        }, 1500);
-
+        if (result.success) {
+          setMessage(result.message || "Article updated successfully!");
+          setTimeout(() => {
+            router.push(`/articles/${editBlogId}`);
+          }, 1500);
+        } else {
+          setError(result.message || "Failed to update article.");
+        }
       } else {
-        setError(result.message);
-        setSubmittedData(result.data ?? null); 
+        const result = await createBlogController(strictApiPayload, accessToken);
+
+        if (result.success) {
+          setMessage(result.message);
+          setSubmittedData(result.data ?? null);
+          setFormData(initialState);
+          setSelectedLocation(null);
+
+          setTimeout(() => {
+              router.push("/articles");
+          }, 1500);
+
+        } else {
+          setError(result.message);
+          setSubmittedData(result.data ?? null);
+        }
       }
-      
+
     } catch (error) {
       setError("An unexpected client-side error occurred: " + (error instanceof Error ? error.message : 'Unknown error'));
 
@@ -136,7 +156,7 @@ const BlogForm: React.FC = () => {
         className="max-w-4xl mx-auto p-6 md:p-8 rounded-xl bg-white dark:bg-neutral-900 shadow-2xl border border-gray-200 dark:border-neutral-800 transition-colors"
     >
       <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-3">
-        <Zap className="w-6 h-6 text-blue-600" /> New Article
+        <Zap className="w-6 h-6 text-blue-600" /> {isEditMode ? "Edit Article" : "New Article"}
       </h2>
 
       {/* --- TITLE --- */}
@@ -250,9 +270,9 @@ const BlogForm: React.FC = () => {
         {loading ? (
           <div className="flex items-center justify-center">
             <Loader2 className="animate-spin w-5 h-5 mr-2" />
-            <span className="text-white">Creating...</span>
+            <span className="text-white">{isEditMode ? "Updating..." : "Creating..."}</span>
           </div>
-        ) : 'Create Blog'}
+        ) : isEditMode ? 'Update Article' : 'Create Blog'}
       </button>
     </form>
   );

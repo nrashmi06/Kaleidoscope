@@ -12,4 +12,6 @@ export const BLOG_ENDPOINTS = {
   getTaggedBy: (blogId: number) => `${BASE_URL}/blogs/${blogId}/tagged-by`,
   getSaveStatus: (blogId: number) => `${BASE_URL}/blogs/${blogId}/saves`,
   saveOrUnsave: (blogId: number) => `${BASE_URL}/blogs/${blogId}/saves`,
+  hardDeleteBlog: (blogId: number) => `${BASE_URL}/blogs/${blogId}/hard`,
+  updateBlogStatus: (blogId: number) => `${BASE_URL}/blogs/${blogId}/status`,
 } as const;

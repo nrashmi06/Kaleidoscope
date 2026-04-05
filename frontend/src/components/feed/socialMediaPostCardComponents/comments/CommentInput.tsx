@@ -14,7 +14,6 @@ interface CommentInputProps {
     profilePictureUrl: string;
     userId: number;
   };
-  // onSubmit now accepts an optional array of selected tags (if any were chosen)
   onSubmit: (
     comment: string,
     selectedTags?: TaggableUser[] | null
@@ -38,7 +37,6 @@ export default function CommentInput({
 
   const debouncedQuery = useDebounce(searchQuery, 400);
 
-  // ✅ Detect when typing '@' triggers a search
   useEffect(() => {
     const match = comment.match(/@(\w{1,20})$/);
     if (match) {
@@ -49,7 +47,6 @@ export default function CommentInput({
     }
   }, [comment]);
 
-  // ✅ Fetch taggable users when debounced query changes
   useEffect(() => {
     if (!debouncedQuery) return;
 
@@ -58,7 +55,7 @@ export default function CommentInput({
 
       if (res.success && res.data) {
         const paginatedData: PaginatedTaggableUserData = res.data;
-        setResults(paginatedData.content); // ✅ Correct field
+        setResults(paginatedData.content);
         setShowDropdown(paginatedData.content.length > 0);
       } else {
         setResults([]);
@@ -71,7 +68,6 @@ export default function CommentInput({
     let trimmed = comment.trim();
     if (!trimmed) return;
 
-    // If users were selected, replace each @username occurrence with username (remove the @)
     if (selectedTags && selectedTags.length > 0) {
       for (const tag of selectedTags) {
         const regex = new RegExp(`@${tag.username}`);
@@ -89,7 +85,6 @@ export default function CommentInput({
     const updated = comment.replace(/@\w*$/, `@${user.username} `);
     setComment(updated);
     setShowDropdown(false);
-    // avoid duplicates
     setSelectedTags((prev) => {
       if (prev.find((p) => p.userId === user.userId)) return prev;
       return [...prev, user];
@@ -114,7 +109,6 @@ export default function CommentInput({
     }
   };
 
-  // ✅ Hide dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -133,16 +127,16 @@ export default function CommentInput({
           alt={`${currentUser.username}'s avatar`}
           width={36}
           height={36}
-          className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+          className="w-9 h-9 rounded-full object-cover border border-cream-300 dark:border-navy-700"
         />
-        <div className="flex-1 flex items-center bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 focus-within:ring-1 focus-within:ring-blue-400 dark:focus-within:ring-blue-500 transition">
+        <div className="flex-1 flex items-center bg-cream-50/80 dark:bg-navy-700/30 rounded-full border border-cream-300/40 dark:border-navy-700/40 px-3 py-1.5 focus-within:ring-1 focus-within:ring-steel/30 dark:focus-within:ring-sky/30 transition">
           <input
             type="text"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Write a comment..."
-            className="flex-1 bg-transparent outline-none text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+            className="flex-1 bg-transparent outline-none text-sm text-navy dark:text-cream placeholder-steel/40 dark:placeholder-sky/30"
             disabled={isPosting}
           />
           <button
@@ -150,12 +144,12 @@ export default function CommentInput({
             disabled={!comment.trim() || isPosting}
             className={`p-1.5 transition-all rounded-full ${
               !comment.trim() || isPosting
-                ? "text-gray-400 cursor-not-allowed"
-                : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                ? "text-steel/40 cursor-not-allowed"
+                : "text-steel dark:text-sky hover:text-steel-600 dark:hover:text-sky/80"
             }`}
           >
             {isPosting ? (
-              <span className="animate-pulse text-xs text-gray-500">...</span>
+              <span className="animate-pulse text-xs text-steel/50">...</span>
             ) : (
               <Send size={16} strokeWidth={1.8} />
             )}
@@ -163,17 +157,16 @@ export default function CommentInput({
         </div>
       </div>
 
-      {/* ✅ Dropdown for taggable users */}
       {showDropdown && results.length > 0 && (
-        <div className="absolute left-12 bottom-0 translate-y-full mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-20">
+        <div className="absolute left-12 bottom-0 translate-y-full mt-1 w-64 bg-cream-50 dark:bg-navy border border-cream-300 dark:border-navy-700 rounded-xl shadow-lg shadow-navy/10 dark:shadow-black/30 overflow-hidden z-20">
           {results.map((user, idx) => (
             <button
               key={user.userId}
               onClick={() => handleUserSelect(user)}
               className={`flex items-center w-full px-3 py-2 text-sm text-left ${
                 idx === activeIndex
-                  ? "bg-blue-50 dark:bg-blue-900"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "bg-steel/10 dark:bg-sky/10"
+                  : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
               }`}
             >
               <Image
@@ -183,7 +176,7 @@ export default function CommentInput({
                 height={28}
                 className="rounded-full mr-2 object-cover"
               />
-              <span className="text-gray-700 dark:text-gray-200">@{user.username}</span>
+              <span className="text-navy dark:text-cream">@{user.username}</span>
             </button>
           ))}
         </div>

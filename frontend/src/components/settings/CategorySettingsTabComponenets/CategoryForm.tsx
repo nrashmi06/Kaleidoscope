@@ -1,3 +1,4 @@
+// src/components/settings/CategorySettingsTabComponenets/CategoryForm.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -7,6 +8,7 @@ import { CreateCategoryData, FlatCategory } from "@/lib/types/settings/category"
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { IconSearchDropdown } from "./IconSearchDropdown";
 import { toast } from "react-hot-toast";
+import { Plus, Pencil } from "lucide-react";
 
 interface Props {
   categories: FlatCategory[];
@@ -55,24 +57,25 @@ export const CategoryForm: React.FC<Props> = ({
     e.preventDefault();
     if (!accessToken) return;
 
-    console.log("About to submit form with data:", JSON.stringify(form, null, 2));
-    console.log("Form parentId value:", form.parentId, "Type:", typeof form.parentId);
-
     setSubmitting(true);
     const response = isEditing
-      ? await updateCategoryController(editingCategory!.categoryId, form, accessToken)
+      ? await updateCategoryController(
+          editingCategory!.categoryId,
+          form,
+          accessToken
+        )
       : await createNewCategoryController(form, accessToken);
-
-    console.log("Response received:", response);
 
     if (response.success) {
       setForm({ name: "", description: "", iconName: "", parentId: null });
       setIconQuery("");
-      
-      // Show success toast
-      toast.success(isEditing ? "Category updated successfully!" : "Category created successfully!");
-      
-      // Pass the created/updated category data to the parent for optimistic updates
+
+      toast.success(
+        isEditing
+          ? "Category updated successfully!"
+          : "Category created successfully!"
+      );
+
       if (response.data) {
         const categoryData: FlatCategory = {
           categoryId: response.data.categoryId,
@@ -83,12 +86,11 @@ export const CategoryForm: React.FC<Props> = ({
         };
         onSuccess(categoryData);
       } else {
-        onSuccess(); // Fallback to refetch
+        onSuccess();
       }
-      
+
       onCancelEdit?.();
     } else {
-      console.error("Form submission failed:", response.errors);
       const errorMessage = response.errors?.[0] || "Operation failed.";
       toast.error(errorMessage);
       onError?.(errorMessage);
@@ -100,22 +102,37 @@ export const CategoryForm: React.FC<Props> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-8 bg-white dark:bg-gray-800 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl backdrop-blur-sm"
+      className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-5"
     >
-      <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-        <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-          {isEditing ? "Edit Category" : "Create New Category"}
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          {isEditing ? "Update category information" : "Add a new category with database integration"}
-        </p>
+      {/* Form Header */}
+      <div className="flex items-center gap-2 pb-4 border-b border-cream-300/30 dark:border-navy-700/30">
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-steel/8 dark:bg-sky/8">
+          {isEditing ? (
+            <Pencil className="w-4 h-4 text-steel dark:text-sky" />
+          ) : (
+            <Plus className="w-4 h-4 text-steel dark:text-sky" />
+          )}
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-navy dark:text-cream">
+            {isEditing ? "Edit Category" : "Create New Category"}
+          </h2>
+          <p className="text-[11px] text-steel/50 dark:text-sky/35">
+            {isEditing
+              ? "Update category information"
+              : "Add a new category to the system"}
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Name *</label>
+      {/* Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-navy dark:text-cream">
+            Name *
+          </label>
           <input
-            className="p-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-500 dark:placeholder-gray-400"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Enter category name"
@@ -123,12 +140,15 @@ export const CategoryForm: React.FC<Props> = ({
           />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Parent Category <span className="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-navy dark:text-cream">
+            Parent Category{" "}
+            <span className="font-normal text-steel/40 dark:text-sky/30">
+              (optional)
+            </span>
           </label>
           <select
-            className="p-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all appearance-none cursor-pointer"
             value={form.parentId ?? ""}
             onChange={(e) =>
               setForm({
@@ -139,7 +159,11 @@ export const CategoryForm: React.FC<Props> = ({
           >
             <option value="">None</option>
             {categories
-              .filter((cat) => !editingCategory || cat.categoryId !== editingCategory.categoryId)
+              .filter(
+                (cat) =>
+                  !editingCategory ||
+                  cat.categoryId !== editingCategory.categoryId
+              )
               .map((cat) => (
                 <option key={cat.categoryId} value={cat.categoryId}>
                   {cat.name}
@@ -149,12 +173,16 @@ export const CategoryForm: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Description *</label>
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-navy dark:text-cream">
+          Description *
+        </label>
         <textarea
-          className="p-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+          className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
           value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, description: e.target.value })
+          }
           placeholder="Enter category description"
           rows={3}
           required
@@ -170,26 +198,27 @@ export const CategoryForm: React.FC<Props> = ({
         }}
       />
 
-      <div className="flex gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+      {/* Actions */}
+      <div className="flex gap-3 pt-4 border-t border-cream-300/30 dark:border-navy-700/30">
         <button
           type="submit"
-          className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
+          className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold text-cream-50 bg-gradient-to-r from-steel to-steel-600 hover:from-steel-600 hover:to-steel dark:from-sky dark:to-sky/80 dark:hover:from-sky/90 dark:hover:to-sky dark:text-navy shadow-md shadow-steel/20 dark:shadow-sky/15 transition-all cursor-pointer disabled:opacity-50"
           disabled={submitting}
         >
           {submitting
             ? isEditing
               ? "Saving Changes..."
-              : "Creating Category..."
+              : "Creating..."
             : isEditing
-            ? "Save Changes"
-            : "Create Category"}
+              ? "Save Changes"
+              : "Create Category"}
         </button>
 
         {isEditing && onCancelEdit && (
           <button
             type="button"
             onClick={onCancelEdit}
-            className="px-6 py-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
+            className="px-5 h-11 rounded-xl text-sm font-semibold text-steel dark:text-sky bg-steel/8 hover:bg-steel/15 dark:bg-sky/8 dark:hover:bg-sky/15 transition-all cursor-pointer disabled:opacity-50"
             disabled={submitting}
           >
             Cancel

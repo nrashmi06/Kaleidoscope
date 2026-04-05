@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/hooks/appDispatch";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { setCount } from "@/store/notificationSlice";
@@ -26,6 +27,7 @@ export default function NotificationItem({
   onRemoved,
   onUpdated,
 }: Props) {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const unreadCount = useAppSelector((s) => s.notifications.count);
 
@@ -36,7 +38,6 @@ export default function NotificationItem({
 
   const busy = isMarking || isDeleting;
 
-  // Sync when updated externally (e.g., mark all as read)
   React.useEffect(() => {
     setIsReadLocal(item.isRead);
   }, [item.isRead]);
@@ -44,7 +45,6 @@ export default function NotificationItem({
   const handleMarkRead = async () => {
     if (!token || isReadLocal || busy) return;
 
-    // Optimistic update
     setIsReadLocal(true);
     dispatch(setCount(Math.max(0, unreadCount - 1)));
 
@@ -55,7 +55,6 @@ export default function NotificationItem({
         onUpdated?.(res.data as NotificationType);
       }
     } catch {
-      // Rollback if error
       setIsReadLocal(false);
       dispatch(setCount(unreadCount + 1));
     } finally {
@@ -81,49 +80,54 @@ export default function NotificationItem({
     }
   };
 
-  // Styles
-  const bgClass = isReadLocal
-    ? "bg-white dark:bg-neutral-900"
-    : "bg-neutral-50 dark:bg-neutral-800/50";
-  const borderClass = isReadLocal
-    ? "border-neutral-200 dark:border-neutral-800"
-    : "border-blue-200/50 dark:border-blue-900/50";
-  const textClass = isReadLocal
-    ? "text-neutral-700 dark:text-neutral-300"
-    : "text-neutral-900 dark:text-neutral-100 font-medium";
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (item.actorUserId) {
+      router.push(`/profile/${item.actorUserId}`);
+    }
+  };
 
   return (
     <>
-      <li
+      <div
         onClick={handleMarkRead}
-        className={`group relative flex flex-row items-start gap-3 p-4 m-2 rounded-xl border ${borderClass} ${bgClass}
-          hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200 cursor-pointer
-          ${busy ? "opacity-70 pointer-events-none" : ""}`}
+        className={`group relative flex items-start gap-3 p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+          isReadLocal
+            ? "bg-cream-50/50 dark:bg-navy-700/30 border-cream-300/30 dark:border-navy-700/30"
+            : "bg-cream-50 dark:bg-navy-700/50 border-steel/20 dark:border-sky/20"
+        } hover:bg-cream-100/60 dark:hover:bg-navy-700/50 ${
+          busy ? "opacity-70 pointer-events-none" : ""
+        }`}
       >
         {/* Avatar */}
         <div className="flex-shrink-0">
           <Image
-            src={item.actorProfilePictureUrl || "/person.jpg"} // fallback avatar
-            alt={item.actorUsername || "User Avatar"}
-            width={40}  // required
-            height={40} // required
-            className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-neutral-800"
+            src={item.actorProfilePictureUrl || "/person.jpg"}
+            alt={item.actorUsername || "User"}
+            width={40}
+            height={40}
+            onClick={handleAvatarClick}
+            className="w-10 h-10 rounded-full object-cover bg-cream-300 dark:bg-navy-600 cursor-pointer hover:opacity-80 transition-opacity ring-2 ring-cream-300/40 dark:ring-navy-600/40"
             onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              target.src = "/person.jpg"; // ensure fallback if image fails
+              (e.currentTarget as HTMLImageElement).src = "/person.jpg";
             }}
           />
         </div>
 
-        {/* Main Content */}
+        {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <p className={`text-sm leading-relaxed ${textClass}`}>
+              <p
+                className={`text-sm leading-relaxed ${
+                  isReadLocal
+                    ? "text-navy/70 dark:text-cream/60"
+                    : "text-navy dark:text-cream font-medium"
+                }`}
+              >
                 {item.message}
               </p>
-
-              <span className="text-xs text-neutral-500 dark:text-neutral-500">
+              <span className="text-[11px] text-steel/50 dark:text-sky/40">
                 {new Date(item.createdAt).toLocaleString(undefined, {
                   month: "short",
                   day: "numeric",
@@ -133,7 +137,7 @@ export default function NotificationItem({
               </span>
             </div>
 
-            {/* Delete button */}
+            {/* Delete */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -141,27 +145,26 @@ export default function NotificationItem({
               }}
               disabled={busy}
               title="Delete notification"
-              className="flex items-center justify-center w-8 h-8 rounded-md
-                text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400
-                hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100
-                focus:opacity-100 transition-all duration-200"
+              className="flex items-center justify-center w-8 h-8 rounded-lg
+                text-steel/40 dark:text-sky/30 hover:text-red-600 dark:hover:text-red-400
+                hover:bg-red-500/10 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100
+                focus:opacity-100 transition-all duration-200 cursor-pointer"
             >
               {isDeleting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Trash2 className="w-4 h-4 cursor-pointer" />
+                <Trash2 className="w-4 h-4" />
               )}
             </button>
           </div>
         </div>
 
-        {/* Unread blue dot */}
+        {/* Unread dot */}
         {!isReadLocal && (
-          <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-sky animate-pulse" />
         )}
-      </li>
+      </div>
 
-      {/* Delete Modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onConfirm={confirmDelete}

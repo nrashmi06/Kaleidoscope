@@ -2,45 +2,38 @@
 
 import React from "react";
 
-/**
- * PostLoader – Skeleton loader for a post card
- * -------------------------------------------------
- * Shows placeholder shapes for:
- * - Avatar
- * - Username & timestamp
- * - Post image or media
- * - Post text content
- * -------------------------------------------------
- */
-
 export default function PostLoader() {
   return (
-    <div className="w-full max-w-2xl mx-auto p-4 mb-4 rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm animate-pulse">
-      {/* Header (avatar + username) */}
-      <div className="flex items-center gap-3 mb-4">
-        {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-neutral-700" />
-        {/* Username and timestamp */}
-        <div className="flex-1">
-          <div className="w-32 h-4 bg-gray-200 dark:bg-neutral-700 rounded mb-2" />
-          <div className="w-20 h-3 bg-gray-200 dark:bg-neutral-700 rounded" />
-        </div>
-      </div>
-
+    <div className="relative w-full rounded-2xl overflow-hidden h-[480px] bg-cream-50 dark:bg-navy border border-cream-300/40 dark:border-navy-700/40 shadow-sm animate-pulse">
       {/* Image placeholder */}
-      <div className="w-full h-56 bg-gray-200 dark:bg-neutral-800 rounded-xl mb-4" />
+      <div
+        className="w-full bg-cream-300/80 dark:bg-navy-700/80"
+        style={{ height: "55%" }}
+      />
 
-      {/* Post title/text lines */}
-      <div className="space-y-2">
-        <div className="w-5/6 h-4 bg-gray-200 dark:bg-neutral-700 rounded" />
-        <div className="w-3/4 h-4 bg-gray-200 dark:bg-neutral-700 rounded" />
-        <div className="w-4/5 h-4 bg-gray-200 dark:bg-neutral-700 rounded" />
-      </div>
+      {/* Wave SVG skeleton */}
+      <svg
+        className="absolute left-0 w-full pointer-events-none"
+        style={{ top: "calc(55% - 80px)", height: "130px" }}
+        viewBox="0 0 800 500"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M 0 30 C 150 30 250 200 400 200 S 650 30 800 30 L 800 500 L 0 500"
+          className="fill-cream-50 dark:fill-navy"
+        />
+      </svg>
 
-      {/* Footer buttons (like/comment placeholders) */}
-      <div className="flex items-center gap-4 mt-4">
-        <div className="w-16 h-4 bg-gray-200 dark:bg-neutral-700 rounded" />
-        <div className="w-16 h-4 bg-gray-200 dark:bg-neutral-700 rounded" />
+      {/* Content placeholder */}
+      <div className="relative z-10 px-5 pt-2" style={{ height: "45%" }}>
+        <div className="space-y-3 pt-1">
+          <div className="w-4/5 h-3 bg-cream-300 dark:bg-navy-700 rounded-full" />
+          <div className="w-3/5 h-3 bg-cream-300/70 dark:bg-navy-700/70 rounded-full" />
+          <div className="w-2/3 h-3 bg-cream-300/50 dark:bg-navy-700/50 rounded-full" />
+        </div>
+        <div className="absolute bottom-4 left-5 right-5">
+          <div className="w-full h-9 bg-cream-300/40 dark:bg-navy-700/40 rounded-xl" />
+        </div>
       </div>
     </div>
   );

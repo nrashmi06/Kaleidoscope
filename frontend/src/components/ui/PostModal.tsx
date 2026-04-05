@@ -15,20 +15,20 @@ export function PostModal({ postId, isOpen, onClose, accessToken, currentUserId 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div 
-        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-neutral-900 rounded-xl shadow-2xl custom-scrollbar"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm">
+      <div
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-cream-50 dark:bg-navy rounded-2xl shadow-2xl shadow-navy/10 dark:shadow-black/30 border border-cream-300/40 dark:border-navy-700/40 custom-scrollbar"
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 bg-white dark:bg-neutral-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 bg-cream-50/90 dark:bg-navy-700/90 rounded-full shadow-lg hover:bg-cream-300/40 dark:hover:bg-navy-700 transition-colors border border-cream-300/40 dark:border-navy-600/40"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5 text-navy dark:text-cream" />
         </button>
-        
+
         {/* Post content */}
-        <PostDetails 
-          postId={postId} 
+        <PostDetails
+          postId={postId}
           accessToken={accessToken}
           currentUserId={currentUserId}
           onPostNotFound={onClose}

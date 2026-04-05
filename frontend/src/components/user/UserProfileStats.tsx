@@ -4,14 +4,13 @@
 import { Users, UserPlus, Lock } from "lucide-react";
 import { type FollowStatus } from "@/lib/types/userProfile";
 
-// Follow Status Pill Sub-component
-const FollowStatusPill: React.FC<{ status: FollowStatus; isPrivate: boolean }> = ({
-  status,
-  isPrivate,
-}) => {
+const FollowStatusPill: React.FC<{
+  status: FollowStatus;
+  isPrivate: boolean;
+}> = ({ status, isPrivate }) => {
   if (isPrivate && status === "NOT_FOLLOWING") {
     return (
-      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400 flex items-center gap-1">
+      <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 flex items-center gap-1">
         <Lock className="w-3 h-3" /> Private
       </span>
     );
@@ -19,13 +18,13 @@ const FollowStatusPill: React.FC<{ status: FollowStatus; isPrivate: boolean }> =
   switch (status) {
     case "FOLLOWING":
       return (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+        <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-steel/10 text-steel dark:bg-sky/10 dark:text-sky">
           Following
         </span>
       );
     case "PENDING":
       return (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400">
+        <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-sky/10 text-sky dark:bg-sky/15 dark:text-sky">
           Requested
         </span>
       );
@@ -48,26 +47,29 @@ export function UserProfileStats({
   isPrivate,
 }: UserProfileStatsProps) {
   return (
-    <div className="px-8 pb-6">
-      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-neutral-400">
+    <div className="px-6 sm:px-8 pb-6">
+      <div className="flex items-center gap-4 text-sm text-steel/70 dark:text-sky/50">
         <div className="flex items-center gap-1.5">
-          <Users className="w-4 h-4 text-blue-500" />
-          <span className="font-semibold text-gray-900 dark:text-white">
+          <Users className="w-4 h-4 text-steel dark:text-sky" />
+          <span className="font-semibold text-navy dark:text-cream">
             {followerCount}
           </span>
           <span>Followers</span>
         </div>
-        <span className="text-gray-300 dark:text-neutral-700">•</span>
+        <span className="text-cream-400 dark:text-navy-600">•</span>
         <div className="flex items-center gap-1.5">
-          <UserPlus className="w-4 h-4 text-cyan-500" />
-          <span className="font-semibold text-gray-900 dark:text-white">
+          <UserPlus className="w-4 h-4 text-sky" />
+          <span className="font-semibold text-navy dark:text-cream">
             {followingCount}
           </span>
           <span>Following</span>
         </div>
-        <span className="text-gray-300 dark:text-neutral-700">•</span>
+        <span className="text-cream-400 dark:text-navy-600">•</span>
         <FollowStatusPill status={followStatus} isPrivate={isPrivate} />
       </div>
+
+      {/* Gradient divider */}
+      <div className="mt-5 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
     </div>
   );
 }

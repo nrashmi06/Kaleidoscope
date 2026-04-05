@@ -36,18 +36,18 @@ export default function CommentTagManager({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-[999]">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 w-full max-w-md p-6 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-navy/50 backdrop-blur-sm flex items-center justify-center z-[999]">
+      <div className="bg-cream-50 dark:bg-navy rounded-2xl shadow-xl shadow-navy/10 dark:shadow-black/30 border border-cream-300/40 dark:border-navy-700/40 w-full max-w-md p-6 animate-in fade-in duration-300">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-lg font-semibold text-navy dark:text-cream">
             Manage Tags
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-neutral-800"
+            className="p-2 rounded-full hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition"
           >
-            <X size={18} />
+            <X size={18} className="text-navy dark:text-cream" />
           </button>
         </div>
 
@@ -57,15 +57,15 @@ export default function CommentTagManager({
             {comment.tags.map((tag) => (
               <div
                 key={tag.tagId}
-                className="flex items-center justify-between bg-gray-50 dark:bg-neutral-800 px-3 py-2 rounded-lg border border-gray-100 dark:border-gray-700"
+                className="flex items-center justify-between bg-cream-100/40 dark:bg-navy-700/30 px-3 py-2 rounded-lg border border-cream-300/40 dark:border-navy-700/40"
               >
-                <span className="text-sm text-gray-800 dark:text-gray-200">
+                <span className="text-sm text-navy/80 dark:text-cream/80">
                   @{tag.taggedUsername}
                 </span>
                 <button
                   onClick={() => handleDeleteTag(tag.tagId)}
                   disabled={deletingTagId === tag.tagId}
-                  className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700 dark:text-red-400 disabled:opacity-50"
+                  className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700 dark:text-red-400 disabled:opacity-50 cursor-pointer"
                 >
                   <Trash2 size={14} />
                   {deletingTagId === tag.tagId ? "Deleting..." : "Delete"}
@@ -74,7 +74,7 @@ export default function CommentTagManager({
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 text-steel/60 dark:text-sky/40">
             No tags found for this comment.
           </div>
         )}
@@ -83,7 +83,7 @@ export default function CommentTagManager({
         <div className="mt-5 flex justify-end">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition"
+            className="flex items-center gap-2 text-sm font-medium text-navy/70 dark:text-cream/60 px-4 py-2 rounded-lg hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition cursor-pointer"
           >
             Close
           </button>

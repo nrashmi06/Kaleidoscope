@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link"; // 1. Import Link
-import { 
+import Link from "next/link";
+import {
   getTagsByContentController,
   isTagError,
   getTagErrorMessage,
@@ -10,11 +10,11 @@ import {
 } from "@/controllers/tag/tagController";
 import { ContentType } from "@/lib/types/tag";
 import { MappedTag, MappedPaginatedTagResponse } from "@/lib/types/tag";
-import { 
-  Users, 
-  ChevronLeft, 
-  ChevronRight, 
-  RefreshCw, 
+import {
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
   AlertCircle,
   UserCheck,
   Clock
@@ -67,7 +67,6 @@ export function TagList({
         const errorMessage = getTagErrorMessage(result);
         setError(errorMessage);
 
-        // Handle specific error types
         if (isAuthTagError(result)) {
           onAuthError?.();
         }
@@ -75,7 +74,7 @@ export function TagList({
         setTags(result.data?.tags || []);
         setPagination(result.data?.pagination || null);
         setCurrentPage(page);
-        setRetryCount(0); // Reset retry count on success
+        setRetryCount(0);
       }
     } catch (err) {
       console.error('Unexpected error in TagList:', err);
@@ -116,18 +115,18 @@ export function TagList({
   if (loading) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <div className="flex items-center space-x-2 text-gray-600 dark:text-neutral-400">
+        <div className="flex items-center gap-2 text-steel/70 dark:text-sky/50">
           <Users className="w-5 h-5" />
           <h3 className="font-semibold">Tagged Users</h3>
         </div>
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="animate-pulse">
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-neutral-800 rounded-lg">
-                <div className="w-8 h-8 bg-gray-300 dark:bg-neutral-700 rounded-full"></div>
+              <div className="flex items-center gap-3 p-3 bg-cream-50/80 dark:bg-navy-700/30 rounded-xl">
+                <div className="w-8 h-8 bg-cream-300/60 dark:bg-navy-700/60 rounded-full"></div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-300 dark:bg-neutral-700 rounded w-24"></div>
-                  <div className="h-3 bg-gray-300 dark:bg-neutral-700 rounded w-32"></div>
+                  <div className="h-4 bg-cream-300/60 dark:bg-navy-700/60 rounded w-24"></div>
+                  <div className="h-3 bg-cream-300/40 dark:bg-navy-700/40 rounded w-32"></div>
                 </div>
               </div>
             </div>
@@ -141,12 +140,12 @@ export function TagList({
   if (error) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <div className="flex items-center space-x-2 text-gray-600 dark:text-neutral-400">
+        <div className="flex items-center gap-2 text-steel/70 dark:text-sky/50">
           <Users className="w-5 h-5" />
           <h3 className="font-semibold">Tagged Users</h3>
         </div>
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <div className="flex items-start space-x-3">
+        <div className="p-4 bg-red-50/50 dark:bg-red-900/10 border border-red-200/60 dark:border-red-900/30 rounded-xl">
+          <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
@@ -157,7 +156,7 @@ export function TagList({
               </p>
               <button
                 onClick={handleRetry}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/50 rounded-md transition-colors"
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/50 rounded-lg transition-colors cursor-pointer"
               >
                 <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
                 Try Again
@@ -173,16 +172,16 @@ export function TagList({
   if (tags.length === 0) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <div className="flex items-center space-x-2 text-gray-600 dark:text-neutral-400">
+        <div className="flex items-center gap-2 text-steel/70 dark:text-sky/50">
           <Users className="w-5 h-5" />
           <h3 className="font-semibold">Tagged Users</h3>
         </div>
-        <div className="p-6 text-center bg-gray-50 dark:bg-neutral-800 rounded-lg">
-          <Users className="w-12 h-12 text-gray-400 dark:text-neutral-500 mx-auto mb-3" />
-          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+        <div className="p-6 text-center bg-cream-50/50 dark:bg-navy-700/30 rounded-xl border border-dashed border-cream-300 dark:border-navy-700">
+          <Users className="w-12 h-12 text-steel/40 dark:text-sky/30 mx-auto mb-3" />
+          <h4 className="font-medium text-navy dark:text-cream mb-1">
             No Tags Found
           </h4>
-          <p className="text-sm text-gray-600 dark:text-neutral-400">
+          <p className="text-sm text-steel/60 dark:text-sky/40">
             No users have been tagged in this {contentType.toLowerCase()}.
           </p>
         </div>
@@ -190,21 +189,21 @@ export function TagList({
     );
   }
 
-  // Success state - render tags
+  // Success state
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 text-gray-600 dark:text-neutral-400">
+        <div className="flex items-center gap-2 text-steel/70 dark:text-sky/50">
           <Users className="w-5 h-5" />
           <h3 className="font-semibold">Tagged Users</h3>
-          <span className="text-sm text-gray-500 dark:text-neutral-500">
+          <span className="text-sm text-steel/50 dark:text-sky/30">
             ({pagination?.totalElements || tags.length})
           </span>
         </div>
-        
+
         {pagination && pagination.totalPages > 1 && (
-          <div className="text-xs text-gray-500 dark:text-neutral-500">
+          <div className="text-xs text-steel/50 dark:text-sky/30">
             Page {pagination.page + 1} of {pagination.totalPages}
           </div>
         )}
@@ -215,20 +214,18 @@ export function TagList({
         {tags.map((tag) => (
           <div
             key={tag.tagId}
-            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-800 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
+            className="flex items-center justify-between p-3 bg-cream-50/80 dark:bg-navy-700/30 rounded-xl border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/20 dark:hover:bg-navy-700/40 transition-colors"
           >
-            <div className="flex items-center space-x-3">
-              {/* Tagged User */}
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full flex items-center justify-center text-sm font-medium">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky rounded-full flex items-center justify-center text-sm font-medium">
                   {tag.taggedUser.username.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div className="flex items-center space-x-1">
-                    {/* 2. Wrap username in a Link */}
+                  <div className="flex items-center gap-1">
                     <Link
                       href={`/profile/${tag.taggedUser.userId}`}
-                      className="font-medium text-gray-900 dark:text-white text-sm hover:underline hover:text-blue-600 dark:hover:text-blue-400"
+                      className="font-medium text-navy dark:text-cream text-sm hover:underline hover:text-steel dark:hover:text-sky"
                     >
                       @{tag.taggedUser.username}
                     </Link>
@@ -238,15 +235,14 @@ export function TagList({
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-neutral-500">
+                  <div className="text-xs text-steel/50 dark:text-sky/30">
                     Tagged by @{tag.taggerUser.username}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Timestamp */}
-            <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-neutral-500">
+            <div className="flex items-center gap-1 text-xs text-steel/50 dark:text-sky/30">
               <Clock className="w-3 h-3" />
               <span>{tag.formattedCreatedAt}</span>
             </div>
@@ -256,23 +252,22 @@ export function TagList({
 
       {/* Pagination */}
       {showPagination && pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-neutral-700">
-          <div className="text-sm text-gray-600 dark:text-neutral-400">
+        <div className="flex items-center justify-between pt-4 border-t border-cream-300/40 dark:border-navy-700/40">
+          <div className="text-sm text-steel/60 dark:text-sky/40">
             Showing {tags.length} of {pagination.totalElements} tags
           </div>
-          
-          <div className="flex items-center space-x-2">
+
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePreviousPage}
               disabled={!pagination.hasPrevious || loading}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-md transition-colors"
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-steel dark:text-sky/70 hover:text-navy dark:hover:text-cream disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cream-300/40 dark:hover:bg-navy-700/40 rounded-lg transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               Previous
             </button>
 
-            {/* Page numbers */}
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                 const pageNum = Math.max(
                   0,
@@ -281,16 +276,16 @@ export function TagList({
                     pagination.page - 2
                   )
                 ) + i;
-                
+
                 return (
                   <button
                     key={pageNum}
                     onClick={() => handlePageClick(pageNum)}
                     disabled={loading}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                       pageNum === pagination.page
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-700'
+                        ? 'bg-steel text-cream-50 dark:bg-sky dark:text-navy'
+                        : 'text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {pageNum + 1}
@@ -302,7 +297,7 @@ export function TagList({
             <button
               onClick={handleNextPage}
               disabled={!pagination.hasNext || loading}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-md transition-colors"
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-steel dark:text-sky/70 hover:text-navy dark:hover:text-cream disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cream-300/40 dark:hover:bg-navy-700/40 rounded-lg transition-colors cursor-pointer"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />

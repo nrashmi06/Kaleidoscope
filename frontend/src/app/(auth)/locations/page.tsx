@@ -1,28 +1,27 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { WorldMap } from "@/components/ui/world-map";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Globe, GlobeMarker } from "@/components/ui/globe";
 import { searchLocationsController } from "@/controllers/locationController/getAllLocations";
+import { deleteLocationController } from "@/controllers/location/deleteLocationController";
 import { useAccessToken } from "@/hooks/useAccessToken";
-import { Location } from "@/lib/types/post"; 
-import { Loader2, MapPin, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion"; 
+import { useAppSelector } from "@/hooks/useAppSelector";
+import { Location } from "@/lib/types/post";
+import { Loader2, MapPin, AlertCircle, Globe2, Navigation, ImageIcon, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "next-themes";
+import { toast } from "react-hot-toast";
 
 import { PostFeedGrid } from "@/components/feed/PostFeedGrid";
 import { getPostsController } from "@/controllers/postController/getPostsController";
 import { NormalizedPostFeedItem } from "@/lib/types/postFeed";
 
-
-type MapPoint = {
-  lat: number;
-  lng: number;
-  label: string;
-};
-
 export default function LocationsPage() {
   const accessToken = useAccessToken();
-  
-  const [locations, setLocations] = useState<Location[]>([]); 
+  const role = useAppSelector((state) => state.auth.role);
+  const { resolvedTheme } = useTheme();
+
+  const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,156 +32,271 @@ export default function LocationsPage() {
 
   useEffect(() => {
     if (!accessToken) return;
-
     const fetchLocations = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await searchLocationsController(accessToken, '', 0, 500); 
-        
-        if (res.success && res.data?.content) {
-          // ✅ Set the full location objects
-          setLocations(res.data.content);
-        } else {
-          throw new Error(res.errors?.[0] || "Failed to load locations");
-        }
+        const res = await searchLocationsController(accessToken, "", 0, 500);
+        if (res.success && res.data?.content) setLocations(res.data.content);
+        else throw new Error(res.errors?.[0] || "Failed to load locations");
       } catch (err) {
         setError(err instanceof Error ? err.message : "An unknown error occurred");
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchLocations();
   }, [accessToken]);
 
-  const fetchPostsForLocation = useCallback(async (locationId: number) => {
-    if (!accessToken) return;
-    
-    setIsPostsLoading(true);
-    setPostsError(null);
-    setPosts([]); // Clear previous posts
-    
-    try {
-      const result = await getPostsController(accessToken, { 
-        locationId: locationId, // Filter by locationId
-        page: 0,
-        size: 50, // Show up to 50 posts
-        sort: ["createdAt,desc"]
-      });
-      
-      if (result.success) {
-        setPosts(result.posts);
-      } else {
-        setPostsError(result.error || "Failed to load posts for this location.");
+  const fetchPostsForLocation = useCallback(
+    async (locationId: number) => {
+      if (!accessToken) return;
+      setIsPostsLoading(true);
+      setPostsError(null);
+      setPosts([]);
+      try {
+        const result = await getPostsController(accessToken, {
+          locationId,
+          page: 0,
+          size: 50,
+          sort: ["createdAt,desc"],
+        });
+        if (result.success) setPosts(result.posts);
+        else setPostsError(result.error || "Failed to load posts for this location.");
+      } catch (err) {
+        setPostsError(err instanceof Error ? err.message : "An unknown error occurred.");
+      } finally {
+        setIsPostsLoading(false);
       }
-    } catch (err) {
-      setPostsError(err instanceof Error ? err.message : "An unknown error occurred.");
-    } finally {
-      setIsPostsLoading(false);
-    }
-  }, [accessToken]);
-  // ✅ --- END NEW FUNCTION ---
+    },
+    [accessToken]
+  );
 
-  // ✅ --- UPDATED CLICK HANDLER ---
-  const handlePointClick = (label: string) => {
-    const clickedLoc = locations.find(loc => loc.name === label);
-    if (clickedLoc) {
-      setSelectedLocation(clickedLoc);
-      // Trigger the post fetch
-      fetchPostsForLocation(clickedLoc.locationId); 
-    }
-  };
-  const mapPoints: MapPoint[] = locations.map((loc: Location) => ({
-    lat: loc.latitude,
-    lng: loc.longitude,
-    label: loc.name,
-  }));
+  const handleMarkerClick = useCallback(
+    (label: string) => {
+      const loc = locations.find((l) => l.name === label);
+      if (loc) {
+        setSelectedLocation(loc);
+        fetchPostsForLocation(loc.locationId);
+      }
+    },
+    [locations, fetchPostsForLocation]
+  );
+
+  const handleDeleteLocation = useCallback(
+    async (location: Location) => {
+      if (!accessToken) return;
+      const confirmed = window.confirm(
+        `Are you sure you want to delete "${location.name}"? This action cannot be undone.`
+      );
+      if (!confirmed) return;
+      const res = await deleteLocationController(accessToken, location.locationId);
+      if (res.success) {
+        toast.success(`Location "${location.name}" deleted successfully.`);
+        setLocations((prev) => prev.filter((l) => l.locationId !== location.locationId));
+        if (selectedLocation?.locationId === location.locationId) {
+          setSelectedLocation(null);
+          setPosts([]);
+        }
+      } else {
+        toast.error(res.message || "Failed to delete location.");
+      }
+    },
+    [accessToken, selectedLocation]
+  );
+
+  const globeMarkers: GlobeMarker[] = useMemo(
+    () =>
+      locations.map((loc) => ({
+        location: [loc.latitude, loc.longitude] as [number, number],
+        size: 0.03,
+        label: loc.name,
+      })),
+    [locations]
+  );
+
+  const isDark = resolvedTheme === "dark";
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 dark:bg-neutral-950 py-10 px-4">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto text-center mb-10">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-          Interactive Location Map
-        </h1>
-        <p className="text-gray-600 dark:text-neutral-400">
-          Click on any of the pulsing dots to see posts from that location.
-        </p>
+    <div className="min-h-screen w-full">
+      {/* Ambient background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 right-1/4 w-[500px] h-[500px] bg-steel/[0.06] dark:bg-steel/[0.04] rounded-full blur-[100px]" />
+        <div className="absolute bottom-1/3 left-1/6 w-96 h-96 bg-sky/[0.06] dark:bg-sky/[0.03] rounded-full blur-[80px]" />
       </div>
 
-      {/* Display Selected Location */}
-      <div className="max-w-7xl mx-auto text-center mb-8 h-12">
-        {selectedLocation && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            key={selectedLocation.locationId} // Use ID for re-animation
-            className="inline-flex items-center gap-2 p-3 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg"
-          >
-            <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-              {selectedLocation.name}
-            </span>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Map Container */}
-      <div className="max-w-7xl mx-auto rounded-2xl border border-neutral-100 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 p-4 ">
-        {isLoading && (
-          <div className="aspect-[2/1] flex items-center justify-center">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-            <p className="ml-3 text-lg text-gray-700 dark:text-neutral-300">
-              Loading locations...
-            </p>
+      <div className="relative">
+        {/* Compact header row */}
+        <div className="flex items-center justify-between px-4 pt-6 pb-4 max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-navy shadow-lg shadow-steel/25 dark:shadow-steel/15">
+              <Globe2 className="w-5 h-5 text-cream-50" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-navy dark:text-cream tracking-tight">
+                Explore Locations
+              </h1>
+              <p className="text-[11px] text-steel dark:text-sky">
+                {locations.length} locations worldwide
+              </p>
+            </div>
           </div>
-        )}
-        {error && (
-          <div className="aspect-[2/1] flex items-center justify-center text-red-500">
-            <AlertCircle className="w-10 h-10 mr-3" />
-            <p className="text-lg">{error}</p>
-          </div>
-        )}
-        {!isLoading && !error && (
-          <WorldMap
-            singlePoints={mapPoints} 
-            onPointClick={handlePointClick}
-            pointColor="#f59e0b" // Amber
-          />
-        )}
-      </div>
 
-      <div className="max-w-7xl mx-auto mt-12">
-        {selectedLocation && (
-          <motion.h2 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-3xl font-bold text-gray-900 dark:text-white mb-6"
-          >
-            Posts from {selectedLocation.name}
-          </motion.h2>
-        )}
-        
-        {/* Render the grid only if a location is selected or posts are loading */}
-        {(isPostsLoading || posts.length > 0 || postsError) && (
-          <PostFeedGrid
-            isLoading={isPostsLoading}
-            error={postsError}
-            posts={posts}
-            accessToken={accessToken!}
-            onPostDeleted={() => {
-              if (selectedLocation) {
-                fetchPostsForLocation(selectedLocation.locationId);
-              }
-            }}
-            onRetry={() => {
-              if (selectedLocation) {
-                fetchPostsForLocation(selectedLocation.locationId);
-              }
-            }}
-          />
-        )}
+          <AnimatePresence>
+            {selectedLocation && (
+              <motion.div
+                initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky/15 dark:bg-sky/10 border border-sky/30 dark:border-sky/20"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-steel opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-steel" />
+                </span>
+                <span className="text-xs font-semibold text-navy dark:text-sky">
+                  {selectedLocation.name}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Globe card */}
+        <div className="max-w-7xl mx-auto px-4 pb-6">
+          <div className="relative rounded-2xl border border-cream-300 dark:border-navy-700 bg-cream-50/60 dark:bg-navy/60 backdrop-blur-sm shadow-xl shadow-navy/[0.04] dark:shadow-black/30 overflow-hidden">
+            {/* Top gradient accent line */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/40 to-transparent" />
+
+            {/* Inner ambient glow */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50%] h-[50%] bg-steel/[0.03] dark:bg-sky/[0.04] rounded-full blur-[80px]" />
+            </div>
+
+            {isLoading && (
+              <div className="flex flex-col items-center justify-center py-32 gap-4">
+                <div className="relative">
+                  <Loader2 className="w-10 h-10 animate-spin text-steel" />
+                  <div className="absolute inset-0 w-10 h-10 rounded-full bg-steel/20 blur-xl" />
+                </div>
+                <p className="text-sm text-steel dark:text-sky">
+                  Loading locations...
+                </p>
+              </div>
+            )}
+            {error && (
+              <div className="flex flex-col items-center justify-center py-32 gap-3">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40">
+                  <AlertCircle className="w-6 h-6 text-red-500" />
+                </div>
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+            {!isLoading && !error && (
+              <Globe
+                markers={globeMarkers}
+                onMarkerClick={handleMarkerClick}
+                dark={isDark}
+                selectedLabel={selectedLocation?.name}
+              />
+            )}
+
+            {/* Bottom bar */}
+            <div className="relative border-t border-cream-300 dark:border-navy-700 px-4 py-2.5 flex items-center justify-between text-[11px] text-steel dark:text-sky/60">
+              <span className="flex items-center gap-1.5">
+                <Navigation className="w-3 h-3" />
+                Drag to rotate · Click a marker to explore
+              </span>
+              <span className="tabular-nums">{locations.length} pins</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Posts section */}
+        <div className="max-w-7xl mx-auto px-4 pb-16">
+          <AnimatePresence mode="wait">
+            {selectedLocation ? (
+              <motion.div
+                key={selectedLocation.locationId}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                {/* Location detail card */}
+                <div className="mb-6 p-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-cream-50 dark:bg-navy shadow-sm flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-sky/20 to-steel/15 dark:from-sky/15 dark:to-steel/10 border border-sky/30 dark:border-sky/20 flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-steel dark:text-sky" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-navy dark:text-cream truncate text-sm">
+                        {selectedLocation.name}
+                      </h2>
+                      <p className="text-[11px] text-steel dark:text-sky mt-0.5 tabular-nums">
+                        {selectedLocation.latitude.toFixed(2)}&deg;,{" "}
+                        {selectedLocation.longitude.toFixed(2)}&deg;
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {isPostsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-steel" />
+                    ) : posts.length > 0 ? (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky/15 dark:bg-sky/10 border border-sky/25 dark:border-sky/15 text-[11px] font-semibold text-navy dark:text-sky">
+                        <ImageIcon className="w-3 h-3" />
+                        {posts.length} {posts.length === 1 ? "post" : "posts"}
+                      </div>
+                    ) : null}
+                    {role === "ADMIN" && (
+                      <button
+                        onClick={() => handleDeleteLocation(selectedLocation)}
+                        className="p-1.5 rounded-lg text-red-500 dark:text-red-400 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                        title="Delete location"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {(isPostsLoading || posts.length > 0 || postsError) && (
+                  <PostFeedGrid
+                    isLoading={isPostsLoading}
+                    error={postsError}
+                    posts={posts}
+                    accessToken={accessToken!}
+                    onPostDeleted={() => {
+                      if (selectedLocation)
+                        fetchPostsForLocation(selectedLocation.locationId);
+                    }}
+                    onRetry={() => {
+                      if (selectedLocation)
+                        fetchPostsForLocation(selectedLocation.locationId);
+                    }}
+                  />
+                )}
+              </motion.div>
+            ) : (
+              !isLoading &&
+              !error &&
+              locations.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-10"
+                >
+                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream-300 dark:bg-navy-700 border border-cream-400 dark:border-navy-600 mb-3">
+                    <MapPin className="w-5 h-5 text-steel dark:text-sky" />
+                  </div>
+                  <p className="text-xs text-steel dark:text-sky/60">
+                    Click a location on the globe to see its posts
+                  </p>
+                </motion.div>
+              )
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );

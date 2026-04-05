@@ -4,21 +4,20 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils"; // You already have this file
+import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
-// Defines all the styles for the button variants and sizes
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-gray-950 dark:focus-visible:ring-blue-400",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-cream-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-steel focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-navy",
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600",
+        default: "bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky-300",
         destructive: "bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600",
-        outline: "border border-gray-300 bg-white hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50",
-        secondary: "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-50 dark:hover:bg-gray-700",
-        ghost: "hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-50",
-        link: "text-blue-600 underline-offset-4 hover:underline dark:text-blue-400",
+        outline: "border border-cream-300 bg-cream-50 hover:bg-cream-300 hover:text-navy dark:border-navy-700 dark:bg-navy dark:hover:bg-navy-700 dark:hover:text-cream",
+        secondary: "bg-cream-300 text-navy hover:bg-cream-400 dark:bg-navy-700 dark:text-cream dark:hover:bg-navy-600",
+        ghost: "hover:bg-cream-300 hover:text-navy dark:hover:bg-navy-700 dark:hover:text-cream",
+        link: "text-steel underline-offset-4 hover:underline dark:text-sky",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -34,12 +33,11 @@ const buttonVariants = cva(
   }
 );
 
-// Defines the props for your button component
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
-  isLoading?: boolean; // Custom prop for loading state
+  isLoading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -55,14 +53,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    // Use <Slot> if asChild is true, otherwise use <button>
     const Comp = asChild ? Slot : "button";
 
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={isLoading || props.disabled} // Disable if loading or explicitly disabled
+        disabled={isLoading || props.disabled}
         {...props}
       >
         {isLoading && (

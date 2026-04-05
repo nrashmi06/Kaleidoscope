@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import type { CommentTag } from "@/lib/types/comment";
 
 interface Props {
@@ -13,36 +14,46 @@ function escapeRegex(s: string) {
 }
 
 export default function CommentBody({ body, tags = [] }: Props) {
+  const router = useRouter();
+
   if (!tags || tags.length === 0) {
-    return <p className="text-gray-800 dark:text-gray-200 text-sm leading-snug mt-1">{body}</p>;
+    return <p className="text-navy/80 dark:text-cream/80 text-sm leading-snug mt-1">{body}</p>;
   }
 
-  // build a regex that matches any tagged username as a whole word, optionally prefixed with @
   const usernames = Array.from(new Set(tags.map((t) => t.taggedUsername)));
   if (usernames.length === 0) {
-    return <p className="text-gray-800 dark:text-gray-200 text-sm leading-snug mt-1">{body}</p>;
+    return <p className="text-navy/80 dark:text-cream/80 text-sm leading-snug mt-1">{body}</p>;
   }
 
   const escaped = usernames.map(escapeRegex).join("|");
-  // Use negative lookaround to ensure we match whole usernames (handles dots, hyphens, etc.)
-  // Match optional leading @ and ensure the match is not part of a larger word
   const re = new RegExp(`((?<![A-Za-z0-9_])@?(?:${escaped})(?![A-Za-z0-9_]))`, "gi");
 
   const parts = body.split(re);
 
+  const findTagUserId = (username: string): number | undefined => {
+    const tag = tags.find(
+      (t) => t.taggedUsername.toLowerCase() === username.toLowerCase()
+    );
+    return tag?.taggedUserId;
+  };
+
   return (
-    <p className="text-gray-800 dark:text-gray-200 text-sm leading-snug mt-1">
+    <p className="text-navy/80 dark:text-cream/80 text-sm leading-snug mt-1">
       {parts.map((part, i) => {
         if (!part) return null;
         const withoutAt = part.startsWith("@") ? part.slice(1) : part;
         const isTagged = usernames.some((u) => u.toLowerCase() === withoutAt.toLowerCase());
         if (isTagged) {
-          // display the original match but ensure it starts with @ for consistency
           const display = part.startsWith("@") ? part : `@${part}`;
+          const userId = findTagUserId(withoutAt);
           return (
             <span
               key={i}
-              className="font-semibold bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 px-1 rounded"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (userId) router.push(`/profile/${userId}`);
+              }}
+              className="font-semibold bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky px-1 rounded cursor-pointer hover:underline"
             >
               {display}
             </span>

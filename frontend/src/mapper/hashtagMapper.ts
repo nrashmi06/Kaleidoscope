@@ -11,4 +11,5 @@ export const HashtagMapper = {
   getHashtagSuggestions: (prefix: string) => 
     `${BASE_URL}/hashtags/suggest?prefix=${encodeURIComponent(prefix)}`,
   getTrendingHashtags: () => `${BASE_URL}/hashtags/trending`,
+  deleteHashtag: (hashtagId: number) => `${BASE_URL}/hashtags/${hashtagId}`,
 };

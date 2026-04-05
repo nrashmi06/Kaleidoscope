@@ -2,29 +2,17 @@
 
 import React from "react";
 
-/**
- * NotificationSkeleton — Shimmer placeholder while notifications are loading
- */
 export default function NotificationSkeleton() {
   return (
-    <div
-      className="
-        animate-pulse flex flex-col gap-2 p-4 m-2 rounded-xl border 
-        border-neutral-200 dark:border-neutral-800 
-        bg-white dark:bg-neutral-900
-      "
-    >
-      {/* Top row: message + delete icon placeholder */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1 space-y-2">
-          <div className="h-3.5 bg-neutral-200 dark:bg-neutral-700 rounded w-3/4" />
-          <div className="h-3 bg-neutral-200 dark:bg-neutral-700 rounded w-5/6" />
-        </div>
-        <div className="w-6 h-6 bg-neutral-200 dark:bg-neutral-700 rounded-md" />
+    <div className="animate-pulse flex items-start gap-3 p-4 rounded-xl border border-cream-300/30 dark:border-navy-700/30 bg-cream-50/50 dark:bg-navy-700/30">
+      {/* Avatar */}
+      <div className="w-10 h-10 rounded-full bg-cream-300/60 dark:bg-navy-600/60 flex-shrink-0" />
+      {/* Content */}
+      <div className="flex-1 space-y-2">
+        <div className="h-3.5 bg-cream-300/50 dark:bg-navy-600/50 rounded w-3/4" />
+        <div className="h-3 bg-cream-300/40 dark:bg-navy-600/40 rounded w-5/6" />
+        <div className="h-2.5 bg-cream-300/30 dark:bg-navy-600/30 rounded w-1/3 mt-1" />
       </div>
-
-      {/* Timestamp placeholder */}
-      <div className="h-2.5 bg-neutral-200 dark:bg-neutral-700 rounded w-1/3 mt-2" />
     </div>
   );
 }

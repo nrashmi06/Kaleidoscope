@@ -3,8 +3,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useAccessToken } from "@/hooks/useAccessToken";
+import { useAppSelector } from "@/hooks/useAppSelector";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getTrendingHashtagsController } from "@/controllers/hashtag/getTrendingHashtagsController";
+import { deleteHashtagController } from "@/controllers/hashtag/deleteHashtagController";
 import type { TrendingHashtag } from "@/lib/types/trendingHashtag";
 import type { NormalizedPagination } from "@/controllers/hashtag/getTrendingHashtagsController";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,28 +19,32 @@ import {
     X,
     TrendingUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Trash2
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 // Skeleton component for loading state
 const HashtagSkeleton = () => (
-  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800/50 rounded-lg animate-pulse">
+  <div className="flex items-center justify-between p-4 bg-cream-50/80 dark:bg-navy-700/30 rounded-lg animate-pulse">
     <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-neutral-700" />
-      <div className="w-24 h-4 bg-gray-300 dark:bg-neutral-700 rounded" />
+      <div className="w-8 h-8 rounded-full bg-cream-300/60 dark:bg-navy-700/60" />
+      <div className="w-24 h-4 bg-cream-300/60 dark:bg-navy-700/60 rounded" />
     </div>
-    <div className="w-12 h-4 bg-gray-300 dark:bg-neutral-700 rounded" />
+    <div className="w-12 h-4 bg-cream-300/60 dark:bg-navy-700/60 rounded" />
   </div>
 );
 
 export const TrendingHashtags: React.FC = () => {
   const accessToken = useAccessToken();
+  const role = useAppSelector((state) => state.auth.role);
   const [hashtags, setHashtags] = useState<TrendingHashtag[]>([]);
   const [pagination, setPagination] = useState<NormalizedPagination | null>(null);
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const debouncedFilter = useDebounce(filter, 400);
 
@@ -94,6 +100,30 @@ export const TrendingHashtags: React.FC = () => {
     fetchHashtags(page, debouncedFilter);
   };
 
+  const handleDelete = async (tag: TrendingHashtag) => {
+    if (!accessToken) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the hashtag "#${tag.name}"?`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(tag.hashtagId);
+    try {
+      const result = await deleteHashtagController(accessToken, tag.hashtagId);
+      if (result.success) {
+        toast.success(result.message || `Hashtag "#${tag.name}" deleted.`);
+        fetchHashtags(page, debouncedFilter);
+      } else {
+        toast.error(result.message || "Failed to delete hashtag.");
+      }
+    } catch {
+      toast.error("An unexpected error occurred while deleting.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -119,12 +149,12 @@ export const TrendingHashtags: React.FC = () => {
 
     if (hashtags.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-8 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-700 rounded-lg">
-          <Hash className="w-8 h-8 text-gray-400 dark:text-gray-500 mb-3" />
-          <p className="font-semibold text-gray-700 dark:text-gray-300">
+        <div className="flex flex-col items-center justify-center text-center p-8 bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 rounded-lg">
+          <Hash className="w-8 h-8 text-steel/50 dark:text-sky/30 mb-3" />
+          <p className="font-semibold text-navy/70 dark:text-cream/60">
             No Trending Hashtags Found
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-steel/60 dark:text-sky/40 mt-1">
             {filter ? `No results for "${filter}".` : "Check back later!"}
           </p>
         </div>
@@ -146,19 +176,32 @@ export const TrendingHashtags: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center justify-between p-3.5 bg-white dark:bg-neutral-800/60 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+            className="flex items-center justify-between p-3.5 bg-cream-50 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 rounded-lg shadow-sm hover:bg-cream-300/20 dark:hover:bg-navy-700/40 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky">
                 <Hash className="w-4 h-4" />
               </div>
-              <span className="font-medium text-gray-800 dark:text-gray-200">
+              <span className="font-medium text-navy dark:text-cream">
                 {tag.name}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-              <TrendingUp className="w-4 h-4 text-green-500" />
-              <span className="font-semibold">{tag.usageCount.toLocaleString()}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-sm text-steel/60 dark:text-sky/40">
+                <TrendingUp className="w-4 h-4 text-green-500" />
+                <span className="font-semibold">{tag.usageCount.toLocaleString()}</span>
+              </div>
+              {role === "ADMIN" && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(tag)}
+                  disabled={deletingId === tag.hashtagId}
+                  className="ml-1 p-1.5 rounded-md text-steel/50 dark:text-sky/30 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={`Delete #${tag.name}`}
+                >
+                  <Trash2 className={`w-3.5 h-3.5 ${deletingId === tag.hashtagId ? "animate-pulse" : ""}`} />
+                </button>
+              )}
             </div>
           </motion.div>
         ))}
@@ -170,7 +213,7 @@ export const TrendingHashtags: React.FC = () => {
     <div className="w-full max-w-2xl mx-auto space-y-5">
       {/* Filter Input */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/50 dark:text-sky/30" />
         <Input
           type="text"
           value={filter}
@@ -184,7 +227,7 @@ export const TrendingHashtags: React.FC = () => {
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-steel/50 dark:text-sky/30 hover:text-navy/70 dark:hover:text-cream/60"
             onClick={() => setFilter("")}
             disabled={isLoading}
           >
@@ -208,7 +251,7 @@ export const TrendingHashtags: React.FC = () => {
 
       {/* Pagination Controls */}
       {pagination && pagination.totalElements > 0 && (
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-neutral-700">
+        <div className="flex items-center justify-between pt-4 border-t border-cream-300/40 dark:border-navy-700/40">
           <Button
             onClick={() => setPage((p) => p - 1)}
             disabled={pagination.first || isLoading}
@@ -218,7 +261,7 @@ export const TrendingHashtags: React.FC = () => {
             <ChevronLeft className="w-4 h-4 mr-1" />
             Previous
           </Button>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
+          <span className="text-sm text-steel/70 dark:text-sky/40">
             Page {pagination.currentPage + 1} of {pagination.totalPages}
           </span>
           <Button

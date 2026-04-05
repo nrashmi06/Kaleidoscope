@@ -1,28 +1,26 @@
-// src/app/settings/blocking/page.tsx
+// src/app/(auth)/settings/blocking/page.tsx
 "use client";
 
 import { BlockUserForm, BlockUserFormSkeleton } from "@/components/user-blocks/BlockUserForm";
 import React, { Suspense } from "react";
-import { ListChecks, ShieldAlert } from "lucide-react";
+import { ShieldAlert, Shield } from "lucide-react";
 
-/**
- * Placeholder component for showing a list of users
- * who are already blocked.
- */
 const BlockedUserListPlaceholder: React.FC = () => {
-  // This is an "Empty State" for the list
   return (
-    <div className="w-full max-w-lg p-6 bg-white dark:bg-neutral-900 rounded-xl shadow-lg border border-gray-200 dark:border-neutral-800">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-        <ListChecks className="w-6 h-6 text-blue-500" />
+    <div className="w-full max-w-lg p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
+      <h2 className="text-lg font-bold text-navy dark:text-cream mb-5 flex items-center gap-2">
+        <Shield className="w-5 h-5 text-steel dark:text-sky" />
         Blocked Users
       </h2>
-      
-      {/* Empty State */}
-      <div className="text-center py-12 bg-gray-50 dark:bg-neutral-800 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
-        <ShieldAlert className="w-10 h-10 mx-auto text-gray-400 dark:text-neutral-500 mb-3" />
-        <h3 className="font-semibold text-gray-700 dark:text-neutral-300">No Blocked Users</h3>
-        <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
+
+      <div className="flex flex-col items-center justify-center text-center py-12 rounded-xl border border-dashed border-cream-300 dark:border-navy-700 bg-cream-50/50 dark:bg-navy/50">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
+          <ShieldAlert className="w-6 h-6 text-steel/50 dark:text-sky/40" />
+        </div>
+        <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+          No Blocked Users
+        </h3>
+        <p className="text-xs text-steel/60 dark:text-sky/40">
           Users you block will appear here.
         </p>
       </div>
@@ -30,24 +28,22 @@ const BlockedUserListPlaceholder: React.FC = () => {
   );
 };
 
-/**
- * Page for managing user blocking settings.
- */
 export default function BlockUserPage() {
   return (
-    <div className="min-h-screen w-full bg-gray-50 dark:bg-neutral-950 py-10 px-4">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 items-start justify-center">
-        
-        {/* Block Form Component */}
+    <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 py-6 relative">
+      {/* Ambient background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
+        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
         <Suspense fallback={<BlockUserFormSkeleton />}>
           <BlockUserForm />
         </Suspense>
-
-        {/* List of Blocked Users (Placeholder) */}
         <Suspense fallback={<BlockUserFormSkeleton />}>
           <BlockedUserListPlaceholder />
         </Suspense>
-
       </div>
     </div>
   );

@@ -7,4 +7,5 @@ export const UserInterestMapper = {
   addUserInterestsBulk: `${BASE_URL}/users/interests/bulk`,
   removeUserInterestsBulk: `${BASE_URL}/users/interests/bulk`,
   getUserInterestsByUserId: (userId: number) => `${BASE_URL}/users/interests/user/${userId}`,
+  getCategoryAnalytics: `${BASE_URL}/users/interests/admin/category-analytics`,
 };

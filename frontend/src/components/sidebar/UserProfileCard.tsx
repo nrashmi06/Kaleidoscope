@@ -6,11 +6,11 @@ import React from "react";
 import { RootState } from "@/store";
 import { useSelector } from "react-redux";
 import { Mail, User } from "lucide-react";
-import { useRouter } from "next/navigation"; // ✅ Import useRouter
+import { useRouter } from "next/navigation";
 
 export function UserProfileCard() {
   const user = useSelector((state: RootState) => state.auth);
-  const router = useRouter(); // ✅ Get router instance
+  const router = useRouter();
 
   const handleViewProfile = () => {
     if (user.userId) {
@@ -21,62 +21,56 @@ export function UserProfileCard() {
   const isUserAuthenticated = user.userId > 0;
 
   return (
-    <div className="w-full max-w-xs mx-auto">
-      <div className="relative rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden p-4">
-        {/* Avatar & Info */}
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="relative flex-shrink-0">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-neutral-700 bg-gray-100 dark:bg-neutral-800 flex items-center justify-center">
-              {user.profilePictureUrl ? (
-                <Image
-                  src={user.profilePictureUrl}
-                  alt={user.username || "User"}
-                  width={48}
-                  height={48}
-                  className="object-cover w-full h-full"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              ) : (
-                <User className="w-5 h-5 text-gray-400 dark:text-neutral-500" />
-              )}
-            </div>
-            {/* Online Status */}
-            <span className="absolute bottom-0 right-0 block w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-neutral-900" />
+    <div className="w-full">
+      <div className="flex items-center gap-3 px-3 py-3">
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-cream-300/50 dark:ring-navy-700/50 bg-cream-300 dark:bg-navy-700 flex items-center justify-center">
+            {user.profilePictureUrl ? (
+              <Image
+                src={user.profilePictureUrl}
+                alt={user.username || "User"}
+                width={44}
+                height={44}
+                className="object-cover w-full h-full"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            ) : (
+              <User className="w-5 h-5 text-steel dark:text-sky" />
+            )}
           </div>
-
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white truncate text-sm">
-              {user.username || "Anonymous"}
-            </h3>
-            <div className="flex items-center gap-1.5 mt-0.5 text-gray-500 dark:text-neutral-400">
-              <Mail className="w-3 h-3 flex-shrink-0" />
-              <p className="text-xs truncate">
-                {user.email || "No email"}
-              </p>
-            </div>
-          </div>
+          <span className="absolute bottom-0 right-0 block w-3 h-3 bg-emerald-500 rounded-full border-2 border-cream dark:border-navy-900" />
         </div>
 
-        {/* Action Button */}
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-navy dark:text-cream truncate text-sm">
+            {user.username || "Anonymous"}
+          </h3>
+          <div className="flex items-center gap-1.5 mt-0.5 text-steel/70 dark:text-sky/50">
+            <Mail className="w-3 h-3 flex-shrink-0" />
+            <p className="text-[11px] truncate">{user.email || "No email"}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* View Profile button */}
+      <div className="px-3 pb-2">
         <button
           onClick={handleViewProfile}
           disabled={!isUserAuthenticated}
-          className={`
-            mt-3 w-full text-xs font-semibold
-            text-blue-600 dark:text-blue-400
-            bg-blue-50 hover:bg-blue-100
-            dark:bg-blue-950/30 dark:hover:bg-blue-900/40
-            rounded-lg py-2 transition-all duration-150
-            ${!isUserAuthenticated ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-          `}
+          className={`w-full text-xs font-semibold text-steel dark:text-sky bg-steel/8 hover:bg-steel/15 dark:bg-sky/8 dark:hover:bg-sky/15 rounded-xl py-2 transition-all duration-150 cursor-pointer ${
+            !isUserAuthenticated ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           View Profile
         </button>
       </div>
+
+      {/* Subtle gradient separator */}
+      <div className="mx-3 mt-1 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
     </div>
   );
 }

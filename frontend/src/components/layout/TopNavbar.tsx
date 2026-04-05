@@ -1,6 +1,11 @@
 "use client";
 
-import { IconLogout, IconSettings, IconUser, IconPlus } from "@tabler/icons-react";
+import {
+  IconLogout,
+  IconSettings,
+  IconUser,
+  IconPlus,
+} from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import React, { useState, useRef, useEffect } from "react";
@@ -14,18 +19,18 @@ interface TopNavbarProps {
   currentSearchQuery?: string;
 }
 
-export default function TopNavbar({
-  onLogout,
-}: TopNavbarProps) {
+export default function TopNavbar({ onLogout }: TopNavbarProps) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
-  // notification presence is driven by NotificationBell (redux)
   const menuRef = useRef<HTMLDivElement>(null);
   const user = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
         setShowMenu(false);
       }
     }
@@ -34,85 +39,88 @@ export default function TopNavbar({
   }, []);
 
   return (
-    <nav className="hidden md:flex items-center justify-between px-6 py-2 bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-700 shadow-sm gap-4">
+    <nav className="hidden md:flex items-center justify-between px-6 py-2 h-full gap-4">
       {/* Logo */}
       <div
         className="flex items-center cursor-pointer select-none"
         onClick={() => router.push("/")}
       >
-        <Image src="/icon.png" alt="Logo" width={32} height={32} className="mr-3" priority />
-        <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-wide">
+        <Image
+          src="/icon.png"
+          alt="Logo"
+          width={32}
+          height={32}
+          className="mr-3"
+          priority
+        />
+        <span className="text-lg font-semibold text-navy dark:text-cream tracking-wide">
           Kaleidoscope
         </span>
       </div>
 
-
       {/* Actions */}
-        <div className="flex items-center gap-4 relative" ref={menuRef}>
-          {/* Create Post */}
-          <button
-            onClick={() => router.push("/create-post")}
-            aria-label="Create Post"
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors duration-200 focus:outline-none"
-          >
-            <IconPlus size={20} />
-          </button>
-              
-          {/* Notifications (reads unread count from redux) */}
-          <div className="relative flex items-center justify-center w-10 h-10">
-            <NotificationBell />
-          </div>
-          
-          {/* Profile */}
-          <button
-            onClick={() => setShowMenu((v) => !v)}
-            className="relative w-10 h-10 rounded-full overflow-hidden hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors duration-200 focus:outline-none"
-          >
-            <Image
-              src={user.profilePictureUrl}
-              alt="User Avatar"
-              fill
-              sizes="40px"
-              className="object-cover"
-            />
-          </button>
-          
-          {/* Dropdown menu */}
-          {showMenu && (
-            <div className="absolute right-0 top-12 w-44 bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700 z-50">
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  router.push(`/profile/${user.userId}`);
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700 w-full text-left text-sm"
-              >
-                <IconUser size={18} />
-                Profile
-              </button>
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  router.push("/settings");
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700 w-full text-left text-sm"
-              >
-                <IconSettings size={18} />
-                Settings
-              </button>
-            </div>
-          )}
-        
-          {/* Logout */}
-          <button
-            onClick={onLogout}
-            aria-label="Logout"
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors duration-200"
-          >
-            <IconLogout size={20} />
-          </button>
+      <div className="flex items-center gap-1.5 relative" ref={menuRef}>
+        <button
+          onClick={() => router.push("/create-post")}
+          aria-label="Create Post"
+          className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-steel/10 dark:hover:bg-sky/10 hover:text-navy dark:hover:text-sky transition-all duration-200 focus:outline-none cursor-pointer"
+        >
+          <IconPlus size={19} />
+        </button>
+
+        <div className="relative flex items-center justify-center w-9 h-9">
+          <NotificationBell />
         </div>
 
+        <button
+          onClick={() => setShowMenu((v) => !v)}
+          className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-cream-300/60 dark:ring-navy-700/60 hover:ring-steel/50 dark:hover:ring-sky/40 transition-all duration-200 focus:outline-none ml-1 cursor-pointer"
+        >
+          <Image
+            src={user.profilePictureUrl}
+            alt="User Avatar"
+            fill
+            sizes="36px"
+            className="object-cover"
+          />
+        </button>
+
+        {showMenu && (
+          <div className="absolute right-0 top-12 w-44 bg-cream-50/95 dark:bg-navy-700/95 backdrop-blur-md rounded-xl shadow-lg shadow-navy/[0.06] dark:shadow-black/30 border border-cream-300/40 dark:border-navy-600/40 z-50 py-1 overflow-hidden">
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                router.push(`/profile/${user.userId}`);
+              }}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-navy dark:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-600/50 w-full text-left text-sm transition-colors cursor-pointer"
+            >
+              <IconUser size={17} className="text-steel dark:text-sky" />
+              Profile
+            </button>
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                router.push("/settings");
+              }}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-navy dark:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-600/50 w-full text-left text-sm transition-colors cursor-pointer"
+            >
+              <IconSettings
+                size={17}
+                className="text-steel dark:text-sky"
+              />
+              Settings
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={onLogout}
+          aria-label="Logout"
+          className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 cursor-pointer"
+        >
+          <IconLogout size={19} />
+        </button>
+      </div>
     </nav>
   );
 }
