@@ -3,74 +3,70 @@
 
 import React, { useState, useEffect } from "react";
 import { useUserData } from "@/hooks/useUserData";
-import { useAppDispatch } from "@/hooks/appDispatch"; 
-import { useAppSelector } from "@/hooks/useAppSelector"; 
-import { startFollowUser, startUnfollowUser } from "@/store/followThunks"; 
+import { useAppDispatch } from "@/hooks/appDispatch";
+import { useAppSelector } from "@/hooks/useAppSelector";
+import { startFollowUser, startUnfollowUser } from "@/store/followThunks";
 
 interface FollowButtonProps {
   targetUserId: number;
 }
 
-// --- UPDATE THIS HELPER ---
 const getInitialLabel = (
-  isFollowing: boolean, 
+  isFollowing: boolean,
   isPending: boolean
 ): "Follow" | "Following" | "Requested" => {
-    if (isFollowing) return "Following";
-    if (isPending) return "Requested"; // <-- Add check
-    return "Follow";
+  if (isFollowing) return "Following";
+  if (isPending) return "Requested";
+  return "Follow";
 };
 
-
 export default function FollowButton({ targetUserId }: FollowButtonProps) {
-  const dispatch = useAppDispatch(); 
+  const dispatch = useAppDispatch();
   const currentUser = useUserData();
-  
+
   const myUserId = currentUser?.userId ? Number(currentUser.userId) : null;
-  
-  // --- READ BOTH LISTS ---
-  const followingUserIds = useAppSelector(state => state.auth.followingUserIds);
-  const pendingUserIds = useAppSelector(state => state.auth.pendingRequestUserIds); // <-- Add this
-  
+
+  const followingUserIds = useAppSelector(
+    (state) => state.auth.followingUserIds
+  );
+  const pendingUserIds = useAppSelector(
+    (state) => state.auth.pendingRequestUserIds
+  );
+
   const isTargetFollowing = followingUserIds.includes(targetUserId);
-  const isTargetPending = pendingUserIds.includes(targetUserId); // <-- Add this
+  const isTargetPending = pendingUserIds.includes(targetUserId);
 
   const [loading, setLoading] = useState(false);
-  
-  // --- UPDATE INITIAL STATE ---
+
   const [label, setLabel] = useState<"Follow" | "Following" | "Requested">(
     getInitialLabel(isTargetFollowing, isTargetPending)
   );
 
   const disabled = myUserId === targetUserId;
 
-  // --- UPDATE SYNC EFFECT ---
   useEffect(() => {
-    if (loading) return; 
+    if (loading) return;
 
     if (isTargetFollowing) {
-        setLabel('Following');
+      setLabel("Following");
     } else if (isTargetPending) {
-        setLabel('Requested'); // <-- Add check
+      setLabel("Requested");
     } else {
-        setLabel('Follow');
+      setLabel("Follow");
     }
-  }, [isTargetFollowing, isTargetPending, loading]); // <-- Add dependency
-
+  }, [isTargetFollowing, isTargetPending, loading]);
 
   const handleFollow = async () => {
     if (disabled || loading) return;
     setLoading(true);
-    
+
     try {
-        const result = await dispatch(startFollowUser(targetUserId)).unwrap();
-        
-        // This local state set is still good for immediate feedback
-        if (/request/i.test(result.message)) setLabel("Requested");
-        else setLabel("Following");
-        
+      const result = await dispatch(startFollowUser(targetUserId)).unwrap();
+
+      if (/request/i.test(result.message)) setLabel("Requested");
+      else setLabel("Following");
     } catch (err) {
-        console.error("Error following user:", err);
+      console.error("Error following user:", err);
     } finally {
       setLoading(false);
     }
@@ -79,14 +75,12 @@ export default function FollowButton({ targetUserId }: FollowButtonProps) {
   const handleUnfollow = async () => {
     if (disabled || loading) return;
     setLoading(true);
-    
+
     try {
-        await dispatch(startUnfollowUser(targetUserId)).unwrap();
-        // This local state set is still good
-        setLabel("Follow"); 
+      await dispatch(startUnfollowUser(targetUserId)).unwrap();
+      setLabel("Follow");
     } catch (err) {
-        console.error("Error unfollowing user:", err);
-        // On failure, Redux rollbacks, and the useEffect hook will restore the label.
+      console.error("Error unfollowing user:", err);
     } finally {
       setLoading(false);
     }
@@ -100,14 +94,14 @@ export default function FollowButton({ targetUserId }: FollowButtonProps) {
     <button
       onClick={onClick}
       disabled={loading}
-      className={`px-3 h-8 text-xs font-medium rounded-full transition-colors ${
+      className={`px-3 h-8 text-xs font-medium rounded-full transition-colors cursor-pointer ${
         loading ? "opacity-60 pointer-events-none" : ""
       } ${
         label === "Following"
-          ? "bg-blue-600 text-white hover:bg-blue-700" 
+          ? "bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky-300"
           : label === "Requested"
-          ? "bg-yellow-500/10 text-yellow-600 border border-yellow-500 hover:bg-yellow-500/20"
-          : "bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-700"
+            ? "bg-sky/10 text-sky border border-sky/30 hover:bg-sky/20"
+            : "bg-cream-300/50 dark:bg-navy-700 text-navy dark:text-cream hover:bg-cream-300 dark:hover:bg-navy-600"
       }`}
     >
       {loading ? "..." : label}

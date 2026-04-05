@@ -23,11 +23,14 @@ export function FeedFilterBar({
   onOpenFilters,
 }: FeedFilterBarProps) {
   return (
-    <div className="p-4 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-sm space-y-4">
-      <div className="flex flex-col md:flex-row gap-4">
-        {/* Search Input (Debounced) */}
+    <div className="relative p-4 bg-cream-50/80 dark:bg-navy/80 backdrop-blur-sm border border-cream-300/60 dark:border-navy-700/60 rounded-2xl shadow-sm space-y-3 overflow-hidden">
+      {/* Top accent line */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/25 dark:via-sky/15 to-transparent" />
+
+      <div className="flex flex-col md:flex-row gap-3">
+        {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-steel dark:text-sky/50" />
           <Input
             type="text"
             value={stagedQuery}
@@ -36,10 +39,9 @@ export function FeedFilterBar({
             className="pl-10"
           />
         </div>
-        
-        {/* Open Filters Button */}
-        <Button 
-          variant="outline" 
+
+        <Button
+          variant="outline"
           onClick={onOpenFilters}
           className="flex-shrink-0"
         >
@@ -47,11 +49,10 @@ export function FeedFilterBar({
           All Filters
         </Button>
       </div>
-      
-      {/* Total Results */}
+
       {!isLoading && pagination && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Showing <span className="font-semibold text-gray-900 dark:text-white">{totalPosts}</span> of <span className="font-semibold text-gray-900 dark:text-white">{pagination.totalElements}</span> results.
+        <p className="text-xs text-steel dark:text-sky/60">
+          Showing <span className="font-semibold text-navy dark:text-cream">{totalPosts}</span> of <span className="font-semibold text-navy dark:text-cream">{pagination.totalElements}</span> results
         </p>
       )}
     </div>

@@ -38,7 +38,7 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
 
   return (
     <div className="px-3 py-3 hidden md:block">
-      <p className="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-neutral-500">
+      <p className="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-steel dark:text-sky">
         Suggestions
       </p>
 
@@ -46,19 +46,19 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
         <div className="px-3 space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-3 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-neutral-700" />
-              <div className="flex-1 h-3.5 bg-gray-200 dark:bg-neutral-700 rounded" />
+              <div className="w-8 h-8 rounded-full bg-cream-300 dark:bg-navy-700" />
+              <div className="flex-1 h-3.5 bg-cream-300 dark:bg-navy-700 rounded" />
             </div>
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="px-3 text-xs text-gray-400 dark:text-neutral-500">No suggestions right now.</p>
+        <p className="px-3 text-xs text-steel dark:text-sky">No suggestions right now.</p>
       ) : (
         <div className="space-y-1">
           {items.map((user) => (
-            <div key={user.userId} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800/60 transition-colors">
+            <div key={user.userId} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-cream-300 dark:hover:bg-navy-700 transition-colors">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 flex-shrink-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-700 flex-shrink-0">
                   <Image
                     src={user.profilePictureUrl || "/person.jpg"}
                     width={32}
@@ -67,7 +67,7 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="text-sm font-medium text-gray-800 dark:text-neutral-200 truncate">
+                <span className="text-sm font-medium text-navy dark:text-cream truncate">
                   {user.username}
                 </span>
               </div>

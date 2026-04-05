@@ -4,68 +4,77 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { getPendingFollowRequestsController } from "@/controllers/followRequests/getPendingFollowRequestsController";
 import { approveFollowRequestController } from "@/controllers/followRequests/approveFollowRequestController";
-import { rejectFollowRequestController } from "@/controllers/followRequests/rejectFollowRequestController"; // ✅ New import
+import { rejectFollowRequestController } from "@/controllers/followRequests/rejectFollowRequestController";
 import type { FollowRequestUser } from "@/lib/types/followRequests";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import Image from "next/image";
-import { Check, X, Loader2 } from "lucide-react";
-import { toast } from "react-hot-toast"; // Assuming toast is available globally or imported via react-hot-toast
+import { useRouter } from "next/navigation";
+import { Check, X, Loader2, Bell } from "lucide-react";
+import { toast } from "react-hot-toast";
 
-
-// Placeholder component for individual request item
-const FollowRequestItem: React.FC<{ 
-  user: FollowRequestUser; 
-  onAction: (userId: number, action: 'ACCEPT' | 'REJECT') => void 
+const FollowRequestItem: React.FC<{
+  user: FollowRequestUser;
+  onAction: (userId: number, action: "ACCEPT" | "REJECT") => void;
 }> = ({ user, onAction }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const accessToken = useAccessToken();
+  const router = useRouter();
 
-  // Unified handler for both actions
-  const handleAction = useCallback(async (action: 'ACCEPT' | 'REJECT') => {
-    setIsProcessing(true);
-    let success = false;
-    let message = "";
+  const handleAction = useCallback(
+    async (action: "ACCEPT" | "REJECT") => {
+      setIsProcessing(true);
+      let success = false;
+      let message = "";
 
-    try {
-      if (action === 'ACCEPT') {
-        // --- API Implementation for ACCEPT ---
-        const res = await approveFollowRequestController(accessToken, user.userId);
-        if (res.success) {
-          success = true;
-          message = res.message;
+      try {
+        if (action === "ACCEPT") {
+          const res = await approveFollowRequestController(
+            accessToken,
+            user.userId
+          );
+          if (res.success) {
+            success = true;
+            message = res.message;
+          } else {
+            message =
+              res.message || res.error || "Failed to approve request.";
+          }
         } else {
-          message = res.message || res.error || "Failed to approve request.";
+          const res = await rejectFollowRequestController(
+            accessToken,
+            user.userId
+          );
+          if (res.success) {
+            success = true;
+            message = res.message;
+          } else {
+            message = res.message || res.error || "Failed to reject request.";
+          }
         }
-      } else {
-        // --- API Implementation for REJECT ---
-        const res = await rejectFollowRequestController(accessToken, user.userId); // ✅ Calling new controller
-        if (res.success) {
-          success = true;
-          message = res.message;
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err);
+        success = false;
+      } finally {
+        setIsProcessing(false);
+
+        if (success) {
+          toast.success(message);
+          onAction(user.userId, action);
         } else {
-          message = res.message || res.error || "Failed to reject request.";
+          toast.error(message);
         }
       }
-    } catch (err) {
-      message = err instanceof Error ? err.message : String(err);
-      success = false;
-    } finally {
-      setIsProcessing(false);
-      
-      if (success) {
-        toast.success(message);
-        onAction(user.userId, action); // Notify parent to remove the item
-      } else {
-        toast.error(message);
-      }
-    }
-  }, [accessToken, user.userId, onAction]);
-
+    },
+    [accessToken, user.userId, onAction]
+  );
 
   return (
-    <div className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-700 flex-shrink-0">
+    <div className="flex items-center justify-between gap-3 py-2.5 px-3.5 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 transition-all hover:shadow-sm">
+      <div
+        className="flex items-center gap-3 min-w-0 cursor-pointer"
+        onClick={() => router.push(`/profile/${user.userId}`)}
+      >
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-700 ring-2 ring-cream-300/50 dark:ring-navy-600/50 flex-shrink-0">
           <Image
             src={user.profilePictureUrl || "/person.jpg"}
             width={40}
@@ -75,21 +84,25 @@ const FollowRequestItem: React.FC<{
           />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-medium text-gray-800 dark:text-white truncate">{user.username}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
+          <div className="text-sm font-medium text-navy dark:text-cream truncate hover:underline">
+            {user.username}
+          </div>
+          <div className="text-[11px] text-steel dark:text-sky/60 truncate">
+            {user.email}
+          </div>
         </div>
       </div>
 
       <div className="flex gap-2">
         {isProcessing ? (
-          <div className="flex items-center justify-center w-20 h-8 text-xs text-blue-500">
-             <Loader2 className="w-4 h-4 animate-spin" />
+          <div className="flex items-center justify-center w-20 h-8">
+            <Loader2 className="w-4 h-4 animate-spin text-steel dark:text-sky" />
           </div>
         ) : (
           <>
             <button
-              onClick={() => handleAction('ACCEPT')}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors"
+              onClick={() => handleAction("ACCEPT")}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky-300 transition-colors cursor-pointer"
               aria-label={`Accept follow request from ${user.username}`}
               disabled={isProcessing}
             >
@@ -97,8 +110,8 @@ const FollowRequestItem: React.FC<{
               Accept
             </button>
             <button
-              onClick={() => handleAction('REJECT')}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
+              onClick={() => handleAction("REJECT")}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer"
               aria-label={`Reject follow request from ${user.username}`}
               disabled={isProcessing}
             >
@@ -112,7 +125,6 @@ const FollowRequestItem: React.FC<{
   );
 };
 
-
 export default function PendingFollowRequests() {
   const token = useAccessToken();
   const [requests, setRequests] = useState<FollowRequestUser[]>([]);
@@ -121,20 +133,25 @@ export default function PendingFollowRequests() {
 
   const fetchRequests = async () => {
     if (!token) {
-        setError("User not authenticated.");
-        setLoading(false);
-        return;
+      setError("User not authenticated.");
+      setLoading(false);
+      return;
     }
 
     setLoading(true);
     setError(null);
     try {
-      const res = await getPendingFollowRequestsController(token, { page: 0, size: 20 });
-      
+      const res = await getPendingFollowRequestsController(token, {
+        page: 0,
+        size: 20,
+      });
+
       if (res.success && res.data?.data.content) {
         setRequests(res.data.data.content);
       } else {
-        setError(res.error || res.data?.message || "Failed to load requests.");
+        setError(
+          res.error || res.data?.message || "Failed to load requests."
+        );
       }
     } catch (err) {
       setError("An unexpected error occurred while fetching requests.");
@@ -147,67 +164,83 @@ export default function PendingFollowRequests() {
   useEffect(() => {
     fetchRequests();
   }, [token]);
-  
-  // The action parameter is now correctly removed from here to fix ESLint, 
-  // but the function call in FollowRequestItem still passes it up, which is fine
-  const handleRequestAction = useCallback((userId: number) => { 
-      // Optimistically remove the user from the list on successful action (Accept or Reject)
-      setRequests(prev => prev.filter(req => req.userId !== userId));
-      
-      // OPTIONAL: If accepted, you might want to trigger a refresh of the 'Following' list component 
-      // by lifting state or using a context, but for now, simple removal suffices.
-  }, []);
 
+  const handleRequestAction = useCallback((userId: number) => {
+    setRequests((prev) => prev.filter((req) => req.userId !== userId));
+  }, []);
 
   if (loading) {
     return (
-        <div className="p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Pending Requests</h2>
-            {/* Simple skeleton loader */}
-            <div className="space-y-3">
-              {Array.from({ length: 2 }).map((_, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-800 rounded-lg shadow-sm animate-pulse">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-neutral-700" />
-                    <div className="space-y-1">
-                      <div className="w-24 h-4 bg-gray-200 dark:bg-neutral-700 rounded" />
-                      <div className="w-32 h-3 bg-gray-200 dark:bg-neutral-700 rounded" />
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <div className="w-16 h-8 bg-gray-200 dark:bg-neutral-700 rounded-full" />
-                    <div className="w-16 h-8 bg-gray-200 dark:bg-neutral-700 rounded-full" />
-                  </div>
+      <div className="relative rounded-2xl border border-cream-300/60 dark:border-navy-700/60 bg-cream-50/80 dark:bg-navy/80 backdrop-blur-sm p-5 overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/25 dark:via-sky/15 to-transparent" />
+        <h2 className="text-base font-semibold mb-4 text-navy dark:text-cream flex items-center gap-2">
+          <Bell className="w-4 h-4 text-steel dark:text-sky" />
+          Pending Requests
+        </h2>
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-3.5 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-cream-300/30 dark:border-navy-700/30 animate-pulse"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-cream-300 dark:bg-navy-700" />
+                <div className="space-y-1.5">
+                  <div className="w-24 h-3.5 bg-cream-300 dark:bg-navy-700 rounded-full" />
+                  <div className="w-32 h-2.5 bg-cream-300/70 dark:bg-navy-700/70 rounded-full" />
                 </div>
-              ))}
+              </div>
+              <div className="flex gap-2">
+                <div className="w-16 h-7 bg-cream-300 dark:bg-navy-700 rounded-lg" />
+                <div className="w-16 h-7 bg-cream-300 dark:bg-navy-700 rounded-lg" />
+              </div>
             </div>
+          ))}
         </div>
+      </div>
     );
   }
 
   if (error) {
-    return <div className="p-4 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">{error}</div>;
+    return (
+      <div className="p-4 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/10 rounded-2xl border border-red-200/60 dark:border-red-900/30">
+        {error}
+      </div>
+    );
   }
 
   if (requests.length === 0) {
     return (
-        <div className="p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl">
-             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Pending Requests</h2>
-             <div className="text-sm text-gray-500 dark:text-gray-400 py-4 rounded-lg text-center ">
-                 No pending follow requests.
-             </div>
+      <div className="relative rounded-2xl border border-cream-300/60 dark:border-navy-700/60 bg-cream-50/80 dark:bg-navy/80 backdrop-blur-sm p-5 overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/25 dark:via-sky/15 to-transparent" />
+        <h2 className="text-base font-semibold mb-3 text-navy dark:text-cream flex items-center gap-2">
+          <Bell className="w-4 h-4 text-steel dark:text-sky" />
+          Pending Requests
+        </h2>
+        <div className="text-sm text-steel dark:text-sky/60 py-3 text-center">
+          No pending follow requests.
         </div>
+      </div>
     );
   }
 
   return (
-    <div className="p-3 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl">
-      <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-        Pending Requests <span className="ml-2 px-3 py-0.5 text-sm font-bold rounded-full bg-blue-600 text-white">{requests.length}</span>
+    <div className="relative rounded-2xl border border-cream-300/60 dark:border-navy-700/60 bg-cream-50/80 dark:bg-navy/80 backdrop-blur-sm p-5 overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/25 dark:via-sky/15 to-transparent" />
+      <h2 className="text-base font-semibold mb-4 text-navy dark:text-cream flex items-center gap-2">
+        <Bell className="w-4 h-4 text-steel dark:text-sky" />
+        Pending Requests
+        <span className="ml-1 px-2 py-0.5 text-xs font-bold rounded-full bg-steel text-cream-50 dark:bg-sky dark:text-navy">
+          {requests.length}
+        </span>
       </h2>
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {requests.map((user) => (
-          <FollowRequestItem key={user.userId} user={user} onAction={handleRequestAction} />
+          <FollowRequestItem
+            key={user.userId}
+            user={user}
+            onAction={handleRequestAction}
+          />
         ))}
       </div>
     </div>

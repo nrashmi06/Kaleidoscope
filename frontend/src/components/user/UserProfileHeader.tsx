@@ -29,7 +29,7 @@ export function UserProfileHeader({
   return (
     <div className="relative">
       {/* Cover Photo */}
-      <div className="h-48 w-full bg-gray-100 dark:bg-neutral-800 overflow-hidden relative rounded-t-xl">
+      <div className="h-52 w-full bg-cream-300/30 dark:bg-navy-700/60 overflow-hidden relative rounded-2xl">
         <Image
           src={profile.coverPhotoUrl}
           alt="Cover photo"
@@ -37,42 +37,39 @@ export function UserProfileHeader({
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-navy/30 to-transparent" />
       </div>
 
-      {/* Profile Info Block */}
-      <div className="px-8 pb-6">
-        {/* Avatar & Action Row */}
+      {/* Profile Info */}
+      <div className="px-6 sm:px-8 pb-6">
+        {/* Avatar & Actions */}
         <div className="flex justify-between items-end mb-4">
           {/* Avatar */}
-          <div className="w-32 h-32 -mt-16 rounded-full overflow-hidden border-4 border-white dark:border-neutral-900 shadow-lg relative z-10 bg-gray-300 dark:bg-neutral-700">
+          <div className="w-28 h-28 -mt-14 rounded-full overflow-hidden border-4 border-cream dark:border-navy-900 shadow-lg relative z-10 bg-cream-300 dark:bg-navy-600 ring-2 ring-steel/10 dark:ring-sky/10">
             <Image
               src={profile.profilePictureUrl}
               alt={profile.username}
-              width={128}
-              height={128}
+              width={112}
+              height={112}
               className="w-full h-full object-cover"
             />
           </div>
 
-          {/* Action Buttons Logic */}
-          <div className="flex space-x-3 pb-2">
+          {/* Action Buttons */}
+          <div className="flex gap-2 pb-2">
             {isOwner ? (
-              // Case 0: You are the owner
               <button
                 onClick={handleEditProfile}
-                className="px-5 py-2.5 text-sm font-semibold rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 shadow-md"
+                className="px-5 py-2 text-sm font-semibold rounded-xl bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky/80 transition-all shadow-sm shadow-steel/20 dark:shadow-sky/15 cursor-pointer"
               >
                 Edit Profile
               </button>
             ) : blockStatus?.isBlockedBy ? (
-              // Case 1: You are blocked by this user
-              <div className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-neutral-700">
+              <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-cream-300/50 dark:bg-navy-700/50 text-steel/60 dark:text-sky/40 border border-cream-300/40 dark:border-navy-700/40">
                 <ShieldAlert className="w-4 h-4" />
                 You are blocked
               </div>
             ) : (
-              // Case 2 & 3: You have blocked them OR no block
               <>
                 <FollowButton targetUserId={profile.userId} />
                 <BlockButton
@@ -84,18 +81,22 @@ export function UserProfileHeader({
           </div>
         </div>
 
-        {/* Text Details */}
+        {/* Name & Bio */}
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-navy dark:text-cream flex items-center gap-2">
             {profile.username}
-            <Sparkles className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+            <Sparkles className="w-4 h-4 text-steel dark:text-sky" />
           </h1>
-          <p className="text-lg font-medium text-gray-700 dark:text-neutral-300">
-            {profile.designation}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-neutral-400 leading-relaxed max-w-2xl">
-            {profile.summary}
-          </p>
+          {profile.designation && (
+            <p className="text-sm font-medium text-navy/70 dark:text-cream/70">
+              {profile.designation}
+            </p>
+          )}
+          {profile.summary && (
+            <p className="text-sm text-steel/70 dark:text-sky/50 leading-relaxed max-w-2xl">
+              {profile.summary}
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -5,12 +5,52 @@ import { Post } from "@/services/post/fetchPosts";
 
 interface PostMediaProps {
   post: Post;
+  fillContainer?: boolean;
 }
 
-export function PostMedia({ post }: PostMediaProps) {
+export function PostMedia({ post, fillContainer = false }: PostMediaProps) {
   const mediaDetails = post.mediaDetails ?? [];
 
-  // Wrapper for single image or fallback
+  // Fill container mode — used in wave card layout
+  if (fillContainer) {
+    if (mediaDetails.length >= 1) {
+      return (
+        <div className="relative w-full h-full bg-cream-300 dark:bg-navy-700">
+          <Image
+            src={mediaDetails[0].url}
+            alt="Post image"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 600px"
+          />
+          {mediaDetails.length > 1 && (
+            <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-sm text-white text-xs font-medium">
+              +{mediaDetails.length - 1}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (post.thumbnailUrl) {
+      return (
+        <div className="relative w-full h-full bg-cream-300 dark:bg-navy-700">
+          <Image
+            src={post.thumbnailUrl}
+            alt="Post thumbnail"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 600px"
+          />
+        </div>
+      );
+    }
+
+    return <div className="w-full h-full bg-cream-300 dark:bg-navy-700" />;
+  }
+
+  // ── Original mode (used in PostModal, etc.) ──
+
   const ImageWrapper = ({
     children,
     className = "",
@@ -19,11 +59,11 @@ export function PostMedia({ post }: PostMediaProps) {
     className?: string;
   }) => (
     <div
-      className={`relative w-full rounded-lg overflow-hidden bg-gray-100 ${className}`}
+      className={`relative w-full rounded-lg overflow-hidden bg-cream-300 dark:bg-navy-700 ${className}`}
       style={{
-        aspectRatio: "4 / 3", // ensures height is calculated
-        maxHeight: "400px",   // limit max height
-        width: "100%",         // fill parent width
+        aspectRatio: "4 / 3",
+        maxHeight: "400px",
+        width: "100%",
       }}
     >
       {children}
@@ -63,10 +103,10 @@ export function PostMedia({ post }: PostMediaProps) {
           .map((media, index) => (
             <div
               key={index}
-              className={`relative w-full overflow-hidden bg-gray-100 ${
+              className={`relative w-full overflow-hidden bg-cream-300 dark:bg-navy-700 ${
                 mediaDetails.length === 3 && index === 0 ? "col-span-2" : ""
               }`}
-              style={{ aspectRatio: "1 / 1", maxHeight: "400px" }} // square items
+              style={{ aspectRatio: "1 / 1", maxHeight: "400px" }}
             >
               <Image
                 src={media.url}
@@ -76,7 +116,7 @@ export function PostMedia({ post }: PostMediaProps) {
                 sizes="(max-width: 768px) 100vw, 300px"
               />
               {mediaDetails.length > 5 && index === 4 && (
-                <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                   <span className="text-white text-xl font-bold">
                     +{mediaDetails.length - 5}
                   </span>

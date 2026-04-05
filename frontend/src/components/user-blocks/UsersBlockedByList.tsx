@@ -5,34 +5,32 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { getUsersBlockedByController } from "@/controllers/user-blocks/getUsersBlockedByController";
 import { useAccessToken } from "@/hooks/useAccessToken";
-import type { BlockedByUser, UsersBlockedByPage } from "@/lib/types/usersBlockedBy";
-import { 
-  ShieldOff, 
-  AlertCircle, 
-  UserX, 
-  ChevronLeft, 
+import type {
+  BlockedByUser,
+  UsersBlockedByPage,
+} from "@/lib/types/usersBlockedBy";
+import {
+  ShieldOff,
+  AlertCircle,
+  UserX,
+  ChevronLeft,
   ChevronRight,
-  RefreshCw 
+  RefreshCw,
 } from "lucide-react";
 
-/**
- * Skeleton Card for loading state
- */
 const UserBlockedByCardSkeleton: React.FC = () => (
-  <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-700 animate-pulse">
-    <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-neutral-700"></div>
+  <div className="flex items-center justify-between p-4 rounded-xl bg-cream-50/50 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30 animate-pulse">
+    <div className="flex items-center gap-3">
+      <div className="w-11 h-11 rounded-full bg-cream-300/60 dark:bg-navy-600/60" />
       <div className="space-y-2">
-        <div className="h-4 w-32 rounded bg-gray-300 dark:bg-neutral-700"></div>
-        <div className="h-3 w-40 rounded bg-gray-200 dark:bg-neutral-600"></div>
+        <div className="h-4 w-28 rounded bg-cream-300/50 dark:bg-navy-600/50" />
+        <div className="h-3 w-36 rounded bg-cream-300/40 dark:bg-navy-600/40" />
       </div>
     </div>
+    <div className="h-6 w-16 rounded-full bg-cream-300/50 dark:bg-navy-600/50" />
   </div>
 );
 
-/**
- * Main Component to display the list of users who blocked you.
- */
 export const UsersBlockedByList: React.FC = () => {
   const [state, setState] = useState<{
     users: BlockedByUser[];
@@ -48,44 +46,53 @@ export const UsersBlockedByList: React.FC = () => {
 
   const accessToken = useAccessToken();
 
-  const fetchPage = useCallback(async (page: number) => {
-    if (!accessToken) {
-      setState(s => ({ ...s, isLoading: false, error: "Not authenticated." }));
-      return;
-    }
-
-    setState(s => ({ ...s, isLoading: true, error: null }));
-
-    try {
-      const result = await getUsersBlockedByController(
-        { page, size: 5 }, // 5 items per page
-        accessToken
-      );
-
-      if (result.success && result.data) {
-        setState({
-          users: result.data.blockedUsers,
-          pagination: {
-            currentPage: result.data.currentPage,
-            totalPages: result.data.totalPages,
-            totalElements: result.data.totalElements,
-          },
+  const fetchPage = useCallback(
+    async (page: number) => {
+      if (!accessToken) {
+        setState((s) => ({
+          ...s,
           isLoading: false,
-          error: null,
-        });
-      } else {
-        throw new Error(result.message || "Failed to load blocked-by list.");
+          error: "Not authenticated.",
+        }));
+        return;
       }
-    } catch (err) {
-      setState(s => ({
-        ...s,
-        isLoading: false,
-        error: err instanceof Error ? err.message : "An unknown error occurred.",
-      }));
-    }
-  }, [accessToken]);
 
-  // Initial fetch
+      setState((s) => ({ ...s, isLoading: true, error: null }));
+
+      try {
+        const result = await getUsersBlockedByController(
+          { page, size: 5 },
+          accessToken
+        );
+
+        if (result.success && result.data) {
+          setState({
+            users: result.data.blockedUsers,
+            pagination: {
+              currentPage: result.data.currentPage,
+              totalPages: result.data.totalPages,
+              totalElements: result.data.totalElements,
+            },
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          throw new Error(
+            result.message || "Failed to load blocked-by list."
+          );
+        }
+      } catch (err) {
+        setState((s) => ({
+          ...s,
+          isLoading: false,
+          error:
+            err instanceof Error ? err.message : "An unknown error occurred.",
+        }));
+      }
+    },
+    [accessToken]
+  );
+
   useEffect(() => {
     fetchPage(0);
   }, [fetchPage]);
@@ -95,127 +102,120 @@ export const UsersBlockedByList: React.FC = () => {
   const totalPages = pagination?.totalPages ?? 0;
 
   return (
-    <div className="w-full max-w-lg p-6 bg-white dark:bg-neutral-900 rounded-xl shadow-lg border border-gray-200 dark:border-neutral-800">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-        <ShieldOff className="w-6 h-6 text-yellow-500" />
-        Blocked By Others
-      </h2>
+    <div className="w-full max-w-xl mx-auto">
+      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
+        <h2 className="text-lg font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+          <ShieldOff className="w-5 h-5 text-steel dark:text-sky" />
+          Blocked By Others
+          {pagination && (
+            <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky">
+              {pagination.totalElements}
+            </span>
+          )}
+        </h2>
 
-      {/* Loading State */}
-      {isLoading && users.length === 0 && (
-        <div className="space-y-3">
-          <UserBlockedByCardSkeleton />
-          <UserBlockedByCardSkeleton />
-          <UserBlockedByCardSkeleton />
-        </div>
-      )}
+        {/* Loading */}
+        {isLoading && users.length === 0 && (
+          <div className="space-y-3">
+            <UserBlockedByCardSkeleton />
+            <UserBlockedByCardSkeleton />
+            <UserBlockedByCardSkeleton />
+          </div>
+        )}
 
-      {/* Error State */}
-      {error && (
-        <div className="text-center py-12 bg-red-50 dark:bg-red-900/20 rounded-lg border border-dashed border-red-300 dark:border-red-700">
-          <AlertCircle className="w-10 h-10 mx-auto text-red-500 dark:text-red-400 mb-3" />
-          <h3 className="font-semibold text-red-700 dark:text-red-300">
-            Error loading list
-          </h3>
-          <p className="text-sm text-red-600 dark:text-red-400 mt-1 mb-4">
-            {error}
-          </p>
-          <button
-            onClick={() => fetchPage(0)}
-            className="flex items-center gap-2 mx-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition"
-            aria-label="Retry fetching list"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Retry
-          </button>
-        </div>
-      )}
+        {/* Error */}
+        {error && (
+          <div className="flex flex-col items-center justify-center text-center py-12 rounded-xl border border-dashed border-red-200/50 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10">
+            <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400 mb-3" />
+            <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+              Error loading list
+            </h3>
+            <p className="text-xs text-steel/60 dark:text-sky/40 mb-4">
+              {error}
+            </p>
+            <button
+              onClick={() => fetchPage(0)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl text-cream-50 bg-steel dark:bg-sky dark:text-navy transition-all cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </button>
+          </div>
+        )}
 
-      {/* Empty State */}
-      {!isLoading && !error && users.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 dark:bg-neutral-800 rounded-lg border border-dashed border-gray-300 dark:border-neutral-700">
-          <UserX className="w-10 h-10 mx-auto text-gray-400 dark:text-neutral-500 mb-3" />
-          <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-            No Users Found
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
-            No users are currently blocking your account.
-          </p>
-        </div>
-      )}
+        {/* Empty */}
+        {!isLoading && !error && users.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center py-12 rounded-xl border border-dashed border-cream-300 dark:border-navy-700 bg-cream-50/50 dark:bg-navy/50">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
+              <UserX className="w-6 h-6 text-steel/50 dark:text-sky/40" />
+            </div>
+            <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+              No Users Found
+            </h3>
+            <p className="text-xs text-steel/60 dark:text-sky/40">
+              No users are currently blocking your account.
+            </p>
+          </div>
+        )}
 
-      {/* Content List */}
-      {!error && users.length > 0 && (
-        <div className="space-y-3">
-          {users.map(user => (
-            <BlockedByUserCard 
-              key={user.userId} 
-              user={user} 
-            />
-          ))}
-        </div>
-      )}
+        {/* List */}
+        {!error && users.length > 0 && (
+          <div className="space-y-2.5">
+            {users.map((user) => (
+              <div
+                key={user.userId}
+                className="flex items-center justify-between p-3 rounded-xl bg-cream-100/40 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Image
+                    src={user.profilePictureUrl || "/default-avatar.png"}
+                    alt={user.username}
+                    width={44}
+                    height={44}
+                    className="w-11 h-11 rounded-full object-cover border-2 border-cream dark:border-navy-900 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-navy dark:text-cream truncate">
+                      {user.username}
+                    </h4>
+                    <p className="text-[11px] text-steel/50 dark:text-sky/40 truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-cream-300/40 dark:bg-navy-600/40 text-steel/60 dark:text-sky/40 border border-cream-300/30 dark:border-navy-700/30">
+                  {user.accountStatus}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* Pagination */}
-      {pagination && totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-neutral-800">
-          <button
-            onClick={() => fetchPage(page - 1)}
-            disabled={page === 0 || isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Go to previous page"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </button>
-          <span className="text-sm text-gray-600 dark:text-neutral-400" aria-live="polite">
-            Page {page + 1} of {totalPages}
-          </span>
-          <button
-            onClick={() => fetchPage(page + 1)}
-            disabled={page + 1 >= totalPages || isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Go to next page"
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * Single Card for a User Who Blocked You (Display Only)
- */
-interface BlockedByUserCardProps {
-  user: BlockedByUser;
-}
-
-const BlockedByUserCard: React.FC<BlockedByUserCardProps> = ({ user }) => {
-  return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-neutral-800 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-700">
-      <div className="flex items-center gap-4">
-        <Image
-          src={user.profilePictureUrl || "/default-avatar.png"}
-          alt={user.username}
-          width={48}
-          height={48}
-          className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-neutral-900"
-        />
-        <div>
-          <h4 className="text-base font-semibold text-gray-900 dark:text-white">
-            {user.username}
-          </h4>
-          <p className="text-xs text-gray-600 dark:text-neutral-400">
-            {user.email}
-          </p>
-        </div>
+        {/* Pagination */}
+        {pagination && totalPages > 1 && (
+          <div className="flex items-center justify-between mt-5 pt-4 border-t border-cream-300/30 dark:border-navy-700/30">
+            <button
+              onClick={() => fetchPage(page - 1)}
+              disabled={page === 0 || isLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              Previous
+            </button>
+            <span className="text-xs text-steel/50 dark:text-sky/30">
+              Page {page + 1} of {totalPages}
+            </span>
+            <button
+              onClick={() => fetchPage(page + 1)}
+              disabled={page + 1 >= totalPages || isLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              Next
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
-      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 px-3 py-1 bg-gray-200 dark:bg-neutral-700 rounded-full">
-        {user.accountStatus}
-      </span>
     </div>
   );
 };

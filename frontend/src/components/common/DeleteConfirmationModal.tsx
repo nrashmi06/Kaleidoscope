@@ -21,7 +21,6 @@ export default function DeleteConfirmationModal({
   title = "Delete Comment",
   message = "Are you sure you want to delete this comment? This action cannot be undone.",
 }: DeleteConfirmationModalProps) {
-  // Handle Escape key press
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -42,25 +41,22 @@ export default function DeleteConfirmationModal({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          // Backdrop
-          className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
+          className="fixed inset-0 flex items-center justify-center bg-navy/50 backdrop-blur-sm z-50 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onCancel} // Click outside to close
+          onClick={onCancel}
         >
           <motion.div
-            // Modal Card
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-sm"
+            className="bg-cream-50 dark:bg-navy rounded-2xl shadow-lg shadow-navy/10 dark:shadow-black/30 p-6 w-full max-w-sm border border-cream-300/40 dark:border-navy-700/40"
             initial={{ opacity: 0, scale: 0.95, y: -16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -16 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            onClick={(e) => e.stopPropagation()} // Prevent click from bubbling to backdrop
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col items-center text-center gap-4">
-              {/* Refined Icon */}
-              <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30">
+              <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40">
                 <XCircle
                   className="h-6 w-6 text-red-600 dark:text-red-400"
                   aria-hidden="true"
@@ -68,22 +64,21 @@ export default function DeleteConfirmationModal({
               </div>
 
               <div className="flex flex-col gap-1">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h2 className="text-lg font-semibold text-navy dark:text-cream">
                   {title}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-steel/60 dark:text-sky/40">
                   {message}
                 </p>
               </div>
             </div>
 
-            {/* Responsive Button Container */}
             <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-3 gap-2">
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={isDeleting}
-                className="w-full sm:w-auto inline-flex justify-center rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full sm:w-auto inline-flex justify-center rounded-xl border border-cream-300 dark:border-navy-700 px-4 py-2 text-sm font-medium text-navy dark:text-cream shadow-sm hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>
@@ -91,7 +86,7 @@ export default function DeleteConfirmationModal({
                 type="button"
                 onClick={onConfirm}
                 disabled={isDeleting}
-                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-lg border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-xl border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {isDeleting ? (
                   <>

@@ -14,6 +14,8 @@ export const PostMapper = {
   // Location endpoints
   searchLocations: `${BASE_URL}/locations/search`,
   createLocation: `${BASE_URL}/locations`,
+  getLocationById: (locationId: number) => `${BASE_URL}/locations/${locationId}`,
+  deleteLocation: (locationId: number) => `${BASE_URL}/locations/${locationId}`,
 
   // User endpoints for tagging
   getAllUsers: `${BASE_URL}/users`,

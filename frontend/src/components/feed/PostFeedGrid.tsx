@@ -37,7 +37,7 @@ export function PostFeedGrid({
 }: PostFeedGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {Array.from({ length: 6 }).map((_, i) => (
           <PostLoader key={i} />
         ))}
@@ -47,13 +47,15 @@ export function PostFeedGrid({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-20 px-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h3 className="text-xl font-semibold text-red-700 dark:text-red-300 mb-2">
+      <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 backdrop-blur-sm">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 mb-4">
+          <AlertCircle className="w-6 h-6 text-red-500" />
+        </div>
+        <h3 className="text-base font-semibold text-red-700 dark:text-red-300 mb-1.5">
           Failed to Load Feed
         </h3>
-        <p className="text-red-600 dark:text-red-400 mb-6">{error}</p>
-        <Button onClick={onRetry} variant="destructive">
+        <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-5 max-w-sm">{error}</p>
+        <Button onClick={onRetry} variant="destructive" size="sm">
           Try Again
         </Button>
       </div>
@@ -62,12 +64,14 @@ export function PostFeedGrid({
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-20 px-6 bg-gray-50 dark:bg-neutral-800/50 border border-dashed border-gray-200 dark:border-neutral-700 rounded-lg">
-        <Inbox className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" />
-        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+      <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-dashed border-cream-300 dark:border-navy-700 bg-cream-50/50 dark:bg-navy/50 backdrop-blur-sm">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
+          <Inbox className="w-6 h-6 text-steel dark:text-sky/60" />
+        </div>
+        <h3 className="text-base font-semibold text-navy dark:text-cream mb-1.5">
           No Posts Found
         </h3>
-        <p className="text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-steel dark:text-sky/60">
           Try adjusting your filters or check back later.
         </p>
       </div>
@@ -78,20 +82,19 @@ export function PostFeedGrid({
     <AnimatePresence>
       <motion.div
         layout
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
       >
         {posts.map((postItem, index) => {
-          // Adapt the new feed item to the existing Post card type
           const adaptedPost: Post = mapFeedItemToPost(postItem);
 
           return (
             <motion.div
               key={postItem.postId}
               layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.97 }}
+              transition={{ duration: 0.35, delay: index * 0.04, ease: "easeOut" }}
             >
               <SocialPostCard
                 post={adaptedPost}

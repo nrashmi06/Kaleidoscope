@@ -29,4 +29,10 @@ export const UserTagMapper = {
   createTag: () => `${BASE_URL}/users/tags`,
   // Delete a user tag by id
   deleteTag: (tagId: number) => `${BASE_URL}/users/tags/${tagId}`,
+  // Get tags for specific content
+  getTagsForContent: (contentType: string, contentId: number) =>
+    `${BASE_URL}/content/${contentType}/${contentId}/tags`,
+  // Get content a user is tagged in
+  getTaggedContent: (userId: number) =>
+    `${BASE_URL}/users/${userId}/tagged-content`,
 };

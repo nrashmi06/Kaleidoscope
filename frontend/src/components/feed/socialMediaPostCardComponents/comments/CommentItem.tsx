@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { MoreVertical, Trash2, Tag } from "lucide-react";
 import { CommentItem as CommentType } from "@/lib/types/comment";
 import { deleteCommentController } from "@/controllers/postInteractionController/deleteCommentController";
@@ -29,6 +30,7 @@ export default function CommentItem({
   onDelete,
   onTagDeleted,
 }: CommentItemProps) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
@@ -42,7 +44,6 @@ export default function CommentItem({
     (currentUser.userId === comment.author.userId ||
       currentUser.username === comment.author.username);
 
-  // ✅ Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -57,7 +58,6 @@ export default function CommentItem({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  /** ✅ Delete Comment Handler */
   const confirmDelete = async () => {
     if (!accessToken) return;
 
@@ -84,23 +84,27 @@ export default function CommentItem({
 
   return (
     <>
-      <article className="group flex items-start gap-3 p-3 bg-white dark:bg-neutral-900/40 rounded-xl border border-gray-100 dark:border-gray-800 hover:shadow-sm transition-all duration-200">
+      <article className="group flex items-start gap-3 p-3 bg-cream-50/80 dark:bg-navy-700/30 rounded-xl border border-cream-300/40 dark:border-navy-700/40 hover:shadow-sm transition-all duration-200">
         <Image
           src={comment.author.profilePictureUrl || "/default-avatar.png"}
           alt={`${comment.author.username}'s profile`}
           width={36}
           height={36}
-          className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+          onClick={() => router.push(`/profile/${comment.author.userId}`)}
+          className="w-9 h-9 rounded-full object-cover border border-cream-300 dark:border-navy-700 cursor-pointer hover:opacity-80 transition-opacity"
         />
 
         <div className="flex-1">
           <header className="flex items-start justify-between">
             <div>
-              <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <div
+                onClick={() => router.push(`/profile/${comment.author.userId}`)}
+                className="text-sm font-semibold text-navy dark:text-cream cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+              >
                 {comment.author.username}
               </div>
               <time
-                className="text-xs text-gray-400 dark:text-gray-500"
+                className="text-xs text-steel/50 dark:text-sky/30"
                 dateTime={comment.createdAt}
               >
                 {new Date(comment.createdAt).toLocaleString()}
@@ -112,26 +116,26 @@ export default function CommentItem({
                 <button
                   ref={buttonRef}
                   onClick={() => setMenuOpen((prev) => !prev)}
-                  className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                  className="p-1.5 rounded-full hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition"
                   aria-label="Comment options"
                 >
-                  <MoreVertical size={18} className="text-gray-500" />
+                  <MoreVertical size={18} className="text-steel/60 dark:text-sky/40" />
                 </button>
 
                 {menuOpen && (
                   <div
-                    className="absolute right-0 mt-2 w-40 bg-white dark:bg-neutral-900 
-                               border border-gray-200 dark:border-gray-700 
-                               rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in"
+                    className="absolute right-0 mt-2 w-40 bg-cream-50 dark:bg-navy
+                               border border-cream-300 dark:border-navy-700
+                               rounded-xl shadow-lg shadow-navy/10 dark:shadow-black/30 z-50 overflow-hidden py-1"
                   >
                     <button
                       onClick={() => {
                         setShowTagManager(true);
                         setMenuOpen(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-2 w-full text-left 
-                                 text-gray-700 dark:text-gray-300 hover:bg-gray-50 
-                                 dark:hover:bg-neutral-800 text-sm transition"
+                      className="flex items-center gap-2 px-3 py-2 w-full text-left
+                                 text-navy/70 dark:text-cream/60 hover:bg-cream-300/40
+                                 dark:hover:bg-navy-700/40 text-sm transition"
                     >
                       <Tag size={14} />
                       Manage Tags
@@ -143,8 +147,8 @@ export default function CommentItem({
                         setMenuOpen(false);
                       }}
                       disabled={isDeleting}
-                      className="flex items-center gap-2 px-3 py-2 w-full text-left 
-                                 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 
+                      className="flex items-center gap-2 px-3 py-2 w-full text-left
+                                 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20
                                  text-sm transition disabled:opacity-50"
                     >
                       <Trash2 size={14} />
@@ -156,15 +160,12 @@ export default function CommentItem({
             )}
           </header>
 
-          {/* Comment Text */}
           <CommentBody body={comment.body} tags={comment.tags} />
 
-          {/* Comment Actions (Reply, Like, etc.) */}
           <CommentActions postId={postId} commentId={comment.commentId} />
         </div>
       </article>
 
-      {/* ✅ Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onConfirm={confirmDelete}
@@ -172,7 +173,6 @@ export default function CommentItem({
         isDeleting={isDeleting}
       />
 
-      {/* ✅ Tag Manager Modal */}
       {showTagManager && (
         <CommentTagManager
           comment={comment}

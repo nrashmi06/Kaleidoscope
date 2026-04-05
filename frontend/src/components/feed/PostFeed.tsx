@@ -13,51 +13,49 @@ import {
 } from "@/lib/types/postFeed";
 import type { FlatCategory } from "@/lib/types/settings/category";
 
-// UI Components
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
 
-// Child Components
-import { FeedFilterBar } from "@/components/feed/FeedFilterBar";
 import { FeedFilterSheet } from "@/components/feed/FeedFilterSheet";
-import { PostFeedGrid } from "@/components/feed/PostFeedGrid"; // <-- NEW IMPORT
+import { PostFeedGrid } from "@/components/feed/PostFeedGrid";
+import { ContentSuggestionsSection } from "@/components/common/ContentSuggestions";
 
-// Default state for filters
 const defaultFilters: PostFilterParams = {
   q: "",
   hashtag: "",
   categoryId: undefined,
   visibility: undefined,
   page: 0,
-  size: 9, // 9 items for a 3x3 grid
+  size: 9,
   sort: ["createdAt,desc"],
 };
 
 export default function PostFeed() {
   const accessToken = useAccessToken();
 
-  // State for data
   const [posts, setPosts] = useState<NormalizedPostFeedItem[]>([]);
   const [pagination, setPagination] = useState<NormalizedPagination | null>(
     null
   );
   const [categories, setCategories] = useState<FlatCategory[]>([]);
 
-  // State for filters
   const [activeFilters, setActiveFilters] =
     useState<PostFilterParams>(defaultFilters);
   const [stagedFilters, setStagedFilters] =
     useState<PostFilterParams>(defaultFilters);
   const debouncedSearchQuery = useDebounce(stagedFilters.q || "", 400);
 
-  // State for UI
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
-  // --- 1. Data Fetching ---
-
-  // Fetch categories for the filter dropdown
   useEffect(() => {
     if (!accessToken) return;
     getParentCategoriesController(accessToken)
@@ -69,7 +67,6 @@ export default function PostFeed() {
       .catch((err) => console.error("Failed to fetch categories:", err));
   }, [accessToken]);
 
-  // Main function to fetch posts based on *active* filters
   const fetchFeed = useCallback(
     async (filters: PostFilterParams) => {
       if (!accessToken) {
@@ -80,7 +77,7 @@ export default function PostFeed() {
 
       setIsLoading(true);
       setError(null);
-      window.scrollTo(0, 0); // Scroll to top on page change
+      window.scrollTo(0, 0);
 
       try {
         const result = await getPostsController(accessToken, filters);
@@ -104,11 +101,7 @@ export default function PostFeed() {
     [accessToken]
   );
 
-  // --- 2. Filter & Pagination Handlers ---
-
-  // Effect to apply debounced search query
   useEffect(() => {
-    // Apply debounced 'q' filter directly to active filters
     setActiveFilters((prev) => ({
       ...prev,
       q: debouncedSearchQuery,
@@ -116,12 +109,10 @@ export default function PostFeed() {
     }));
   }, [debouncedSearchQuery]);
 
-  // Trigger fetch when active filters (like page or search) change
   useEffect(() => {
     fetchFeed(activeFilters);
   }, [activeFilters, fetchFeed]);
 
-  // Handle changes in the filter modal inputs (Passed to FeedFilterSheet)
   const handleStagedFilterChange = (
     key: keyof PostFilterParams,
     value: string | number | undefined
@@ -131,50 +122,115 @@ export default function PostFeed() {
     setStagedFilters((prev) => ({ ...prev, [key]: processedValue }));
   };
 
-  // Apply filters from modal to active state (Passed to FeedFilterSheet)
   const applyFilters = () => {
-    setActiveFilters({ ...stagedFilters, page: 0 }); // Reset to page 0
+    setActiveFilters({ ...stagedFilters, page: 0 });
     setIsFilterSheetOpen(false);
   };
 
-  // Clear all filters (Passed to FeedFilterSheet)
   const clearFilters = () => {
     setStagedFilters(defaultFilters);
     setActiveFilters(defaultFilters);
     setIsFilterSheetOpen(false);
   };
 
-  // Handle pagination
   const handlePageChange = (newPage: number) => {
     if (newPage >= 0 && newPage < (pagination?.totalPages || 0)) {
       setActiveFilters((prev) => ({ ...prev, page: newPage }));
     }
   };
 
-  // Handle query change (Passed to FeedFilterBar)
   const handleQueryChange = (query: string) => {
     handleStagedFilterChange("q", query);
   };
-  
-  // Handle post deletion by refetching the current feed
+
   const handlePostDeleted = useCallback(() => {
-      fetchFeed(activeFilters);
+    fetchFeed(activeFilters);
   }, [fetchFeed, activeFilters]);
 
-  // --- Main Render ---
-  return (
-    <div className="w-full max-w-7xl mx-auto p-4 space-y-6">
-      {/* 1. Filter Bar Component */}
-      <FeedFilterBar
-        stagedQuery={stagedFilters.q || ""}
-        totalPosts={posts.length}
-        pagination={pagination}
-        isLoading={isLoading}
-        onQueryChange={handleQueryChange}
-        onOpenFilters={() => setIsFilterSheetOpen(true)}
-      />
+  // Generate visible page numbers
+  const getPageNumbers = () => {
+    if (!pagination) return [];
+    const total = pagination.totalPages;
+    const current = pagination.currentPage;
+    const pages: (number | "...")[] = [];
 
-      {/* 2. Filter Modal Component */}
+    if (total <= 5) {
+      for (let i = 0; i < total; i++) pages.push(i);
+    } else {
+      pages.push(0);
+      if (current > 2) pages.push("...");
+      for (
+        let i = Math.max(1, current - 1);
+        i <= Math.min(total - 2, current + 1);
+        i++
+      ) {
+        pages.push(i);
+      }
+      if (current < total - 3) pages.push("...");
+      pages.push(total - 1);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="w-full max-w-7xl mx-auto px-4 py-6 relative">
+      {/* Ambient background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
+        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
+      </div>
+
+      {/* ── Header Section ── */}
+      <div className="mb-6">
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-steel-600 shadow-lg shadow-steel/25 dark:shadow-steel/15 dark:from-sky dark:to-steel">
+              <Sparkles className="w-5 h-5 text-cream-50" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-navy dark:text-cream tracking-tight">
+                Your Feed
+              </h1>
+              {!isLoading && pagination && (
+                <p className="text-[11px] text-steel dark:text-sky/60 tabular-nums">
+                  {pagination.totalElements} posts
+                  {pagination.totalPages > 1 &&
+                    ` · Page ${pagination.currentPage + 1} of ${pagination.totalPages}`}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Search & filter bar — compact inline */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/50 dark:text-sky/40" />
+            <Input
+              type="text"
+              value={stagedFilters.q || ""}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              placeholder="Search posts..."
+              className="pl-10 h-9 text-sm bg-cream-50/60 dark:bg-navy-700/30 border-cream-300/40 dark:border-navy-700/40 rounded-xl"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsFilterSheetOpen(true)}
+            className="h-9 rounded-xl border-cream-300/40 dark:border-navy-700/40"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+            Filters
+          </Button>
+        </div>
+
+        {/* Gradient divider */}
+        <div className="mt-5 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
+      </div>
+
+      {/* Filter Modal */}
       <FeedFilterSheet
         isVisible={isFilterSheetOpen}
         categories={categories}
@@ -185,7 +241,7 @@ export default function PostFeed() {
         onClear={clearFilters}
       />
 
-      {/* 3. Content Grid */}
+      {/* ── Content Grid ── */}
       <PostFeedGrid
         isLoading={isLoading}
         error={error}
@@ -195,29 +251,60 @@ export default function PostFeed() {
         onRetry={() => fetchFeed(activeFilters)}
       />
 
-      {/* 4. Pagination */}
+      {/* ── Pagination ── */}
       {!isLoading && pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-sm">
-          <Button
+        <div className="mt-8 flex items-center justify-center gap-1.5">
+          {/* Previous */}
+          <button
             onClick={() => handlePageChange(pagination.currentPage - 1)}
             disabled={pagination.isFirst}
-            variant="outline"
+            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Previous
-          </Button>
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Page {pagination.currentPage + 1} of {pagination.totalPages}
-          </span>
-          <Button
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Page numbers */}
+          {getPageNumbers().map((page, idx) =>
+            page === "..." ? (
+              <span
+                key={`dots-${idx}`}
+                className="w-9 h-9 flex items-center justify-center text-xs text-steel/50 dark:text-sky/30"
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                key={page}
+                onClick={() => handlePageChange(page as number)}
+                className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  pagination.currentPage === page
+                    ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
+                    : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                }`}
+              >
+                {(page as number) + 1}
+              </button>
+            )
+          )}
+
+          {/* Next */}
+          <button
             onClick={() => handlePageChange(pagination.currentPage + 1)}
             disabled={pagination.isLast}
-            variant="outline"
+            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
           >
-            Next
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
+      )}
+
+      {/* Suggested Posts */}
+      {!isLoading && posts.length > 0 && accessToken && (
+        <ContentSuggestionsSection
+          type="posts"
+          accessToken={accessToken}
+          title="Suggested Posts"
+        />
       )}
     </div>
   );

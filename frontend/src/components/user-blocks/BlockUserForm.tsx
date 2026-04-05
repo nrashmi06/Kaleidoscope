@@ -6,40 +6,33 @@ import { blockUserController } from "@/controllers/user-blocks/blockUserControll
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { Loader2, UserX, ShieldCheck, AlertCircle } from "lucide-react";
 
-/**
- * Skeleton loader for the BlockUserForm component.
- */
 export const BlockUserFormSkeleton: React.FC = () => {
   return (
-    <div className="w-full max-w-lg p-6 bg-white dark:bg-neutral-800 rounded-lg shadow-md border border-gray-200 dark:border-neutral-700 animate-pulse">
-      <div className="h-7 w-1/3 bg-gray-300 dark:bg-neutral-700 rounded-md mb-6"></div>
+    <div className="w-full max-w-lg p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 animate-pulse">
+      <div className="h-6 w-1/3 bg-cream-300/50 dark:bg-navy-600/50 rounded-md mb-6" />
       <div className="space-y-5">
         <div>
-          <div className="h-4 w-1/4 bg-gray-300 dark:bg-neutral-700 rounded mb-2"></div>
-          <div className="h-10 w-full bg-gray-200 dark:bg-neutral-700 rounded-lg"></div>
+          <div className="h-4 w-1/4 bg-cream-300/40 dark:bg-navy-600/40 rounded mb-2" />
+          <div className="h-11 w-full bg-cream-300/30 dark:bg-navy-600/30 rounded-xl" />
         </div>
         <div>
-          <div className="h-4 w-1/4 bg-gray-300 dark:bg-neutral-700 rounded mb-2"></div>
-          <div className="h-24 w-full bg-gray-200 dark:bg-neutral-700 rounded-lg"></div>
+          <div className="h-4 w-1/4 bg-cream-300/40 dark:bg-navy-600/40 rounded mb-2" />
+          <div className="h-24 w-full bg-cream-300/30 dark:bg-navy-600/30 rounded-xl" />
         </div>
-        <div className="h-12 w-full bg-red-300 dark:bg-red-700 rounded-lg mt-4"></div>
+        <div className="h-11 w-full bg-cream-300/40 dark:bg-navy-600/40 rounded-xl" />
       </div>
     </div>
   );
 };
 
-/**
- * A form component to allow an authenticated user to block another user.
- */
 export const BlockUserForm: React.FC = () => {
   const [userIdToBlock, setUserIdToBlock] = useState("");
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
-  // Assuming a custom hook retrieves the JWT from Redux/storage
-  const accessToken = useAccessToken(); 
+
+  const accessToken = useAccessToken();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -60,7 +53,6 @@ export const BlockUserForm: React.FC = () => {
       return;
     }
 
-    // Call the controller, not the service
     const result = await blockUserController(
       { userIdToBlock: userIdNum, reason },
       accessToken
@@ -68,7 +60,6 @@ export const BlockUserForm: React.FC = () => {
 
     if (result.success) {
       setSuccess(result.message);
-      // Clear form on success
       setUserIdToBlock("");
       setReason("");
     } else {
@@ -78,18 +69,17 @@ export const BlockUserForm: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-lg p-6 bg-white dark:bg-neutral-900 rounded-xl shadow-lg border border-gray-200 dark:border-neutral-800">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-        <UserX className="w-6 h-6 text-red-500" />
+    <div className="w-full max-w-lg p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
+      <h2 className="text-lg font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+        <UserX className="w-5 h-5 text-steel dark:text-sky" />
         Block a New User
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* User ID Input */}
-        <div>
-          <label 
-            htmlFor="userIdToBlock" 
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label
+            htmlFor="userIdToBlock"
+            className="text-sm font-semibold text-navy dark:text-cream"
           >
             User ID to Block
           </label>
@@ -100,15 +90,14 @@ export const BlockUserForm: React.FC = () => {
             onChange={(e) => setUserIdToBlock(e.target.value)}
             placeholder="Enter the numeric User ID (e.g., 123)"
             required
-            className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
           />
         </div>
 
-        {/* Reason Textarea */}
-        <div>
-          <label 
-            htmlFor="reason" 
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+        <div className="space-y-1.5">
+          <label
+            htmlFor="reason"
+            className="text-sm font-semibold text-navy dark:text-cream"
           >
             Reason
           </label>
@@ -120,36 +109,33 @@ export const BlockUserForm: React.FC = () => {
             required
             minLength={10}
             rows={4}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg bg-gray-50 dark:bg-neutral-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
           />
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-semibold text-cream-50 bg-red-500 hover:bg-red-600 shadow-sm shadow-red-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             "Confirm Block"
           )}
         </button>
       </form>
 
-      {/* Success Message */}
       {success && (
-        <div className="mt-5 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 flex-shrink-0" />
+        <div className="mt-4 p-3.5 rounded-xl bg-steel/5 dark:bg-sky/5 border border-steel/15 dark:border-sky/15 text-steel dark:text-sky flex items-center gap-2.5">
+          <ShieldCheck className="w-4 h-4 shrink-0" />
           <p className="text-sm font-medium">{success}</p>
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
-        <div className="mt-5 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+        <div className="mt-4 p-3.5 rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-200/50 dark:border-red-900/30 text-red-600 dark:text-red-400 flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <p className="text-sm font-medium">{error}</p>
         </div>
       )}
