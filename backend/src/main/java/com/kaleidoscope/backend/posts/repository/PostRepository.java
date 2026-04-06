@@ -46,6 +46,8 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
            "LEFT JOIN FETCH p.media " +
            "LEFT JOIN FETCH p.categories pc " +
            "LEFT JOIN FETCH pc.category " +
+           "LEFT JOIN FETCH p.postHashtags ph " +
+           "LEFT JOIN FETCH ph.hashtag " +
            "LEFT JOIN FETCH p.location " +
            "WHERE p.postId IN :postIds " +
            "ORDER BY p.postId ASC")

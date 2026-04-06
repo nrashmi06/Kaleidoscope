@@ -234,6 +234,9 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     public void verifyUser(String verificationCode) {
         EmailVerification emailVerification = emailVerificationRepository.findByVerificationCode(verificationCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid verification code"));
+        if ("verified".equals(emailVerification.getStatus())) {
+            return; // Already verified, just return success
+        }
 
         if (emailVerification.getExpiryTime().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Verification code has expired");
@@ -245,9 +248,10 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         User user = userRepository.findById(emailVerification.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        if(user.getAccountStatus().equals(AccountStatus.SUSPENDED)){
+        if (AccountStatus.SUSPENDED.equals(user.getAccountStatus())) {
             throw new UserAccountSuspendedException("User Account Suspended");
         }
+
         user.setIsVerified(true);
         user.setEmailVerifiedAt(LocalDateTime.now());
         user.setAccountStatus(AccountStatus.ACTIVE);

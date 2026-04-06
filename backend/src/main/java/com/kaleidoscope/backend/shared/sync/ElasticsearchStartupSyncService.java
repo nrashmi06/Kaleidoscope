@@ -49,7 +49,6 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -103,7 +102,6 @@ public class ElasticsearchStartupSyncService {
      */
     @EventListener(ApplicationReadyEvent.class)
     @Async("taskExecutor")
-    @Transactional(readOnly = true)
     public void syncAllDataOnStartup() {
         log.info("==================== ELASTICSEARCH STARTUP SYNC STARTED ====================");
         log.info("Thread: {}", Thread.currentThread().getName());
@@ -394,12 +392,14 @@ public class ElasticsearchStartupSyncService {
                     try {
                         syncPostToElasticsearch(post);
                         syncedCount++;
-                        lastSeenId = post.getPostId(); // Update cursor
                     } catch (Exception e) {
                         log.error("Failed to sync post ID: {}", post.getPostId(), e);
                         errorCount++;
                     }
                 }
+
+                // Always advance the cursor to avoid reprocessing the same batch forever.
+                lastSeenId = postIds.get(postIds.size() - 1);
             }
 
             log.info("✅ Post sync completed: {} synced, {} errors", syncedCount, errorCount);

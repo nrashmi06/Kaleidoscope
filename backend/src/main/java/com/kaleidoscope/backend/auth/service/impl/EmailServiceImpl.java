@@ -12,7 +12,6 @@ import com.resend.services.emails.model.CreateEmailResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,11 +19,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class EmailServiceImpl implements EmailService {
@@ -35,18 +30,14 @@ public class EmailServiceImpl implements EmailService {
     private final TemplateEngine templateEngine;
     private final ApplicationProperties applicationProperties;
 
-    private final String contextPath;
-
     @Autowired
     public EmailServiceImpl(ResendProperties resendProperties,
             TemplateEngine templateEngine,
-            ApplicationProperties applicationProperties,
-            @Value("${server.servlet.context-path:/kaleidoscope}") String contextPath) {
+            ApplicationProperties applicationProperties) {
         this.resend = new Resend(resendProperties.apiKey());
         this.fromEmail = resendProperties.fromEmail();
         this.templateEngine = templateEngine;
         this.applicationProperties = applicationProperties;
-        this.contextPath = contextPath;
     }
 
     @Override
@@ -113,16 +104,6 @@ public class EmailServiceImpl implements EmailService {
             String baseUrl = applicationProperties.baseUrl();
 
             org.springframework.web.util.UriComponentsBuilder builder = org.springframework.web.util.UriComponentsBuilder.fromHttpUrl(baseUrl);
-            String currentPath = builder.build().getPath();
-            String normalizedContextPath = (contextPath == null || contextPath.equals("/")) ? "" : contextPath;
-
-            if (currentPath == null || !currentPath.endsWith(normalizedContextPath)) {
-                if (!normalizedContextPath.isEmpty() && !normalizedContextPath.startsWith("/")) {
-                    builder.path("/" + normalizedContextPath);
-                } else {
-                    builder.path(normalizedContextPath);
-                }
-            }
 
             String verificationUrl = builder
                     .path(AuthRoutes.VERIFY_EMAIL)

@@ -3,7 +3,7 @@ spring:
   application:
     name: ${APP_NAME:kaleidoscope-backend}
   app:
-    base-url: ${APP_BASE_URL:http://localhost:8080}
+    base-url: ${APP_BASE_URL:http://localhost:8080${server.servlet.context-path:/kaleidoscope}}
     defaults:
       cover-photo-url: https://res-console.cloudinary.com/dkadqnp9j/media_explorer_thumbnails/f9636ce5153d08babcbc7381fc4cc546/detailed
   # Database Configuration
