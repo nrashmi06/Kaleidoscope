@@ -488,16 +488,12 @@ public class BlogServiceImpl implements BlogService {
             NotificationType notificationType;
 
             switch (blog.getBlogStatus()) {
-                case APPROVED:
-                    message = String.format("Your blog '%s' has been approved by an admin.", blog.getTitle());
-                    notificationType = NotificationType.SYSTEM_MESSAGE; // Using SYSTEM_MESSAGE as a generic type
-                    break;
                 case REJECTED:
                     message = String.format("Your blog '%s' has been rejected by an admin.", blog.getTitle());
                     notificationType = NotificationType.SYSTEM_MESSAGE;
                     break;
                 case PUBLISHED:
-                    message = String.format("Your blog '%s' has been published.", blog.getTitle());
+                    message = String.format("Your blog '%s' has been approved and published.", blog.getTitle());
                     notificationType = NotificationType.SYSTEM_MESSAGE;
                     break;
                 default:

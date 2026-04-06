@@ -176,10 +176,8 @@ public class RedisStreamConfig {
                 redisTemplate.opsForStream().createGroup(streamName, ReadOffset.from("0-0"), groupName);
                 log.info("✅ Created consumer group '{}' for stream '{}'", groupName, streamName);
             } catch (Exception e) {
-                String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-
                 // If group already exists, that's fine - this is the expected case on restart
-                if (errorMsg.contains("BUSYGROUP") || errorMsg.contains("already exists")) {
+                if (isAlreadyExistsError(e)) {
                     log.debug("Consumer group '{}' already exists for stream '{}'", groupName, streamName);
                 } else {
                     // For other errors, try using native connection as fallback
@@ -207,8 +205,8 @@ public class RedisStreamConfig {
                             log.info("✅ Created consumer group '{}' for stream '{}' using native connection", groupName, streamName);
                         }
                     } catch (Exception ex2) {
-                        String msg2 = ex2.getMessage() != null ? ex2.getMessage() : "";
-                        if (msg2.contains("BUSYGROUP") || msg2.contains("already exists")) {
+                        String msg2 = getRootCauseMessage(ex2);
+                        if (isAlreadyExistsError(ex2)) {
                             log.debug("Consumer group '{}' already exists for stream '{}'", groupName, streamName);
                         } else {
                             log.warn("Could not create consumer group '{}' for stream '{}': {}", groupName, streamName, msg2);
@@ -217,10 +215,10 @@ public class RedisStreamConfig {
                 }
             }
         } catch (Exception e) {
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            String errorMsg = getRootCauseMessage(e);
 
             // Check if it's a BUSYGROUP error (group already exists) - this is fine
-            if (errorMsg.contains("BUSYGROUP") || errorMsg.contains("already exists")) {
+            if (isAlreadyExistsError(e)) {
                 log.debug("Consumer group '{}' already exists for stream '{}'", groupName, streamName);
             } else {
                 log.warn("Could not create/verify consumer group '{}' for stream '{}': {}", groupName, streamName, errorMsg);
@@ -296,6 +294,19 @@ public class RedisStreamConfig {
             }
         }
         return "unknown";
+    }
+
+    private boolean isAlreadyExistsError(Throwable throwable) {
+        String msg = getRootCauseMessage(throwable);
+        return msg.contains("BUSYGROUP") || msg.contains("already exists");
+    }
+
+    private String getRootCauseMessage(Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+        return root.getMessage() != null ? root.getMessage() : root.getClass().getSimpleName();
     }
 }
 

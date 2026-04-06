@@ -36,14 +36,18 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
            "LEFT JOIN FETCH p.location")
     Page<Post> findAllWithRelations(Pageable pageable);
 
-    // Cursor-based pagination for efficient batch processing (avoids OFFSET table scans)
+    // Step 1: page by IDs only to keep pagination in SQL (no collection fetch joins here)
+    @Query("SELECT p.postId FROM Post p WHERE p.postId > :lastSeenId ORDER BY p.postId ASC")
+    List<Long> findNextBatchIds(@Param("lastSeenId") Long lastSeenId, Pageable pageable);
+
+    // Step 2: hydrate full graph for selected IDs in one query
     @Query("SELECT DISTINCT p FROM Post p " +
            "LEFT JOIN FETCH p.user " +
            "LEFT JOIN FETCH p.media " +
            "LEFT JOIN FETCH p.categories pc " +
            "LEFT JOIN FETCH pc.category " +
            "LEFT JOIN FETCH p.location " +
-           "WHERE p.postId > :lastSeenId " +
+           "WHERE p.postId IN :postIds " +
            "ORDER BY p.postId ASC")
-    List<Post> findNextBatchWithRelations(@Param("lastSeenId") Long lastSeenId, Pageable pageable);
+    List<Post> findByPostIdInWithRelations(@Param("postIds") List<Long> postIds);
 }

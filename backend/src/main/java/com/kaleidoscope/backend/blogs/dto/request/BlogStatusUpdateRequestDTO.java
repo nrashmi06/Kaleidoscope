@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
     description = "Request DTO for updating blog status by administrators",
     example = """
     {
-      "status": "APPROVED",
+      "status": "PUBLISHED",
       "reviewerComment": "Content reviewed and approved for publication"
     }
     """
@@ -17,8 +17,8 @@ public record BlogStatusUpdateRequestDTO(
     @NotNull(message = "Blog status is required")
     @Schema(
         description = "New status to set for the blog. Must be one of the valid BlogStatus enum values.",
-        example = "APPROVED",
-        allowableValues = {"DRAFT", "APPROVAL_PENDING", "APPROVED", "FLAGGED", "ARCHIVED", "REJECTED", "PUBLISHED"},
+        example = "PUBLISHED",
+        allowableValues = {"DRAFT", "APPROVAL_PENDING", "FLAGGED", "ARCHIVED", "REJECTED", "PUBLISHED"},
         required = true
     )
     BlogStatus status,

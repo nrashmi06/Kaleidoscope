@@ -234,7 +234,10 @@ public class BlogSearchRepositoryImpl implements BlogSearchRepositoryCustom {
 
         // 1. Build FILTERS
         BoolQuery.Builder filterBuilder = new BoolQuery.Builder();
+        
+        // Allow only PUBLISHED blogs in suggestions
         filterBuilder.must(TermQuery.of(t -> t.field("blogStatus").value(BlogStatus.PUBLISHED.toString()))._toQuery());
+
         if (currentUserId != null) {
             filterBuilder.mustNot(TermQuery.of(t -> t.field("author.userId").value(currentUserId))._toQuery());
         }

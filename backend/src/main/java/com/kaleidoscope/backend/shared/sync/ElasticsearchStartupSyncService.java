@@ -375,7 +375,13 @@ public class ElasticsearchStartupSyncService {
             while (true) {
                 // Cursor-based pagination: fetch next batch where postId > lastSeenId
                 Pageable pageable = PageRequest.of(0, BATCH_SIZE);
-                List<Post> postBatch = postRepository.findNextBatchWithRelations(lastSeenId, pageable);
+                List<Long> postIds = postRepository.findNextBatchIds(lastSeenId, pageable);
+
+                if (postIds.isEmpty()) {
+                    break;
+                }
+
+                List<Post> postBatch = postRepository.findByPostIdInWithRelations(postIds);
 
                 if (postBatch.isEmpty()) {
                     break;
@@ -552,7 +558,13 @@ public class ElasticsearchStartupSyncService {
             while (true) {
                 // Cursor-based pagination: fetch next batch where blogId > lastSeenId
                 Pageable pageable = PageRequest.of(0, BATCH_SIZE);
-                List<Blog> blogBatch = blogRepository.findNextBatchWithRelations(lastSeenId, pageable);
+                List<Long> blogIds = blogRepository.findNextBatchIds(lastSeenId, pageable);
+
+                if (blogIds.isEmpty()) {
+                    break;
+                }
+
+                List<Blog> blogBatch = blogRepository.findByBlogIdInWithRelations(blogIds);
 
                 if (blogBatch.isEmpty()) {
                     break;
