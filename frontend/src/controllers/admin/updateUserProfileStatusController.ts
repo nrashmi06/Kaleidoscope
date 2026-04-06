@@ -1,6 +1,6 @@
 import updateUserProfileStatus from "@/services/admin/updateUserProfileStatus";
 
-const VALID_STATUSES = ["ACTIVE", "SUSPENDED", "BANNED", "DEACTIVATED"];
+const VALID_STATUSES = ["ACTIVE", "SUSPENDED", "DEACTIVATED"];
 
 export async function updateUserProfileStatusController(
   accessToken: string,

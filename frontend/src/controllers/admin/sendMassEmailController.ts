@@ -1,7 +1,7 @@
 import sendMassEmail from "@/services/admin/sendMassEmail";
 
 export async function sendMassEmailController(
-  data: { subject: string; body: string; recipientFilter?: string },
+  data: { subject: string; body: string; recipientFilter?: string; attachments?: File[] },
   accessToken: string
 ) {
   if (!accessToken) return { success: false, message: "Not authenticated." };

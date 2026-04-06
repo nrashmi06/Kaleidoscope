@@ -45,9 +45,13 @@ export async function filterBlogsController(
   const finalFilters: BlogFilterRequest = {
     page: 0,
     sort: "createdAt,desc",
-    status: "PUBLISHED",
     ...filters,
   };
+
+  // Default to PUBLISHED if no status specified and no explicit override
+  if (!finalFilters.status && !('status' in filters)) {
+    finalFilters.status = "PUBLISHED";
+  }
 
   try {
     const response: BlogFilterResponse = await filterBlogsService(accessToken, finalFilters);

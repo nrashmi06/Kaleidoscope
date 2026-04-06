@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { sendMassEmailController } from "@/controllers/admin/sendMassEmailController";
+import dynamic from "next/dynamic";
 import {
   Mail,
   ArrowLeft,
@@ -15,14 +16,26 @@ import {
   AlertCircle,
   Users,
   Globe,
+  Paperclip,
+  X,
+  FileIcon,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import "react-quill-new/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const recipientOptions = [
   { value: "", label: "All Users", icon: Globe, description: "Send to every registered user" },
   { value: "ACTIVE", label: "Active Users", icon: Users, description: "Users who logged in recently" },
   { value: "ADMIN", label: "Admins Only", icon: ShieldAlert, description: "Administrative accounts only" },
 ] as const;
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function MassEmailPage() {
   const router = useRouter();
@@ -32,8 +45,42 @@ export default function MassEmailPage() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [recipientFilter, setRecipientFilter] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const quillModules = useMemo(
+    () => ({
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ color: [] }, { background: [] }],
+        [{ list: "ordered" }, { list: "bullet" }],
+        [{ align: [] }],
+        ["blockquote", "code-block"],
+        ["link", "image"],
+        ["clean"],
+      ],
+    }),
+    []
+  );
+
+  const quillFormats = [
+    "header",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "color",
+    "background",
+    "list",
+    "align",
+    "blockquote",
+    "code-block",
+    "link",
+    "image",
+  ];
 
   if (role !== "ADMIN") {
     return (
@@ -57,8 +104,24 @@ export default function MassEmailPage() {
     );
   }
 
+  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setAttachments((prev) => [...prev, ...newFiles]);
+    // Reset input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Strip HTML tags to check if body has content
+  const isBodyEmpty = !body || body.replace(/<[^>]*>/g, "").trim().length === 0;
+
   const handleSend = async () => {
-    if (!subject.trim() || !body.trim()) {
+    if (!subject.trim() || isBodyEmpty) {
       toast.error("Subject and body are required.");
       return;
     }
@@ -66,7 +129,12 @@ export default function MassEmailPage() {
     setResult(null);
 
     const res = await sendMassEmailController(
-      { subject, body, recipientFilter: recipientFilter || undefined },
+      {
+        subject,
+        body,
+        recipientFilter: recipientFilter || undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      },
       accessToken!
     );
 
@@ -76,6 +144,7 @@ export default function MassEmailPage() {
       setSubject("");
       setBody("");
       setRecipientFilter("");
+      setAttachments([]);
     } else {
       toast.error(res.message);
     }
@@ -172,18 +241,75 @@ export default function MassEmailPage() {
           />
         </div>
 
-        {/* Body */}
+        {/* Body — Rich Text Editor */}
         <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-3">
           <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
             Email Body *
           </label>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Write the email content here... Supports plain text."
-            rows={10}
-            className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
+          <div className="quill-wrapper rounded-xl overflow-hidden border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40">
+            <ReactQuill
+              theme="snow"
+              value={body}
+              onChange={setBody}
+              modules={quillModules}
+              formats={quillFormats}
+              placeholder="Write the email content here..."
+              className="[&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-cream-300 dark:[&_.ql-toolbar]:border-navy-700 [&_.ql-toolbar]:bg-cream-100/50 dark:[&_.ql-toolbar]:bg-navy-700/60 [&_.ql-container]:border-none [&_.ql-container]:min-h-[200px] [&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-editor]:text-navy dark:[&_.ql-editor]:text-cream [&_.ql-editor.ql-blank::before]:text-steel/40 dark:[&_.ql-editor.ql-blank::before]:text-sky/30"
+            />
+          </div>
+        </div>
+
+        {/* Attachments */}
+        <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
+            <Paperclip className="w-4 h-4 text-steel dark:text-sky" />
+            Attachments
+          </label>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileAdd}
+            className="hidden"
           />
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border border-dashed border-cream-400 dark:border-navy-600 bg-cream-100/40 dark:bg-navy-700/20 text-steel dark:text-sky/60 hover:border-steel/30 dark:hover:border-sky/30 hover:bg-cream-200/40 dark:hover:bg-navy-600/20 transition-all cursor-pointer"
+          >
+            <Paperclip className="w-3.5 h-3.5" />
+            Add Files
+          </button>
+
+          {attachments.length > 0 && (
+            <div className="space-y-2 mt-2">
+              {attachments.map((file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl bg-cream-100/60 dark:bg-navy-600/20 border border-cream-300/30 dark:border-navy-700/30"
+                >
+                  <FileIcon className="w-4 h-4 text-steel/50 dark:text-sky/40 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-navy dark:text-cream truncate">
+                      {file.name}
+                    </p>
+                    <p className="text-[10px] text-steel/50 dark:text-sky/35">
+                      {formatFileSize(file.size)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAttachment(index)}
+                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-100/50 dark:hover:bg-red-900/20 text-steel/40 hover:text-red-500 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Result message */}
@@ -207,7 +333,7 @@ export default function MassEmailPage() {
         {/* Send Button */}
         <button
           onClick={handleSend}
-          disabled={sending || !subject.trim() || !body.trim()}
+          disabled={sending || !subject.trim() || isBodyEmpty}
           className="w-full h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold text-cream-50 bg-gradient-to-r from-steel to-steel-600 hover:from-steel-600 hover:to-steel dark:from-sky dark:to-sky/80 dark:hover:from-sky/90 dark:hover:to-sky dark:text-navy shadow-md shadow-steel/20 dark:shadow-sky/15 transition-all cursor-pointer disabled:opacity-50"
         >
           {sending ? (
@@ -217,6 +343,11 @@ export default function MassEmailPage() {
           ) : (
             <>
               <Send className="w-4 h-4" /> Send Mass Email
+              {attachments.length > 0 && (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-cream-50/20 dark:bg-navy/20">
+                  {attachments.length} file{attachments.length > 1 ? "s" : ""}
+                </span>
+              )}
             </>
           )}
         </button>
