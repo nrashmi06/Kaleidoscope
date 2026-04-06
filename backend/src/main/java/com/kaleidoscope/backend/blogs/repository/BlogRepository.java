@@ -49,7 +49,11 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, JpaSpecificat
             "LEFT JOIN FETCH bt.taggedBlog")
     Page<Blog> findAllWithRelations(Pageable pageable);
 
-    // Cursor-based pagination for efficient batch processing (avoids OFFSET table scans)
+    // Step 1: page by IDs only to keep pagination in SQL (no collection fetch joins here)
+    @Query("SELECT b.blogId FROM Blog b WHERE b.blogId > :lastSeenId ORDER BY b.blogId ASC")
+    List<Long> findNextBatchIds(@Param("lastSeenId") Long lastSeenId, Pageable pageable);
+
+    // Step 2: hydrate full graph for selected IDs in one query
     @Query("SELECT DISTINCT b FROM Blog b " +
             "LEFT JOIN FETCH b.user " +
             "LEFT JOIN FETCH b.reviewer " +
@@ -59,7 +63,7 @@ public interface BlogRepository extends JpaRepository<Blog, Long>, JpaSpecificat
             "LEFT JOIN FETCH b.location " +
             "LEFT JOIN FETCH b.taggedBlogs bt " +
             "LEFT JOIN FETCH bt.taggedBlog " +
-            "WHERE b.blogId > :lastSeenId " +
+            "WHERE b.blogId IN :blogIds " +
             "ORDER BY b.blogId ASC")
-    List<Blog> findNextBatchWithRelations(@Param("lastSeenId") Long lastSeenId, Pageable pageable);
+    List<Blog> findByBlogIdInWithRelations(@Param("blogIds") List<Long> blogIds);
 }

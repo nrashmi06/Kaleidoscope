@@ -158,7 +158,7 @@ public interface BlogApi {
 
     @Operation(
         summary = "Update blog status (Admin only)",
-        description = "Allows administrators to change the approval status of a blog. This endpoint enables content moderation workflow by updating blog status to any of the following: DRAFT, APPROVAL_PENDING, APPROVED, FLAGGED, ARCHIVED, REJECTED, or PUBLISHED. Only users with ADMIN role can access this endpoint.",
+        description = "Allows administrators to change the approval status of a blog. This endpoint enables content moderation workflow by updating blog status to any of the following: DRAFT, APPROVAL_PENDING, FLAGGED, ARCHIVED, REJECTED, or PUBLISHED. Only users with ADMIN role can access this endpoint.",
         tags = {"Blog Management", "Admin"}
     )
     @ApiResponses(value = {
@@ -177,7 +177,7 @@ public interface BlogApi {
                           "data": {
                             "blogId": 123,
                             "title": "Sample Blog Title",
-                            "status": "APPROVED",
+                            "status": "PUBLISHED",
                             "reviewedBy": "admin@example.com",
                             "reviewedAt": "2024-01-15T10:30:00Z",
                             "notes": "Content approved for publication"
