@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { loginUser } from "@/services/auth/login";
+import { verifyEmail } from "@/services/auth/verifyEmailResend";
 import { useAppDispatch } from "@/hooks/appDispatch";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -15,6 +16,10 @@ export default function SigninForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const dispatch = useAppDispatch();
   const router = useRouter();
 
@@ -38,6 +43,26 @@ export default function SigninForm() {
     },
     [email, password, dispatch, router]
   );
+
+  const handleResendVerification = async () => {
+    if (!resendEmail.trim()) {
+      setResendMessage({ text: "Please enter your email address.", type: "error" });
+      return;
+    }
+    setResendLoading(true);
+    setResendMessage(null);
+    try {
+      const result = await verifyEmail({ email: resendEmail.trim() });
+      setResendMessage({
+        text: result.success ? "Verification email sent! Check your inbox." : (result.message || "Failed to send verification email."),
+        type: result.success ? "success" : "error",
+      });
+    } catch {
+      setResendMessage({ text: "An unexpected error occurred.", type: "error" });
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -125,7 +150,53 @@ export default function SigninForm() {
               Sign up
             </a>
           </p>
+          <p>
+            <button
+              type="button"
+              onClick={() => setShowResendVerification(!showResendVerification)}
+              className="font-semibold text-indigo-900 underline dark:text-indigo-300 cursor-pointer"
+            >
+              Resend verification email
+            </button>
+          </p>
         </div>
+
+        {/* Resend Verification Section */}
+        {showResendVerification && (
+          <div className="mt-4 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/20">
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-3">
+              Enter the email you used to register and we&apos;ll resend the verification link.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={resendEmail}
+                onChange={(e) => setResendEmail(e.target.value)}
+                className="flex-1 text-sm bg-white dark:bg-zinc-900 border-indigo-300 dark:border-indigo-600"
+              />
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className={cn(
+                  "px-4 py-2 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all",
+                  resendLoading && "opacity-70 cursor-not-allowed"
+                )}
+              >
+                {resendLoading ? "Sending..." : "Send"}
+              </button>
+            </div>
+            {resendMessage && (
+              <p className={cn(
+                "mt-2 text-xs",
+                resendMessage.type === "success" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                {resendMessage.text}
+              </p>
+            )}
+          </div>
+        )}
       </form>
 
       {/* Alerts */}

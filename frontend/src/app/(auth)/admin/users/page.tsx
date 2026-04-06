@@ -20,14 +20,13 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const STATUSES = ["ACTIVE", "SUSPENDED", "BANNED", "DEACTIVATED"] as const;
+const STATUSES = ["ACTIVE", "SUSPENDED", "DEACTIVATED"] as const;
 type ProfileStatus = (typeof STATUSES)[number];
 
 const STATUS_FILTERS = [
   { value: "", label: "All" },
   { value: "ACTIVE", label: "Active" },
   { value: "SUSPENDED", label: "Suspended" },
-  { value: "BANNED", label: "Banned" },
   { value: "DEACTIVATED", label: "Deactivated" },
 ] as const;
 
@@ -52,8 +51,6 @@ function getStatusBadgeClasses(status: string): string {
       return "bg-green-100/60 text-green-700 dark:bg-green-900/20 dark:text-green-400";
     case "SUSPENDED":
       return "bg-amber-100/60 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400";
-    case "BANNED":
-      return "bg-red-100/60 text-red-700 dark:bg-red-900/20 dark:text-red-400";
     case "DEACTIVATED":
       return "bg-steel/10 text-steel dark:bg-sky/10 dark:text-sky";
     default:
@@ -361,8 +358,6 @@ export default function AdminUsersPage() {
                                 ? "bg-green-500"
                                 : status === "SUSPENDED"
                                 ? "bg-amber-500"
-                                : status === "BANNED"
-                                ? "bg-red-500"
                                 : "bg-steel/40 dark:bg-sky/40"
                             }`}
                           />

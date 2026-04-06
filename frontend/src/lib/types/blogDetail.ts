@@ -25,11 +25,18 @@ export interface BlogDetailResponse {
   blogStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   createdAt: string;
   updatedAt: string;
+  reviewedAt?: string;
   author: AuthorResponse;
+  reviewer?: AuthorResponse;
   categories: CategorySummary[];
   media: MediaResponse[];
   location?: LocationResponse;
   blogTags: BlogTagSummary[];
+  tags: string[];
+  reactionCount: number;
+  commentCount: number;
+  viewCount: number;
+  currentUserReaction?: string | null;
 }
 
 export type GetBlogByIdResponse = NullableApiResponse<BlogDetailResponse>;

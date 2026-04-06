@@ -14,6 +14,7 @@ import PostLoader from "@/components/loading/PostLoader";
 import { UserProfileHeader } from "./UserProfileHeader";
 import { UserProfileStats } from "./UserProfileStats";
 import { UserProfilePosts } from "./UserProfilePosts";
+import { UserProfileArticles } from "./UserProfileArticles";
 
 interface UserProfileProps {
   userId: number;
@@ -154,6 +155,16 @@ export function UserProfile({ userId }: UserProfileProps) {
         onPostDeleted={handlePostDeleted}
         username={profile.username}
       />
+
+      {!isPostsPrivate && accessToken && (
+        <UserProfileArticles
+          userId={userId}
+          accessToken={accessToken}
+          isOwner={isOwner}
+          isPrivate={profile.isPrivate}
+          username={profile.username}
+        />
+      )}
     </div>
   );
 }

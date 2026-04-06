@@ -30,6 +30,7 @@ export default function ResetStage({
 }) {
   const router = useRouter();
   const [showPasswordToast, setShowPasswordToast] = useState(false);
+  const [resetError, setResetError] = useState("");
 
   const getPasswordErrors = (password: string) => {
     const errors: string[] = [];
@@ -47,14 +48,19 @@ export default function ResetStage({
     e.preventDefault();
     setMessage("");
     setError("");
+    setResetError("");
 
     if (!otp.every((digit) => digit.trim().length === 1)) {
-      setError("Enter complete 6-digit OTP.");
+      const msg = "Enter complete 6-digit OTP.";
+      setError(msg);
+      setResetError(msg);
       return;
     }
 
     if (!isPasswordStrong || newPassword !== confirmPassword) {
-      setError("Passwords must match and meet security requirements.");
+      const msg = "Passwords must match and meet security requirements.";
+      setError(msg);
+      setResetError(msg);
       return;
     }
 
@@ -65,13 +71,16 @@ export default function ResetStage({
 
     if (result.success) {
       setMessage(result.message || "Password reset successfully.");
+      setResetError("");
       setStage(1);
       setOtp(Array(6).fill(""));
       setPassword("");
       setConfirmPassword("");
       router.push("/login");
     } else {
-      setError(result.message || "Failed to reset password.");
+      const msg = result.message || "Failed to reset password.";
+      setError(msg);
+      setResetError(msg);
     }
   };
 
@@ -84,6 +93,22 @@ export default function ResetStage({
       if (value && index < otp.length - 1) {
         const nextInput = document.getElementById(`otp-${index + 1}`) as HTMLInputElement;
         nextInput?.focus();
+      }
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      const updated = [...otp];
+      if (otp[index]) {
+        updated[index] = "";
+        setOtp(updated);
+      } else if (index > 0) {
+        updated[index - 1] = "";
+        setOtp(updated);
+        const prevInput = document.getElementById(`otp-${index - 1}`) as HTMLInputElement;
+        prevInput?.focus();
       }
     }
   };
@@ -102,11 +127,15 @@ export default function ResetStage({
               maxLength={1}
               value={digit}
               onChange={(e) => handleOtpChange(i, e.target.value)}
+              onKeyDown={(e) => handleOtpKeyDown(i, e)}
               className="w-10 h-10 text-center text-lg"
               autoFocus={i === 0}
             />
           ))}
         </div>
+        {resetError && (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400 font-medium">{resetError}</p>
+        )}
       </div>
 
       <div className={cn("flex w-full flex-col space-y-2")}>

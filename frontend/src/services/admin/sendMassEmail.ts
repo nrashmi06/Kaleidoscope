@@ -5,6 +5,7 @@ interface SendMassEmailRequest {
   subject: string;
   body: string;
   recipientFilter?: string;
+  attachments?: File[];
 }
 
 interface SendMassEmailResponse {
@@ -23,10 +24,21 @@ export const sendMassEmail = async (
   const url = AdminMapper.sendMassEmail;
 
   try {
-    const res = await axiosInstance.post<SendMassEmailResponse>(url, data, {
+    const formData = new FormData();
+    formData.append("subject", data.subject);
+    formData.append("body", data.body);
+    if (data.recipientFilter) {
+      formData.append("recipientFilter", data.recipientFilter);
+    }
+    if (data.attachments) {
+      data.attachments.forEach((file) => {
+        formData.append("attachments", file);
+      });
+    }
+
+    const res = await axiosInstance.post<SendMassEmailResponse>(url, formData, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
       },
     });
 

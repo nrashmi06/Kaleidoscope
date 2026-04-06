@@ -296,7 +296,7 @@ export default function BlogDetailPage() {
                   >
                     {blog.author.username}
                   </p>
-                  <div className="flex items-center gap-3 text-[11px] text-steel/60 dark:text-sky/40">
+                  <div className="flex items-center gap-3 flex-wrap text-[11px] text-steel/60 dark:text-sky/40">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {formatDistanceToNow(new Date(blog.createdAt), {
@@ -307,6 +307,10 @@ export default function BlogDetailPage() {
                       <BookOpen className="w-3 h-3" />
                       {blog.readTimeMinutes} min read
                     </span>
+                    <span>{blog.wordCount} words</span>
+                    {blog.viewCount > 0 && (
+                      <span>{blog.viewCount} view{blog.viewCount !== 1 ? "s" : ""}</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -389,12 +393,48 @@ export default function BlogDetailPage() {
             </blockquote>
           )}
 
+          {/* Tags */}
+          {blog.tags && blog.tags.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {blog.tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs font-medium px-2.5 py-1 rounded-full bg-steel/[0.06] dark:bg-sky/[0.06] text-steel dark:text-sky/70 border border-steel/10 dark:border-sky/10"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Article body */}
           <div className="prose dark:prose-invert max-w-none text-navy/80 dark:text-cream/80 leading-relaxed text-[16.5px]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {blog.body}
             </ReactMarkdown>
           </div>
+
+          {/* Meta info: reviewer, updated date */}
+          {(blog.reviewer || blog.updatedAt !== blog.createdAt) && (
+            <div className="flex items-center gap-4 flex-wrap text-[11px] text-steel/50 dark:text-sky/35">
+              {blog.updatedAt && blog.updatedAt !== blog.createdAt && (
+                <span>
+                  Updated {formatDistanceToNow(new Date(blog.updatedAt), { addSuffix: true })}
+                </span>
+              )}
+              {blog.reviewer && (
+                <span>
+                  Reviewed by{" "}
+                  <span className="font-semibold text-steel/70 dark:text-sky/50">
+                    {blog.reviewer.username}
+                  </span>
+                  {blog.reviewedAt && (
+                    <> {formatDistanceToNow(new Date(blog.reviewedAt), { addSuffix: true })}</>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Gradient divider */}
           <div className="h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />

@@ -5,13 +5,13 @@ import { useAppSelector } from "@/hooks/useAppSelector";
 import {
   Home,
   Users,
-  ImageIcon,
   Settings,
   MapPin,
   Book,
   Bookmark,
   Mail,
   UserCog,
+  FileCheck,
 } from "lucide-react";
 
 const navigationItems = [
@@ -20,8 +20,8 @@ const navigationItems = [
   { icon: MapPin, label: "Locations", path: "/locations", adminOnly: false },
   { icon: Book, label: "Articles", path: "/articles", adminOnly: false },
   { icon: Bookmark, label: "Saved", path: "/saved", adminOnly: false },
-  { icon: ImageIcon, label: "Gallery", path: "/gallery", adminOnly: false },
   { icon: Settings, label: "Settings", path: "/settings", adminOnly: false },
+  { icon: FileCheck, label: "Manage Articles", path: "/admin/articles", adminOnly: true },
   { icon: Mail, label: "Mass Email", path: "/admin/mass-email", adminOnly: true },
   { icon: UserCog, label: "Manage Users", path: "/admin/users", adminOnly: true },
 ];

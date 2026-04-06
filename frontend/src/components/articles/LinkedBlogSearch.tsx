@@ -30,8 +30,9 @@ export default function LinkedBlogSearch({
   const [showDropdown, setShowDropdown] = useState(false);
   const debouncedQuery = useDebounce(query, 400);
 
-  const containerRef = useRef<HTMLDivElement>(null); 
-  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // --- Fetch Blogs based on search query ---
   const fetchBlogs = useCallback(async (searchQuery: string) => {
     if (!accessToken) {
@@ -66,22 +67,32 @@ export default function LinkedBlogSearch({
     }
   }, [accessToken]);
 
-  // Sync selectedBlogData with the IDs provided by the parent
-  // When the component loads, or the parent state changes, try to build the display list.
+  // Ref-based cache to avoid re-render loops
+  const blogCacheRef = useRef<Map<number, BlogItem>>(new Map());
+
+  // Cache results as they come in
   useEffect(() => {
-    // Collect all blog data objects needed for display (from current results + cached data)
-    const allKnownBlogs = [...results, ...selectedBlogData];
-    
-    const initialSelectedData = selectedBlogIds
-      .map(id => allKnownBlogs.find(b => b.blogId === id))
+    results.forEach((blog) => blogCacheRef.current.set(blog.blogId, blog));
+  }, [results]);
+
+  // Cache selected blog data as well
+  useEffect(() => {
+    selectedBlogData.forEach((blog) => blogCacheRef.current.set(blog.blogId, blog));
+  }, [selectedBlogData]);
+
+  // Sync selectedBlogData with the IDs provided by the parent
+  useEffect(() => {
+    const newData = selectedBlogIds
+      .map((id) => blogCacheRef.current.get(id))
       .filter((blog): blog is BlogItem => !!blog);
 
-    // Filter out duplicates and set the authoritative list for display
-    setSelectedBlogData(initialSelectedData.filter((blog, index, self) => 
-        index === self.findIndex((b) => b.blogId === blog.blogId)
-    ));
-
-  }, [selectedBlogIds, results]);
+    // Only update if the list actually changed
+    const currentIds = selectedBlogData.map((b) => b.blogId).join(",");
+    const newIds = newData.map((b) => b.blogId).join(",");
+    if (currentIds !== newIds) {
+      setSelectedBlogData(newData);
+    }
+  }, [selectedBlogIds]);
 
 
   // Trigger search on debounced query change
@@ -147,6 +158,7 @@ export default function LinkedBlogSearch({
       {/* 4. UI/UX Improvement: Search Input */}
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
