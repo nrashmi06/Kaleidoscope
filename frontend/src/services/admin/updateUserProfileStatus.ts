@@ -3,7 +3,7 @@ import { UserMapper } from "@/mapper/userMapper";
 
 interface UpdateProfileStatusRequest {
   userId: number;
-  status: string;
+  profileStatus: string;
 }
 
 interface StandardResponse {
@@ -22,7 +22,7 @@ export const updateUserProfileStatus = async (
   const url = UserMapper.updateUserProfileStatusAdmin;
 
   try {
-    const res = await axiosInstance.patch<StandardResponse>(url, data, {
+    const res = await axiosInstance.put<StandardResponse>(url, data, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
