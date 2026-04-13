@@ -16,7 +16,7 @@ export async function updateUserProfileStatusController(
   }
 
   try {
-    const res = await updateUserProfileStatus({ userId, status }, accessToken);
+    const res = await updateUserProfileStatus({ userId, profileStatus: status }, accessToken);
     return {
       success: res.success,
       message: res.message || (res.success ? "User status updated successfully." : "Failed to update user status."),

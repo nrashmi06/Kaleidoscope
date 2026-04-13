@@ -3,7 +3,7 @@ import { UserMapper } from "@/mapper/userMapper";
 
 interface UpdateProfileStatusRequest {
   userId: number;
-  status: string;
+  profileStatus: string;
 }
 
 interface StandardResponse {
