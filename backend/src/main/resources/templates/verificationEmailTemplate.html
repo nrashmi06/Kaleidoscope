@@ -3,90 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome Email</title>
+    <title>Welcome | Kaleidoscope</title>
+
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .header {
-            background-color: #4CAF50;
-            color: #ffffff;
-            text-align: center;
             padding: 20px;
+            background: #0b0b0e;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
         }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #141418;
+            border-radius: 12px;
+            border: 1px solid #6366f1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            padding: 25px 20px 10px;
+            text-align: center;
+        }
+
         .header h1 {
             margin: 0;
+            font-size: 26px;
+            color: #6366f1;
         }
+
         .content {
-            padding: 20px;
+            padding: 20px 30px;
             text-align: center;
         }
-        .content img {
-            max-width: 100%;
-            height: auto;
-            margin: 20px 0;
+
+        .icon {
+            font-size: 42px;
+            margin-bottom: 10px;
         }
+
+        .message-box {
+            margin: 15px 0;
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px solid rgba(99,102,241,0.3);
+            background: rgba(99,102,241,0.05);
+            color: #e2e8f0;
+        }
+
         .btn {
             display: inline-block;
-            margin-top: 20px;
             padding: 12px 24px;
-            font-size: 16px;
-            color: #ffffff;
-            background-color: #4CAF50;
+            background: #6366f1;
+            color: #fff;
             text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: 600;
         }
+
         .btn:hover {
-            background-color: #45a049;
+            background: #4f46e5;
         }
+
+        .secondary-link {
+            display: block;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #a5b4fc;
+            text-decoration: none;
+        }
+
         .footer {
-            background-color: #f4f4f9;
+            padding: 15px;
             text-align: center;
-            padding: 10px;
             font-size: 12px;
-            color: #777;
-        }
-        .terms {
-            font-size: 12px;
-            color: #555;
-            margin-top: 20px;
-            text-align: left;
-            line-height: 1.5;
+            color: #888;
+            border-top: 1px solid #222;
         }
     </style>
 </head>
+
 <body>
 <div class="container">
+
     <div class="header">
-        <h1>Welcome to Kaleidoscope!</h1>
+        <h1>Welcome to Kaleidoscope</h1>
     </div>
+
     <div class="content">
-        <p>Thank you for joining our platform! We're thrilled to have you on board.</p>
-        <img src="https://img.freepik.com/premium-vector/businessman-reading-contract-flat-vector-isometric-illustration-terms-conditions-agreement-checking-signing_103044-1746.jpg?semt=ais_hybrid" alt="Welcome Banner">
-        <p>Please read our terms and conditions thoroughly before you proceed:</p>
-        <a href="https://www.project-kaleidoscope.tech/terms" class="btn">View Terms and Conditions</a>
-        <div class="terms">
-            <p>By signing up, you agree to abide by our community rules and guidelines. For more information on what we do, please visit our <a href="https://www.project-kaleidoscope.tech/about">About Page</a>.</p>
+
+        <div class="icon">✨</div>
+
+        <div class="message-box">
+            <p>We’re excited to have you here.</p>
+            <p>Before you get started, please review and accept our terms.</p>
         </div>
-        <a th:href="${verificationUrl}" class="btn">I Agree to Terms and Conditions</a>
-        <p>If you didn't request this, you can safely ignore this email.</p>
+
+        <a href="https://www.project-kaleidoscope.tech/terms" class="btn">
+            View Terms & Conditions
+        </a>
+
+        <a th:href="${verificationUrl}" class="btn">
+            Accept & Continue
+        </a>
+
+        <a href="https://www.project-kaleidoscope.tech/about" class="secondary-link">
+            Learn more about Kaleidoscope
+        </a>
+
+        <p class="secondary-link">
+            If you didn’t create this account, you can ignore this email.
+        </p>
+
     </div>
+
     <div class="footer">
         <p>&copy; 2026 Kaleidoscope. All rights reserved.</p>
     </div>
+
 </div>
 </body>
 </html>

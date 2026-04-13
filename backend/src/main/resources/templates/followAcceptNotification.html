@@ -3,56 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Follow Request Accepted</title>
+    <title>Follow Request Accepted | Kaleidoscope</title>
+
     <style>
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
             padding: 20px;
+            background: #0b0b0e;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
         }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #141418;
+            border-radius: 12px;
+            border: 1px solid #22c55e;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: float 5s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+
         .header {
-            background-color: #10B981;
-            color: white;
-            padding: 20px;
+            padding: 25px 20px 10px;
             text-align: center;
-            border-radius: 5px 5px 0 0;
         }
+
+        .header h1 {
+            margin: 0;
+            font-size: 26px;
+            color: #22c55e;
+        }
+
         .content {
-            background-color: #f9fafb;
-            padding: 30px;
-            border-radius: 0 0 5px 5px;
+            padding: 0 30px 20px;
+            text-align: center;
         }
-        .button {
+
+        .status-icon {
+            font-size: 42px;
+            color: #22c55e;
+            margin-top: 10px;
+        }
+
+        .message-box {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(34,197,94,0.3);
+            background: rgba(34,197,94,0.05);
+            color: #e2e8f0;
+        }
+
+        .btn {
             display: inline-block;
             padding: 12px 24px;
-            background-color: #10B981;
-            color: white;
+            background: #22c55e;
+            color: #fff;
             text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: 600;
+            transition: background 0.3s ease;
         }
+
+        .btn:hover {
+            background: #16a34a;
+        }
+
         .footer {
+            padding: 15px;
             text-align: center;
-            margin-top: 20px;
-            color: #6b7280;
-            font-size: 12px;
+            font-size: 13px;
+            color: #888;
+            border-top: 1px solid #222;
         }
     </style>
 </head>
+
 <body>
+<div class="container">
+
     <div class="header">
-        <h1>Request Accepted!</h1>
+        <h1>Request Accepted</h1>
     </div>
+
     <div class="content">
-        <p th:text="${message}">Your follow request was accepted.</p>
-        <a th:href="${baseUrl + '/profile/' + actorUsername}" class="button" th:if="${actorUsername}">View Profile</a>
+        <div class="status-icon">✓</div>
+
+        <div class="message-box">
+            <p th:text="${message}">Your follow request was accepted.</p>
+        </div>
+
+        <a th:href="${baseUrl + '/profile/' + actorUsername}"
+           class="btn"
+           th:if="${actorUsername}">
+            View Profile
+        </a>
     </div>
+
     <div class="footer">
-        <p>You received this email because you have notifications enabled on Kaleidoscope.</p>
+        <p>You received this email because notifications are enabled on Kaleidoscope.</p>
     </div>
+
+</div>
 </body>
 </html>
-
