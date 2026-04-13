@@ -15,7 +15,7 @@ export interface StandardApiResponse<T> {
 /**
  * Union type for blog post status.
  */
-export type BlogStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type BlogStatus = "DRAFT" | "APPROVAL_PENDING" | "FLAGGED" | "ARCHIVED" | "REJECTED" | "PUBLISHED";
 
 /**
  * Union type for blog post visibility.

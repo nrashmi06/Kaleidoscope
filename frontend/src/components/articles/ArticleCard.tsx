@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { Eye, Heart, MessageCircle, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
 import type { BlogAuthor, CategorySummary } from "@/lib/types/blogFilter.types";
 
 interface ArticleCardProps {
@@ -30,6 +31,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   createdAt,
   onClick,
 }) => {
+  const router = useRouter();
   const timeAgo = createdAt
     ? formatDistanceToNow(new Date(createdAt), { addSuffix: true })
     : null;
@@ -124,7 +126,17 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-navy/80 dark:text-cream/70 truncate">
+              <p
+                onClick={(e) => {
+                  if (author?.userId) {
+                    e.stopPropagation();
+                    router.push(`/profile/${author.userId}`);
+                  }
+                }}
+                className={`text-[11px] font-medium text-navy/80 dark:text-cream/70 truncate ${
+                  author?.userId ? "cursor-pointer hover:underline hover:text-steel dark:hover:text-sky" : ""
+                }`}
+              >
                 {author?.username || "Anonymous"}
               </p>
               {timeAgo && (

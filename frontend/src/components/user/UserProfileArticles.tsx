@@ -145,10 +145,16 @@ export function UserProfileArticles({
                     ? "bg-green-100/60 text-green-700 dark:bg-green-900/20 dark:text-green-400"
                     : article.blogStatus === "DRAFT"
                     ? "bg-amber-100/60 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+                    : article.blogStatus === "APPROVAL_PENDING"
+                    ? "bg-blue-100/60 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                    : article.blogStatus === "FLAGGED"
+                    ? "bg-orange-100/60 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
+                    : article.blogStatus === "REJECTED"
+                    ? "bg-red-100/60 text-red-700 dark:bg-red-900/20 dark:text-red-400"
                     : "bg-steel/10 text-steel dark:bg-sky/10 dark:text-sky"
                 }`}
               >
-                {article.blogStatus}
+                {article.blogStatus === "APPROVAL_PENDING" ? "PENDING" : article.blogStatus}
               </span>
             </div>
           ))}

@@ -42,24 +42,50 @@ export default function NotificationItem({
     setIsReadLocal(item.isRead);
   }, [item.isRead]);
 
-  const handleMarkRead = async () => {
-    if (!token || isReadLocal || busy) return;
+  const getNotificationRoute = (): string | null => {
+    const t = (item.type || "").toUpperCase();
 
-    setIsReadLocal(true);
-    dispatch(setCount(Math.max(0, unreadCount - 1)));
+    if (t.includes("FOLLOW")) return "/friends";
 
-    setIsMarking(true);
-    try {
-      const res = await markAsRead(token, item.notificationId);
-      if (res.success && res.data) {
-        onUpdated?.(res.data as NotificationType);
-      }
-    } catch {
-      setIsReadLocal(false);
-      dispatch(setCount(unreadCount + 1));
-    } finally {
-      setIsMarking(false);
+    if (item.contentId) {
+      const ct = (item.contentType || "").toUpperCase();
+      if (ct === "BLOG" || ct === "ARTICLE") return `/articles/${item.contentId}`;
+      if (ct === "POST") return `/post/${item.contentId}`;
+      if (ct === "COMMENT") return `/post/${item.contentId}`;
     }
+
+    if (item.link) return item.link;
+
+    if (item.actorUserId) return `/profile/${item.actorUserId}`;
+
+    return null;
+  };
+
+  const handleClick = async () => {
+    if (busy) return;
+
+    // Mark as read if unread
+    if (!isReadLocal && token) {
+      setIsReadLocal(true);
+      dispatch(setCount(Math.max(0, unreadCount - 1)));
+
+      setIsMarking(true);
+      try {
+        const res = await markAsRead(token, item.notificationId);
+        if (res.success && res.data) {
+          onUpdated?.(res.data as NotificationType);
+        }
+      } catch {
+        setIsReadLocal(false);
+        dispatch(setCount(unreadCount + 1));
+      } finally {
+        setIsMarking(false);
+      }
+    }
+
+    // Navigate to the relevant page
+    const route = getNotificationRoute();
+    if (route) router.push(route);
   };
 
   const confirmDelete = async () => {
@@ -90,7 +116,7 @@ export default function NotificationItem({
   return (
     <>
       <div
-        onClick={handleMarkRead}
+        onClick={handleClick}
         className={`group relative flex items-start gap-3 p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
           isReadLocal
             ? "bg-cream-50/50 dark:bg-navy-700/30 border-cream-300/30 dark:border-navy-700/30"

@@ -43,7 +43,7 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
       {/* Logo */}
       <div
         className="flex items-center cursor-pointer select-none"
-        onClick={() => router.push("/")}
+        onClick={() => router.push("/feed")}
       >
         <Image
           src="/icon.png"
@@ -63,9 +63,10 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
         <button
           onClick={() => router.push("/create-post")}
           aria-label="Create Post"
-          className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-steel/10 dark:hover:bg-sky/10 hover:text-navy dark:hover:text-sky transition-all duration-200 focus:outline-none cursor-pointer"
+          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl text-cream-50 bg-steel hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky/80 shadow-sm shadow-steel/20 dark:shadow-sky/15 transition-all duration-200 focus:outline-none cursor-pointer text-sm font-semibold"
         >
-          <IconPlus size={19} />
+          <IconPlus size={18} />
+          <span className="hidden lg:inline">Post</span>
         </button>
 
         <div className="relative flex items-center justify-center w-9 h-9">

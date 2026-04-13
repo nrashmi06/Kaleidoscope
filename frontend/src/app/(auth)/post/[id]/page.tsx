@@ -56,7 +56,7 @@ export default function PostDetailPage() {
         postId={postId}
         accessToken={accessToken}
         onPostNotFound={() => router.push("/404")}
-        onAuthError={() => router.push("/login")}
+        onAuthError={() => router.push("/feed")}
       />
     </div>
   );
