@@ -1,84 +1,142 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Verified</title>
+    <title>Email Verified | Kaleidoscope</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            background: #f4f4f9;
+            background: #0b0b0e;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
         }
+
         .container {
             max-width: 500px;
-            margin: auto;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            background: #141418;
+            border-radius: 12px;
+            border: 1px solid #22c55e; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: float 5s ease-in-out infinite;
         }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+
         .header {
-            background: #4CAF50;
-            color: #fff;
-            padding: 15px;
+            padding: 25px 20px 10px;
             text-align: center;
-            border-radius: 8px 8px 0 0;
+            border-radius: 12px 12px 0 0;
         }
+
         .header h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 26px;
+            color: #22c55e; 
+            letter-spacing: 0.5px;
         }
+
         .content {
-            padding: 20px;
+            padding: 0 30px 20px;
             text-align: center;
         }
+
         .content img {
-            width: 200px;
+            width: 180px;
             height: auto;
             margin: 15px 0;
+            border-radius: 8px;
+            opacity: 0.9;
         }
+
+        .success-msg {
+            color: #e2e8f0;
+            margin: 15px 0;
+            padding: 12px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 6px;
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .checkmark {
+            color: #22c55e;
+            font-size: 45px;
+            margin: 10px 0 0;
+        }
+
         .btn {
             display: inline-block;
-            padding: 10px 20px;
-            background: #4CAF50;
+            padding: 12px 24px;
+            background: #22c55e;
             color: #fff;
             text-decoration: none;
-            border-radius: 4px;
-            margin-top: 15px;
+            border-radius: 6px;
+            margin: 15px 5px 5px;
+            font-weight: 600;
+            transition: background 0.3s ease;
         }
+
+        .btn:hover {
+            background: #16a34a;
+        }
+
         .footer {
-            background: #f4f4f9;
-            padding: 10px;
+            padding: 15px;
             text-align: center;
-            font-size: 12px;
-            color: #666;
-            border-radius: 0 0 8px 8px;
+            font-size: 13px;
+            color: #888;
+            border-top: 1px solid #222;
+            border-radius: 0 0 12px 12px;
         }
-        .checkmark {
-            color: #4CAF50;
-            font-size: 40px;
-            margin: 10px 0;
+
+        .note {
+            color: #a0aec0;
+            margin-top: 10px;
+            font-size: 14px;
         }
+
     </style>
 </head>
+
 <body>
 <div class="container">
+    
     <div class="header">
         <h1>Email Verified</h1>
     </div>
+
     <div class="content">
+        
         <div class="checkmark">✓</div>
+
+        <div class="success-msg">
+            <p th:text="${message}">Your email has been verified successfully!</p>
+        </div>
+
         <img src="https://img.freepik.com/free-vector/completed-concept-illustration_114360-3891.jpg"
-             alt="Success"
-             width="200">
-        <p th:text="${message}">Your email has been verified successfully!</p>
-        <p>You can now access all features of Kaleidoscope.</p>
-        <a href="https://www.project-kaleidoscope.tech/login" class="btn">Login Now</a>
+             alt="Success">
+
+        <p class="note">You can now access all features of Kaleidoscope.</p>
+
+        <a href="https://www.project-kaleidoscope.tech/login" class="btn">
+            Login Now
+        </a>
     </div>
+
     <div class="footer">
         <p>&copy; 2026 Kaleidoscope</p>
     </div>
+
 </div>
 </body>
 </html>

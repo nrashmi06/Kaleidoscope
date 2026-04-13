@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Comment | Kaleidoscope</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #0b0b0e;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #141418;
+            border-radius: 12px;
+            border: 1px solid #6366f1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: float 5s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .header {
+            padding: 25px 20px 10px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 26px;
+            color: #6366f1;
+        }
+
+        .content {
+            padding: 0 30px 20px;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 40px;
+            color: #6366f1;
+            margin-top: 10px;
+        }
+
+        .message-box {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(99,102,241,0.3);
+            background: rgba(99,102,241,0.05);
+            color: #e2e8f0;
+        }
+
+        .username {
+            font-weight: 600;
+            color: #a5b4fc;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #6366f1;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        .footer {
+            padding: 15px;
+            text-align: center;
+            font-size: 13px;
+            color: #888;
+            border-top: 1px solid #222;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>New Comment</h1>
+    </div>
+
+    <div class="content">
+
+        <div class="icon">💬</div>
+
+        <div class="message-box">
+            <p th:text="${message}">Someone commented on your post.</p>
+
+            <p th:if="${actorUsername}">
+                <span class="username" th:text="${actorUsername}">Username</span>
+                left a comment.
+            </p>
+        </div>
+
+        <a th:href="${link}" class="btn" th:if="${link}">
+            View Comment
+        </a>
+
+    </div>
+
+    <div class="footer">
+        <p>You received this email because comment notifications are enabled on Kaleidoscope.</p>
+    </div>
+
+</div>
+</body>
+</html>
