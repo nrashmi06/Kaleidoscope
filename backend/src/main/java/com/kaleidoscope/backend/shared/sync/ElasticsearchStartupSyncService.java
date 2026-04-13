@@ -486,13 +486,19 @@ public class ElasticsearchStartupSyncService {
             List<MediaAiInsights> allInsights = mediaAiInsightsRepository.findByPost_PostId(post.getPostId());
             for (MediaAiInsights insight : allInsights) {
                 if (insight.getTags() != null) {
-                    aggregatedTags.addAll(Arrays.asList(insight.getTags()));
+                    Arrays.stream(insight.getTags())
+                            .filter(tag -> tag != null && !tag.isBlank())
+                            .map(tag -> tag.trim().toLowerCase(Locale.ROOT))
+                            .forEach(aggregatedTags::add);
                 }
                 if (insight.getCaption() != null && !insight.getCaption().isBlank()) {
                     aggregatedCaptions.add(insight.getCaption());
                 }
                 if (insight.getScenes() != null) {
-                    aggregatedScenes.addAll(Arrays.asList(insight.getScenes()));
+                    Arrays.stream(insight.getScenes())
+                            .filter(scene -> scene != null && !scene.isBlank())
+                            .map(scene -> scene.trim().toLowerCase(Locale.ROOT))
+                            .forEach(aggregatedScenes::add);
                 }
                 // Count faces for this media
                 List<MediaDetectedFace> faces = mediaDetectedFaceRepository
