@@ -114,7 +114,10 @@ function SocialPostCardComponent({
 
           {/* Author info overlay */}
           <div className="absolute bottom-20 left-4 z-10 flex items-center gap-2.5">
-            <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/25 bg-navy-700 flex-shrink-0">
+            <div
+              onClick={() => router.push(`/profile/${post.author.userId}`)}
+              className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/25 bg-navy-700 flex-shrink-0 cursor-pointer hover:ring-white/50 transition-all"
+            >
               <Image
                 src={post.author.profilePictureUrl || "/default-avatar.png"}
                 alt={post.author.username}
@@ -124,7 +127,10 @@ function SocialPostCardComponent({
               />
             </div>
             <div>
-              <span className="font-semibold text-sm text-white drop-shadow-sm">
+              <span
+                onClick={() => router.push(`/profile/${post.author.userId}`)}
+                className="font-semibold text-sm text-white drop-shadow-sm cursor-pointer hover:underline"
+              >
                 {post.author.username}
               </span>
               <p className="text-[11px] text-white/70 drop-shadow-sm">
@@ -213,7 +219,13 @@ function SocialPostCardComponent({
         >
           <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 pt-1">
             <p className="text-sm text-navy/80 dark:text-cream/80 leading-relaxed">
-              <span className="font-semibold text-navy dark:text-cream mr-1.5">
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/profile/${post.author.userId}`);
+                }}
+                className="font-semibold text-navy dark:text-cream mr-1.5 cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+              >
                 {post.author.username}
               </span>
               {post.summary}

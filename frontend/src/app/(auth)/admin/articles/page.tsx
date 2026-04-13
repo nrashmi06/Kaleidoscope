@@ -27,7 +27,10 @@ import { useDebounce } from "@/hooks/useDebounce";
 const STATUS_FILTERS: { value: BlogStatus | ""; label: string }[] = [
   { value: "", label: "All" },
   { value: "DRAFT", label: "Draft" },
+  { value: "APPROVAL_PENDING", label: "Pending" },
   { value: "PUBLISHED", label: "Published" },
+  { value: "FLAGGED", label: "Flagged" },
+  { value: "REJECTED", label: "Rejected" },
   { value: "ARCHIVED", label: "Archived" },
 ];
 
@@ -48,6 +51,12 @@ function getStatusBadgeClasses(status: string): string {
       return "bg-green-100/60 text-green-700 dark:bg-green-900/20 dark:text-green-400";
     case "DRAFT":
       return "bg-amber-100/60 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400";
+    case "APPROVAL_PENDING":
+      return "bg-blue-100/60 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400";
+    case "FLAGGED":
+      return "bg-orange-100/60 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400";
+    case "REJECTED":
+      return "bg-red-100/60 text-red-700 dark:bg-red-900/20 dark:text-red-400";
     case "ARCHIVED":
       return "bg-steel/10 text-steel dark:bg-sky/10 dark:text-sky";
     default:
@@ -292,7 +301,7 @@ export default function AdminArticlesPage() {
                   </h3>
 
                   <div className="flex items-center gap-3 mt-1 text-[11px] text-steel/50 dark:text-sky/35">
-                    <span>by {blog.author.username}</span>
+                    <span>by <span onClick={(e) => { e.stopPropagation(); router.push(`/profile/${blog.author.userId}`); }} className="cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors">{blog.author.username}</span></span>
                     <span>{formatDistanceToNow(new Date(blog.createdAt), { addSuffix: true })}</span>
                     {blog.viewCount > 0 && <span>{blog.viewCount} views</span>}
                     {blog.reactionCount > 0 && <span>{blog.reactionCount} reactions</span>}

@@ -3,6 +3,7 @@
 // ✅ 1. Import React hooks and Image component
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { type Post } from "@/lib/types/post"; // Correct type import
 import { formatDistanceToNow } from "date-fns";
 import { MoreVertical, Trash2 } from "lucide-react";
@@ -23,6 +24,7 @@ export function PostHeader({
   onDelete, // Use this prop directly
   isDeleting, // This prop is still received, just not passed to the modal
 }: PostHeaderProps) {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   // State for our custom dropdown menu
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -79,7 +81,10 @@ export function PostHeader({
           </div>
 
           <div>
-            <span className="font-semibold text-sm text-navy dark:text-cream">
+            <span
+              onClick={() => router.push(`/profile/${post.author.userId}`)}
+              className="font-semibold text-sm text-navy dark:text-cream cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+            >
               {post.author.username}
             </span>
             <p className="text-[11px] text-steel dark:text-sky/60">

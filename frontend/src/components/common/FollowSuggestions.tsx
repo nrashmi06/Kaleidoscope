@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUserData } from "@/hooks/useUserData";
 import { getFollowSuggestions } from "@/controllers/followController/getSuggestions";
 import type { SuggestedUser } from "@/lib/types/followSuggestions";
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
+  const router = useRouter();
   const currentUser = useUserData();
   const token = currentUser?.accessToken ?? null;
 
@@ -57,7 +59,10 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
         <div className="space-y-1">
           {items.map((user) => (
             <div key={user.userId} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-cream-300 dark:hover:bg-navy-700 transition-colors">
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+                onClick={() => router.push(`/profile/${user.userId}`)}
+              >
                 <div className="w-8 h-8 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-700 flex-shrink-0">
                   <Image
                     src={user.profilePictureUrl || "/person.jpg"}
@@ -67,7 +72,7 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="text-sm font-medium text-navy dark:text-cream truncate">
+                <span className="text-sm font-medium text-navy dark:text-cream truncate hover:underline">
                   {user.username}
                 </span>
               </div>

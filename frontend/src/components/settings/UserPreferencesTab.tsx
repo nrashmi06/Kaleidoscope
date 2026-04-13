@@ -24,11 +24,8 @@ import {
   Save,
   Sparkles,
   Mail,
-  Phone,
-  Wifi,
   Search,
   Users,
-  MessageSquare,
   Tag,
   Activity,
   Check,
@@ -37,14 +34,11 @@ import {
 
 const privacyFields = [
   { key: "showEmail", label: "Show Email", icon: Mail, description: "Display your email on profile" },
-  { key: "showPhone", label: "Show Phone", icon: Phone, description: "Display your phone number" },
-  { key: "showOnlineStatus", label: "Online Status", icon: Wifi, description: "Show when you're active" },
   { key: "searchDiscoverable", label: "Search Discoverable", icon: Search, description: "Appear in search results" },
 ] as const;
 
 const visibilityFields = [
   { key: "profileVisibility", label: "Profile Visibility", icon: Eye },
-  { key: "allowMessages", label: "Allow Messages", icon: MessageSquare },
   { key: "allowTagging", label: "Allow Tagging", icon: Tag },
   { key: "viewActivity", label: "View Activity", icon: Activity },
 ] as const;

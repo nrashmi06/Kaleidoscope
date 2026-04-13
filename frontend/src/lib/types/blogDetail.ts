@@ -22,7 +22,7 @@ export interface BlogDetailResponse {
   summary: string;
   wordCount: number;
   readTimeMinutes: number;
-  blogStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  blogStatus: "DRAFT" | "APPROVAL_PENDING" | "FLAGGED" | "ARCHIVED" | "REJECTED" | "PUBLISHED";
   createdAt: string;
   updatedAt: string;
   reviewedAt?: string;

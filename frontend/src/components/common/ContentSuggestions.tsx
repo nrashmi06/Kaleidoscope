@@ -16,6 +16,7 @@ interface SuggestionItem {
   title: string;
   summary: string;
   authorName: string;
+  authorId?: number;
 }
 
 export default function ContentSuggestions({
@@ -50,12 +51,13 @@ export default function ContentSuggestions({
                   postId: number;
                   title: string;
                   summary: string;
-                  author: { username: string };
+                  author: { username: string; userId?: number };
                 }) => ({
                   id: item.postId,
                   title: item.title,
                   summary: item.summary || "",
                   authorName: item.author?.username || "Unknown",
+                  authorId: item.author?.userId,
                 })
               )
             );
@@ -70,6 +72,7 @@ export default function ContentSuggestions({
                 title: item.title,
                 summary: item.summary || "",
                 authorName: item.author?.username || "Unknown",
+                authorId: item.author?.userId,
               }))
             );
           }
@@ -138,7 +141,18 @@ export default function ContentSuggestions({
             </p>
           )}
           <p className="text-[11px] text-steel/50 dark:text-sky/30 mt-1.5">
-            by {item.authorName}
+            by{" "}
+            <span
+              onClick={(e) => {
+                if (item.authorId) {
+                  e.stopPropagation();
+                  router.push(`/profile/${item.authorId}`);
+                }
+              }}
+              className={item.authorId ? "cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors" : ""}
+            >
+              {item.authorName}
+            </span>
           </p>
         </button>
       ))}

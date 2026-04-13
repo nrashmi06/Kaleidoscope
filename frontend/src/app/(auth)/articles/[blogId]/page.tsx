@@ -109,7 +109,7 @@ export default function BlogDetailPage() {
     }
   };
 
-  const handleStatusUpdate = async (status: "PUBLISHED" | "DRAFT" | "ARCHIVED") => {
+  const handleStatusUpdate = async (status: BlogDetailResponse["blogStatus"]) => {
     if (!accessToken || !blog || blog.blogStatus === status) return;
     setIsUpdatingStatus(true);
     try {
@@ -246,13 +246,21 @@ export default function BlogDetailPage() {
               <div className="max-w-3xl">
                 <div className="flex items-center gap-2 mb-3">
                   <span
-                    className={`text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full ${
+                    className={`text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full backdrop-blur-sm ${
                       blog.blogStatus === "PUBLISHED"
-                        ? "bg-emerald-500/20 text-emerald-300 backdrop-blur-sm"
-                        : "bg-amber-500/20 text-amber-300 backdrop-blur-sm"
+                        ? "bg-emerald-500/20 text-emerald-300"
+                        : blog.blogStatus === "APPROVAL_PENDING"
+                        ? "bg-blue-500/20 text-blue-300"
+                        : blog.blogStatus === "FLAGGED"
+                        ? "bg-orange-500/20 text-orange-300"
+                        : blog.blogStatus === "REJECTED"
+                        ? "bg-red-500/20 text-red-300"
+                        : blog.blogStatus === "ARCHIVED"
+                        ? "bg-gray-500/20 text-gray-300"
+                        : "bg-amber-500/20 text-amber-300"
                     }`}
                   >
-                    {blog.blogStatus}
+                    {blog.blogStatus === "APPROVAL_PENDING" ? "PENDING" : blog.blogStatus}
                   </span>
                   {blog.categories.map((cat) => (
                     <span
@@ -341,7 +349,7 @@ export default function BlogDetailPage() {
                     Blog Status
                   </p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {(["PUBLISHED", "DRAFT", "ARCHIVED"] as const).map((status) => {
+                    {(["PUBLISHED", "DRAFT", "APPROVAL_PENDING", "FLAGGED", "REJECTED", "ARCHIVED"] as const).map((status) => {
                       const isActive = blog.blogStatus === status;
                       return (
                         <button
