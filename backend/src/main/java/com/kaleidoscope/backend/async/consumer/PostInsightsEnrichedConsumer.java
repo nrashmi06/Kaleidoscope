@@ -5,8 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.PostInsightsEnrichedDTO;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
+import com.kaleidoscope.backend.posts.document.PostDocument;
+import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.Post;
+import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
+import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
+import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel;
 import com.kaleidoscope.backend.readmodels.model.PostSearchReadModel;
 import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
@@ -20,10 +25,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Consumes aggregated insights for an entire post *after* all media have been processed.
@@ -39,6 +48,9 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
     private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
     private final PostRepository postRepository;  // ADDED: To fetch Post entity for author info
+    private final PostSearchRepository postSearchRepository;
+    private final MediaAiInsightsRepository mediaAiInsightsRepository;
+    private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
 
     @Override
     @Transactional
@@ -118,6 +130,9 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             // 3. Trigger ES sync for the post
             elasticsearchSyncTriggerService.triggerSync("read_model_post_search", postId);
 
+            // Keep `posts` index in sync for filterPosts() ML text search (mlCaptions/mlImageTags/mlScenes)
+            updatePostDocumentMlFields(postId, enriched);
+
             // 4. Trigger ES sync for all associated media (as they were updated)
             for (MediaSearchReadModel media : mediaModels) {
                 elasticsearchSyncTriggerService.triggerSync("read_model_media_search", media.getMediaId());
@@ -178,5 +193,70 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             throw new StreamDeserializationException(streamName, messageId,
                     "Failed to deserialize post-insights-enriched message", e);
         }
+    }
+
+    private void updatePostDocumentMlFields(Long postId, PostInsightsEnrichedDTO enriched) {
+        Optional<PostDocument> postDocumentOpt = postSearchRepository.findById(postId.toString());
+        if (postDocumentOpt.isEmpty()) {
+            log.warn("PostDocument not found for postId: {} while applying ML aggregation update", postId);
+            return;
+        }
+
+        PostDocument postDocument = postDocumentOpt.get();
+
+        // Prefer aggregated tags/scenes from the enriched event payload
+        Set<String> dedupTags = new LinkedHashSet<>();
+        if (enriched.getAllAiTags() != null) {
+            enriched.getAllAiTags().stream()
+                    .filter(s -> s != null && !s.isBlank())
+                    .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                    .forEach(dedupTags::add);
+        }
+
+        Set<String> dedupScenes = new LinkedHashSet<>();
+        if (enriched.getAllAiScenes() != null) {
+            enriched.getAllAiScenes().stream()
+                    .filter(s -> s != null && !s.isBlank())
+                    .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                    .forEach(dedupScenes::add);
+        }
+
+        // Pull captions from persisted per-media insights because enriched event does not include them
+        List<MediaAiInsights> insights = mediaAiInsightsRepository.findByPost_PostId(postId);
+        Set<String> dedupCaptions = new LinkedHashSet<>();
+        int totalFaceCount = 0;
+
+        for (MediaAiInsights insight : insights) {
+            if (insight.getCaption() != null && !insight.getCaption().isBlank()) {
+                dedupCaptions.add(insight.getCaption().trim());
+            }
+
+            if (insight.getTags() != null) {
+                for (String tag : insight.getTags()) {
+                    if (tag != null && !tag.isBlank()) {
+                        dedupTags.add(tag.trim().toLowerCase(Locale.ROOT));
+                    }
+                }
+            }
+
+            if (insight.getScenes() != null) {
+                for (String scene : insight.getScenes()) {
+                    if (scene != null && !scene.isBlank()) {
+                        dedupScenes.add(scene.trim().toLowerCase(Locale.ROOT));
+                    }
+                }
+            }
+
+            totalFaceCount += mediaDetectedFaceRepository.findByMediaAiInsights_MediaId(insight.getMediaId()).size();
+        }
+
+        postDocument.setMlImageTags(new ArrayList<>(dedupTags));
+        postDocument.setMlScenes(new ArrayList<>(dedupScenes));
+        postDocument.setMlCaptions(new ArrayList<>(dedupCaptions));
+        postDocument.setPeopleCount(totalFaceCount > 0 ? totalFaceCount : null);
+
+        postSearchRepository.save(postDocument);
+        log.info("Updated PostDocument ML fields for postId: {} (tags={}, scenes={}, captions={}, faces={})",
+                postId, dedupTags.size(), dedupScenes.size(), dedupCaptions.size(), totalFaceCount);
     }
 }

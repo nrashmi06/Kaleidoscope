@@ -11,6 +11,7 @@ import lombok.Builder;
 public record UserProfileResponseDTO(
     Long userId,
     String username,
+    String email,
     String profilePictureUrl,
     String coverPhotoUrl,
     String summary,

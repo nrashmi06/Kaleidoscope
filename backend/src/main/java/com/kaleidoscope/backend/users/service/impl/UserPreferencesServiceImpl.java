@@ -112,6 +112,9 @@ public class UserPreferencesServiceImpl implements UserPreferencesService {
         UserPreferences savedPreferences = userPreferencesRepository.save(updatedPreferences);
         log.info("Updated privacy settings for user ID: {}", currentUserId);
 
+        // Sync user document after privacy setting changes
+        userDocumentSyncService.syncOnPreferenceChange(currentUserId);
+
         return userPreferencesMapper.toResponseDTO(savedPreferences);
     }
 

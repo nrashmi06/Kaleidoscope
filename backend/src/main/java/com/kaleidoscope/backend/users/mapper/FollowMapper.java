@@ -11,7 +11,7 @@ public class FollowMapper {
     public UserDetailsSummaryResponseDTO mapToUserSummary(User user) {
         return new UserDetailsSummaryResponseDTO(
                 user.getUserId(),
-                user.getEmail(),
+                null,
                 user.getUsername(),
                 user.getAccountStatus().name(),
                 user.getProfilePictureUrl()
