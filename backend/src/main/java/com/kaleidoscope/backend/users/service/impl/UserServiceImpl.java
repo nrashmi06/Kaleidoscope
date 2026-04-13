@@ -280,6 +280,7 @@ public class UserServiceImpl implements UserService {
 
         boolean isPrivate = profileVisibility == Visibility.FRIENDS_ONLY;
         boolean isSelf = viewingUserId.equals(profileUserId);
+        boolean canShowEmail = isSelf || Boolean.TRUE.equals(profileUserDoc.getShowEmail());
 
         // 4. Determine the follow status (This requires SQL checks)
         FollowStatus followStatus = FollowStatus.NONE;
@@ -324,6 +325,7 @@ public class UserServiceImpl implements UserService {
         return UserProfileResponseDTO.builder()
                 .userId(profileUserDoc.getUserId())
                 .username(profileUserDoc.getUsername())
+                .email(canShowEmail ? profileUserDoc.getEmail() : null)
                 .profilePictureUrl(profileUserDoc.getProfilePictureUrl())
                 .coverPhotoUrl(profileUserDoc.getCoverPhotoUrl())
                 .summary(profileUserDoc.getSummary())

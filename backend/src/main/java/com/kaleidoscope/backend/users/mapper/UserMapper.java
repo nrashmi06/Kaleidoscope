@@ -49,9 +49,13 @@ public class UserMapper {
     }
 
     public static UserDetailsSummaryResponseDTO toUserDetailsSummaryResponseDTO(User user) {
+        return toUserDetailsSummaryResponseDTO(user, false);
+    }
+
+    public static UserDetailsSummaryResponseDTO toUserDetailsSummaryResponseDTO(User user, boolean showEmail) {
         return new UserDetailsSummaryResponseDTO(
                 user.getUserId(),
-                user.getEmail(),
+                showEmail ? user.getEmail() : null,
                 user.getUsername(),
                 user.getAccountStatus().name(),
                 user.getProfilePictureUrl()
@@ -61,7 +65,7 @@ public class UserMapper {
     public static UserDetailsSummaryResponseDTO toUserDetailsSummaryResponseDTO(UserDocument userDocument) {
         return new UserDetailsSummaryResponseDTO(
                 userDocument.getUserId(),
-                userDocument.getEmail(),
+                Boolean.TRUE.equals(userDocument.getShowEmail()) ? userDocument.getEmail() : null,
                 userDocument.getUsername(),
                 userDocument.getAccountStatus(),
                 userDocument.getProfilePictureUrl()

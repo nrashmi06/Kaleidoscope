@@ -130,6 +130,13 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
         )));
         log.debug("[findTaggableUsers] Added must filter for role: USER");
 
+        // Must be discoverable in search (missing field is treated as discoverable for backward compatibility)
+        boolQueryBuilder.mustNot(Query.of(q -> q.term(t -> t
+                .field("searchDiscoverable")
+                .value(false)
+        )));
+        log.debug("[findTaggableUsers] Added mustNot filter for searchDiscoverable: false");
+
         // Must have PUBLIC tagging preference
         // IMPORTANT: Using match query because allowTagging is a 'text' field in Elasticsearch
         // Term queries don't work properly on analyzed text fields
@@ -176,10 +183,16 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
             )));
 
             // Search in email field
-            searchQueryBuilder.should(Query.of(q -> q.wildcard(w -> w
-                    .field("email")
-                    .value("*" + normalizedSearch.toLowerCase() + "*")
-                    .caseInsensitive(true)
+            searchQueryBuilder.should(Query.of(q -> q.bool(b -> b
+                    .must(Query.of(mq -> mq.term(t -> t
+                            .field("showEmail")
+                            .value(true)
+                    )))
+                    .must(Query.of(mq -> mq.wildcard(w -> w
+                            .field("email")
+                            .value("*" + normalizedSearch.toLowerCase() + "*")
+                            .caseInsensitive(true)
+                    )))
             )));
 
             boolQueryBuilder.must(Query.of(q -> q.bool(searchQueryBuilder.build())));
@@ -357,6 +370,11 @@ public class UserSearchRepositoryImpl implements UserSearchRepositoryCustom {
                 .mustNot(TermsQuery.of(t -> t
                         .field("userId")
                         .terms(ts -> ts.value(exclusions.stream().map(FieldValue::of).collect(Collectors.toList())))
+                )._toQuery())
+                // Exclude users who are not discoverable in search/suggestions
+                .mustNot(TermQuery.of(t -> t
+                        .field("searchDiscoverable")
+                        .value(false)
                 )._toQuery())
                 // ******* ADDED FILTER: Must NOT have profileVisibility = NO_ONE *******
                 .mustNot(TermQuery.of(t -> t

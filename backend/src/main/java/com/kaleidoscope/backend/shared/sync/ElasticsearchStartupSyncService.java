@@ -319,6 +319,9 @@ public class ElasticsearchStartupSyncService {
                 ? prefs.getProfileVisibility().name()
                 : Visibility.PUBLIC.name();
 
+        boolean showEmail = prefs != null && Boolean.TRUE.equals(prefs.getShowEmail());
+        boolean searchDiscoverable = prefs == null || !Boolean.FALSE.equals(prefs.getSearchDiscoverable());
+
         // Build UserDocument
         UserDocument userDocument = UserDocument.builder()
                 .id(user.getUserId().toString())
@@ -339,6 +342,8 @@ public class ElasticsearchStartupSyncService {
                 .blockedByUserIds(blockedByUserIds)
                 .allowTagging(allowTagging)
                 .profileVisibility(profileVisibility) // <-- FIELD ADDED
+                .showEmail(showEmail)
+                .searchDiscoverable(searchDiscoverable)
                 .faceEmbedding(null) // Will be updated by ML service
                 .createdAt(user.getCreatedAt())
                 .lastSeen(user.getLastSeen())

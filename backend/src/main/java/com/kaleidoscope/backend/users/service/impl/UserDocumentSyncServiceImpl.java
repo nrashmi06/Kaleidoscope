@@ -60,6 +60,8 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                     .blockedByUserIds(new ArrayList<>())  // Initialize empty list
                     .allowTagging(Visibility.PUBLIC.name())  // Initialize with default value
                     .profileVisibility(Visibility.PUBLIC.name())  // Initialize with default value
+                    .showEmail(false)
+                    .searchDiscoverable(true)
                     .faceEmbedding(null)  // Will be updated later by ML service
                     .createdAt(user.getCreatedAt())
                     .lastSeen(user.getLastSeen())
@@ -239,10 +241,16 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 // Update allowTagging and profileVisibility fields based on user preferences
                 userDocument.setAllowTagging(userPreferences.getAllowTagging().name());
                 userDocument.setProfileVisibility(userPreferences.getProfileVisibility().name());
+                userDocument.setShowEmail(Boolean.TRUE.equals(userPreferences.getShowEmail()));
+                userDocument.setSearchDiscoverable(!Boolean.FALSE.equals(userPreferences.getSearchDiscoverable()));
                 userSearchRepository.save(userDocument);
 
-                log.info("Successfully synced preferences (allowTagging={}, profileVisibility={}) for user ID: {}",
-                        userPreferences.getAllowTagging().name(), userPreferences.getProfileVisibility().name(), userId);
+                log.info("Successfully synced preferences (allowTagging={}, profileVisibility={}, showEmail={}, searchDiscoverable={}) for user ID: {}",
+                        userPreferences.getAllowTagging().name(),
+                        userPreferences.getProfileVisibility().name(),
+                        userDocument.getShowEmail(),
+                        userDocument.getSearchDiscoverable(),
+                        userId);
             } else {
                 if (!existingDocOpt.isPresent()) {
                     log.warn("UserDocument not found for user ID: {} during preference sync, creating full document", userId);
@@ -401,6 +409,8 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
         UserPreferences userPreferences = userPreferencesRepository.findByUser_UserId(user.getUserId()).orElse(null);
         String allowTagging = userPreferences != null ? userPreferences.getAllowTagging().name() : Visibility.PUBLIC.name();
         String profileVisibility = userPreferences != null ? userPreferences.getProfileVisibility().name() : Visibility.PUBLIC.name();
+        boolean showEmail = userPreferences != null && Boolean.TRUE.equals(userPreferences.getShowEmail());
+        boolean searchDiscoverable = userPreferences == null || !Boolean.FALSE.equals(userPreferences.getSearchDiscoverable());
 
         return UserDocument.builder()
                 .id(user.getUserId().toString())
@@ -422,6 +432,8 @@ public class UserDocumentSyncServiceImpl implements UserDocumentSyncService {
                 .blockedByUserIds(blockedByUserIds)
                 .allowTagging(allowTagging)
                 .profileVisibility(profileVisibility)
+                .showEmail(showEmail)
+                .searchDiscoverable(searchDiscoverable)
                 .createdAt(user.getCreatedAt())
                 .lastSeen(user.getLastSeen())
                 .build();

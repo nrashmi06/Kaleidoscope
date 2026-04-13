@@ -13,7 +13,6 @@ import com.kaleidoscope.backend.users.exception.follow.FollowRequestAlreadyExist
 import com.kaleidoscope.backend.users.exception.follow.FollowRequestNotFoundException;
 import com.kaleidoscope.backend.users.exception.follow.SelfFollowNotAllowedException;
 import com.kaleidoscope.backend.users.exception.follow.UserAlreadyFollowedException;
-import com.kaleidoscope.backend.users.mapper.FollowMapper;
 import com.kaleidoscope.backend.users.mapper.UserMapper;
 import com.kaleidoscope.backend.users.model.*;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
@@ -44,7 +43,6 @@ public class FollowServiceImpl implements FollowService {
     private final JwtUtils jwtUtils;
     private final UserService userService;
     private final FollowRepository followRepository;
-    private final FollowMapper followMapper;
     private final UserBlockRepository userBlockRepository;
     private final UserDocumentSyncService userDocumentSyncService;
     private final FollowDocumentSyncService followDocumentSyncService;
@@ -52,6 +50,19 @@ public class FollowServiceImpl implements FollowService {
     private final FollowRequestRepository followRequestRepository;
     private final UserPreferencesRepository userPreferencesRepository;
     private final RedisStreamPublisher redisStreamPublisher;
+
+    private Map<Long, Boolean> resolveShowEmailMap(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Long, Boolean> showEmailMap = new HashMap<>();
+        userPreferencesRepository.findByUser_UserIdIn(userIds).forEach(prefs ->
+                showEmailMap.put(prefs.getUser().getUserId(), Boolean.TRUE.equals(prefs.getShowEmail())));
+
+        userIds.forEach(userId -> showEmailMap.putIfAbsent(userId, false));
+        return showEmailMap;
+    }
 
     /**
      * Get users that the current user has blocked (unidirectional blocking)
@@ -341,9 +352,20 @@ public class FollowServiceImpl implements FollowService {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         Set<Long> blockedUserIds = getBlockedByCurrentUserIds(currentUserId);
 
-        List<UserDetailsSummaryResponseDTO> followerDTOs = followers.getContent().stream()
+        List<User> followerUsers = followers.getContent().stream()
                 .filter(f -> !blockedUserIds.contains(f.getFollower().getUserId()))
-                .map(followMapper::mapFollowerToUserSummary)
+                .map(Follow::getFollower)
+                .collect(Collectors.toList());
+
+        Map<Long, Boolean> showEmailMap = resolveShowEmailMap(
+                followerUsers.stream().map(User::getUserId).collect(Collectors.toSet())
+        );
+
+        List<UserDetailsSummaryResponseDTO> followerDTOs = followerUsers.stream()
+                .map(user -> UserMapper.toUserDetailsSummaryResponseDTO(
+                        user,
+                        Boolean.TRUE.equals(showEmailMap.get(user.getUserId()))
+                ))
                 .collect(Collectors.toList());
 
         return new FollowListResponseDTO(
@@ -373,9 +395,20 @@ public class FollowServiceImpl implements FollowService {
         Long currentUserId = jwtUtils.getUserIdFromContext();
         Set<Long> blockedUserIds = getBlockedByCurrentUserIds(currentUserId);
 
-        List<UserDetailsSummaryResponseDTO> followingDTOs = following.getContent().stream()
+        List<User> followingUsers = following.getContent().stream()
                 .filter(f -> !blockedUserIds.contains(f.getFollowing().getUserId()))
-                .map(followMapper::mapFollowingToUserSummary)
+                .map(Follow::getFollowing)
+                .collect(Collectors.toList());
+
+        Map<Long, Boolean> showEmailMap = resolveShowEmailMap(
+                followingUsers.stream().map(User::getUserId).collect(Collectors.toSet())
+        );
+
+        List<UserDetailsSummaryResponseDTO> followingDTOs = followingUsers.stream()
+                .map(user -> UserMapper.toUserDetailsSummaryResponseDTO(
+                        user,
+                        Boolean.TRUE.equals(showEmailMap.get(user.getUserId()))
+                ))
                 .collect(Collectors.toList());
 
         return new FollowListResponseDTO(
@@ -395,10 +428,19 @@ public class FollowServiceImpl implements FollowService {
         Page<FollowRequest> requests = followRequestRepository
                 .findByRequestee_UserIdOrderByCreatedAtDesc(currentUserId, pageable);
 
+        Set<Long> requesterIds = requests.getContent().stream()
+                .map(request -> request.getRequester().getUserId())
+                .collect(Collectors.toSet());
+        Map<Long, Boolean> showEmailMap = resolveShowEmailMap(requesterIds);
+
         // Map to UserDetailsSummaryResponseDTO (the requesters)
-        Page<UserDetailsSummaryResponseDTO> requesterPage = requests.map(request ->
-                UserMapper.toUserDetailsSummaryResponseDTO(request.getRequester())
-        );
+        Page<UserDetailsSummaryResponseDTO> requesterPage = requests.map(request -> {
+            User requester = request.getRequester();
+            return UserMapper.toUserDetailsSummaryResponseDTO(
+                    requester,
+                    Boolean.TRUE.equals(showEmailMap.get(requester.getUserId()))
+            );
+        });
 
         return PaginatedResponse.fromPage(requesterPage);
     }
