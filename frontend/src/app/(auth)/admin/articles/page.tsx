@@ -19,6 +19,8 @@ import {
   CheckCircle,
   Archive,
   FileText,
+  Flag,
+  XCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -330,6 +332,36 @@ export default function AdminArticlesPage() {
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-green-600" />
                       ) : (
                         <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                      )}
+                    </button>
+                  )}
+
+                  {blog.blogStatus !== "FLAGGED" && (
+                    <button
+                      onClick={() => handleStatusUpdate(blog.blogId, "FLAGGED")}
+                      disabled={updatingBlogId === blog.blogId}
+                      className="flex items-center justify-center w-8 h-8 rounded-lg border border-orange-300/40 dark:border-orange-700/40 bg-orange-50/40 dark:bg-orange-900/10 hover:border-orange-400/60 dark:hover:border-orange-600/40 transition-all cursor-pointer disabled:opacity-50"
+                      title="Flag"
+                    >
+                      {updatingBlogId === blog.blogId ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-600" />
+                      ) : (
+                        <Flag className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+                      )}
+                    </button>
+                  )}
+
+                  {blog.blogStatus !== "REJECTED" && (
+                    <button
+                      onClick={() => handleStatusUpdate(blog.blogId, "REJECTED")}
+                      disabled={updatingBlogId === blog.blogId}
+                      className="flex items-center justify-center w-8 h-8 rounded-lg border border-red-300/40 dark:border-red-700/40 bg-red-50/40 dark:bg-red-900/10 hover:border-red-400/60 dark:hover:border-red-600/40 transition-all cursor-pointer disabled:opacity-50"
+                      title="Reject"
+                    >
+                      {updatingBlogId === blog.blogId ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-red-600" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                       )}
                     </button>
                   )}
