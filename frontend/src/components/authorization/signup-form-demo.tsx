@@ -107,18 +107,18 @@ export default function SignupForm() {
     return (
       <>
         <RegistrationLoader isLoading={isRegistering} />
-        <section className="mx-auto mt-20 flex w-full max-w-md flex-col items-center rounded-xl border border-blue-400 bg-white p-8 shadow-md dark:bg-neutral-900">
-          <CheckCircle className="w-10 h-10 text-blue-500 mb-3" />
-          <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+        <section className="mx-auto mt-20 flex w-full max-w-md flex-col items-center rounded-xl border border-steel/20 dark:border-sky/20 bg-cream-50 dark:bg-navy-700/50 p-8 shadow-md">
+          <CheckCircle className="w-10 h-10 text-steel dark:text-sky mb-3" />
+          <h1 className="text-lg font-display font-semibold text-navy dark:text-cream">
             Registration Successful
           </h1>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300 text-center">
+          <p className="mt-2 text-sm text-steel/60 dark:text-sky/40 text-center">
             Please check your email at <b>{formState.email}</b> to verify your account.
           </p>
           <button
             type="button"
             onClick={handleResendEmail}
-            className="mt-5 rounded-md bg-blue-600 px-5 py-2 text-white text-sm font-semibold hover:bg-blue-700 transition-all"
+            className="mt-5 rounded-md bg-steel dark:bg-sky px-5 py-2 text-cream-50 dark:text-navy text-sm font-semibold hover:bg-steel-600 dark:hover:bg-sky/80 transition-all"
           >
             Resend Verification Email
           </button>
@@ -133,8 +133,8 @@ export default function SignupForm() {
   return (
     <>
       <RegistrationLoader isLoading={isRegistering} />
-      <section className="mx-auto mt-10 mb-20 w-full max-w-md rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-8 shadow-md">
-        <h1 className="text-center text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+      <section className="mx-auto mt-10 mb-20 w-full max-w-md rounded-xl border border-cream-300/40 dark:border-navy-700/40 bg-cream-50 dark:bg-navy-700/50 p-8 shadow-md">
+        <h1 className="text-center text-xl font-display font-semibold text-navy dark:text-cream">
           Create your account
         </h1>
 
@@ -258,7 +258,7 @@ export default function SignupForm() {
                 setFormState({ ...formState, profilePicture: e.target.files?.[0] || null })
               }
               required
-              className="file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 file:rounded-md file:border-0 file:py-1 file:px-3"
+              className="file:text-sm file:font-medium file:bg-steel/10 file:text-steel dark:file:bg-sky/10 dark:file:text-sky file:rounded-md file:border-0 file:py-1 file:px-3"
             />
           </LabelInputContainer>
 
@@ -267,10 +267,10 @@ export default function SignupForm() {
             type="submit"
             disabled={isRegistering || !isUsernameAvailable}
             className={cn(
-              "relative mt-6 h-11 w-full rounded-lg text-white font-semibold text-base transition-all",
+              "relative mt-6 h-11 w-full rounded-lg text-cream-50 dark:text-navy font-semibold text-base transition-all",
               isRegistering || !isUsernameAvailable
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
+                ? "bg-steel/40 dark:bg-sky/40 cursor-not-allowed"
+                : "bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 shadow-lg shadow-steel/20 dark:shadow-sky/15"
             )}
           >
             {isRegistering ? <Loader2 className="w-5 h-5 mx-auto animate-spin" /> : "Sign Up →"}
@@ -298,7 +298,7 @@ const Toast = ({
   message && (
     <div
       role="alert"
-      className={`fixed top-4 right-4 z-50 rounded-md px-4 py-3 text-sm text-white shadow-lg ${
+      className={`fixed top-4 right-4 z-50 rounded-md px-4 py-3 text-sm text-cream-50 shadow-lg ${
         type === "success" ? "bg-green-500" : "bg-red-500"
       }`}
     >

@@ -5,14 +5,14 @@ import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 
 function Page() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-white dark:bg-neutral-900">
+    <div className="flex h-screen w-full overflow-hidden bg-cream-50 dark:bg-navy">
       {/* Left side: Aurora visual background */}
       <div className="hidden md:block w-1/2 h-screen sticky top-0">
         <AuroraBackground className="absolute inset-0 w-full h-full">
           <div className="absolute inset-0 w-full h-full bg-transparent">
             <div className="absolute top-1/2 transform -translate-y-1/2 text-center w-full px-6">
               <div className="space-y-4">
-                <div className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-center text-gray-900 dark:text-neutral-100">
+                <div className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-center text-navy dark:text-cream">
                   <Image
                     src="/team.png"
                     alt="img"
@@ -23,7 +23,7 @@ function Page() {
                   <span>
                     <TextGenerateEffect
                       words="Sign-Up to explore the other side !"
-                      className="text-sm text-slate-600 dark:text-slate-300"
+                      className="text-sm text-steel/60 dark:text-sky/40"
                     />
                   </span>
                 </div>
@@ -34,7 +34,7 @@ function Page() {
       </div>
 
       {/* Right side: Signup Form */}
-      <div className="w-full md:w-1/2 h-screen overflow-y-auto bg-white dark:bg-neutral-900 flex justify-center items-center">
+      <div className="w-full md:w-1/2 h-screen overflow-y-auto bg-cream-50 dark:bg-navy flex justify-center items-center">
         <div className="w-full max-w-md px-4">
           <SignupForm />
         </div>
