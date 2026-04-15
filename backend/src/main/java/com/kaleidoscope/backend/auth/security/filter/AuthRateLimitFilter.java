@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -15,6 +16,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -28,6 +32,15 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private static final Duration REGISTER_WINDOW = Duration.ofHours(1);
 
     private final StringRedisTemplate stringRedisTemplate;
+    private Set<String> trustedProxyIps = Set.of("127.0.0.1", "::1");
+
+    @Value("${security.rate-limit.trusted-proxies:127.0.0.1,::1}")
+    void setTrustedProxyIps(String trustedProxyIpsConfig) {
+        this.trustedProxyIps = Arrays.stream(trustedProxyIpsConfig.split(","))
+                .map(String::trim)
+                .filter(ip -> !ip.isBlank())
+                .collect(Collectors.toSet());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -79,6 +92,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private String resolveClientIp(HttpServletRequest request) {
+        String remoteAddr = request.getRemoteAddr();
+        if (remoteAddr == null || !trustedProxyIps.contains(remoteAddr)) {
+            return remoteAddr;
+        }
+
         String forwardedFor = request.getHeader("X-Forwarded-For");
         if (forwardedFor != null && !forwardedFor.isBlank()) {
             String[] ips = forwardedFor.split(",");
@@ -92,7 +110,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             return realIp.trim();
         }
 
-        return request.getRemoteAddr();
+        return remoteAddr;
     }
 
     private void writeRateLimitedResponse(HttpServletResponse response, String message) throws IOException {

@@ -469,6 +469,15 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         int totalFaceCount = 0;
 
         List<MediaAiInsights> allInsights = mediaAiInsightsRepository.findByPost_PostId(postId);
+        List<Long> mediaIds = allInsights.stream()
+            .map(MediaAiInsights::getMediaId)
+            .toList();
+        Map<Long, Long> faceCountByMediaId = mediaDetectedFaceRepository.findByMediaAiInsights_MediaIdIn(mediaIds)
+            .stream()
+            .collect(Collectors.groupingBy(
+                face -> face.getMediaAiInsights().getMediaId(),
+                Collectors.counting()));
+
         for (MediaAiInsights insight : allInsights) {
             if (insight.getTags() != null) {
                 Arrays.stream(insight.getTags())
@@ -488,7 +497,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 captions.add(insight.getCaption().trim());
             }
 
-            totalFaceCount += mediaDetectedFaceRepository.findByMediaAiInsights_MediaId(insight.getMediaId()).size();
+            totalFaceCount += faceCountByMediaId.getOrDefault(insight.getMediaId(), 0L).intValue();
         }
 
         PostDocument postDocument = postDocumentOpt.get();

@@ -113,7 +113,7 @@ public class SecurityConfig {
                 )
                 .csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(correlationIdFilter, HeaderWriterFilter.class) // Run correlation ID very early
-                .addFilterBefore(authRateLimitFilter, SseAuthenticationFilter.class) // Protect auth endpoints from brute force
+                .addFilterBefore(authRateLimitFilter, UsernamePasswordAuthenticationFilter.class) // Protect auth endpoints from brute force
                 .addFilterBefore(sseAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // SSE auth check
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class) // Standard JWT auth check
                 .build();

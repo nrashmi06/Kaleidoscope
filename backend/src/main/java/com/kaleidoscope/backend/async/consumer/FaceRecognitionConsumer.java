@@ -10,7 +10,6 @@ import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.search.MediaSearchRepository;
 import com.kaleidoscope.backend.readmodels.repository.FaceSearchReadModelRepository;
 import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
-import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -68,12 +68,33 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             log.info("Retrieved MediaDetectedFace for faceId: {}, mediaId: {}",
                     detectedFace.getId(), detectedFace.getMediaAiInsights().getMediaId());
 
-            // Find the User entity for the suggestedUserId
-            User suggestedUser = userRepository.findById(resultDTO.getSuggestedUserId())
-                    .orElseThrow(() -> {
-                        log.error("User not found for suggestedUserId: {}", resultDTO.getSuggestedUserId());
-                        return new UserNotFoundException("User not found for userId: " + resultDTO.getSuggestedUserId());
+                // Find the User entity for the suggestedUserId
+                Optional<User> suggestedUserOpt = userRepository.findById(resultDTO.getSuggestedUserId());
+                if (suggestedUserOpt.isEmpty()) {
+                log.warn("Suggested user not found for suggestedUserId: {}. Marking faceId={} as UNIDENTIFIED and acknowledging message.",
+                    resultDTO.getSuggestedUserId(), detectedFace.getId());
+
+                detectedFace.setSuggestedUser(null);
+                detectedFace.setConfidenceScore(null);
+                detectedFace.setStatus(FaceDetectionStatus.UNIDENTIFIED);
+                MediaDetectedFace updatedFace = mediaDetectedFaceRepository.save(detectedFace);
+
+                String faceIdString = String.valueOf(updatedFace.getId());
+                faceSearchReadModelRepository.findByFaceId(faceIdString)
+                    .ifPresent(faceSearch -> {
+                        faceSearch.setIdentifiedUserId(null);
+                        faceSearch.setIdentifiedUsername(null);
+                        faceSearch.setMatchConfidence(null);
+                        faceSearchReadModelRepository.save(faceSearch);
+                        log.info("Updated read_model_face_search to UNIDENTIFIED for faceId: {}", faceIdString);
                     });
+
+                log.info("Successfully processed face recognition for faceId: {} and messageId: {} - user missing, face marked UNIDENTIFIED",
+                    resultDTO.getFaceId(), messageId);
+                return;
+                }
+
+                User suggestedUser = suggestedUserOpt.get();
             log.info("Retrieved suggested User: userId={}, username={}",
                     suggestedUser.getUserId(), suggestedUser.getUsername());
 
@@ -108,7 +129,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             log.info("Successfully processed face recognition for faceId: {} and messageId: {} - updated with suggested user: {}",
                     resultDTO.getFaceId(), messageId, suggestedUser.getUsername());
 
-        } catch (UserNotFoundException | StreamDeserializationException e) {
+        } catch (StreamDeserializationException e) {
             log.error("Error processing face recognition message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
             throw e; // Re-throw specific exceptions to prevent XACK
