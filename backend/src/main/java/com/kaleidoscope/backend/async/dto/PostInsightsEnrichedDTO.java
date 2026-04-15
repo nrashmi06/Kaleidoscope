@@ -17,8 +17,14 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PostInsightsEnrichedDTO {
     private Long postId;
+    private List<String> aggregatedTags;
+    private List<String> aggregatedScenes;
     private List<String> allAiTags;
     private List<String> allAiScenes;
+    private String combinedCaption;
+    private Boolean isSafe;
+    private Integer totalFaces;
+    private Integer mediaCount;
     private String inferredEventType;
     private String timestamp;
     private String correlationId; // Added to receive from the message

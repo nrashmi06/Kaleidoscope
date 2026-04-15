@@ -13,6 +13,7 @@ import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
+import com.kaleidoscope.backend.posts.repository.PostMediaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Arrays;
 
 @Component // Changed from @Service for injection into RedisStreamConfig
 @RequiredArgsConstructor
@@ -37,6 +39,7 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     private final ReadModelUpdateService readModelUpdateService;
     private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
     private final JdbcTemplate jdbcTemplate;
+    private final PostMediaRepository postMediaRepository;
 
     // --- ADDED FOR RETRY LOGIC ---
     private static final int MAX_RETRY_ATTEMPTS = 5;
@@ -66,9 +69,15 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
 
             MediaAiInsights mediaAiInsights = findMediaAiInsightsWithRetry(resultDTO.getMediaId());
             if (mediaAiInsights == null) {
-                log.warn("MediaAiInsights not found for mediaId: {} after retries. Acknowledging message.",
-                         resultDTO.getMediaId());
-                return;
+                if (!postMediaRepository.existsById(resultDTO.getMediaId())) {
+                    log.warn("PostMedia no longer exists for mediaId: {}. Acknowledging face detection message.",
+                            resultDTO.getMediaId());
+                    return;
+                }
+
+                // Keep message in PEL for retry when the upstream AI-insights row eventually lands.
+                throw new StreamMessageProcessingException(record.getStream(), messageId,
+                        "MediaAiInsights not ready yet for mediaId=" + resultDTO.getMediaId(), null);
             }
 
             log.info("Processing {} faces for mediaId: {}", faces.size(), mediaAiInsights.getMediaId());
@@ -80,6 +89,9 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                 log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}",
                         mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
             }
+
+            // Mark service completion for downstream observability/idempotency.
+            appendServiceCompleted(mediaAiInsights, "face_detection");
 
             log.info("Successfully processed face detection for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
@@ -280,5 +292,21 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
         }
         sb.append("}");
         return sb.toString();
+    }
+
+    private void appendServiceCompleted(MediaAiInsights mediaAiInsights, String serviceName) {
+        String[] current = mediaAiInsights.getServicesCompleted();
+        if (current == null) {
+            mediaAiInsights.setServicesCompleted(new String[] { serviceName });
+            mediaAiInsightsRepository.save(mediaAiInsights);
+            return;
+        }
+
+        if (Arrays.stream(current).noneMatch(serviceName::equals)) {
+            String[] updated = Arrays.copyOf(current, current.length + 1);
+            updated[current.length] = serviceName;
+            mediaAiInsights.setServicesCompleted(updated);
+            mediaAiInsightsRepository.save(mediaAiInsights);
+        }
     }
 }

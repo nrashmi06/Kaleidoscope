@@ -1,10 +1,12 @@
 package com.kaleidoscope.backend.async.consumer;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.PostInsightsEnrichedDTO;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
+import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
 import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.Post;
@@ -12,6 +14,7 @@ import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
+import com.kaleidoscope.backend.posts.repository.search.MediaSearchRepository;
 import com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel;
 import com.kaleidoscope.backend.readmodels.model.PostSearchReadModel;
 import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
@@ -19,6 +22,10 @@ import com.kaleidoscope.backend.readmodels.repository.PostSearchReadModelReposit
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.IndexQuery;
+import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
@@ -26,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +42,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Consumes aggregated insights for an entire post *after* all media have been processed.
@@ -47,8 +57,10 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
     private final PostSearchReadModelRepository postSearchReadModelRepository;
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
     private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
+    private final ElasticsearchOperations elasticsearchOperations;
     private final PostRepository postRepository;  // ADDED: To fetch Post entity for author info
     private final PostSearchRepository postSearchRepository;
+    private final MediaSearchRepository mediaSearchRepository;
     private final MediaAiInsightsRepository mediaAiInsightsRepository;
     private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
 
@@ -101,12 +113,15 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
                 postSearch.setPostId(postId);
             }
 
-            // Update AI aggregated fields
-            if(enriched.getAllAiTags() != null) {
-                postSearch.setAllAiTags(String.join(",", enriched.getAllAiTags()));
+            // Aggregator may emit either aggregated* or allAi* list names; normalize for storage.
+            List<String> normalizedTags = chooseFirstNonEmpty(enriched.getAggregatedTags(), enriched.getAllAiTags());
+            List<String> normalizedScenes = chooseFirstNonEmpty(enriched.getAggregatedScenes(), enriched.getAllAiScenes());
+
+            if (!normalizedTags.isEmpty()) {
+                postSearch.setAllAiTags(String.join(",", normalizedTags));
             }
-            if(enriched.getAllAiScenes() != null) {
-                postSearch.setAllAiScenes(String.join(",", enriched.getAllAiScenes()));
+            if (!normalizedScenes.isEmpty()) {
+                postSearch.setAllAiScenes(String.join(",", normalizedScenes));
             }
             postSearch.setInferredEventType(enriched.getInferredEventType());
             postSearch.setUpdatedAt(Instant.now());
@@ -114,12 +129,16 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             postSearchReadModelRepository.save(postSearch);
             log.info("Updated read_model_post_search for postId: {}", postId);
 
+            // Java owns post_search indexing; do a direct ES upsert after DB upsert.
+            indexPostSearchDocument(postSearch, enriched, normalizedTags, normalizedScenes);
+            log.info("Indexed post_search document for postId: {}", postId);
+
             // 2. Back-fill 'post_all_tags' in all related Media Search Read Models
             // (Using the efficient findByPostId method)
             List<MediaSearchReadModel> mediaModels = mediaSearchReadModelRepository.findByPostId(postId);
 
-            if (!mediaModels.isEmpty() && enriched.getAllAiTags() != null) {
-                String allTags = String.join(",", enriched.getAllAiTags());
+            if (!mediaModels.isEmpty() && !normalizedTags.isEmpty()) {
+                String allTags = String.join(",", normalizedTags);
                 for (MediaSearchReadModel media : mediaModels) {
                     media.setPostAllTags(allTags);
                 }
@@ -135,6 +154,7 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
 
             // 4. Trigger ES sync for all associated media (as they were updated)
             for (MediaSearchReadModel media : mediaModels) {
+                mediaSearchRepository.save(toMediaSearchDocument(media));
                 elasticsearchSyncTriggerService.triggerSync("read_model_media_search", media.getMediaId());
             }
 
@@ -169,8 +189,42 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             builder.timestamp(value.get("timestamp"));
             builder.correlationId(value.get("correlationId"));
 
+            String combinedCaption = value.get("combinedCaption");
+            if (combinedCaption != null) {
+                builder.combinedCaption(combinedCaption);
+            }
+
+            String isSafeStr = value.get("isSafe");
+            if (isSafeStr != null && !isSafeStr.isBlank() && !"null".equalsIgnoreCase(isSafeStr)) {
+                builder.isSafe(Boolean.parseBoolean(isSafeStr));
+            }
+
+            String totalFacesStr = value.get("totalFaces");
+            if (totalFacesStr != null && !totalFacesStr.isBlank() && !"null".equalsIgnoreCase(totalFacesStr)) {
+                builder.totalFaces(Integer.parseInt(totalFacesStr));
+            }
+
+            String mediaCountStr = value.get("mediaCount");
+            if (mediaCountStr != null && !mediaCountStr.isBlank() && !"null".equalsIgnoreCase(mediaCountStr)) {
+                builder.mediaCount(Integer.parseInt(mediaCountStr));
+            }
+
             // Manually parse List<String> fields from their JSON string representation
             TypeReference<List<String>> listTypeRef = new TypeReference<>() {};
+
+            String aggregatedTagsStr = value.get("aggregatedTags");
+            if (aggregatedTagsStr != null && !aggregatedTagsStr.isEmpty() && !aggregatedTagsStr.equals("null")) {
+                builder.aggregatedTags(objectMapper.readValue(aggregatedTagsStr, listTypeRef));
+            } else {
+                builder.aggregatedTags(Collections.emptyList());
+            }
+
+            String aggregatedScenesStr = value.get("aggregatedScenes");
+            if (aggregatedScenesStr != null && !aggregatedScenesStr.isEmpty() && !aggregatedScenesStr.equals("null")) {
+                builder.aggregatedScenes(objectMapper.readValue(aggregatedScenesStr, listTypeRef));
+            } else {
+                builder.aggregatedScenes(Collections.emptyList());
+            }
 
             String allAiTagsStr = value.get("allAiTags");
             if (allAiTagsStr != null && !allAiTagsStr.isEmpty() && !allAiTagsStr.equals("null")) {
@@ -193,6 +247,77 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             throw new StreamDeserializationException(streamName, messageId,
                     "Failed to deserialize post-insights-enriched message", e);
         }
+    }
+
+    private List<String> chooseFirstNonEmpty(List<String> primary, List<String> fallback) {
+        if (primary != null && !primary.isEmpty()) {
+            return primary;
+        }
+        if (fallback != null && !fallback.isEmpty()) {
+            return fallback;
+        }
+        return Collections.emptyList();
+    }
+
+    private void indexPostSearchDocument(
+            PostSearchReadModel model,
+            PostInsightsEnrichedDTO enriched,
+            List<String> normalizedTags,
+            List<String> normalizedScenes) {
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("postId", model.getPostId());
+        payload.put("authorId", model.getAuthorId());
+        payload.put("authorUsername", model.getAuthorUsername());
+        payload.put("authorDepartment", model.getAuthorDepartment());
+        payload.put("title", model.getTitle());
+        payload.put("body", model.getBody());
+        payload.put("aggregatedTags", normalizedTags);
+        payload.put("aggregatedScenes", normalizedScenes);
+        payload.put("combinedCaption", enriched.getCombinedCaption());
+        payload.put("inferredEventType", model.getInferredEventType());
+        payload.put("isSafe", enriched.getIsSafe());
+        payload.put("totalFaces", enriched.getTotalFaces());
+        payload.put("mediaCount", enriched.getMediaCount());
+        payload.put("createdAt", model.getCreatedAt());
+        payload.put("updatedAt", model.getUpdatedAt());
+
+        try {
+            String json = objectMapper.writeValueAsString(payload);
+            IndexQuery query = new IndexQueryBuilder()
+                    .withId(String.valueOf(model.getPostId()))
+                    .withSource(json)
+                    .build();
+            elasticsearchOperations.index(query, IndexCoordinates.of("post_search"));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize post_search payload for postId=" + model.getPostId(), e);
+        }
+    }
+
+    private MediaSearchDocument toMediaSearchDocument(MediaSearchReadModel media) {
+        return MediaSearchDocument.builder()
+                .id(String.valueOf(media.getMediaId()))
+                .mediaId(media.getMediaId())
+                .postId(media.getPostId())
+                .mediaUrl(media.getMediaUrl())
+                .aiCaption(media.getAiCaption())
+                .aiTags(splitCsv(media.getAiTags()))
+                .scenes(splitCsv(media.getAiScenes()))
+                .isSafe(media.getIsSafe())
+                .reactionCount(media.getReactionCount() != null ? media.getReactionCount().longValue() : 0L)
+                .commentCount(media.getCommentCount() != null ? media.getCommentCount().longValue() : 0L)
+                .createdAt(media.getCreatedAt() != null ? media.getCreatedAt().atZone(java.time.ZoneOffset.UTC).toLocalDateTime() : null)
+                .build();
+    }
+
+    private List<String> splitCsv(String value) {
+        if (value == null || value.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.toList());
     }
 
     private void updatePostDocumentMlFields(Long postId, PostInsightsEnrichedDTO enriched) {
