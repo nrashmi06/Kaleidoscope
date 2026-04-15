@@ -77,9 +77,12 @@ Each feature module follows a consistent layered architecture:
 - Email verification workflow
 - Password management (forgot/reset/change)
 - Username availability checking
+- Redis-backed auth endpoint rate limiting (login/register)
 - HTTP-only cookie security for refresh tokens
 
 **Architecture Pattern**: Stateless JWT with secure refresh mechanism
+
+For detailed documentation, see [AUTHENTICATION_SYSTEM.md](AUTHENTICATION_SYSTEM.md) and [RATE_LIMITING_SYSTEM.md](RATE_LIMITING_SYSTEM.md)
 
 #### 2. User Management Module (`users/`)
 **Purpose**: User profiles, preferences, and social features

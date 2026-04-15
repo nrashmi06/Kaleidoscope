@@ -163,23 +163,22 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
     }
 
     private void sendVerificationEmailSafely(User user) {
-        try {
-            String rawToken = VerificationTokenSecurity.generateSecureToken();
-            String tokenHash = VerificationTokenSecurity.sha256(rawToken);
+        String rawToken = VerificationTokenSecurity.generateSecureToken();
+        String tokenHash = VerificationTokenSecurity.sha256(rawToken);
 
-            // Create email verification record using mapper
-            EmailVerification emailVerification = AuthMapper.toEmailVerification(
-                    user.getUserId(),
-                    user.getEmail(),
+        EmailVerification emailVerification = AuthMapper.toEmailVerification(
+                user.getUserId(),
+                user.getEmail(),
                 tokenHash
-            );
-            emailVerificationRepository.save(emailVerification);
-            emailService.sendVerificationEmail(user.getEmail(), rawToken);
+        );
+        emailVerificationRepository.save(emailVerification);
 
-            log.debug("Verification email sent for user: {}", user.getEmail());
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), rawToken);
+            log.debug("Verification email dispatched for user: {}", user.getEmail());
         } catch (Exception e) {
-            // Don't let email sending failures break user registration
-            log.error("Failed to send verification email for user: {}, error: {}", user.getEmail(), e.getMessage());
+            // Don't let email provider failures break registration after persistence succeeds
+            log.error("Failed to dispatch verification email for user: {}, error: {}", user.getEmail(), e.getMessage());
         }
     }
 
