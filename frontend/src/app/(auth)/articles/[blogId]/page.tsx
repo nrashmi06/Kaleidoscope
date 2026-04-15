@@ -64,7 +64,6 @@ export default function BlogDetailPage() {
 
   const isAdmin = currentUser?.role === "ADMIN";
 
-  // Close status dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
@@ -200,7 +199,7 @@ export default function BlogDetailPage() {
 
   return (
     <>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* ── Top bar ── */}
         <div className="flex items-center justify-between">
           <button
@@ -231,165 +230,170 @@ export default function BlogDetailPage() {
           </div>
         </div>
 
-        {/* ── Media Gallery Card ── */}
-        {hasMedia && (
-          <div className="relative w-full overflow-hidden rounded-2xl bg-navy-700/5 dark:bg-navy-700/30">
-            <div className="relative aspect-[16/10] sm:aspect-[16/9]">
-              <Image
-                src={blog.media[activeMediaIndex].mediaUrl}
-                alt={`${blog.title} — image ${activeMediaIndex + 1}`}
-                fill
-                className="object-contain"
-                priority={activeMediaIndex === 0}
-              />
-            </div>
+        {/* ── Pinterest-style split card ── */}
+        <div className="bg-surface-alt rounded-3xl border border-border-default overflow-hidden shadow-sm">
+          <div className={`flex flex-col ${hasMedia ? "lg:flex-row" : ""}`}>
+            {/* Left: Media */}
+            {hasMedia && (
+              <div className="relative lg:w-[55%] bg-navy-700/5 dark:bg-navy-700/30 flex-shrink-0">
+                <div className="relative aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px] lg:min-h-[500px]">
+                  <Image
+                    src={blog.media[activeMediaIndex].mediaUrl}
+                    alt={`${blog.title} — image ${activeMediaIndex + 1}`}
+                    fill
+                    className="object-contain"
+                    priority={activeMediaIndex === 0}
+                  />
+                </div>
 
-            {/* Gallery navigation arrows */}
-            {blog.media.length > 1 && (
-              <>
-                <button
-                  onClick={() => setActiveMediaIndex((p) => Math.max(0, p - 1))}
-                  disabled={activeMediaIndex === 0}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 disabled:opacity-30 transition-all cursor-pointer"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setActiveMediaIndex((p) => Math.min(blog.media.length - 1, p + 1))}
-                  disabled={activeMediaIndex === blog.media.length - 1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 disabled:opacity-30 transition-all cursor-pointer"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-                {/* Dot indicators */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-                  {blog.media.map((_, i) => (
+                {/* Gallery navigation */}
+                {blog.media.length > 1 && (
+                  <>
                     <button
-                      key={i}
-                      onClick={() => setActiveMediaIndex(i)}
-                      className={`rounded-full transition-all cursor-pointer ${
-                        i === activeMediaIndex
-                          ? "w-6 h-2 bg-white"
-                          : "w-2 h-2 bg-white/40 hover:bg-white/70"
-                      }`}
-                    />
+                      onClick={() => setActiveMediaIndex((p) => Math.max(0, p - 1))}
+                      disabled={activeMediaIndex === 0}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 disabled:opacity-30 transition-all cursor-pointer"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setActiveMediaIndex((p) => Math.min(blog.media.length - 1, p + 1))}
+                      disabled={activeMediaIndex === blog.media.length - 1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 disabled:opacity-30 transition-all cursor-pointer"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                    {/* Dot indicators */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                      {blog.media.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveMediaIndex(i)}
+                          className={`rounded-full transition-all cursor-pointer ${
+                            i === activeMediaIndex
+                              ? "w-6 h-2 bg-white"
+                              : "w-2 h-2 bg-white/40 hover:bg-white/70"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    {/* Image counter */}
+                    <span className="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full bg-black/50 text-white backdrop-blur-sm">
+                      {activeMediaIndex + 1} / {blog.media.length}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Right: Content */}
+            <div className={`flex-1 flex flex-col ${hasMedia ? "lg:max-h-[700px]" : ""}`}>
+              {/* Scrollable content area */}
+              <div className={`flex-1 p-6 sm:p-8 space-y-5 ${hasMedia ? "lg:overflow-y-auto" : ""}`}>
+                {/* Status + Categories */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-full border ${currentStatus.color}`}>
+                    {currentStatus.label.toUpperCase()}
+                  </span>
+                  {blog.categories.map((cat) => (
+                    <span
+                      key={cat.categoryId}
+                      className="text-[11px] font-semibold tracking-wider px-2.5 py-1 rounded-full bg-steel/[0.06] dark:bg-sky/[0.06] text-steel dark:text-sky/70 border border-steel/10 dark:border-sky/10"
+                    >
+                      {cat.name}
+                    </span>
                   ))}
                 </div>
-              </>
-            )}
 
-            {/* Image counter */}
-            {blog.media.length > 1 && (
-              <span className="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full bg-black/50 text-white backdrop-blur-sm">
-                {activeMediaIndex + 1} / {blog.media.length}
-              </span>
-            )}
-          </div>
-        )}
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-heading leading-tight">
+                  {blog.title}
+                </h1>
 
-        {/* ── Article Card ── */}
-        <div className="bg-surface-alt rounded-2xl border border-border-default p-6 sm:p-8 space-y-6">
-          {/* Status + Categories row */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-full border ${currentStatus.color}`}>
-              {currentStatus.label.toUpperCase()}
-            </span>
-            {blog.categories.map((cat) => (
-              <span
-                key={cat.categoryId}
-                className="text-[11px] font-semibold tracking-wider px-2.5 py-1 rounded-full bg-steel/[0.06] dark:bg-sky/[0.06] text-steel dark:text-sky/70 border border-steel/10 dark:border-sky/10"
-              >
-                {cat.name}
-              </span>
-            ))}
-          </div>
+                {/* Author row */}
+                <div className="flex items-center gap-3">
+                  <div
+                    onClick={() => router.push(`/profile/${blog.author.userId}`)}
+                    className="relative w-10 h-10 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0 ring-2 ring-border-default cursor-pointer hover:ring-steel/40 dark:hover:ring-sky/40 transition-all"
+                  >
+                    <Image src={blog.author.profilePictureUrl} alt={blog.author.username} fill className="object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      onClick={() => router.push(`/profile/${blog.author.userId}`)}
+                      className="text-sm font-bold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
+                    >
+                      {blog.author.username}
+                    </p>
+                    <div className="flex items-center gap-3 text-[11px] text-muted flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDistanceToNow(parseUTC(blog.createdAt), { addSuffix: true })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" />
+                        {blog.readTimeMinutes} min read
+                      </span>
+                      <span>{blog.wordCount} words</span>
+                      {blog.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-red-500" />
+                          {blog.location.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-          {/* Title */}
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-heading leading-tight">
-            {blog.title}
-          </h1>
+                {/* Summary */}
+                {blog.summary && (
+                  <blockquote className="relative pl-5 border-l-[3px] border-steel dark:border-sky bg-steel/[0.03] dark:bg-sky/[0.03] rounded-r-xl py-4 pr-5 italic text-sub text-[15px] leading-relaxed">
+                    {blog.summary}
+                  </blockquote>
+                )}
 
-          {/* Author row */}
-          <div className="flex items-center gap-3">
-            <div
-              onClick={() => router.push(`/profile/${blog.author.userId}`)}
-              className="relative w-10 h-10 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0 ring-2 ring-border-default cursor-pointer hover:ring-steel/40 dark:hover:ring-sky/40 transition-all"
-            >
-              <Image src={blog.author.profilePictureUrl} alt={blog.author.username} fill className="object-cover" />
-            </div>
-            <div className="min-w-0">
-              <p
-                onClick={() => router.push(`/profile/${blog.author.userId}`)}
-                className="text-sm font-bold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
-              >
-                {blog.author.username}
-              </p>
-              <div className="flex items-center gap-3 text-[11px] text-muted flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatDistanceToNow(parseUTC(blog.createdAt), { addSuffix: true })}
-                </span>
-                <span className="flex items-center gap-1">
-                  <BookOpen className="w-3 h-3" />
-                  {blog.readTimeMinutes} min read
-                </span>
-                <span>{blog.wordCount} words</span>
-                {blog.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-red-500" />
-                    {blog.location.name}
-                  </span>
+                {/* Tags */}
+                {blog.tags && blog.tags.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {blog.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs font-medium px-2.5 py-1 rounded-full bg-steel/[0.06] dark:bg-sky/[0.06] text-steel dark:text-sky/70 border border-steel/10 dark:border-sky/10"
+                      >
+                        #{typeof tag === "string" ? tag : tag.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Divider */}
+                <div className="h-px bg-border-subtle" />
+
+                {/* Article body */}
+                <div className="prose dark:prose-invert max-w-none text-navy/80 dark:text-cream/80 leading-relaxed text-[16.5px]">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{blog.body}</ReactMarkdown>
+                </div>
+
+                {/* Meta: reviewer + updated */}
+                {(blog.reviewer || blog.updatedAt !== blog.createdAt) && (
+                  <div className="flex items-center gap-4 flex-wrap text-[11px] text-faint pt-2">
+                    {blog.updatedAt && blog.updatedAt !== blog.createdAt && (
+                      <span>Updated {formatDistanceToNow(parseUTC(blog.updatedAt), { addSuffix: true })}</span>
+                    )}
+                    {blog.reviewer && (
+                      <span>
+                        Reviewed by{" "}
+                        <span className="font-semibold text-muted">{blog.reviewer.username}</span>
+                        {blog.reviewedAt && (
+                          <> {formatDistanceToNow(parseUTC(blog.reviewedAt), { addSuffix: true })}</>
+                        )}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
           </div>
-
-          {/* Summary */}
-          {blog.summary && (
-            <blockquote className="relative pl-5 border-l-[3px] border-steel dark:border-sky bg-steel/[0.03] dark:bg-sky/[0.03] rounded-r-xl py-4 pr-5 italic text-sub text-[15px] leading-relaxed">
-              {blog.summary}
-            </blockquote>
-          )}
-
-          {/* Tags (linked blogs) */}
-          {blog.tags && blog.tags.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {blog.tags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="text-xs font-medium px-2.5 py-1 rounded-full bg-steel/[0.06] dark:bg-sky/[0.06] text-steel dark:text-sky/70 border border-steel/10 dark:border-sky/10"
-                >
-                  #{typeof tag === "string" ? tag : tag.title}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="h-px bg-border-subtle" />
-
-          {/* Article body */}
-          <div className="prose dark:prose-invert max-w-none text-navy/80 dark:text-cream/80 leading-relaxed text-[16.5px]">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{blog.body}</ReactMarkdown>
-          </div>
-
-          {/* Meta: reviewer + updated */}
-          {(blog.reviewer || blog.updatedAt !== blog.createdAt) && (
-            <div className="flex items-center gap-4 flex-wrap text-[11px] text-faint pt-2">
-              {blog.updatedAt && blog.updatedAt !== blog.createdAt && (
-                <span>Updated {formatDistanceToNow(parseUTC(blog.updatedAt), { addSuffix: true })}</span>
-              )}
-              {blog.reviewer && (
-                <span>
-                  Reviewed by{" "}
-                  <span className="font-semibold text-muted">{blog.reviewer.username}</span>
-                  {blog.reviewedAt && (
-                    <> {formatDistanceToNow(parseUTC(blog.reviewedAt), { addSuffix: true })}</>
-                  )}
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* ── Admin Controls Card ── */}
