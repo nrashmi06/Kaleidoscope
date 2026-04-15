@@ -3,18 +3,28 @@ import { UserNotificationPreferencesMapper } from "@/mapper/user-notification-pr
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export interface ChannelPreferences {
-  email: boolean;
-  push: boolean;
+/**
+ * Flat field names matching the backend DTO:
+ *   likesEmail, likesPush, commentsEmail, commentsPush,
+ *   followsEmail, followsPush, mentionsEmail, mentionsPush,
+ *   systemEmail, systemPush, followRequestPush, followAcceptPush
+ */
+export interface NotificationPreferencesFlat {
+  likesEmail: boolean;
+  likesPush: boolean;
+  commentsEmail: boolean;
+  commentsPush: boolean;
+  followsEmail: boolean;
+  followsPush: boolean;
+  mentionsEmail: boolean;
+  mentionsPush: boolean;
+  systemEmail: boolean;
+  systemPush: boolean;
+  followRequestPush: boolean;
+  followAcceptPush: boolean;
 }
 
-export interface NotificationPreferencesData {
-  comments: ChannelPreferences;
-  likes: ChannelPreferences;
-  follows: ChannelPreferences;
-  mentions: ChannelPreferences;
-  system: ChannelPreferences;
-}
+export type PartialNotificationPreferences = Partial<NotificationPreferencesFlat>;
 
 interface StandardResponse {
   success: boolean;
@@ -24,15 +34,6 @@ interface StandardResponse {
   timestamp: number;
   path: string;
 }
-
-// Channel name to mapper key mapping
-const channelEndpointMap: Record<string, string> = {
-  comments: UserNotificationPreferencesMapper.updateCommentsPreferences,
-  likes: UserNotificationPreferencesMapper.updateLikesPreferences,
-  follows: UserNotificationPreferencesMapper.updateFollowsPreferences,
-  mentions: UserNotificationPreferencesMapper.updateMentionsPreferences,
-  system: UserNotificationPreferencesMapper.updateSystemPreferences,
-};
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -62,11 +63,11 @@ function buildErrorResponse(url: string, error: unknown): StandardResponse {
 
 // ── Service Functions ──────────────────────────────────────────────────────────
 
+/** GET /api/user-notification-preferences */
 export async function getNotificationPreferencesService(
   accessToken: string
 ): Promise<StandardResponse> {
   const url = UserNotificationPreferencesMapper.getNotificationPreferences;
-
   try {
     const response = await axiosInstance.get<StandardResponse>(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -77,40 +78,12 @@ export async function getNotificationPreferencesService(
   }
 }
 
-export async function updateNotificationPreferencesService(
+/** PATCH /api/user-notification-preferences — partial update (any subset of fields) */
+export async function patchNotificationPreferencesService(
   accessToken: string,
-  data: NotificationPreferencesData
+  data: PartialNotificationPreferences
 ): Promise<StandardResponse> {
-  const url = UserNotificationPreferencesMapper.updateNotificationPreferences;
-
-  try {
-    const response = await axiosInstance.put<StandardResponse>(url, data, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error: unknown) {
-    return buildErrorResponse(url, error);
-  }
-}
-
-export async function updateChannelPreferencesService(
-  accessToken: string,
-  channel: string,
-  data: ChannelPreferences
-): Promise<StandardResponse> {
-  const url = channelEndpointMap[channel];
-
-  if (!url) {
-    return {
-      success: false,
-      message: `Unknown notification channel: ${channel}`,
-      data: null,
-      errors: [`Invalid channel: ${channel}`],
-      timestamp: Date.now(),
-      path: "",
-    };
-  }
-
+  const url = UserNotificationPreferencesMapper.partialUpdateNotificationPreferences;
   try {
     const response = await axiosInstance.patch<StandardResponse>(url, data, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -121,63 +94,31 @@ export async function updateChannelPreferencesService(
   }
 }
 
+/** PUT /api/user-notification-preferences — full update (all fields required) */
+export async function updateNotificationPreferencesService(
+  accessToken: string,
+  data: NotificationPreferencesFlat
+): Promise<StandardResponse> {
+  const url = UserNotificationPreferencesMapper.updateNotificationPreferences;
+  try {
+    const response = await axiosInstance.put<StandardResponse>(url, data, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    return buildErrorResponse(url, error);
+  }
+}
+
+/** POST /api/user-notification-preferences/reset */
 export async function resetNotificationPreferencesService(
   accessToken: string
 ): Promise<StandardResponse> {
   const url = UserNotificationPreferencesMapper.resetToDefaults;
-
   try {
-    const response = await axiosInstance.post<StandardResponse>(
-      url,
-      {},
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
-    return response.data;
-  } catch (error: unknown) {
-    return buildErrorResponse(url, error);
-  }
-}
-
-export async function toggleAllEmailService(
-  accessToken: string,
-  enable: boolean
-): Promise<StandardResponse> {
-  const url = enable
-    ? UserNotificationPreferencesMapper.enableAllEmail
-    : UserNotificationPreferencesMapper.disableAllEmail;
-
-  try {
-    const response = await axiosInstance.patch<StandardResponse>(
-      url,
-      {},
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
-    return response.data;
-  } catch (error: unknown) {
-    return buildErrorResponse(url, error);
-  }
-}
-
-export async function toggleAllPushService(
-  accessToken: string,
-  enable: boolean
-): Promise<StandardResponse> {
-  const url = enable
-    ? UserNotificationPreferencesMapper.enableAllPush
-    : UserNotificationPreferencesMapper.disableAllPush;
-
-  try {
-    const response = await axiosInstance.patch<StandardResponse>(
-      url,
-      {},
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
+    const response = await axiosInstance.post<StandardResponse>(url, {}, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     return response.data;
   } catch (error: unknown) {
     return buildErrorResponse(url, error);

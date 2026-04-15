@@ -94,14 +94,14 @@ export default function FollowButton({ targetUserId }: FollowButtonProps) {
     <button
       onClick={onClick}
       disabled={loading}
-      className={`px-3 h-8 text-xs font-medium rounded-full transition-colors cursor-pointer ${
+      className={`px-3.5 h-7 text-[11px] font-semibold rounded-full transition-all duration-200 cursor-pointer ${
         loading ? "opacity-60 pointer-events-none" : ""
       } ${
         label === "Following"
-          ? "bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky-300"
+          ? "bg-navy text-cream-50 hover:bg-navy/80 dark:bg-cream dark:text-navy dark:hover:bg-cream/80"
           : label === "Requested"
-            ? "bg-sky/10 text-sky border border-sky/30 hover:bg-sky/20"
-            : "bg-cream-300/50 dark:bg-navy-700 text-navy dark:text-cream hover:bg-cream-300 dark:hover:bg-navy-600"
+            ? "bg-cream-300/50 dark:bg-navy-700/50 text-navy/60 dark:text-cream/60"
+            : "bg-cream-300/50 dark:bg-navy-700/50 text-navy dark:text-cream hover:bg-cream-300/70 dark:hover:bg-navy-700/70"
       }`}
     >
       {loading ? "..." : label}

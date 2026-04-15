@@ -111,81 +111,69 @@ export default function SavedPage() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-6 relative">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
-      </div>
-
+    <div className="w-full">
       {/* ── Header Section ── */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-steel-600 shadow-lg shadow-steel/25 dark:shadow-steel/15 dark:from-sky dark:to-steel">
-            <Bookmark className="w-5 h-5 text-cream-50" />
-          </div>
+      <div className="pt-6 pb-5 px-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
+            <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
               Saved
             </h1>
             {!loading && items.length > 0 && (
-              <p className="text-[11px] text-steel dark:text-sky/60 tabular-nums">
+              <p className="mt-1 text-sm text-steel/50 dark:text-sky/35 tabular-nums">
                 {items.length} items
                 {totalPages > 1 && ` · Page ${page + 1} of ${totalPages}`}
               </p>
             )}
           </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => switchTab("posts")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              activeTab === "posts"
-                ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
-            }`}
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            Posts
-          </button>
-          <button
-            onClick={() => switchTab("articles")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              activeTab === "articles"
-                ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            Articles
-          </button>
+          {/* Tabs — segmented control */}
+          <div className="inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
+            <button
+              onClick={() => switchTab("posts")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-medium rounded-full transition-all duration-300 cursor-pointer ${
+                activeTab === "posts"
+                  ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                  : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              Posts
+            </button>
+            <button
+              onClick={() => switchTab("articles")}
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-medium rounded-full transition-all duration-300 cursor-pointer ${
+                activeTab === "articles"
+                  ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                  : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Articles
+            </button>
+          </div>
         </div>
-
-        {/* Gradient divider */}
-        <div className="mt-5 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
       </div>
 
       {/* ── Content ── */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="h-[16rem] rounded-2xl bg-cream-300/40 dark:bg-navy-700/40 animate-pulse"
+              className="h-[16rem] rounded-2xl bg-cream-300/30 dark:bg-navy-700/30 animate-pulse"
             />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-dashed border-cream-300 dark:border-navy-700 bg-cream-50/50 dark:bg-navy/50 backdrop-blur-sm">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
-            <Inbox className="w-6 h-6 text-steel dark:text-sky/60" />
+        <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-5">
+            <Inbox className="w-6 h-6 text-navy/25 dark:text-cream/25" />
           </div>
-          <h3 className="text-base font-display font-semibold text-navy dark:text-cream mb-1.5">
+          <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
             No saved {activeTab}
           </h3>
-          <p className="text-sm text-steel dark:text-sky/60">
+          <p className="text-sm text-navy/40 dark:text-cream/35">
             Items you save will appear here.
           </p>
         </div>
@@ -193,7 +181,7 @@ export default function SavedPage() {
         <AnimatePresence>
           <motion.div
             layout
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
           >
             {items.map((item, index) => {
               const id =
@@ -223,45 +211,40 @@ export default function SavedPage() {
                           : `/articles/${id}`
                       )
                     }
-                    className="group flex flex-col h-[16rem] rounded-2xl overflow-hidden bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 cursor-pointer"
+                    className="group flex flex-col h-[16rem] rounded-2xl overflow-hidden bg-cream-50 dark:bg-navy-800/50 hover:shadow-lg hover:shadow-black/[0.06] dark:hover:shadow-black/20 transition-all duration-300 cursor-pointer"
                   >
                     {/* Thumbnail */}
-                    <div className="relative h-[55%] w-full overflow-hidden bg-cream-300/30 dark:bg-navy-700/60">
+                    <div className="relative h-[55%] w-full overflow-hidden bg-cream-300/30 dark:bg-navy-700/30">
                       {thumbnail ? (
                         <Image
                           src={thumbnail}
                           alt={title}
                           fill
                           sizes="(max-width: 768px) 100vw, 33vw"
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full bg-gradient-to-br from-steel/10 to-sky/10 dark:from-steel/20 dark:to-sky/10">
+                        <div className="flex items-center justify-center h-full">
                           {activeTab === "posts" ? (
-                            <ImageIcon className="w-8 h-8 text-steel/30 dark:text-sky/20" />
+                            <ImageIcon className="w-8 h-8 text-navy/15 dark:text-cream/10" />
                           ) : (
-                            <FileText className="w-8 h-8 text-steel/30 dark:text-sky/20" />
+                            <FileText className="w-8 h-8 text-navy/15 dark:text-cream/10" />
                           )}
                         </div>
                       )}
-
-                      {/* Type badge */}
-                      <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-navy/60 backdrop-blur-sm text-cream-50 text-[10px] font-semibold uppercase tracking-wide">
-                        {activeTab === "posts" ? "Post" : "Article"}
-                      </div>
                     </div>
 
                     {/* Content */}
                     <div className="flex flex-col flex-1 p-4">
-                      <h3 className="text-sm font-display font-bold text-navy dark:text-cream leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
+                      <h3 className="text-sm font-semibold text-navy dark:text-cream leading-snug line-clamp-2">
                         {title}
                       </h3>
 
                       <div className="flex-1" />
 
                       {/* Author */}
-                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-cream-300/30 dark:border-navy-600/30">
-                        <div className="w-5 h-5 rounded-full bg-cream-300 dark:bg-navy-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="w-5 h-5 rounded-full bg-cream-300/50 dark:bg-navy-700/50 flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {item.author?.profilePictureUrl ? (
                             <Image
                               src={item.author.profilePictureUrl}
@@ -271,10 +254,10 @@ export default function SavedPage() {
                               className="object-cover w-full h-full"
                             />
                           ) : (
-                            <User className="w-2.5 h-2.5 text-steel/60 dark:text-sky/40" />
+                            <User className="w-2.5 h-2.5 text-navy/30 dark:text-cream/25" />
                           )}
                         </div>
-                        <p className="text-[11px] font-medium text-navy/70 dark:text-cream/60 truncate">
+                        <p className="text-[11px] font-medium text-navy/50 dark:text-cream/45 truncate">
                           {author}
                         </p>
                       </div>
@@ -289,20 +272,20 @@ export default function SavedPage() {
 
       {/* ── Pagination ── */}
       {!loading && items.length > 0 && totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-1.5">
+        <div className="mt-12 flex items-center justify-center gap-1">
           <button
             onClick={() => handlePageChange(page - 1)}
             disabled={page === 0}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
 
           {getPageNumbers().map((p, idx) =>
             p === "..." ? (
               <span
                 key={`dots-${idx}`}
-                className="w-9 h-9 flex items-center justify-center text-xs text-steel/50 dark:text-sky/30"
+                className="w-10 h-10 flex items-center justify-center text-sm text-navy/25 dark:text-cream/20"
               >
                 ...
               </span>
@@ -310,10 +293,10 @@ export default function SavedPage() {
               <button
                 key={p}
                 onClick={() => handlePageChange(p as number)}
-                className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                   page === p
-                    ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                    : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                    ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
+                    : "text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
                 }`}
               >
                 {(p as number) + 1}
@@ -324,9 +307,9 @@ export default function SavedPage() {
           <button
             onClick={() => handlePageChange(page + 1)}
             disabled={page >= totalPages - 1}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}

@@ -62,70 +62,71 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <>
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-navy/60 backdrop-blur-sm">
-          <Loader2 className="w-10 h-10 text-sky animate-spin" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-navy/60 backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-8 h-8 text-steel dark:text-sky animate-spin" />
+            <span className="text-sm font-medium text-navy/60 dark:text-cream/60">Signing out...</span>
+          </div>
         </div>
       )}
 
-      <div className="flex flex-col min-h-screen w-full bg-cream dark:bg-navy-900 grain relative">
-        {/* Top Navbar — seamless, no hard border */}
-        <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-cream-50/90 dark:bg-navy/90 backdrop-blur-md">
+      <div className="flex flex-col min-h-screen w-full bg-[#f5f0e8] dark:bg-[#0a0a0f] grain relative">
+        {/* Top Navbar — warm frosted glass */}
+        <div className="fixed top-0 left-0 right-0 z-50 h-[56px] bg-[#f5f0e8]/85 dark:bg-[#0a0a0f]/85 backdrop-blur-2xl backdrop-saturate-150">
           <div className="relative w-full h-full">
             <button
-              className="md:hidden absolute left-4 top-1/2 transform -translate-y-1/2"
+              className="md:hidden absolute left-4 top-1/2 transform -translate-y-1/2 p-2 rounded-xl hover:bg-cream-300/50 dark:hover:bg-navy-700/50 transition-colors active:scale-95"
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Open sidebar menu"
             >
-              <Menu className="w-6 h-6 text-navy dark:text-cream" />
+              <Menu className="w-5 h-5 text-navy dark:text-cream" />
             </button>
             <TopNavbar onLogout={handleLogout} />
           </div>
-          {/* Subtle gradient fade instead of hard border */}
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cream-400/40 dark:via-navy-700/60 to-transparent" />
         </div>
 
-        {/* Main layout container */}
-        <div className="flex flex-1 pt-14 md:flex-row flex-col overflow-hidden w-full">
-          {/* Sidebar (desktop) — seamless, no hard divider */}
-          <aside className="hidden md:flex md:w-72 flex-shrink-0 h-full">
-            <div className="flex flex-col w-full h-full">
-              <div className="sticky top-0 z-10 px-3 pt-4 pb-3">
-                <UserProfileCard />
+        {/* Sidebar (desktop) — fixed, always pinned */}
+        <aside className="hidden md:block fixed top-[56px] left-0 w-[250px] h-[calc(100vh-56px)] z-40">
+          <div className="flex flex-col w-full h-full overflow-hidden">
+            <div className="px-3 pt-4 pb-1">
+              <UserProfileCard />
+            </div>
+            <div className="flex-1 overflow-y-auto hide-scrollbar px-3 pb-6">
+              <UserSidebar />
+            </div>
+          </div>
+        </aside>
+
+        {/* Mobile drawer sidebar */}
+        {isSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <div
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+            <div className="relative w-[280px] h-full bg-[#f5f0e8] dark:bg-[#0a0a0f] shadow-2xl shadow-black/20 z-50 overflow-y-auto transform translate-x-0 transition-transform duration-300">
+              <div className="flex items-center justify-between px-4 pt-5 pb-2">
+                <span className="text-sm font-display font-semibold text-navy dark:text-cream">Menu</span>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 rounded-xl hover:bg-cream-300/50 dark:hover:bg-navy-700/50 transition-colors"
+                  aria-label="Close sidebar menu"
+                >
+                  <X className="w-4 h-4 text-navy/60 dark:text-cream/60" />
+                </button>
               </div>
-              <div className="flex-1 overflow-y-auto hide-scrollbar px-3 pb-4">
+              <div className="px-3 pt-2 pb-6 space-y-2">
+                <UserProfileCard />
                 <UserSidebar />
               </div>
             </div>
-          </aside>
+          </div>
+        )}
 
-          {/* Mobile drawer sidebar */}
-          {isSidebarOpen && (
-            <div className="fixed inset-0 z-50 flex md:hidden">
-              <div
-                className="fixed inset-0 bg-navy/50 backdrop-blur-sm transition-opacity duration-300"
-                onClick={() => setIsSidebarOpen(false)}
-              />
-              <div className="relative w-72 h-full bg-cream-50/95 dark:bg-navy/95 backdrop-blur-md shadow-2xl shadow-navy/10 dark:shadow-black/30 z-50 p-4 overflow-y-auto transform translate-x-0 transition-transform duration-300">
-                <button
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="absolute top-4 right-4 p-1.5 rounded-lg text-navy dark:text-cream hover:bg-cream-300/50 dark:hover:bg-navy-700/50 transition-colors"
-                  aria-label="Close sidebar menu"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                <div className="mt-10 space-y-4">
-                  <UserProfileCard />
-                  <UserSidebar />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto min-w-0 min-h-0 py-3">
-            <div className="max-w-7xl mx-auto px-2">{children}</div>
-          </main>
-        </div>
+        {/* Main Content Area — offset by sidebar width on desktop */}
+        <main className="flex-1 pt-[56px] md:ml-[250px] min-h-screen">
+          <div className="max-w-[1200px] mx-auto px-3 sm:px-5">{children}</div>
+        </main>
       </div>
     </>
   );

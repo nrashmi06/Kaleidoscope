@@ -39,34 +39,34 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
   }, []);
 
   return (
-    <nav className="hidden md:flex items-center justify-between px-6 py-2 h-full gap-4">
-      {/* Logo */}
+    <nav className="hidden md:flex items-center justify-between px-6 h-full gap-4">
+      {/* Logo — Apple minimal */}
       <div
-        className="flex items-center cursor-pointer select-none"
+        className="flex items-center cursor-pointer select-none group"
         onClick={() => router.push("/feed")}
       >
         <Image
           src="/icon.png"
           alt="Logo"
-          width={32}
-          height={32}
-          className="mr-3"
+          width={28}
+          height={28}
+          className="mr-2.5 group-hover:scale-105 transition-transform duration-200"
           priority
         />
-        <span className="text-lg font-display font-semibold text-navy dark:text-cream tracking-wide italic">
+        <span className="text-[17px] font-display font-semibold text-navy dark:text-cream tracking-tight italic">
           Kaleidoscope
         </span>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1.5 relative" ref={menuRef}>
+      {/* Actions — tight, icon-forward */}
+      <div className="flex items-center gap-1 relative" ref={menuRef}>
         <button
           onClick={() => router.push("/create-post")}
           aria-label="Create Post"
-          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-xl text-cream-50 bg-steel hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky/80 shadow-sm shadow-steel/20 dark:shadow-sky/15 transition-all duration-200 focus:outline-none cursor-pointer text-sm font-semibold"
+          className="flex items-center justify-center gap-1.5 h-8 px-3.5 rounded-full text-cream-50 bg-navy hover:bg-navy/80 dark:bg-cream dark:text-navy dark:hover:bg-cream/80 transition-all duration-200 focus:outline-none cursor-pointer text-[13px] font-semibold"
         >
-          <IconPlus size={18} />
-          <span className="hidden lg:inline">Post</span>
+          <IconPlus size={15} stroke={2.5} />
+          <span className="hidden lg:inline">Create</span>
         </button>
 
         <div className="relative flex items-center justify-center w-9 h-9">
@@ -75,27 +75,27 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
 
         <button
           onClick={() => setShowMenu((v) => !v)}
-          className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-cream-300/60 dark:ring-navy-700/60 hover:ring-steel/50 dark:hover:ring-sky/40 transition-all duration-200 focus:outline-none ml-1 cursor-pointer"
+          className="relative w-8 h-8 rounded-full overflow-hidden ring-[1.5px] ring-navy/10 dark:ring-cream/10 hover:ring-navy/25 dark:hover:ring-cream/25 transition-all duration-200 focus:outline-none ml-0.5 cursor-pointer"
         >
           <Image
             src={user.profilePictureUrl}
             alt="User Avatar"
             fill
-            sizes="36px"
+            sizes="32px"
             className="object-cover"
           />
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-12 w-44 bg-cream-50/95 dark:bg-navy-700/95 backdrop-blur-md rounded-xl shadow-lg shadow-navy/[0.06] dark:shadow-black/30 border border-cream-300/40 dark:border-navy-600/40 z-50 py-1 overflow-hidden">
+          <div className="absolute right-0 top-11 w-48 bg-cream-50/95 dark:bg-navy-800/95 backdrop-blur-2xl rounded-2xl shadow-xl shadow-black/[0.08] dark:shadow-black/40 border border-cream-300/40 dark:border-navy-700/40 z-50 py-1.5 overflow-hidden">
             <button
               onClick={() => {
                 setShowMenu(false);
                 router.push(`/profile/${user.userId}`);
               }}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-navy dark:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-600/50 w-full text-left text-sm transition-colors cursor-pointer"
+              className="flex items-center gap-3 px-4 py-2.5 text-navy/80 dark:text-cream/80 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 w-full text-left text-[13px] transition-colors cursor-pointer"
             >
-              <IconUser size={17} className="text-steel dark:text-sky" />
+              <IconUser size={16} className="text-navy/40 dark:text-cream/40" />
               Profile
             </button>
             <button
@@ -103,24 +103,24 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
                 setShowMenu(false);
                 router.push("/settings");
               }}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-navy dark:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-600/50 w-full text-left text-sm transition-colors cursor-pointer"
+              className="flex items-center gap-3 px-4 py-2.5 text-navy/80 dark:text-cream/80 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 w-full text-left text-[13px] transition-colors cursor-pointer"
             >
-              <IconSettings
-                size={17}
-                className="text-steel dark:text-sky"
-              />
+              <IconSettings size={16} className="text-navy/40 dark:text-cream/40" />
               Settings
+            </button>
+            <div className="mx-3 my-1 h-px bg-cream-300/50 dark:bg-navy-700/50" />
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                onLogout();
+              }}
+              className="flex items-center gap-3 px-4 py-2.5 text-red-500/80 hover:bg-red-500/[0.04] w-full text-left text-[13px] transition-colors cursor-pointer"
+            >
+              <IconLogout size={16} />
+              Sign Out
             </button>
           </div>
         )}
-
-        <button
-          onClick={onLogout}
-          aria-label="Logout"
-          className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 cursor-pointer"
-        >
-          <IconLogout size={19} />
-        </button>
       </div>
     </nav>
   );

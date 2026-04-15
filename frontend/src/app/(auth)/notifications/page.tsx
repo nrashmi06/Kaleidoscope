@@ -89,39 +89,28 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6 relative">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
-      </div>
-
+    <div className="w-full">
       {/* ── Header ── */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-steel-600 shadow-lg shadow-steel/25 dark:shadow-steel/15 dark:from-sky dark:to-steel">
-              <Bell className="w-5 h-5 text-cream-50" />
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
-                Notifications
-              </h1>
-              {!loading && (
-                <div className="flex items-center gap-2 text-[11px] tabular-nums">
-                  {unread > 0 && (
-                    <span className="text-steel dark:text-sky font-semibold">
-                      {unread} unread
-                    </span>
-                  )}
-                  {pagination && pagination.totalPages > 1 && (
-                    <span className="text-steel/50 dark:text-sky/40">
-                      · Page {currentPage + 1} of {pagination.totalPages}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
+      <div className="pt-6 pb-5 px-1">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+              Notifications
+            </h1>
+            {!loading && (
+              <div className="flex items-center gap-2 mt-1 text-sm">
+                {unread > 0 && (
+                  <span className="text-steel/60 dark:text-sky/40 font-medium">
+                    {unread} unread
+                  </span>
+                )}
+                {pagination && pagination.totalPages > 1 && (
+                  <span className="text-steel/35 dark:text-sky/20">
+                    · Page {currentPage + 1} of {pagination.totalPages}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <MarkAllAsReadButton
@@ -132,9 +121,6 @@ export default function NotificationsPage() {
             }}
           />
         </div>
-
-        {/* Gradient divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
       </div>
 
       {/* ── Notifications List ── */}
@@ -147,14 +133,14 @@ export default function NotificationsPage() {
 
         {/* Error */}
         {error && !loading && (
-          <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 backdrop-blur-sm">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 mb-4">
+          <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/20 mb-5">
               <span className="text-2xl">⚠️</span>
             </div>
-            <h3 className="text-base font-display font-semibold text-red-700 dark:text-red-300 mb-1.5">
+            <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
               Failed to Load
             </h3>
-            <p className="text-sm text-red-600/80 dark:text-red-400/80">
+            <p className="text-sm text-navy/40 dark:text-cream/35">
               {error}
             </p>
           </div>
@@ -162,14 +148,14 @@ export default function NotificationsPage() {
 
         {/* Empty */}
         {!loading && !error && items.length === 0 && (
-          <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-dashed border-cream-300 dark:border-navy-700 bg-cream-50/50 dark:bg-navy/50 backdrop-blur-sm">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
-              <Inbox className="w-6 h-6 text-steel dark:text-sky/60" />
+          <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-5">
+              <Inbox className="w-6 h-6 text-navy/25 dark:text-cream/25" />
             </div>
-            <h3 className="text-base font-display font-semibold text-navy dark:text-cream mb-1.5">
+            <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
               All caught up!
             </h3>
-            <p className="text-sm text-steel dark:text-sky/60">
+            <p className="text-sm text-navy/40 dark:text-cream/35">
               You don&apos;t have any notifications right now.
             </p>
           </div>
@@ -202,20 +188,20 @@ export default function NotificationsPage() {
 
       {/* ── Pagination ── */}
       {!loading && pagination && pagination.totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-1.5">
+        <div className="mt-12 flex items-center justify-center gap-1">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={pagination.isFirst}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
 
           {getPageNumbers().map((page, idx) =>
             page === "..." ? (
               <span
                 key={`dots-${idx}`}
-                className="w-9 h-9 flex items-center justify-center text-xs text-steel/50 dark:text-sky/30"
+                className="w-10 h-10 flex items-center justify-center text-sm text-navy/25 dark:text-cream/20"
               >
                 ...
               </span>
@@ -223,10 +209,10 @@ export default function NotificationsPage() {
               <button
                 key={page}
                 onClick={() => handlePageChange(page as number)}
-                className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                   currentPage === page
-                    ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                    : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                    ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
+                    : "text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
                 }`}
               >
                 {(page as number) + 1}
@@ -237,9 +223,9 @@ export default function NotificationsPage() {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={pagination.isLast}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}
