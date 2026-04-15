@@ -15,6 +15,8 @@ public interface MediaDetectedFaceRepository extends JpaRepository<MediaDetected
     
     List<MediaDetectedFace> findByMediaAiInsights_MediaId(Long mediaId);
 
+    List<MediaDetectedFace> findByMediaAiInsights_MediaIdIn(List<Long> mediaIds);
+
     List<MediaDetectedFace> findByIdentifiedUser(User user);
 
     List<MediaDetectedFace> findByIdentifiedUser_UserId(Long userId);

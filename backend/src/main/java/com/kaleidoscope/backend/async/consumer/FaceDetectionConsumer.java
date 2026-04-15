@@ -21,7 +21,7 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -40,13 +40,13 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
     private final JdbcTemplate jdbcTemplate;
     private final PostMediaRepository postMediaRepository;
+    private final TransactionTemplate transactionTemplate;
 
     // --- ADDED FOR RETRY LOGIC ---
     private static final int MAX_RETRY_ATTEMPTS = 5;
     private static final long INITIAL_RETRY_DELAY_MS = 100;
 
     @Override
-    @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
         String messageId = record.getId().getValue();
         Map<String, String> value = record.getValue();
@@ -80,18 +80,20 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                         "MediaAiInsights not ready yet for mediaId=" + resultDTO.getMediaId(), null);
             }
 
-            log.info("Processing {} faces for mediaId: {}", faces.size(), mediaAiInsights.getMediaId());
+            transactionTemplate.executeWithoutResult(status -> {
+                log.info("Processing {} faces for mediaId: {}", faces.size(), mediaAiInsights.getMediaId());
 
-            for (FaceDetectionResultDTO.FaceDetails face : faces) {
-                MediaDetectedFace savedFace = saveFaceWithVectorEmbedding(face, mediaAiInsights);
-                readModelUpdateService.createFaceSearchReadModel(savedFace);
-                elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
-                log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}",
-                        mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
-            }
+                for (FaceDetectionResultDTO.FaceDetails face : faces) {
+                    MediaDetectedFace savedFace = saveFaceWithVectorEmbedding(face, mediaAiInsights);
+                    readModelUpdateService.createFaceSearchReadModel(savedFace);
+                    elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
+                    log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}",
+                            mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
+                }
 
-            // Mark service completion for downstream observability/idempotency.
-            appendServiceCompleted(mediaAiInsights, "face_detection");
+                // Mark service completion for downstream observability/idempotency.
+                appendServiceCompleted(mediaAiInsights, "face_detection");
+            });
 
             log.info("Successfully processed face detection for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);

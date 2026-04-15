@@ -342,6 +342,14 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
 
         // Pull captions from persisted per-media insights because enriched event does not include them
         List<MediaAiInsights> insights = mediaAiInsightsRepository.findByPost_PostId(postId);
+        List<Long> mediaIds = insights.stream()
+            .map(MediaAiInsights::getMediaId)
+            .toList();
+        Map<Long, Long> faceCountByMediaId = mediaDetectedFaceRepository.findByMediaAiInsights_MediaIdIn(mediaIds)
+            .stream()
+            .collect(Collectors.groupingBy(
+                face -> face.getMediaAiInsights().getMediaId(),
+                Collectors.counting()));
         Set<String> dedupCaptions = new LinkedHashSet<>();
         int totalFaceCount = 0;
 
@@ -366,7 +374,7 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
                 }
             }
 
-            totalFaceCount += mediaDetectedFaceRepository.findByMediaAiInsights_MediaId(insight.getMediaId()).size();
+            totalFaceCount += faceCountByMediaId.getOrDefault(insight.getMediaId(), 0L).intValue();
         }
 
         postDocument.setMlImageTags(new ArrayList<>(dedupTags));

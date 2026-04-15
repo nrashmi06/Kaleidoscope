@@ -1,0 +1,567 @@
+package com.kaleidoscope.backend.posts.service.impl;
+
+import com.kaleidoscope.backend.async.dto.PostImageEventDTO;
+import com.kaleidoscope.backend.async.service.RedisStreamPublisher;
+import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
+import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
+import com.kaleidoscope.backend.posts.document.PostDocument;
+import com.kaleidoscope.backend.posts.dto.request.MediaUploadRequestDTO;
+import com.kaleidoscope.backend.posts.dto.request.PostCreateRequestDTO;
+import com.kaleidoscope.backend.posts.dto.request.PostUpdateRequestDTO;
+import com.kaleidoscope.backend.posts.dto.response.PostCreationResponseDTO;
+import com.kaleidoscope.backend.posts.enums.PostStatus;
+import com.kaleidoscope.backend.posts.enums.PostVisibility;
+import com.kaleidoscope.backend.posts.exception.Posts.*;
+import com.kaleidoscope.backend.posts.mapper.PostMapper;
+import com.kaleidoscope.backend.posts.model.Post;
+import com.kaleidoscope.backend.posts.model.PostMedia;
+import com.kaleidoscope.backend.posts.repository.PostRepository;
+import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
+import com.kaleidoscope.backend.posts.service.PostCommandService;
+import com.kaleidoscope.backend.shared.dto.request.CreateUserTagRequestDTO;
+import com.kaleidoscope.backend.shared.enums.ContentType;
+import com.kaleidoscope.backend.shared.enums.MediaAssetStatus;
+import com.kaleidoscope.backend.shared.exception.categoryException.CategoryNotFoundException;
+import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
+import com.kaleidoscope.backend.shared.model.*;
+import com.kaleidoscope.backend.shared.repository.*;
+import com.kaleidoscope.backend.shared.service.HashtagService;
+import com.kaleidoscope.backend.shared.service.ImageStorageService;
+import com.kaleidoscope.backend.shared.service.UserTagService;
+import com.kaleidoscope.backend.users.model.User;
+import com.kaleidoscope.backend.users.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.data.domain.Pageable;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class PostCommandServiceImpl implements PostCommandService {
+
+    private final PostRepository postRepository;
+    private final CategoryRepository categoryRepository;
+    private final LocationRepository locationRepository;
+    private final PostMapper postMapper;
+    private final ImageStorageService imageStorageService;
+    private final UserRepository userRepository;
+    private final JwtUtils jwtUtils;
+    private final MediaAssetTrackerRepository mediaAssetTrackerRepository;
+    private final UserTagService userTagService;
+    private final UserTagRepository userTagRepository;
+    private final RedisStreamPublisher redisStreamPublisher;
+    private final PostSearchRepository postSearchRepository;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final HashtagService hashtagService;
+    private final JdbcTemplate jdbcTemplate;
+
+    @Override
+    @Transactional
+    public PostCreationResponseDTO createPost(PostCreateRequestDTO postCreateRequestDTO) {
+        log.info("Starting post creation process for user request with {} categories and {} media items",
+                postCreateRequestDTO.categoryIds().size(),
+                postCreateRequestDTO.mediaDetails() != null ? postCreateRequestDTO.mediaDetails().size() : 0);
+
+        Long userId = jwtUtils.getUserIdFromContext();
+        log.debug("Fetched userId from JWT context: {}", userId);
+
+        User currentUser = userRepository.findByUserId(userId);
+        if (currentUser == null) {
+            log.error("Authentication failure: User not found in database for authenticated ID: {}", userId);
+            throw new IllegalStatePostActionException("Authenticated user not found for ID: " + userId);
+        }
+        log.info("Authenticated user validated: username={}, userId={}", currentUser.getUsername(), userId);
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+
+        Post post = postMapper.toEntity(postCreateRequestDTO);
+        post.setUser(currentUser);
+
+        if (isAdmin) {
+            post.setStatus(PostStatus.PUBLISHED);
+            post.setVisibility(PostVisibility.PUBLIC);
+        }
+
+        log.info("Post creation initiated by user '{}' with title: '{}'", currentUser.getUsername(),
+                postCreateRequestDTO.title());
+
+        if (postCreateRequestDTO.locationId() != null) {
+            Location location = locationRepository.findById(postCreateRequestDTO.locationId())
+                    .orElseThrow(() -> new LocationNotFoundException(
+                            "Location not found with ID: " + postCreateRequestDTO.locationId()));
+            post.setLocation(location);
+            log.debug("Location associated with post: locationId={}, name={}", postCreateRequestDTO.locationId(),
+                    location.getName());
+        }
+
+        Set<Category> categories = new HashSet<>(categoryRepository.findAllById(postCreateRequestDTO.categoryIds()));
+        if (categories.size() != postCreateRequestDTO.categoryIds().size()) {
+            Set<Long> foundCategoryIds = categories.stream()
+                    .map(Category::getCategoryId)
+                    .collect(Collectors.toSet());
+            Set<Long> missingCategoryIds = postCreateRequestDTO.categoryIds().stream()
+                    .filter(id -> !foundCategoryIds.contains(id))
+                    .collect(Collectors.toSet());
+            log.error("Category validation failed: requested={}, found={}, missing={}",
+                    postCreateRequestDTO.categoryIds(), foundCategoryIds, missingCategoryIds);
+            throw new CategoryNotFoundException("Categories not found with IDs: " + missingCategoryIds);
+        }
+
+        categories.forEach(post::addCategory);
+
+        Post savedPost = postRepository.save(post);
+        log.info("Post entity successfully saved: postId={}, title='{}'", savedPost.getPostId(), savedPost.getTitle());
+
+        log.debug("Processing hashtags for post body");
+        Set<String> hashtagNames = hashtagService.parseHashtags(postCreateRequestDTO.body());
+        if (!hashtagNames.isEmpty()) {
+            log.info("Found {} hashtags in post body", hashtagNames.size());
+            List<Hashtag> hashtags = hashtagService.findOrCreateHashtags(hashtagNames);
+            hashtagService.associateHashtagsWithPost(savedPost, new HashSet<>(hashtags));
+            hashtagService.triggerHashtagUsageUpdate(new HashSet<>(hashtags), Collections.emptySet());
+            log.info("Successfully associated and updated usage for {} hashtags", hashtags.size());
+        } else {
+            log.debug("No hashtags found in post body");
+        }
+
+        if (postCreateRequestDTO.mediaDetails() != null && !postCreateRequestDTO.mediaDetails().isEmpty()) {
+            log.debug("Processing {} media items for post", postCreateRequestDTO.mediaDetails().size());
+            List<PostMedia> postMediaList = postMapper.toPostMediaEntities(postCreateRequestDTO.mediaDetails());
+
+            for (PostMedia mediaItem : postMediaList) {
+                log.debug("Validating media URL: {}", mediaItem.getMediaUrl());
+                if (!imageStorageService.validatePostImageUrl(mediaItem.getMediaUrl())) {
+                    log.error("Media validation failed: invalid or untrusted URL={}", mediaItem.getMediaUrl());
+                    throw new IllegalArgumentException("Invalid or untrusted media URL: " + mediaItem.getMediaUrl());
+                }
+
+                String publicId = imageStorageService.extractPublicIdFromUrl(mediaItem.getMediaUrl());
+                log.debug("Extracted publicId from media URL: publicId={}", publicId);
+
+                MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
+                        .orElseThrow(() -> {
+                            log.error("Media asset tracking failed: publicId={} not found in tracker database",
+                                    publicId);
+                            return new IllegalStatePostActionException(
+                                    "Media asset not tracked for public_id: " + publicId);
+                        });
+
+                if (tracker.getStatus() != MediaAssetStatus.PENDING) {
+                    log.error("Media asset state validation failed: expected=PENDING, actual={}, publicId={}",
+                            tracker.getStatus(), publicId);
+                    throw new IllegalStatePostActionException(
+                            "Media asset must be in PENDING state to be associated. Current state: "
+                                    + tracker.getStatus());
+                }
+
+                log.debug("Associating media with post: publicId={}, mediaType={}", publicId, mediaItem.getMediaType());
+                savedPost.addMedia(mediaItem);
+
+                updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.ASSOCIATED, ContentType.POST.name(),
+                    savedPost.getPostId(), publicId);
+                log.info("Media asset successfully associated: publicId={}, postId={}", publicId,
+                        savedPost.getPostId());
+            }
+
+            final Post finalSavedPost = postRepository.save(savedPost);
+            log.debug("Persisting post with associated media to database");
+
+            log.info("Publishing {} post image events to Redis Stream for post {}", finalSavedPost.getMedia().size(),
+                    finalSavedPost.getPostId());
+
+            Long uploaderId = currentUser.getUserId();
+
+            finalSavedPost.getMedia().forEach(mediaItem -> {
+                PostImageEventDTO event = PostImageEventDTO.builder()
+                        .postId(finalSavedPost.getPostId())
+                        .mediaId(mediaItem.getMediaId())
+                        .mediaUrl(mediaItem.getMediaUrl())
+                        .uploaderId(uploaderId)
+                        .timestamp(java.time.Instant.now().toString())
+                        .correlationId(MDC.get("correlationId"))
+                        .build();
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
+            });
+
+            savedPost = finalSavedPost;
+        } else {
+            log.debug("No media items to process for this post");
+        }
+
+        if (postCreateRequestDTO.taggedUserIds() != null && !postCreateRequestDTO.taggedUserIds().isEmpty()) {
+            log.debug("Processing {} user tags for post", postCreateRequestDTO.taggedUserIds().size());
+
+            for (Long taggedUserId : postCreateRequestDTO.taggedUserIds()) {
+                try {
+                    CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(taggedUserId, ContentType.POST,
+                            savedPost.getPostId());
+                    log.debug("Creating user tag: taggedUserId={}, postId={}", taggedUserId, savedPost.getPostId());
+                    userTagService.createUserTag(tagRequest);
+                    log.info("User tag successfully created: taggedUserId={}, postId={}", taggedUserId,
+                            savedPost.getPostId());
+
+                } catch (Exception e) {
+                    log.warn("User tag creation failed for taggedUserId={}, postId={}, error={}",
+                            taggedUserId, savedPost.getPostId(), e.getMessage());
+                }
+            }
+        } else {
+            log.debug("No user tags to process for this post");
+        }
+
+        try {
+            PostDocument postDocument = postMapper.toPostDocument(savedPost);
+            if (postDocument.getLocation() != null) {
+                log.debug("Including location in ES index for post {}: locationId={}, name={}, hasCoordinates={}",
+                        savedPost.getPostId(), postDocument.getLocation().getId(),
+                        postDocument.getLocation().getName(), postDocument.getLocation().getPoint() != null);
+            }
+
+            postSearchRepository.save(postDocument);
+            log.info("Successfully indexed new post {} to Elasticsearch", savedPost.getPostId());
+
+        } catch (Exception e) {
+            log.error("Failed to index post {} to Elasticsearch: {}", savedPost.getPostId(), e.getMessage(), e);
+        }
+
+        log.info("Post creation completed successfully: postId={}, userId={}, username='{}', title='{}'",
+                savedPost.getPostId(), userId, currentUser.getUsername(), savedPost.getTitle());
+        return postMapper.toDTO(savedPost);
+    }
+
+    @Override
+    @Transactional
+    public PostCreationResponseDTO updatePost(Long postId, PostUpdateRequestDTO requestDTO) {
+        log.info("Starting update for postId: {}", postId);
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> {
+                    log.error("Post not found for update: {}", postId);
+                    return new PostNotFoundException(postId);
+                });
+
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        if (!post.getUser().getUserId().equals(currentUserId)) {
+            log.error("User {} not authorized to edit post {}", currentUserId, postId);
+            throw new UnauthorizedActionException("User is not authorized to edit this post.");
+        }
+
+        log.debug("Updating post fields");
+        post.setTitle(requestDTO.title());
+        post.setBody(requestDTO.body());
+        post.setSummary(requestDTO.summary());
+        post.setVisibility(requestDTO.visibility());
+
+        log.debug("Updating post media");
+        updatePostMedia(post, requestDTO.mediaDetails());
+        log.debug("Updating post tags");
+        updatePostTags(post, requestDTO.taggedUserIds());
+
+        if (requestDTO.categoryIds() != null) {
+            log.debug("Updating post categories: {}", requestDTO.categoryIds());
+            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(requestDTO.categoryIds()));
+            if (categories.size() != requestDTO.categoryIds().size()) {
+                log.error("Some categories not found for IDs: {}", requestDTO.categoryIds());
+                throw new PostCategoryNotFoundException();
+            }
+            post.getCategories().clear();
+            categories.forEach(post::addCategory);
+        }
+
+        if (requestDTO.locationId() != null) {
+            log.debug("Updating post location: {}", requestDTO.locationId());
+            Location location = locationRepository.findById(requestDTO.locationId())
+                    .orElseThrow(() -> {
+                        log.error("Location not found: {}", requestDTO.locationId());
+                        return new PostLocationNotFoundException(requestDTO.locationId());
+                    });
+            post.setLocation(location);
+        } else {
+            log.debug("Clearing post location");
+            post.setLocation(null);
+        }
+
+        Post savedPost = postRepository.save(post);
+        log.info("User '{}' updated post with ID: {}", post.getUser().getUsername(), savedPost.getPostId());
+
+        if (!savedPost.getMedia().isEmpty()) {
+            PostMedia firstMedia = savedPost.getMedia().stream().findFirst().orElse(null);
+            if (firstMedia != null && firstMedia.getMediaUrl() != null) {
+                log.info("Publishing post update event to Redis Stream for post {} with media ID {}",
+                        savedPost.getPostId(), firstMedia.getMediaId());
+                PostImageEventDTO event = PostImageEventDTO.builder()
+                        .postId(savedPost.getPostId())
+                        .mediaId(firstMedia.getMediaId())
+                        .mediaUrl(firstMedia.getMediaUrl())
+                        .uploaderId(currentUserId)
+                        .timestamp(java.time.Instant.now().toString())
+                        .correlationId(MDC.get("correlationId"))
+                        .build();
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_UPDATE_STREAM, event);
+            }
+        } else {
+            log.debug("Skipping Redis Stream publishing for post update {} - no media present", savedPost.getPostId());
+        }
+
+        return postMapper.toDTO(savedPost);
+    }
+
+    @Override
+    @Transactional
+    public void softDeletePost(Long postId) {
+        log.info("Soft deleting postId: {}", postId);
+        Post post = postRepository.findById(postId).orElseThrow(() -> {
+            log.error("Post not found for soft delete: {}", postId);
+            return new PostNotFoundException(postId);
+        });
+        Long currentUserId = jwtUtils.getUserIdFromContext();
+        boolean isAdmin = jwtUtils.isAdminFromContext();
+        if (!isAdmin && !post.getUser().getUserId().equals(currentUserId)) {
+            log.error("User {} not authorized to delete post {}", currentUserId, postId);
+            throw new UnauthorizedActionException("User is not authorized to delete this post.");
+        }
+
+        log.debug("Retrieving hashtags for post {} before deletion", postId);
+        Set<Hashtag> hashtags = post.getHashtags();
+        if (!hashtags.isEmpty()) {
+            log.info("Triggering usage count decrement for {} hashtags", hashtags.size());
+            hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
+        }
+
+        List<UserTag> tagsToDelete = userTagRepository
+                .findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
+        if (!tagsToDelete.isEmpty()) {
+            log.debug("Soft deleting {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
+            userTagRepository.deleteAll(tagsToDelete);
+        }
+
+        try {
+            postSearchRepository.deleteById(String.valueOf(postId));
+            log.info("Removed post {} from Elasticsearch index", postId);
+        } catch (Exception e) {
+            log.error("Failed to remove post {} from Elasticsearch during soft delete: {}", postId, e.getMessage(), e);
+        }
+
+        try {
+            jdbcTemplate.update("DELETE FROM read_model_post_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_media_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_face_search WHERE post_id = ?", postId);
+            jdbcTemplate.update(
+                    "DELETE FROM read_model_recommendations_knn WHERE media_id IN (SELECT media_id FROM media_ai_insights WHERE post_id = ?)",
+                    postId);
+            log.info("Removed Read Model entries for soft-deleted post {}", postId);
+        } catch (Exception e) {
+            log.error("Failed to clean up Read Models for post {} during soft delete: {}", postId, e.getMessage());
+        }
+
+        postRepository.delete(post);
+        log.info("Post {} soft-deleted by user {} (admin? {})", postId, currentUserId, isAdmin);
+    }
+
+    @Override
+    @Transactional
+    public void hardDeletePost(Long postId) {
+        log.info("Hard deleting postId: {}", postId);
+        Post post = postRepository.findById(postId).orElseThrow(() -> {
+            log.error("Post not found for hard delete: {}", postId);
+            return new PostNotFoundException(postId);
+        });
+
+        log.debug("Retrieving hashtags for post {} before hard deletion", postId);
+        Set<Hashtag> hashtags = post.getHashtags();
+        if (!hashtags.isEmpty()) {
+            log.info("Triggering usage count decrement for {} hashtags", hashtags.size());
+            hashtagService.triggerHashtagUsageUpdate(Collections.emptySet(), hashtags);
+        }
+
+        List<UserTag> tagsToDelete = userTagRepository
+                .findByContentTypeAndContentId(ContentType.POST, postId, Pageable.unpaged()).getContent();
+        if (!tagsToDelete.isEmpty()) {
+            log.debug("Hard deleting {} associated user tags for post ID: {}", tagsToDelete.size(), postId);
+            userTagRepository.deleteAll(tagsToDelete);
+        }
+
+        try {
+            postSearchRepository.deleteById(String.valueOf(postId));
+            log.info("Removed post {} from Elasticsearch index during hard delete", postId);
+        } catch (Exception e) {
+            log.error("Failed to remove post {} from Elasticsearch during hard delete: {}", postId, e.getMessage(), e);
+        }
+
+        try {
+            jdbcTemplate.update("DELETE FROM read_model_post_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_media_search WHERE post_id = ?", postId);
+            jdbcTemplate.update("DELETE FROM read_model_face_search WHERE post_id = ?", postId);
+            jdbcTemplate.update(
+                    "DELETE FROM read_model_recommendations_knn WHERE media_id IN (SELECT media_id FROM media_ai_insights WHERE post_id = ?)",
+                    postId);
+            log.info("Removed Read Model entries for hard-deleted post {}", postId);
+        } catch (Exception e) {
+            log.error("Failed to clean up Read Models for post {} during hard delete: {}", postId, e.getMessage());
+        }
+
+        for (PostMedia media : post.getMedia()) {
+            log.debug("Unlinking and deleting media: {}", media.getMediaUrl());
+            String publicId = imageStorageService.extractPublicIdFromUrl(media.getMediaUrl());
+            mediaAssetTrackerRepository.findByPublicId(publicId)
+                    .ifPresent(tracker -> updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.UNLINKED,
+                            ContentType.POST.name(), post.getPostId(), publicId));
+            imageStorageService.deleteImageByPublicId(imageStorageService.extractPublicIdFromUrl(media.getMediaUrl()));
+        }
+
+        post.getMedia().clear();
+        post.getCategories().clear();
+        postRepository.hardDeleteById(post.getPostId());
+        log.info("Post {} hard-deleted by admin", postId);
+    }
+
+    private void updatePostTags(Post post, Set<Long> incomingTaggedUserIds) {
+        log.debug("Updating tags for postId: {}", post.getPostId());
+        Set<Long> incomingIds = (incomingTaggedUserIds != null) ? incomingTaggedUserIds : Collections.emptySet();
+
+        List<UserTag> existingTags = userTagRepository
+                .findByContentTypeAndContentId(ContentType.POST, post.getPostId(), Pageable.unpaged()).getContent();
+        Map<Long, UserTag> existingTagsMap = existingTags.stream()
+                .collect(Collectors.toMap(tag -> tag.getTaggedUser().getUserId(), tag -> tag));
+
+        List<UserTag> tagsToRemove = existingTags.stream()
+                .filter(tag -> !incomingIds.contains(tag.getTaggedUser().getUserId()))
+                .collect(Collectors.toList());
+
+        if (!tagsToRemove.isEmpty()) {
+            log.debug("Removing {} tags from post ID: {}", tagsToRemove.size(), post.getPostId());
+            userTagRepository.deleteAll(tagsToRemove);
+        }
+
+        for (Long incomingId : incomingIds) {
+            if (!existingTagsMap.containsKey(incomingId)) {
+                log.debug("Adding new tag for userId: {}", incomingId);
+                CreateUserTagRequestDTO tagRequest = new CreateUserTagRequestDTO(incomingId, ContentType.POST,
+                        post.getPostId());
+                userTagService.createUserTag(tagRequest);
+            }
+        }
+    }
+
+    private void updatePostMedia(Post post, List<MediaUploadRequestDTO> mediaDtos) {
+        log.debug("Updating media for postId: {}", post.getPostId());
+        if (mediaDtos == null)
+            return;
+
+        Map<Long, PostMedia> existingMediaMap = post.getMedia().stream()
+                .collect(Collectors.toMap(PostMedia::getMediaId, media -> media));
+
+        Set<Long> incomingMediaIds = new HashSet<>();
+        List<PostMedia> finalMediaList = new ArrayList<>();
+        List<PostMedia> newMediaItems = new ArrayList<>();
+
+        for (MediaUploadRequestDTO dto : mediaDtos) {
+            if (dto.mediaId() == null) {
+                log.debug("Adding new media from URL: {}", dto.url());
+                String publicId = imageStorageService.extractPublicIdFromUrl(dto.url());
+                MediaAssetTracker tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
+                        .orElseThrow(() -> {
+                            log.error("Media asset not tracked for public_id: {}", publicId);
+                            return new IllegalStatePostActionException(
+                                    "Media asset not tracked for public_id: " + publicId);
+                        });
+
+                if (tracker.getStatus() != MediaAssetStatus.PENDING) {
+                    log.error("Cannot associate a media asset that is not in PENDING state. Status: {}",
+                            tracker.getStatus());
+                    throw new IllegalStatePostActionException(
+                            "Cannot associate a media asset that is not in PENDING state.");
+                }
+
+                PostMedia newMedia = postMapper.toPostMediaEntities(Collections.singletonList(dto)).get(0);
+                finalMediaList.add(newMedia);
+                newMediaItems.add(newMedia);
+
+                updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.ASSOCIATED, ContentType.POST.name(),
+                    post.getPostId(), publicId);
+                log.debug("Associated new media with post");
+            } else {
+                incomingMediaIds.add(dto.mediaId());
+                PostMedia existingMedia = existingMediaMap.get(dto.mediaId());
+                if (existingMedia != null) {
+                    log.debug("Updating position for existing mediaId: {}", dto.mediaId());
+                    existingMedia.setPosition(dto.position());
+                    finalMediaList.add(existingMedia);
+                }
+            }
+        }
+
+        for (Map.Entry<Long, PostMedia> entry : existingMediaMap.entrySet()) {
+            if (!incomingMediaIds.contains(entry.getKey())) {
+                log.debug("Marking media for delete: {}", entry.getValue().getMediaUrl());
+                String publicId = imageStorageService.extractPublicIdFromUrl(entry.getValue().getMediaUrl());
+                mediaAssetTrackerRepository.findByPublicId(publicId)
+                        .ifPresent(tracker -> updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.MARKED_FOR_DELETE,
+                                ContentType.POST.name(), post.getPostId(), publicId));
+            }
+        }
+
+        post.getMedia().clear();
+        for (PostMedia media : finalMediaList) {
+            post.addMedia(media);
+        }
+
+        if (!newMediaItems.isEmpty()) {
+            log.info("Publishing {} new media events to Redis Stream for post update {}", newMediaItems.size(),
+                    post.getPostId());
+
+            Long uploaderId = jwtUtils.getUserIdFromContext();
+
+            newMediaItems.forEach(mediaItem -> {
+                PostImageEventDTO event = PostImageEventDTO.builder()
+                        .postId(post.getPostId())
+                        .mediaId(mediaItem.getMediaId())
+                        .mediaUrl(mediaItem.getMediaUrl())
+                        .uploaderId(uploaderId)
+                        .timestamp(java.time.Instant.now().toString())
+                        .correlationId(MDC.get("correlationId"))
+                        .build();
+                redisStreamPublisher.publish(ProducerStreamConstants.POST_IMAGE_PROCESSING_STREAM, event);
+            });
+        }
+    }
+
+    private void updateMediaAssetTrackerSafely(MediaAssetTracker tracker,
+                                               MediaAssetStatus status,
+                                               String contentType,
+                                               Long contentId,
+                                               String publicId) {
+        final int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                tracker.setStatus(status);
+                tracker.setContentType(contentType);
+                tracker.setContentId(contentId);
+                mediaAssetTrackerRepository.saveAndFlush(tracker);
+                return;
+            } catch (OptimisticLockingFailureException e) {
+                log.warn("Optimistic lock conflict updating media asset tracker: publicId={}, attempt={}/{}",
+                        publicId, attempt, maxAttempts);
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+                tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
+                        .orElseThrow(() -> new IllegalStatePostActionException(
+                                "Media asset tracker disappeared for public_id: " + publicId));
+                if (tracker.getStatus() != MediaAssetStatus.PENDING
+                        && status == MediaAssetStatus.ASSOCIATED) {
+                    throw new IllegalStatePostActionException(
+                            "Media asset already transitioned to " + tracker.getStatus());
+                }
+            }
+        }
+    }
+}
