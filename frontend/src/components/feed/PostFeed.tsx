@@ -291,7 +291,7 @@ export default function PostFeed() {
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div>
-            <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+            <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
               Feed
             </h1>
             {!currentLoading && (
@@ -409,7 +409,7 @@ export default function PostFeed() {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={isFirst}
-              className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+              className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -428,8 +428,8 @@ export default function PostFeed() {
                   onClick={() => handlePageChange(page as number)}
                   className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                     currentPage === page
-                      ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
-                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                      ? "bg-btn-primary text-on-primary"
+                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover"
                   }`}
                 >
                   {(page as number) + 1}
@@ -440,7 +440,7 @@ export default function PostFeed() {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={isLast}
-              className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+              className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
             >
               <ChevronRight className="w-5 h-5" />
             </button>

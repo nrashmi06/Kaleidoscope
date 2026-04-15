@@ -16,7 +16,7 @@ export default function PostDetailPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-navy dark:text-cream mb-2">
+          <h1 className="text-2xl font-bold text-heading mb-2">
             Invalid Post ID
           </h1>
           <p className="text-sm text-steel dark:text-sky/60 mb-4">

@@ -40,7 +40,7 @@ export default function SignInPage() {
 
       {/* Right side: Fullscreen Signin Form */}
       <div className="w-full md:w-1/2 flex items-center justify-center h-full p-6 md:p-12 bg-cream-50 dark:bg-navy transition-colors duration-500">
-        <div className="w-full max-w-md shadow-input md:shadow-none md:rounded-2xl bg-cream-50 dark:bg-navy-700/50 transition-colors duration-500">
+        <div className="w-full max-w-md shadow-input md:shadow-none md:rounded-2xl bg-surface-alt transition-colors duration-500">
           <SigninForm />
         </div>
       </div>

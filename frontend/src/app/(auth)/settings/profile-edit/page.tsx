@@ -31,7 +31,7 @@ export default function ProfileEditPage() {
             <Pencil className="w-5 h-5 text-cream-50" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-navy dark:text-cream">
+            <h1 className="text-2xl font-bold text-heading">
               Edit Profile
             </h1>
             <p className="text-xs text-steel/60 dark:text-sky/40">

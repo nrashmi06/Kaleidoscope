@@ -212,7 +212,7 @@ export function EditUserProfileForm() {
 
   if (isRefreshing || !fetchedProfile) {
     return (
-      <div className="p-8 text-center rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
+      <div className="p-8 text-center rounded-2xl bg-surface border border-border-default">
         <Loader2 className="w-7 h-7 animate-spin mx-auto text-steel dark:text-sky" />
         <p className="text-sm text-steel/60 dark:text-sky/40 mt-3">
           Loading current profile data...
@@ -224,9 +224,9 @@ export function EditUserProfileForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ── Photos Section ── */}
-      <div className="rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 overflow-hidden">
+      <div className="rounded-2xl bg-surface border border-border-default overflow-hidden">
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2">
+          <h3 className="text-base font-bold text-heading flex items-center gap-2">
             <Camera className="w-4.5 h-4.5 text-steel dark:text-sky" />
             Photos
           </h3>
@@ -327,8 +327,8 @@ export function EditUserProfileForm() {
       </div>
 
       {/* ── Account Details Section ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-5">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default space-y-5">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2">
           <User className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Account Details
         </h3>
@@ -337,7 +337,7 @@ export function EditUserProfileForm() {
         <div className="space-y-1.5">
           <label
             htmlFor="username"
-            className="flex items-center gap-1.5 text-sm font-semibold text-navy dark:text-cream"
+            className="flex items-center gap-1.5 text-sm font-semibold text-heading"
           >
             <User className="w-3.5 h-3.5 text-steel/60 dark:text-sky/50" />
             Username *
@@ -348,7 +348,7 @@ export function EditUserProfileForm() {
             value={form.username}
             onChange={handleChange}
             required
-            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
             disabled={isLoading}
           />
         </div>
@@ -357,7 +357,7 @@ export function EditUserProfileForm() {
         <div className="space-y-1.5">
           <label
             htmlFor="designation"
-            className="flex items-center gap-1.5 text-sm font-semibold text-navy dark:text-cream"
+            className="flex items-center gap-1.5 text-sm font-semibold text-heading"
           >
             <Briefcase className="w-3.5 h-3.5 text-steel/60 dark:text-sky/50" />
             Designation
@@ -367,7 +367,7 @@ export function EditUserProfileForm() {
             type="text"
             value={form.designation}
             onChange={handleChange}
-            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
             disabled={isLoading}
           />
         </div>
@@ -376,7 +376,7 @@ export function EditUserProfileForm() {
         <div className="space-y-1.5">
           <label
             htmlFor="summary"
-            className="flex items-center gap-1.5 text-sm font-semibold text-navy dark:text-cream"
+            className="flex items-center gap-1.5 text-sm font-semibold text-heading"
           >
             <Info className="w-3.5 h-3.5 text-steel/60 dark:text-sky/50" />
             Summary (Bio)
@@ -387,7 +387,7 @@ export function EditUserProfileForm() {
             onChange={handleChange}
             rows={4}
             maxLength={500}
-            className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
             disabled={isLoading}
           />
           <span className="text-[11px] text-steel/40 dark:text-sky/30 block text-right">

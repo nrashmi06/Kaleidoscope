@@ -170,7 +170,7 @@ export default function AdminUsersPage() {
           <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 mb-4">
             <ShieldAlert className="w-7 h-7 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-xl font-bold text-navy dark:text-cream mb-2">
+          <h2 className="text-xl font-bold text-heading mb-2">
             Access Denied
           </h2>
           <p className="text-sm text-steel/60 dark:text-sky/40 mb-6">
@@ -191,7 +191,7 @@ export default function AdminUsersPage() {
     <div className="w-full">
       {/* Header */}
       <div className="pt-6 pb-5 px-1">
-        <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+        <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
           Manage Users
         </h1>
         <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search users by name or email..."
-            className="w-full h-10 pl-10 pr-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
+            className="w-full h-10 pl-10 pr-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
           />
         </div>
 
@@ -254,7 +254,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-200/50 dark:bg-navy-700/40 mb-3">
               <Users className="w-6 h-6 text-steel/40 dark:text-sky/30" />
             </div>
-            <p className="text-sm font-medium text-navy dark:text-cream mb-1">
+            <p className="text-sm font-medium text-heading mb-1">
               No users found
             </p>
             <p className="text-xs text-steel/50 dark:text-sky/35">
@@ -265,7 +265,7 @@ export default function AdminUsersPage() {
           users.map((user) => (
             <div
               key={user.userId}
-              className="p-4 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 flex items-center gap-4"
+              className="p-4 rounded-2xl bg-surface border border-border-default flex items-center gap-4"
             >
               {/* Avatar */}
               <div className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-steel to-sky text-cream-50 font-bold text-sm uppercase">
@@ -274,7 +274,7 @@ export default function AdminUsersPage() {
 
               {/* User info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-navy dark:text-cream truncate">
+                <p className="text-sm font-semibold text-heading truncate">
                   {user.username}
                 </p>
                 <p className="text-xs text-steel/60 dark:text-sky/40 truncate">
@@ -299,7 +299,7 @@ export default function AdminUsersPage() {
                       openDropdown === user.userId ? null : user.userId
                     )
                   }
-                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-cream-300/40 dark:border-navy-700/40 bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer"
+                  className="flex items-center justify-center w-9 h-9 rounded-lg border border-border-default bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer"
                   title="Change status"
                 >
                   <Shield className="w-4 h-4 text-steel/60 dark:text-sky/40" />
@@ -319,7 +319,7 @@ export default function AdminUsersPage() {
                             });
                             setOpenDropdown(null);
                           }}
-                          className="w-full px-3 py-2 text-left text-xs font-medium text-navy dark:text-cream hover:bg-cream-200/50 dark:hover:bg-navy-600/40 transition-colors cursor-pointer flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-xs font-medium text-heading hover:bg-cream-200/50 dark:hover:bg-navy-600/40 transition-colors cursor-pointer flex items-center gap-2"
                         >
                           <span
                             className={`inline-block w-2 h-2 rounded-full ${
@@ -348,7 +348,7 @@ export default function AdminUsersPage() {
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -380,8 +380,8 @@ export default function AdminUsersPage() {
                   onClick={() => setPage(item)}
                   className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                     page === item
-                      ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
-                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                      ? "bg-btn-primary text-on-primary"
+                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover"
                   }`}
                 >
                   {item + 1}
@@ -392,7 +392,7 @@ export default function AdminUsersPage() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -407,14 +407,14 @@ export default function AdminUsersPage() {
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-800/40">
                 <AlertCircle className="w-5 h-5 text-amber-500" />
               </div>
-              <h3 className="text-base font-bold text-navy dark:text-cream">
+              <h3 className="text-base font-bold text-heading">
                 Confirm Status Change
               </h3>
             </div>
 
             <p className="text-sm text-steel/70 dark:text-sky/50 mb-6">
               Are you sure you want to change{" "}
-              <span className="font-semibold text-navy dark:text-cream">
+              <span className="font-semibold text-heading">
                 {confirmAction.username}
               </span>
               &apos;s status to{" "}

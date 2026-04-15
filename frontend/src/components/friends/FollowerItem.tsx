@@ -93,10 +93,10 @@ export default function FollowerItem({ user, onUserFollowed }: Props) {
       ? "bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky-300"
       : label === "Requested"
         ? "bg-sky/10 text-sky border border-sky/30 hover:bg-sky/20"
-        : "bg-cream-300/50 dark:bg-navy-700 text-navy dark:text-cream hover:bg-cream-300 dark:hover:bg-navy-600";
+        : "bg-cream-300/50 dark:bg-navy-700 text-heading hover:bg-cream-300 dark:hover:bg-navy-600";
 
   return (
-    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/30 dark:hover:bg-navy-700/50 transition-colors">
+    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-border-default hover:bg-cream-300/30 dark:hover:bg-navy-700/50 transition-colors">
       <div
         className="flex items-center gap-3 min-w-0 cursor-pointer"
         onClick={() => router.push(`/profile/${user.userId}`)}
@@ -111,7 +111,7 @@ export default function FollowerItem({ user, onUserFollowed }: Props) {
           />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-navy dark:text-cream truncate hover:underline">
+          <div className="text-sm font-semibold text-heading truncate hover:underline">
             {user.username}
           </div>
           <div className="text-[11px] text-steel dark:text-sky/60 flex items-center gap-1 mt-0.5">

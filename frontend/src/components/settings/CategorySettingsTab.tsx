@@ -201,8 +201,8 @@ export const CategorySettingsTab = () => {
     <div className="space-y-6">
       {/* Category Analytics */}
       {analytics.length > 0 && (
-        <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-          <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+        <div className="p-6 rounded-2xl bg-surface border border-border-default">
+          <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-5">
             <BarChart3 className="w-4.5 h-4.5 text-steel dark:text-sky" />
             Category Analytics
             <span className="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
@@ -213,19 +213,19 @@ export const CategorySettingsTab = () => {
           {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
             <div className="p-3 rounded-xl bg-steel/5 dark:bg-sky/5 border border-steel/10 dark:border-sky/10 text-center">
-              <p className="text-2xl font-bold text-navy dark:text-cream">{analytics.length}</p>
+              <p className="text-2xl font-bold text-heading">{analytics.length}</p>
               <p className="text-[11px] text-steel/60 dark:text-sky/40 flex items-center justify-center gap-1">
                 <Layers className="w-3 h-3" /> Categories
               </p>
             </div>
             <div className="p-3 rounded-xl bg-steel/5 dark:bg-sky/5 border border-steel/10 dark:border-sky/10 text-center">
-              <p className="text-2xl font-bold text-navy dark:text-cream">{totalUsers}</p>
+              <p className="text-2xl font-bold text-heading">{totalUsers}</p>
               <p className="text-[11px] text-steel/60 dark:text-sky/40 flex items-center justify-center gap-1">
                 <Users className="w-3 h-3" /> Total Interests
               </p>
             </div>
             <div className="p-3 rounded-xl bg-steel/5 dark:bg-sky/5 border border-steel/10 dark:border-sky/10 text-center col-span-2 md:col-span-1">
-              <p className="text-2xl font-bold text-navy dark:text-cream">
+              <p className="text-2xl font-bold text-heading">
                 {analytics.length > 0 ? Math.round(totalUsers / analytics.length) : 0}
               </p>
               <p className="text-[11px] text-steel/60 dark:text-sky/40 flex items-center justify-center gap-1">
@@ -249,14 +249,14 @@ export const CategorySettingsTab = () => {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-navy dark:text-cream truncate">
+                        <span className="text-sm font-medium text-heading truncate">
                           {item.categoryName}
                         </span>
                         <span className="text-xs font-semibold text-steel dark:text-sky ml-2 shrink-0">
                           {item.userCount} users
                         </span>
                       </div>
-                      <div className="h-1.5 bg-cream-300/40 dark:bg-navy-700/40 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-surface-hover rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-steel to-steel-600 dark:from-sky dark:to-steel rounded-full transition-all duration-500"
                           style={{ width: `${Math.max(percentage, 2)}%` }}
@@ -289,7 +289,7 @@ export const CategorySettingsTab = () => {
       {/* Categories Grid */}
       {loading ? (
         <div className="flex justify-center items-center py-16">
-          <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
+          <div className="p-6 rounded-2xl bg-surface border border-border-default">
             <Loader />
           </div>
         </div>
@@ -303,7 +303,7 @@ export const CategorySettingsTab = () => {
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
             <FolderOpen className="w-6 h-6 text-steel/50 dark:text-sky/40" />
           </div>
-          <h3 className="text-base font-semibold text-navy dark:text-cream mb-1.5">
+          <h3 className="text-base font-semibold text-heading mb-1.5">
             No Categories Yet
           </h3>
           <p className="text-sm text-steel/60 dark:text-sky/40">
@@ -349,7 +349,7 @@ export const CategorySettingsTab = () => {
               <button
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-border-default hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Prev
@@ -381,7 +381,7 @@ export const CategorySettingsTab = () => {
               <button
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-border-default hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 Next
                 <ChevronRight className="w-4 h-4" />

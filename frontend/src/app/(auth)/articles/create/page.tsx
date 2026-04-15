@@ -16,15 +16,15 @@ export default function Page(): React.ReactElement {
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/30 dark:hover:bg-navy-600/40 transition-colors cursor-pointer"
+            className="p-2 rounded-lg bg-surface-alt border border-border-default hover:bg-cream-300/30 dark:hover:bg-navy-600/40 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5 text-navy/60 dark:text-cream/50" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-navy dark:text-cream">
+            <h1 className="text-3xl font-bold text-heading">
               Create Article
             </h1>
-            <p className="text-navy/50 dark:text-cream/40 text-sm">
+            <p className="text-muted text-sm">
               Write and publish a new article
             </p>
           </div>

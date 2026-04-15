@@ -16,7 +16,7 @@ const FollowingListSkeleton = () => (
     {Array.from({ length: 5 }).map((_, index) => (
       <div
         key={index}
-        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-cream-300/30 dark:border-navy-700/30 animate-pulse"
+        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-border-subtle animate-pulse"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-cream-300 dark:bg-navy-700 flex-shrink-0" />

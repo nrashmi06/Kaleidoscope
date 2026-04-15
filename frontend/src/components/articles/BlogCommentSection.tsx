@@ -115,7 +115,7 @@ export function BlogCommentSection({ blogId }: BlogCommentSectionProps) {
           <div className="p-2 bg-gradient-to-br from-steel to-steel-600 dark:from-sky dark:to-steel rounded-lg shadow-sm shadow-steel/20 dark:shadow-sky/15">
             <MessageSquare className="w-5 h-5 text-cream-50" />
           </div>
-          <h3 className="text-lg font-display font-bold text-navy dark:text-cream">Comments</h3>
+          <h3 className="text-lg font-display font-bold text-heading">Comments</h3>
           {comments.length > 0 && (
             <span className="px-2.5 py-0.5 bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky text-sm font-semibold rounded-full">
               {comments.length}
@@ -171,7 +171,7 @@ export function BlogCommentSection({ blogId }: BlogCommentSectionProps) {
           {page + 1 < totalPages && (
             <div className="flex justify-center pt-4">
               <button onClick={() => fetchComments(page + 1)} disabled={isLoading}
-                className="px-6 py-3 bg-cream-50 dark:bg-navy-700/50 hover:bg-steel/10 dark:hover:bg-sky/10 text-navy dark:text-cream rounded-xl font-semibold transition-all shadow-sm hover:shadow-md border border-cream-300/40 dark:border-navy-700/40 cursor-pointer">
+                className="px-6 py-3 bg-surface-alt hover:bg-steel/10 dark:hover:bg-sky/10 text-heading rounded-xl font-semibold transition-all shadow-sm hover:shadow-md border border-border-default cursor-pointer">
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Load More"}
               </button>
             </div>
@@ -182,7 +182,7 @@ export function BlogCommentSection({ blogId }: BlogCommentSectionProps) {
       {hasLoadedInitial && comments.length === 0 && !error && !isLoading && (
         <div className="py-12 text-center">
           <MessageSquare className="w-8 h-8 mx-auto mb-4 text-steel/40 dark:text-sky/30" />
-          <h4 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">No comments yet</h4>
+          <h4 className="text-lg font-display font-semibold text-heading mb-2">No comments yet</h4>
           <p className="text-steel/60 dark:text-sky/50 text-sm">Be the first to share your thoughts!</p>
         </div>
       )}
@@ -206,7 +206,7 @@ function BlogCommentItem({
   const isAuthor = currentUserId === comment.author.userId;
 
   return (
-    <article className="group flex items-start gap-3 p-3 bg-cream-50/50 dark:bg-navy-700/30 rounded-xl border border-cream-300/30 dark:border-navy-700/30 hover:shadow-sm transition-all">
+    <article className="group flex items-start gap-3 p-3 bg-cream-50/50 dark:bg-navy-700/30 rounded-xl border border-border-subtle hover:shadow-sm transition-all">
       <Image
         src={comment.author.profilePictureUrl || "/default-avatar.png"}
         alt={comment.author.username}
@@ -220,7 +220,7 @@ function BlogCommentItem({
           <div>
             <div
               onClick={() => router.push(`/profile/${comment.author.userId}`)}
-              className="text-sm font-semibold text-navy dark:text-cream cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+              className="text-sm font-semibold text-heading cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
             >
               {comment.author.username}
             </div>
@@ -228,7 +228,7 @@ function BlogCommentItem({
           </div>
           {isAuthor && (
             <div className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 rounded-full hover:bg-cream-300/40 dark:hover:bg-navy-700/40 cursor-pointer">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 rounded-full hover:bg-surface-hover cursor-pointer">
                 <MoreVertical size={18} className="text-steel/50 dark:text-sky/40" />
               </button>
               {menuOpen && (

@@ -39,7 +39,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className="group relative flex flex-col h-[22rem] rounded-2xl overflow-hidden bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 cursor-pointer"
+      className="group relative flex flex-col h-[22rem] rounded-2xl overflow-hidden bg-surface-alt border border-border-default hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 cursor-pointer"
     >
       {/* Thumbnail / Cover */}
       <div className="relative h-[45%] w-full overflow-hidden bg-cream-300/30 dark:bg-navy-700/60">
@@ -95,7 +95,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
       {/* Content */}
       <div className="flex flex-col flex-1 p-4">
-        <h3 className="text-sm font-display font-bold text-navy dark:text-cream leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
+        <h3 className="text-sm font-display font-bold text-heading leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
           {title}
         </h3>
 

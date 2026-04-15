@@ -200,7 +200,7 @@ export default function MediaUpload({
         {uploading ? (
           <>
             <Loader2 className="w-8 h-8 mb-3 text-steel dark:text-sky animate-spin" />
-            <span className="font-medium text-navy dark:text-cream">
+            <span className="font-medium text-heading">
               Uploading files...
             </span>
             <span className="text-sm text-steel/60 dark:text-sky/50">
@@ -210,7 +210,7 @@ export default function MediaUpload({
         ) : (
           <>
             <UploadCloud className="w-8 h-8 mb-3 text-steel/50 dark:text-sky/40" />
-            <span className="font-medium text-navy dark:text-cream">
+            <span className="font-medium text-heading">
               Click to upload or drag and drop
             </span>
             <span className="text-sm text-steel/60 dark:text-sky/50">
@@ -223,14 +223,14 @@ export default function MediaUpload({
       {/* --- Preview Grid --- */}
       {mediaPreview.length > 0 && (
         <div className="mt-4">
-          <h4 className="text-sm font-medium text-navy dark:text-cream mb-3">
+          <h4 className="text-sm font-medium text-heading mb-3">
             Previews
           </h4>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {mediaPreview.map((src, i) => (
               <div
                 key={i} // Note: Using index as key is okay here because the list is append-only
-                className="relative group aspect-square rounded-xl overflow-hidden border border-cream-300/40 dark:border-navy-700/40"
+                className="relative group aspect-square rounded-xl overflow-hidden border border-border-default"
               >
                 {/* Check if it's a video or image for preview */}
                 {src.startsWith("data:image") || src.startsWith("https://") || src.startsWith("http://") ? (

@@ -48,7 +48,7 @@ export default function DeleteConfirmationModal({
           onClick={onCancel}
         >
           <motion.div
-            className="bg-cream-50 dark:bg-navy rounded-2xl shadow-lg shadow-navy/10 dark:shadow-black/30 p-6 w-full max-w-sm border border-cream-300/40 dark:border-navy-700/40"
+            className="bg-cream-50 dark:bg-navy rounded-2xl shadow-lg shadow-navy/10 dark:shadow-black/30 p-6 w-full max-w-sm border border-border-default"
             initial={{ opacity: 0, scale: 0.95, y: -16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -16 }}
@@ -64,7 +64,7 @@ export default function DeleteConfirmationModal({
               </div>
 
               <div className="flex flex-col gap-1">
-                <h2 className="text-lg font-semibold text-navy dark:text-cream">
+                <h2 className="text-lg font-semibold text-heading">
                   {title}
                 </h2>
                 <p className="text-sm text-steel/60 dark:text-sky/40">
@@ -78,7 +78,7 @@ export default function DeleteConfirmationModal({
                 type="button"
                 onClick={onCancel}
                 disabled={isDeleting}
-                className="w-full sm:w-auto inline-flex justify-center rounded-xl border border-cream-300 dark:border-navy-700 px-4 py-2 text-sm font-medium text-navy dark:text-cream shadow-sm hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition-colors disabled:opacity-50 cursor-pointer"
+                className="w-full sm:w-auto inline-flex justify-center rounded-xl border border-cream-300 dark:border-navy-700 px-4 py-2 text-sm font-medium text-heading shadow-sm hover:bg-surface-hover transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>

@@ -68,7 +68,7 @@ export function BlogCommentActions({ blogId, commentId }: BlogCommentActionsProp
                   onClick={() => handleReaction(type)}
                   disabled={isPending}
                   className={`relative flex h-7 w-7 items-center justify-center rounded-full text-lg transition-all hover:-translate-y-1 hover:scale-110 cursor-pointer ${
-                    currentUserReaction === type ? "ring-2 ring-steel bg-steel/15 dark:bg-sky/20 dark:ring-sky" : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                    currentUserReaction === type ? "ring-2 ring-steel bg-steel/15 dark:bg-sky/20 dark:ring-sky" : "hover:bg-surface-hover"
                   }`}
                 >
                   {ReactionIcons[type]}
@@ -95,7 +95,7 @@ export function BlogCommentActions({ blogId, commentId }: BlogCommentActionsProp
             return (
               <div key={type} className="flex items-center gap-1 rounded-full bg-cream-50/60 px-2 py-0.5 dark:bg-navy-700/30">
                 <span className="text-sm">{ReactionIcons[type]}</span>
-                <span className="text-xs font-semibold text-navy/70 dark:text-cream/60">{count}</span>
+                <span className="text-xs font-semibold text-sub">{count}</span>
               </div>
             );
           })}

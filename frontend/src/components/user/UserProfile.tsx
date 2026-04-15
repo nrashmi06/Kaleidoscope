@@ -105,17 +105,17 @@ export function UserProfile({ userId }: UserProfileProps) {
   // --- Error ---
   if (error) {
     return (
-      <div className="w-full max-w-2xl mx-auto p-8 text-center rounded-2xl bg-cream-50/50 dark:bg-navy-700/20 border border-cream-300/40 dark:border-navy-700/40">
+      <div className="w-full max-w-2xl mx-auto p-8 text-center rounded-2xl bg-cream-50/50 dark:bg-navy-700/20 border border-border-default">
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-100/60 dark:bg-red-900/20 flex items-center justify-center">
           <X className="w-7 h-7 text-red-500" />
         </div>
-        <h3 className="text-xl font-display font-bold text-navy dark:text-cream mb-2">
+        <h3 className="text-xl font-display font-bold text-heading mb-2">
           Profile Error
         </h3>
-        <p className="text-sm text-navy/50 dark:text-cream/40 mb-6">{error}</p>
+        <p className="text-sm text-muted mb-6">{error}</p>
         <button
           onClick={fetchProfile}
-          className="h-10 px-6 text-sm font-semibold rounded-full text-cream-50 dark:text-navy bg-navy dark:bg-cream hover:bg-navy/90 dark:hover:bg-cream/90 inline-flex items-center gap-2 transition-all cursor-pointer"
+          className="h-10 px-6 text-sm font-semibold rounded-full text-on-primary bg-btn-primary hover:bg-btn-primary-hover inline-flex items-center gap-2 transition-all cursor-pointer"
         >
           <RefreshCw className="w-4 h-4" /> Try Again
         </button>

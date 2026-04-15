@@ -122,11 +122,11 @@ export function TagList({
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="animate-pulse">
-              <div className="flex items-center gap-3 p-3 bg-cream-50/80 dark:bg-navy-700/30 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-surface rounded-xl">
                 <div className="w-8 h-8 bg-cream-300/60 dark:bg-navy-700/60 rounded-full"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-cream-300/60 dark:bg-navy-700/60 rounded w-24"></div>
-                  <div className="h-3 bg-cream-300/40 dark:bg-navy-700/40 rounded w-32"></div>
+                  <div className="h-3 bg-surface-hover rounded w-32"></div>
                 </div>
               </div>
             </div>
@@ -178,7 +178,7 @@ export function TagList({
         </div>
         <div className="p-6 text-center bg-cream-50/50 dark:bg-navy-700/30 rounded-xl border border-dashed border-cream-300 dark:border-navy-700">
           <Users className="w-12 h-12 text-steel/40 dark:text-sky/30 mx-auto mb-3" />
-          <h4 className="font-medium text-navy dark:text-cream mb-1">
+          <h4 className="font-medium text-heading mb-1">
             No Tags Found
           </h4>
           <p className="text-sm text-steel/60 dark:text-sky/40">
@@ -214,7 +214,7 @@ export function TagList({
         {tags.map((tag) => (
           <div
             key={tag.tagId}
-            className="flex items-center justify-between p-3 bg-cream-50/80 dark:bg-navy-700/30 rounded-xl border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/20 dark:hover:bg-navy-700/40 transition-colors"
+            className="flex items-center justify-between p-3 bg-surface rounded-xl border border-border-default hover:bg-cream-300/20 dark:hover:bg-navy-700/40 transition-colors"
           >
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
@@ -225,7 +225,7 @@ export function TagList({
                   <div className="flex items-center gap-1">
                     <Link
                       href={`/profile/${tag.taggedUser.userId}`}
-                      className="font-medium text-navy dark:text-cream text-sm hover:underline hover:text-steel dark:hover:text-sky"
+                      className="font-medium text-heading text-sm hover:underline hover:text-steel dark:hover:text-sky"
                     >
                       @{tag.taggedUser.username}
                     </Link>
@@ -252,7 +252,7 @@ export function TagList({
 
       {/* Pagination */}
       {showPagination && pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 border-t border-cream-300/40 dark:border-navy-700/40">
+        <div className="flex items-center justify-between pt-4 border-t border-border-default">
           <div className="text-sm text-steel/60 dark:text-sky/40">
             Showing {tags.length} of {pagination.totalElements} tags
           </div>
@@ -261,7 +261,7 @@ export function TagList({
             <button
               onClick={handlePreviousPage}
               disabled={!pagination.hasPrevious || loading}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-steel dark:text-sky/70 hover:text-navy dark:hover:text-cream disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cream-300/40 dark:hover:bg-navy-700/40 rounded-lg transition-colors cursor-pointer"
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-steel dark:text-sky/70 hover:text-navy dark:hover:text-cream disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover rounded-lg transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               Previous
@@ -285,7 +285,7 @@ export function TagList({
                     className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                       pageNum === pagination.page
                         ? 'bg-steel text-cream-50 dark:bg-sky dark:text-navy'
-                        : 'text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40'
+                        : 'text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {pageNum + 1}
@@ -297,7 +297,7 @@ export function TagList({
             <button
               onClick={handleNextPage}
               disabled={!pagination.hasNext || loading}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-steel dark:text-sky/70 hover:text-navy dark:hover:text-cream disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cream-300/40 dark:hover:bg-navy-700/40 rounded-lg transition-colors cursor-pointer"
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-steel dark:text-sky/70 hover:text-navy dark:hover:text-cream disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover rounded-lg transition-colors cursor-pointer"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />

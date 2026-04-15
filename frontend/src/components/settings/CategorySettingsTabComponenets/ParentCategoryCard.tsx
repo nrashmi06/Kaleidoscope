@@ -171,7 +171,7 @@ export const ParentCategoryCard = React.forwardRef<
       <>
         <div
           onClick={handleSelect}
-          className="group cursor-pointer w-full rounded-2xl border border-cream-300/40 dark:border-navy-700/40 bg-cream-50/80 dark:bg-navy-700/30 p-5 hover:border-steel/30 dark:hover:border-sky/30 hover:shadow-md hover:shadow-steel/5 dark:hover:shadow-sky/5 transition-all duration-300 flex flex-col gap-3"
+          className="group cursor-pointer w-full rounded-2xl border border-border-default bg-surface p-5 hover:border-steel/30 dark:hover:border-sky/30 hover:shadow-md hover:shadow-steel/5 dark:hover:shadow-sky/5 transition-all duration-300 flex flex-col gap-3"
         >
           <div className="flex items-start gap-3 justify-between">
             <div className="flex gap-3 min-w-0">
@@ -179,7 +179,7 @@ export const ParentCategoryCard = React.forwardRef<
                 <Icon className="w-6 h-6 text-steel dark:text-sky" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-bold text-navy dark:text-cream group-hover:text-steel dark:group-hover:text-sky transition-colors">
+                <h2 className="text-base font-bold text-heading group-hover:text-steel dark:group-hover:text-sky transition-colors">
                   {name}
                 </h2>
                 <p className="text-xs text-steel/60 dark:text-sky/40 mt-0.5 line-clamp-2 leading-relaxed">
@@ -223,14 +223,14 @@ export const ParentCategoryCard = React.forwardRef<
                       e.stopPropagation();
                       onCategorySelect(sub);
                     }}
-                    className="group/sub cursor-pointer flex items-start justify-between gap-2 p-3 rounded-xl bg-cream-100/40 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30 hover:border-steel/20 dark:hover:border-sky/20 transition-all"
+                    className="group/sub cursor-pointer flex items-start justify-between gap-2 p-3 rounded-xl bg-cream-100/40 dark:bg-navy-700/20 border border-border-subtle hover:border-steel/20 dark:hover:border-sky/20 transition-all"
                   >
                     <div className="flex gap-2.5 min-w-0">
                       <div className="p-1.5 rounded-lg bg-steel/6 dark:bg-sky/6 shrink-0">
                         <SubIcon className="w-3.5 h-3.5 text-steel/70 dark:text-sky/60" />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-sm font-semibold text-navy dark:text-cream group-hover/sub:text-steel dark:group-hover/sub:text-sky transition-colors">
+                        <h4 className="text-sm font-semibold text-heading group-hover/sub:text-steel dark:group-hover/sub:text-sky transition-colors">
                           {sub.name}
                         </h4>
                         <p className="text-[11px] text-steel/50 dark:text-sky/35 mt-0.5 line-clamp-1">
@@ -265,7 +265,7 @@ export const ParentCategoryCard = React.forwardRef<
         {showModal && (
           <div className="fixed inset-0 z-50 bg-navy/60 dark:bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-cream-50 dark:bg-navy rounded-2xl shadow-2xl shadow-navy/15 dark:shadow-black/50 w-full max-w-md p-6 border border-cream-300/50 dark:border-navy-700/60">
-              <h2 className="text-lg font-bold text-navy dark:text-cream mb-3">
+              <h2 className="text-lg font-bold text-heading mb-3">
                 Confirm Deletion
               </h2>
               <div className="mb-5">

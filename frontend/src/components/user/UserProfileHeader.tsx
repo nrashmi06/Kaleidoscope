@@ -55,7 +55,7 @@ export function UserProfileHeader({
           </div>
 
           {/* Name */}
-          <h1 className="mt-4 text-2xl sm:text-3xl font-display font-bold text-navy dark:text-cream tracking-tight">
+          <h1 className="mt-4 text-2xl sm:text-3xl font-display font-bold text-heading tracking-tight">
             {profile.username}
           </h1>
 
@@ -79,12 +79,12 @@ export function UserProfileHeader({
             {isOwner ? (
               <button
                 onClick={handleEditProfile}
-                className="h-10 px-6 text-sm font-semibold rounded-full bg-cream-300/50 dark:bg-navy-700/50 text-navy dark:text-cream border border-cream-400/30 dark:border-navy-600/30 hover:bg-cream-300/70 dark:hover:bg-navy-700/70 transition-all cursor-pointer"
+                className="h-10 px-6 text-sm font-semibold rounded-full bg-cream-300/50 dark:bg-navy-700/50 text-heading border border-cream-400/30 dark:border-navy-600/30 hover:bg-cream-300/70 dark:hover:bg-navy-700/70 transition-all cursor-pointer"
               >
                 Edit Profile
               </button>
             ) : blockStatus?.isBlockedBy ? (
-              <div className="h-10 flex items-center gap-2 px-5 text-sm font-semibold rounded-full bg-cream-300/30 dark:bg-navy-700/30 text-steel/50 dark:text-sky/35 border border-cream-300/40 dark:border-navy-700/40">
+              <div className="h-10 flex items-center gap-2 px-5 text-sm font-semibold rounded-full bg-cream-300/30 dark:bg-navy-700/30 text-steel/50 dark:text-sky/35 border border-border-default">
                 You are blocked
               </div>
             ) : (

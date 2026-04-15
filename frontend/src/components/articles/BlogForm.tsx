@@ -192,17 +192,17 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
       />
 
       {/* LINKED BLOG SEARCH & SELECT */}
-      <div className="p-6 bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 shadow-sm">
-        <label className="block text-sm font-semibold text-navy dark:text-cream mb-2 flex items-center gap-2">
+      <div className="p-6 bg-surface-alt rounded-xl border border-border-default shadow-sm">
+        <label className="block text-sm font-semibold text-heading mb-2 flex items-center gap-2">
             <Link className="w-4 h-4 text-navy/50 dark:text-cream/50" /> Link Related Article(s) (Optional)
         </label>
         <LinkedBlogSearch
             onBlogSelect={handleLinkedBlogSelect}
             selectedBlogIds={formData.blogTagIds}
         />
-        <p className="text-xs text-navy/40 dark:text-cream/35 mt-3">
+        <p className="text-xs text-faint mt-3">
             Search for and link related published articles.
-            Total linked: <span className="font-medium text-navy dark:text-cream">{formData.blogTagIds.length}</span>
+            Total linked: <span className="font-medium text-heading">{formData.blogTagIds.length}</span>
         </p>
       </div>
 
@@ -227,8 +227,8 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
       />
 
       {/* --- MEDIA UPLOAD --- */}
-      <div className="p-6 rounded-xl border border-cream-300/40 dark:border-navy-700/40 bg-cream-50 dark:bg-navy-700/50 shadow-sm">
-        <p className="font-bold mb-4 text-navy dark:text-cream flex items-center gap-2">
+      <div className="p-6 rounded-xl border border-border-default bg-surface-alt shadow-sm">
+        <p className="font-bold mb-4 text-heading flex items-center gap-2">
           <ImageIcon className="w-4 h-4" /> Media Details
         </p>
         <BlogMediaUpload
@@ -255,14 +255,14 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex-1 h-12 rounded-full text-[15px] font-bold text-navy/70 dark:text-cream/60 bg-cream-300/40 dark:bg-navy-700/40 hover:bg-cream-300/60 dark:hover:bg-navy-700/60 active:scale-[0.98] transition-all cursor-pointer"
+          className="flex-1 h-12 rounded-full text-[15px] font-bold text-sub bg-surface-hover hover:bg-surface-hover active:scale-[0.98] transition-all cursor-pointer"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-[2] h-12 rounded-full text-[15px] font-bold text-cream-50 dark:text-navy bg-navy dark:bg-cream hover:bg-navy/90 dark:hover:bg-cream/90 active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
+          className="flex-[2] h-12 rounded-full text-[15px] font-bold text-on-primary bg-btn-primary hover:bg-btn-primary-hover active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
         >
           {loading ? (
             <div className="flex items-center justify-center">

@@ -66,6 +66,23 @@
   --color-cream:     #F0EDCF;
   --color-cream-100: #f5f3db;
   --color-cream-50:  #faf9ea;
+
+  /* ── Semantic tokens (auto-switch light/dark) ──── */
+  --color-heading:       var(--sem-heading);
+  --color-sub:           var(--sem-sub);
+  --color-muted:         var(--sem-muted);
+  --color-faint:         var(--sem-faint);
+  --color-on-primary:    var(--sem-on-primary);
+  --color-on-secondary:  var(--sem-on-secondary);
+  --color-surface:       var(--sem-surface);
+  --color-surface-alt:   var(--sem-surface-alt);
+  --color-surface-hover: var(--sem-surface-hover);
+  --color-border-default:var(--sem-border-default);
+  --color-border-subtle: var(--sem-border-subtle);
+  --color-btn-primary:   var(--sem-btn-primary);
+  --color-btn-primary-hover: var(--sem-btn-primary-hover);
+  --color-icon-muted:    var(--sem-icon-muted);
+  --color-placeholder:   var(--sem-placeholder);
 }
 
 /* ── Light mode ───────────────────────────────────── */
@@ -73,6 +90,23 @@
   --radius: 0.625rem;
   --background: #F0EDCF;
   --foreground: #000000;
+
+  /* Semantic tokens — light values */
+  --sem-heading:       #000000;                         /* navy */
+  --sem-sub:           rgba(0,0,0,0.70);                /* navy/70 */
+  --sem-muted:         rgba(0,0,0,0.50);                /* navy/50 */
+  --sem-faint:         rgba(0,0,0,0.35);                /* navy/35 */
+  --sem-on-primary:    #faf9ea;                          /* cream-50 */
+  --sem-on-secondary:  rgba(0,0,0,0.70);                /* navy/70 */
+  --sem-surface:       rgba(250,249,234,0.80);           /* cream-50/80 */
+  --sem-surface-alt:   #faf9ea;                          /* cream-50 */
+  --sem-surface-hover: rgba(227,223,186,0.40);           /* cream-300/40 */
+  --sem-border-default:rgba(227,223,186,0.40);           /* cream-300/40 */
+  --sem-border-subtle: rgba(227,223,186,0.30);           /* cream-300/30 */
+  --sem-btn-primary:   #000000;                          /* navy */
+  --sem-btn-primary-hover: rgba(0,0,0,0.90);             /* navy/90 */
+  --sem-icon-muted:    rgba(0,0,0,0.40);                /* navy/40 */
+  --sem-placeholder:   rgba(0,0,0,0.35);                /* navy/35 */
   --card: #f5f3db;
   --card-foreground: #000000;
   --popover: #f5f3db;
@@ -108,6 +142,23 @@
 .dark {
   --background: #080808;
   --foreground: #F0EDCF;
+
+  /* Semantic tokens — dark values */
+  --sem-heading:       #F0EDCF;                          /* cream */
+  --sem-sub:           rgba(240,237,207,0.60);           /* cream/60 */
+  --sem-muted:         rgba(240,237,207,0.40);           /* cream/40 */
+  --sem-faint:         rgba(240,237,207,0.25);           /* cream/25 */
+  --sem-on-primary:    #000000;                          /* navy */
+  --sem-on-secondary:  rgba(240,237,207,0.60);           /* cream/60 */
+  --sem-surface:       rgba(26,26,26,0.50);              /* navy-700/50 */
+  --sem-surface-alt:   rgba(26,26,26,0.50);              /* navy-700/50 */
+  --sem-surface-hover: rgba(26,26,26,0.40);              /* navy-700/40 */
+  --sem-border-default:rgba(26,26,26,0.40);              /* navy-700/40 */
+  --sem-border-subtle: rgba(26,26,26,0.30);              /* navy-700/30 */
+  --sem-btn-primary:   #F0EDCF;                          /* cream */
+  --sem-btn-primary-hover: rgba(240,237,207,0.90);       /* cream/90 */
+  --sem-icon-muted:    rgba(240,237,207,0.40);           /* cream/40 */
+  --sem-placeholder:   rgba(240,237,207,0.25);           /* cream/25 */
   --card: #000000;
   --card-foreground: #F0EDCF;
   --popover: #000000;

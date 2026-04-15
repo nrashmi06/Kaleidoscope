@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 const UserBlockedByCardSkeleton: React.FC = () => (
-  <div className="flex items-center justify-between p-4 rounded-xl bg-cream-50/50 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30 animate-pulse">
+  <div className="flex items-center justify-between p-4 rounded-xl bg-cream-50/50 dark:bg-navy-700/20 border border-border-subtle animate-pulse">
     <div className="flex items-center gap-3">
       <div className="w-11 h-11 rounded-full bg-cream-300/60 dark:bg-navy-600/60" />
       <div className="space-y-2">
@@ -103,8 +103,8 @@ export const UsersBlockedByList: React.FC = () => {
 
   return (
     <div className="w-full max-w-xl mx-auto">
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h2 className="text-lg font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h2 className="text-lg font-bold text-heading flex items-center gap-2 mb-5">
           <ShieldOff className="w-5 h-5 text-steel dark:text-sky" />
           Blocked By Others
           {pagination && (
@@ -127,7 +127,7 @@ export const UsersBlockedByList: React.FC = () => {
         {error && (
           <div className="flex flex-col items-center justify-center text-center py-12 rounded-xl border border-dashed border-red-200/50 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10">
             <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400 mb-3" />
-            <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+            <h3 className="text-sm font-semibold text-heading mb-1">
               Error loading list
             </h3>
             <p className="text-xs text-steel/60 dark:text-sky/40 mb-4">
@@ -149,7 +149,7 @@ export const UsersBlockedByList: React.FC = () => {
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
               <UserX className="w-6 h-6 text-steel/50 dark:text-sky/40" />
             </div>
-            <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+            <h3 className="text-sm font-semibold text-heading mb-1">
               No Users Found
             </h3>
             <p className="text-xs text-steel/60 dark:text-sky/40">
@@ -164,7 +164,7 @@ export const UsersBlockedByList: React.FC = () => {
             {users.map((user) => (
               <div
                 key={user.userId}
-                className="flex items-center justify-between p-3 rounded-xl bg-cream-100/40 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30"
+                className="flex items-center justify-between p-3 rounded-xl bg-cream-100/40 dark:bg-navy-700/20 border border-border-subtle"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Image
@@ -175,7 +175,7 @@ export const UsersBlockedByList: React.FC = () => {
                     className="w-11 h-11 rounded-full object-cover border-2 border-cream dark:border-navy-900 shrink-0"
                   />
                   <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-navy dark:text-cream truncate">
+                    <h4 className="text-sm font-semibold text-heading truncate">
                       {user.username}
                     </h4>
                     <p className="text-[11px] text-steel/50 dark:text-sky/40 truncate">
@@ -183,7 +183,7 @@ export const UsersBlockedByList: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <span className="shrink-0 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-cream-300/40 dark:bg-navy-600/40 text-steel/60 dark:text-sky/40 border border-cream-300/30 dark:border-navy-700/30">
+                <span className="shrink-0 px-2.5 py-1 text-[10px] font-semibold rounded-full bg-cream-300/40 dark:bg-navy-600/40 text-steel/60 dark:text-sky/40 border border-border-subtle">
                   {user.accountStatus}
                 </span>
               </div>
@@ -193,11 +193,11 @@ export const UsersBlockedByList: React.FC = () => {
 
         {/* Pagination */}
         {pagination && totalPages > 1 && (
-          <div className="flex items-center justify-between mt-5 pt-4 border-t border-cream-300/30 dark:border-navy-700/30">
+          <div className="flex items-center justify-between mt-5 pt-4 border-t border-border-subtle">
             <button
               onClick={() => fetchPage(page - 1)}
               disabled={page === 0 || isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-border-default hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               Previous
@@ -208,7 +208,7 @@ export const UsersBlockedByList: React.FC = () => {
             <button
               onClick={() => fetchPage(page + 1)}
               disabled={page + 1 >= totalPages || isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-border-default hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               Next
               <ChevronRight className="w-3.5 h-3.5" />

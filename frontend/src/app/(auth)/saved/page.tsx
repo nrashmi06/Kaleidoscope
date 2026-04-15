@@ -116,7 +116,7 @@ export default function SavedPage() {
       <div className="pt-6 pb-5 px-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+            <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
               Saved
             </h1>
             {!loading && items.length > 0 && (
@@ -170,10 +170,10 @@ export default function SavedPage() {
           <div className="flex items-center justify-center w-14 h-14 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-5">
             <Inbox className="w-6 h-6 text-navy/25 dark:text-cream/25" />
           </div>
-          <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
+          <h3 className="text-lg font-display font-semibold text-heading mb-2">
             No saved {activeTab}
           </h3>
-          <p className="text-sm text-navy/40 dark:text-cream/35">
+          <p className="text-sm text-faint">
             Items you save will appear here.
           </p>
         </div>
@@ -236,7 +236,7 @@ export default function SavedPage() {
 
                     {/* Content */}
                     <div className="flex flex-col flex-1 p-4">
-                      <h3 className="text-sm font-semibold text-navy dark:text-cream leading-snug line-clamp-2">
+                      <h3 className="text-sm font-semibold text-heading leading-snug line-clamp-2">
                         {title}
                       </h3>
 
@@ -276,7 +276,7 @@ export default function SavedPage() {
           <button
             onClick={() => handlePageChange(page - 1)}
             disabled={page === 0}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-muted hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -295,8 +295,8 @@ export default function SavedPage() {
                 onClick={() => handlePageChange(p as number)}
                 className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                   page === p
-                    ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
-                    : "text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                    ? "bg-btn-primary text-on-primary"
+                    : "text-muted hover:text-navy dark:hover:text-cream hover:bg-surface-hover"
                 }`}
               >
                 {(p as number) + 1}
@@ -307,7 +307,7 @@ export default function SavedPage() {
           <button
             onClick={() => handlePageChange(page + 1)}
             disabled={page >= totalPages - 1}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-muted hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

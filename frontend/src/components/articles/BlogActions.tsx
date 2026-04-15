@@ -75,7 +75,7 @@ export function BlogActions({ blogId }: BlogActionsProps) {
                   className={`group relative flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full text-xl sm:text-2xl transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-110 active:scale-95 cursor-pointer ${
                     currentUserReaction === type
                       ? "ring-2 ring-steel bg-steel/15 dark:bg-sky/20 dark:ring-sky"
-                      : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                      : "hover:bg-surface-hover"
                   }`}
                   aria-label={type}
                 >
@@ -127,7 +127,7 @@ export function BlogActions({ blogId }: BlogActionsProps) {
               return (
                 <div key={type} className="group flex cursor-pointer items-center gap-1 rounded-full bg-cream-50/60 px-2.5 py-1 transition-all duration-200 hover:bg-cream-300/40 hover:scale-105 dark:bg-navy-700/30 dark:hover:bg-navy-700/50">
                   <span className="text-base transition-transform group-hover:scale-110">{ReactionIcons[type]}</span>
-                  <span className="text-xs font-semibold text-navy/70 dark:text-cream/60">{count}</span>
+                  <span className="text-xs font-semibold text-sub">{count}</span>
                 </div>
               );
             })}

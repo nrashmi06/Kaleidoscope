@@ -131,7 +131,7 @@ export default function BlogDetailPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-navy dark:text-cream mb-2">
+          <h1 className="text-2xl font-bold text-heading mb-2">
             Invalid Article ID
           </h1>
           <button
@@ -156,11 +156,11 @@ export default function BlogDetailPage() {
   if (error || !blog) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center px-4">
-        <div className="text-center p-8 bg-cream-50 dark:bg-navy-700/50 rounded-2xl border border-cream-300/40 dark:border-navy-700/40 max-w-lg">
+        <div className="text-center p-8 bg-surface-alt rounded-2xl border border-border-default max-w-lg">
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 mx-auto mb-4">
             <X className="w-6 h-6 text-red-500" />
           </div>
-          <h3 className="text-lg font-bold mb-2 text-navy dark:text-cream">
+          <h3 className="text-lg font-bold mb-2 text-heading">
             Error Loading Article
           </h3>
           <p className="text-sm text-steel dark:text-sky/60 mb-6">{error}</p>
@@ -300,7 +300,7 @@ export default function BlogDetailPage() {
                     onClick={() =>
                       router.push(`/profile/${blog.author.userId}`)
                     }
-                    className="text-sm font-bold text-navy dark:text-cream cursor-pointer hover:text-steel dark:hover:text-sky transition-colors hover:underline"
+                    className="text-sm font-bold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors hover:underline"
                   >
                     {blog.author.username}
                   </p>
@@ -358,7 +358,7 @@ export default function BlogDetailPage() {
                           disabled={isUpdatingStatus || isActive}
                           className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors cursor-pointer disabled:cursor-not-allowed ${
                             isActive
-                              ? "bg-steel/10 dark:bg-sky/10 border-steel/30 dark:border-sky/30 text-navy dark:text-cream"
+                              ? "bg-steel/10 dark:bg-sky/10 border-steel/30 dark:border-sky/30 text-heading"
                               : "bg-cream-100/40 dark:bg-navy-700/20 border-cream-300/40 dark:border-navy-600/40 text-steel/60 dark:text-sky/40 hover:bg-steel/5 dark:hover:bg-sky/5"
                           }`}
                         >

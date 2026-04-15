@@ -109,7 +109,7 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
             <div className="w-20 h-20 bg-gradient-to-r from-steel to-sky rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
               <Loader2 className="w-10 h-10 text-cream-50 animate-spin" />
             </div>
-            <h2 className="text-2xl font-display font-bold text-navy dark:text-cream mb-2">
+            <h2 className="text-2xl font-display font-bold text-heading mb-2">
               Creating Your Account
             </h2>
             <p className="text-steel/60 dark:text-sky/40">
@@ -142,7 +142,7 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
                       isCompleted
                         ? "bg-green-500 text-cream-50"
                         : isActive
-                        ? "bg-steel dark:bg-sky text-cream-50 dark:text-navy animate-pulse"
+                        ? "bg-steel dark:bg-sky text-on-primary animate-pulse"
                         : isPending
                         ? "bg-cream-300/40 dark:bg-navy-600/40 text-steel/40 dark:text-sky/30"
                         : "bg-cream-300/40 dark:bg-navy-600/40 text-steel/40 dark:text-sky/30"
@@ -164,7 +164,7 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
                         isCompleted
                           ? "text-green-700 dark:text-green-300"
                           : isActive
-                          ? "text-navy dark:text-cream"
+                          ? "text-heading"
                           : "text-steel/50 dark:text-sky/40"
                       }`}
                     >

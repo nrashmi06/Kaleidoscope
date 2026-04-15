@@ -84,7 +84,7 @@ export default function CommentItem({
 
   return (
     <>
-      <article className="group flex items-start gap-3 p-3 bg-cream-50/80 dark:bg-navy-700/30 rounded-xl border border-cream-300/40 dark:border-navy-700/40 hover:shadow-sm transition-all duration-200">
+      <article className="group flex items-start gap-3 p-3 bg-surface rounded-xl border border-border-default hover:shadow-sm transition-all duration-200">
         <Image
           src={comment.author.profilePictureUrl || "/default-avatar.png"}
           alt={`${comment.author.username}'s profile`}
@@ -99,7 +99,7 @@ export default function CommentItem({
             <div>
               <div
                 onClick={() => router.push(`/profile/${comment.author.userId}`)}
-                className="text-sm font-semibold text-navy dark:text-cream cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+                className="text-sm font-semibold text-heading cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
               >
                 {comment.author.username}
               </div>
@@ -116,7 +116,7 @@ export default function CommentItem({
                 <button
                   ref={buttonRef}
                   onClick={() => setMenuOpen((prev) => !prev)}
-                  className="p-1.5 rounded-full hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition"
+                  className="p-1.5 rounded-full hover:bg-surface-hover transition"
                   aria-label="Comment options"
                 >
                   <MoreVertical size={18} className="text-steel/60 dark:text-sky/40" />
@@ -134,8 +134,7 @@ export default function CommentItem({
                         setMenuOpen(false);
                       }}
                       className="flex items-center gap-2 px-3 py-2 w-full text-left
-                                 text-navy/70 dark:text-cream/60 hover:bg-cream-300/40
-                                 dark:hover:bg-navy-700/40 text-sm transition"
+                                 text-sub hover:bg-surface-hover text-sm transition"
                     >
                       <Tag size={14} />
                       Manage Tags

@@ -142,7 +142,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
             }
           }}
           placeholder={placeholder}
-          className="w-full pl-10 pr-4 py-3 border border-cream-300/40 dark:border-navy-700/40 rounded-xl focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel/40 dark:focus:border-sky/40 bg-cream-50 dark:bg-navy-700/30 text-navy dark:text-cream placeholder-steel/40 dark:placeholder-sky/30 transition-all"
+          className="w-full pl-10 pr-4 py-3 border border-border-default rounded-xl focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel/40 dark:focus:border-sky/40 bg-cream-50 dark:bg-navy-700/30 text-heading placeholder-steel/40 dark:placeholder-sky/30 transition-all"
           disabled={isCreatingLocation}
         />
         {(isLoading || isCreatingLocation) && (
@@ -151,17 +151,17 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
       </div>
 
       {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-cream-50/95 dark:bg-navy/95 backdrop-blur-md border border-cream-300/40 dark:border-navy-700/40 rounded-xl shadow-lg shadow-navy/[0.06] dark:shadow-black/30 max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-cream-50/95 dark:bg-navy/95 backdrop-blur-md border border-border-default rounded-xl shadow-lg shadow-navy/[0.06] dark:shadow-black/30 max-h-60 overflow-y-auto">
           {results.map((location) => (
             <button
               key={location.id}
               onClick={() => handleLocationSelect(location)}
-              className="w-full px-4 py-3 text-left hover:bg-cream-300/40 dark:hover:bg-navy-700/40 border-b border-cream-300/20 dark:border-navy-700/20 last:border-b-0 flex items-start space-x-3 transition-colors cursor-pointer"
+              className="w-full px-4 py-3 text-left hover:bg-surface-hover border-b border-cream-300/20 dark:border-navy-700/20 last:border-b-0 flex items-start space-x-3 transition-colors cursor-pointer"
               disabled={isCreatingLocation}
             >
               <MapPin className="w-4 h-4 text-steel/50 dark:text-sky/40 mt-1 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-navy dark:text-cream truncate">
+                <div className="text-sm font-medium text-heading truncate">
                   {location.name}
                 </div>
                 <div className="flex items-center space-x-2 mt-1">

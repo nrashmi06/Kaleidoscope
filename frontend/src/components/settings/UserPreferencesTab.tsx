@@ -159,8 +159,8 @@ export const UserPreferencesTab = () => {
   return (
     <div className="space-y-6">
       {/* ── Section 1: Language & Theme ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-5">
           <Palette className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Appearance
         </h3>
@@ -168,14 +168,14 @@ export const UserPreferencesTab = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Language */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
+            <label className="flex items-center gap-2 text-sm font-semibold text-heading">
               <Globe className="w-3.5 h-3.5 text-steel/60 dark:text-sky/50" />
               Language
             </label>
             <select
               value={form.language}
               onChange={(e) => handleChange("language", e.target.value)}
-              className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all appearance-none cursor-pointer"
+              className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all appearance-none cursor-pointer"
             >
               <option value="en-US">English (US)</option>
               <option value="es-ES">Spanish (ES)</option>
@@ -184,7 +184,7 @@ export const UserPreferencesTab = () => {
 
           {/* Theme */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
+            <label className="flex items-center gap-2 text-sm font-semibold text-heading">
               <Palette className="w-3.5 h-3.5 text-steel/60 dark:text-sky/50" />
               Theme
             </label>
@@ -193,7 +193,7 @@ export const UserPreferencesTab = () => {
               onChange={(e) =>
                 handleChange("theme", e.target.value as "LIGHT" | "DARK" | "SYSTEM")
               }
-              className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all appearance-none cursor-pointer"
+              className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all appearance-none cursor-pointer"
             >
               <option value="LIGHT">Light</option>
               <option value="DARK">Dark</option>
@@ -204,8 +204,8 @@ export const UserPreferencesTab = () => {
       </div>
 
       {/* ── Section 2: Privacy Toggles ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-5">
           <Shield className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Privacy
         </h3>
@@ -219,7 +219,7 @@ export const UserPreferencesTab = () => {
                 className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition-all ${
                   isOn
                     ? "bg-steel/5 dark:bg-sky/5 border-steel/20 dark:border-sky/20"
-                    : "bg-cream-100/40 dark:bg-navy-700/20 border-cream-300/30 dark:border-navy-700/30"
+                    : "bg-cream-100/40 dark:bg-navy-700/20 border-border-subtle"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -239,7 +239,7 @@ export const UserPreferencesTab = () => {
                     />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-sm font-semibold text-navy dark:text-cream block">
+                    <span className="text-sm font-semibold text-heading block">
                       {label}
                     </span>
                     <span className="text-[11px] text-steel/50 dark:text-sky/30 block truncate">
@@ -268,8 +268,8 @@ export const UserPreferencesTab = () => {
       </div>
 
       {/* ── Section 3: Visibility Controls ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-5">
           <Eye className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Visibility
         </h3>
@@ -279,7 +279,7 @@ export const UserPreferencesTab = () => {
             const currentValue = form[key] as string;
             return (
               <div key={key} className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
+                <label className="flex items-center gap-2 text-sm font-semibold text-heading">
                   <FieldIcon className="w-3.5 h-3.5 text-steel/60 dark:text-sky/50" />
                   {label}
                 </label>
@@ -298,13 +298,13 @@ export const UserPreferencesTab = () => {
                         }
                         className={`relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                           isActive
-                            ? "bg-steel/10 dark:bg-sky/10 border-steel/30 dark:border-sky/30 text-navy dark:text-cream"
-                            : "bg-cream-100/40 dark:bg-navy-700/20 border-cream-300/30 dark:border-navy-700/30 text-steel/50 dark:text-sky/35 hover:border-steel/20 dark:hover:border-sky/20"
+                            ? "bg-steel/10 dark:bg-sky/10 border-steel/30 dark:border-sky/30 text-heading"
+                            : "bg-cream-100/40 dark:bg-navy-700/20 border-border-subtle text-steel/50 dark:text-sky/35 hover:border-steel/20 dark:hover:border-sky/20"
                         }`}
                       >
                         {isActive && (
                           <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-steel dark:bg-sky flex items-center justify-center">
-                            <Check className="w-2 h-2 text-cream-50 dark:text-navy" />
+                            <Check className="w-2 h-2 text-on-primary" />
                           </span>
                         )}
                         <OptIcon className="w-3.5 h-3.5" />
@@ -320,15 +320,15 @@ export const UserPreferencesTab = () => {
       </div>
 
       {/* ── Section 4: Interest Categories ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-4">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-4">
           <Sparkles className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Interest Categories
         </h3>
 
-        <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-cream-100/50 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30">
+        <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-cream-100/50 dark:bg-navy-700/20 border border-border-subtle">
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+            <h4 className="text-sm font-semibold text-heading mb-1">
               Reconfigure Categories
             </h4>
             <p className="text-xs text-steel/60 dark:text-sky/40 leading-relaxed">
@@ -350,8 +350,8 @@ export const UserPreferencesTab = () => {
       </div>
 
       {/* ── Section 5: Security ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-5">
           <Lock className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Security
         </h3>
@@ -359,7 +359,7 @@ export const UserPreferencesTab = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Current Password */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-navy dark:text-cream">
+            <label className="text-sm font-semibold text-heading">
               Current Password
             </label>
             <div className="relative">
@@ -368,7 +368,7 @@ export const UserPreferencesTab = () => {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
-                className="w-full h-11 px-4 pr-11 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+                className="w-full h-11 px-4 pr-11 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
               />
               <button
                 type="button"
@@ -386,7 +386,7 @@ export const UserPreferencesTab = () => {
 
           {/* New Password */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-navy dark:text-cream">
+            <label className="text-sm font-semibold text-heading">
               New Password
             </label>
             <div className="relative">
@@ -395,7 +395,7 @@ export const UserPreferencesTab = () => {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password (min 8 chars)"
-                className="w-full h-11 px-4 pr-11 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+                className="w-full h-11 px-4 pr-11 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
               />
               <button
                 type="button"

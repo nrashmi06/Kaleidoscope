@@ -115,7 +115,7 @@ export default function FollowersList({
         {Array.from({ length: initialPageSize / 2 }).map((_, index) => (
           <div
             key={index}
-            className="flex items-center justify-between p-3 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-cream-300/30 dark:border-navy-700/30 animate-pulse"
+            className="flex items-center justify-between p-3 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-border-subtle animate-pulse"
           >
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-full bg-cream-300 dark:bg-navy-700" />
@@ -145,7 +145,7 @@ export default function FollowersList({
         <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-1">
           <Users className="w-5 h-5 text-steel dark:text-sky/60" />
         </div>
-        <h3 className="text-sm font-semibold text-navy dark:text-cream">
+        <h3 className="text-sm font-semibold text-heading">
           No Followers Yet
         </h3>
         <p className="text-xs text-steel dark:text-sky/60">

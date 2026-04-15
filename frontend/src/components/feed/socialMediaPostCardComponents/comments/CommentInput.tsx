@@ -129,14 +129,14 @@ export default function CommentInput({
           height={36}
           className="w-9 h-9 rounded-full object-cover border border-cream-300 dark:border-navy-700"
         />
-        <div className="flex-1 flex items-center bg-cream-50/80 dark:bg-navy-700/30 rounded-full border border-cream-300/40 dark:border-navy-700/40 px-3 py-1.5 focus-within:ring-1 focus-within:ring-steel/30 dark:focus-within:ring-sky/30 transition">
+        <div className="flex-1 flex items-center bg-surface rounded-full border border-border-default px-3 py-1.5 focus-within:ring-1 focus-within:ring-steel/30 dark:focus-within:ring-sky/30 transition">
           <input
             type="text"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Write a comment..."
-            className="flex-1 bg-transparent outline-none text-sm text-navy dark:text-cream placeholder-steel/40 dark:placeholder-sky/30"
+            className="flex-1 bg-transparent outline-none text-sm text-heading placeholder-steel/40 dark:placeholder-sky/30"
             disabled={isPosting}
           />
           <button
@@ -166,7 +166,7 @@ export default function CommentInput({
               className={`flex items-center w-full px-3 py-2 text-sm text-left ${
                 idx === activeIndex
                   ? "bg-steel/10 dark:bg-sky/10"
-                  : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                  : "hover:bg-surface-hover"
               }`}
             >
               <Image
@@ -176,7 +176,7 @@ export default function CommentInput({
                 height={28}
                 className="rounded-full mr-2 object-cover"
               />
-              <span className="text-navy dark:text-cream">@{user.username}</span>
+              <span className="text-heading">@{user.username}</span>
             </button>
           ))}
         </div>

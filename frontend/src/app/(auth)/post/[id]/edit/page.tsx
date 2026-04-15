@@ -195,12 +195,12 @@ export default function EditPostPage() {
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/30 dark:hover:bg-navy-600/40 transition-colors"
+            className="p-2 rounded-lg bg-surface-alt border border-border-default hover:bg-cream-300/30 dark:hover:bg-navy-600/40 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-steel dark:text-sky/70" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-navy dark:text-cream">
+            <h1 className="text-3xl font-bold text-heading">
               Edit Post
             </h1>
             <p className="text-steel/60 dark:text-sky/40">
@@ -289,14 +289,14 @@ export default function EditPostPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 h-12 rounded-full text-[15px] font-bold text-navy/70 dark:text-cream/60 bg-cream-300/40 dark:bg-navy-700/40 hover:bg-cream-300/60 dark:hover:bg-navy-700/60 active:scale-[0.98] transition-all cursor-pointer"
+              className="flex-1 h-12 rounded-full text-[15px] font-bold text-sub bg-surface-hover hover:bg-surface-hover active:scale-[0.98] transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-[2] h-12 rounded-full text-[15px] font-bold text-cream-50 dark:text-navy bg-navy dark:bg-cream hover:bg-navy/90 dark:hover:bg-cream/90 active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
+              className="flex-[2] h-12 rounded-full text-[15px] font-bold text-on-primary bg-btn-primary hover:bg-btn-primary-hover active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
             >
               {loading ? "Updating..." : "Update Post"}
             </button>

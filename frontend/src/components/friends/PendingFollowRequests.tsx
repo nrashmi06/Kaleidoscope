@@ -69,7 +69,7 @@ const FollowRequestItem: React.FC<{
   );
 
   return (
-    <div className="flex items-center justify-between gap-3 py-2.5 px-3.5 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 transition-all hover:shadow-sm">
+    <div className="flex items-center justify-between gap-3 py-2.5 px-3.5 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-border-default transition-all hover:shadow-sm">
       <div
         className="flex items-center gap-3 min-w-0 cursor-pointer"
         onClick={() => router.push(`/profile/${user.userId}`)}
@@ -84,7 +84,7 @@ const FollowRequestItem: React.FC<{
           />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-medium text-navy dark:text-cream truncate hover:underline">
+          <div className="text-sm font-medium text-heading truncate hover:underline">
             {user.username}
           </div>
           <div className="text-[11px] text-steel dark:text-sky/60 truncate">
@@ -173,7 +173,7 @@ export default function PendingFollowRequests() {
     return (
       <div className="relative rounded-2xl border border-cream-300/60 dark:border-navy-700/60 bg-cream-50/80 dark:bg-navy/80 backdrop-blur-sm p-5 overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/25 dark:via-sky/15 to-transparent" />
-        <h2 className="text-base font-semibold mb-4 text-navy dark:text-cream flex items-center gap-2">
+        <h2 className="text-base font-semibold mb-4 text-heading flex items-center gap-2">
           <Bell className="w-4 h-4 text-steel dark:text-sky" />
           Pending Requests
         </h2>
@@ -181,7 +181,7 @@ export default function PendingFollowRequests() {
           {Array.from({ length: 2 }).map((_, index) => (
             <div
               key={index}
-              className="flex items-center justify-between p-3.5 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-cream-300/30 dark:border-navy-700/30 animate-pulse"
+              className="flex items-center justify-between p-3.5 rounded-xl bg-cream-100/50 dark:bg-navy-700/30 border border-border-subtle animate-pulse"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-cream-300 dark:bg-navy-700" />
@@ -213,7 +213,7 @@ export default function PendingFollowRequests() {
     return (
       <div className="relative rounded-2xl border border-cream-300/60 dark:border-navy-700/60 bg-cream-50/80 dark:bg-navy/80 backdrop-blur-sm p-5 overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/25 dark:via-sky/15 to-transparent" />
-        <h2 className="text-base font-semibold mb-3 text-navy dark:text-cream flex items-center gap-2">
+        <h2 className="text-base font-semibold mb-3 text-heading flex items-center gap-2">
           <Bell className="w-4 h-4 text-steel dark:text-sky" />
           Pending Requests
         </h2>
@@ -227,7 +227,7 @@ export default function PendingFollowRequests() {
   return (
     <div className="relative rounded-2xl border border-cream-300/60 dark:border-navy-700/60 bg-cream-50/80 dark:bg-navy/80 backdrop-blur-sm p-5 overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/25 dark:via-sky/15 to-transparent" />
-      <h2 className="text-base font-semibold mb-4 text-navy dark:text-cream flex items-center gap-2">
+      <h2 className="text-base font-semibold mb-4 text-heading flex items-center gap-2">
         <Bell className="w-4 h-4 text-steel dark:text-sky" />
         Pending Requests
         <span className="ml-1 px-2 py-0.5 text-xs font-bold rounded-full bg-steel text-cream-50 dark:bg-sky dark:text-navy">

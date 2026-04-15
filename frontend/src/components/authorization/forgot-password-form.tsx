@@ -13,8 +13,8 @@ export default function ForgotPasswordForm() {
   const [error, setError] = useState("");
 
   return (
-    <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-cream-50 dark:bg-navy-700/50 p-4 md:rounded-2xl md:p-8">
-      <h2 className="text-xl text-center font-display font-bold text-navy dark:text-cream">
+    <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-surface-alt p-4 md:rounded-2xl md:p-8">
+      <h2 className="text-xl text-center font-display font-bold text-heading">
         Forgot Password
       </h2>
       <p className="mt-2 text-center text-sm text-steel/60 dark:text-sky/40">

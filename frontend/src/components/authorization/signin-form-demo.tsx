@@ -72,7 +72,7 @@ export default function SigninForm() {
       className="mx-auto w-full max-w-md p-6 sm:p-8 rounded-2xl bg-cream-50/90 dark:bg-navy-700/80 backdrop-blur-md shadow-xl border border-steel/20 dark:border-sky/20"
     >
       {/* Title */}
-      <h2 className="text-2xl text-center font-display font-bold text-navy dark:text-cream">
+      <h2 className="text-2xl text-center font-display font-bold text-heading">
         Welcome to KaleidoScope
       </h2>
       <p className="mt-2 text-center text-sm font-semibold text-steel/60 dark:text-sky/40">
@@ -83,7 +83,7 @@ export default function SigninForm() {
       <form className="my-8" onSubmit={handleSubmit} aria-label="Login form">
         {/* Email Input */}
         <LabelInputContainer className="mb-4">
-          <Label htmlFor="email" className="text-navy dark:text-cream">
+          <Label htmlFor="email" className="text-heading">
             Email Address
           </Label>
           <Input
@@ -100,7 +100,7 @@ export default function SigninForm() {
 
         {/* Password Input */}
         <LabelInputContainer className="mb-6">
-          <Label htmlFor="password" className="text-navy dark:text-cream">
+          <Label htmlFor="password" className="text-heading">
             Password
           </Label>
           <Input
@@ -120,7 +120,7 @@ export default function SigninForm() {
           type="submit"
           disabled={isLoading}
           className={cn(
-            "group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-steel to-steel-600 dark:from-sky dark:to-sky/80 text-cream-50 dark:text-navy font-semibold shadow-lg shadow-steel/20 dark:shadow-sky/15 transition-all hover:brightness-110",
+            "group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-steel to-steel-600 dark:from-sky dark:to-sky/80 text-on-primary font-semibold shadow-lg shadow-steel/20 dark:shadow-sky/15 transition-all hover:brightness-110",
             isLoading && "opacity-70 cursor-not-allowed"
           )}
         >
@@ -136,7 +136,7 @@ export default function SigninForm() {
           <p>
             <a
               href="/forgot-password"
-              className="font-semibold text-navy dark:text-cream underline hover:text-steel dark:hover:text-sky transition-colors"
+              className="font-semibold text-heading underline hover:text-steel dark:hover:text-sky transition-colors"
             >
               Forgot your password?
             </a>
@@ -145,7 +145,7 @@ export default function SigninForm() {
             Don&apos;t have an account?{" "}
             <a
               href="/signup"
-              className="font-semibold text-navy dark:text-cream underline hover:text-steel dark:hover:text-sky transition-colors"
+              className="font-semibold text-heading underline hover:text-steel dark:hover:text-sky transition-colors"
             >
               Sign up
             </a>
@@ -154,7 +154,7 @@ export default function SigninForm() {
             <button
               type="button"
               onClick={() => setShowResendVerification(!showResendVerification)}
-              className="font-semibold text-navy dark:text-cream underline hover:text-steel dark:hover:text-sky transition-colors cursor-pointer"
+              className="font-semibold text-heading underline hover:text-steel dark:hover:text-sky transition-colors cursor-pointer"
             >
               Resend verification email
             </button>
@@ -180,7 +180,7 @@ export default function SigninForm() {
                 onClick={handleResendVerification}
                 disabled={resendLoading}
                 className={cn(
-                  "px-4 py-2 rounded-md text-sm font-semibold text-cream-50 dark:text-navy bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 transition-all",
+                  "px-4 py-2 rounded-md text-sm font-semibold text-on-primary bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 transition-all",
                   resendLoading && "opacity-70 cursor-not-allowed"
                 )}
               >

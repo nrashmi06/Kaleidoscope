@@ -8,7 +8,7 @@ import { Loader2, UserX, ShieldCheck, AlertCircle } from "lucide-react";
 
 export const BlockUserFormSkeleton: React.FC = () => {
   return (
-    <div className="w-full max-w-lg p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 animate-pulse">
+    <div className="w-full max-w-lg p-6 rounded-2xl bg-surface border border-border-default animate-pulse">
       <div className="h-6 w-1/3 bg-cream-300/50 dark:bg-navy-600/50 rounded-md mb-6" />
       <div className="space-y-5">
         <div>
@@ -69,8 +69,8 @@ export const BlockUserForm: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-lg p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-      <h2 className="text-lg font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+    <div className="w-full max-w-lg p-6 rounded-2xl bg-surface border border-border-default">
+      <h2 className="text-lg font-bold text-heading flex items-center gap-2 mb-5">
         <UserX className="w-5 h-5 text-steel dark:text-sky" />
         Block a New User
       </h2>
@@ -79,7 +79,7 @@ export const BlockUserForm: React.FC = () => {
         <div className="space-y-1.5">
           <label
             htmlFor="userIdToBlock"
-            className="text-sm font-semibold text-navy dark:text-cream"
+            className="text-sm font-semibold text-heading"
           >
             User ID to Block
           </label>
@@ -90,14 +90,14 @@ export const BlockUserForm: React.FC = () => {
             onChange={(e) => setUserIdToBlock(e.target.value)}
             placeholder="Enter the numeric User ID (e.g., 123)"
             required
-            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
           />
         </div>
 
         <div className="space-y-1.5">
           <label
             htmlFor="reason"
-            className="text-sm font-semibold text-navy dark:text-cream"
+            className="text-sm font-semibold text-heading"
           >
             Reason
           </label>
@@ -109,7 +109,7 @@ export const BlockUserForm: React.FC = () => {
             required
             minLength={10}
             rows={4}
-            className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
           />
         </div>
 

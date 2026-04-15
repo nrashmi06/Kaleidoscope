@@ -47,13 +47,13 @@ export const IconSearchDropdown: React.FC<IconSearchDropdownProps> = ({
 
   return (
     <div className="space-y-1.5 relative">
-      <label className="text-sm font-semibold text-navy dark:text-cream flex items-center gap-2">
+      <label className="text-sm font-semibold text-heading flex items-center gap-2">
         <Search className="w-3.5 h-3.5 text-steel/60 dark:text-sky/50" />
         Icon *
       </label>
       <input
         type="text"
-        className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+        className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
         value={iconQuery || ""}
         onChange={(e) => {
           setIsTouched(true);
@@ -80,7 +80,7 @@ export const IconSearchDropdown: React.FC<IconSearchDropdownProps> = ({
                 <div className="p-1.5 rounded-lg bg-steel/8 dark:bg-sky/8">
                   <Icon className="w-4 h-4 text-steel dark:text-sky" />
                 </div>
-                <span className="text-sm text-navy dark:text-cream font-medium">
+                <span className="text-sm text-heading font-medium">
                   {name}
                 </span>
               </div>

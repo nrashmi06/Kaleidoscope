@@ -19,8 +19,8 @@ export default function TagUsers({
   onToggle,
 }: Props) {
   return (
-    <div className="bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 p-6">
-      <label className="block text-sm font-medium text-navy dark:text-cream mb-2">
+    <div className="bg-surface-alt rounded-xl border border-border-default p-6">
+      <label className="block text-sm font-medium text-heading mb-2">
         Tag Users
       </label>
       <input
@@ -28,7 +28,7 @@ export default function TagUsers({
         value={userSearchQuery}
         onChange={(e) => setUserSearchQuery(e.target.value)}
         placeholder="Search users..."
-        className="w-full px-4 py-2 border border-cream-300/40 dark:border-navy-700/40 rounded-xl bg-cream-50/60 dark:bg-navy-700/30 text-navy dark:text-cream placeholder-steel/40 dark:placeholder-sky/30 focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all mb-2"
+        className="w-full px-4 py-2 border border-border-default rounded-xl bg-cream-50/60 dark:bg-navy-700/30 text-heading placeholder-steel/40 dark:placeholder-sky/30 focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all mb-2"
       />
       <div className="flex flex-wrap gap-2">
         {users.map((user) => {
@@ -41,7 +41,7 @@ export default function TagUsers({
               className={`px-3 py-1 rounded-full border transition-all ${
                 selected
                   ? "bg-steel text-cream-50 border-steel dark:bg-sky dark:text-navy dark:border-sky"
-                  : "bg-cream-300/40 dark:bg-navy-700/40 text-navy dark:text-cream border-cream-300/40 dark:border-navy-700/40"
+                  : "bg-surface-hover text-heading border-border-default"
               }`}
             >
               {user.username}

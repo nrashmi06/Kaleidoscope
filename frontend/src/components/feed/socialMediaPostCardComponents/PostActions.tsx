@@ -83,7 +83,7 @@ export function PostActions({ postId }: PostActionsProps) {
     .map(([type]) => type as ReactionType);
 
   return (
-    <div className="flex items-center justify-between border-t border-cream-300/40 dark:border-navy-700/40 pt-3">
+    <div className="flex items-center justify-between border-t border-border-default pt-3">
       {/* Reaction Button & Picker */}
       <div className="relative flex items-center gap-2" ref={reactionRef}>
         {/* Reaction Picker */}
@@ -110,7 +110,7 @@ export function PostActions({ postId }: PostActionsProps) {
                       ${
                         isActive
                           ? "ring-2 ring-steel bg-steel/15 dark:bg-sky/15 dark:ring-sky"
-                          : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                          : "hover:bg-surface-hover"
                       }`}
                     aria-label={type}
                   >
@@ -175,7 +175,7 @@ export function PostActions({ postId }: PostActionsProps) {
                   <span className="text-base transition-transform group-hover:scale-110">
                     {ReactionIcons[type as keyof typeof ReactionIcons]}
                   </span>
-                  <span className="text-xs font-semibold text-navy/70 dark:text-cream/60">
+                  <span className="text-xs font-semibold text-sub">
                     {count}
                   </span>
                 </div>

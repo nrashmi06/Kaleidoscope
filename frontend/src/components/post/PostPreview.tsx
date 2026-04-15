@@ -9,8 +9,8 @@ interface Props {
 
 export default function PostPreview({ formData, mediaPreviewLength, selectedLocation }: Props) {
   return (
-    <div className="bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 p-6">
-      <h2 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">Preview</h2>
+    <div className="bg-surface-alt rounded-xl border border-border-default p-6">
+      <h2 className="text-lg font-display font-semibold text-heading mb-2">Preview</h2>
       <p className="text-navy/70 dark:text-cream/70 mb-1">
         <strong>Title:</strong> {formData.title || "N/A"}
       </p>

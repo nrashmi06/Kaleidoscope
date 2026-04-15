@@ -75,7 +75,7 @@ export default function ContentSuggestions({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-[22rem] rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 animate-pulse"
+            className="h-[22rem] rounded-2xl bg-surface border border-border-default animate-pulse"
           >
             <div className="h-[45%] bg-cream-300/40 dark:bg-navy-600/40 rounded-t-2xl" />
             <div className="p-4 space-y-3">
@@ -92,7 +92,7 @@ export default function ContentSuggestions({
   if (type === "articles") {
     if (blogSuggestions.length === 0) {
       return (
-        <div className="p-4 rounded-xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 text-center">
+        <div className="p-4 rounded-xl bg-surface border border-border-default text-center">
           <p className="text-sm text-steel/60 dark:text-sky/40">
             No suggestions available right now.
           </p>
@@ -125,7 +125,7 @@ export default function ContentSuggestions({
   // Post suggestions
   if (postSuggestions.length === 0) {
     return (
-      <div className="p-4 rounded-xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 text-center">
+      <div className="p-4 rounded-xl bg-surface border border-border-default text-center">
         <p className="text-sm text-steel/60 dark:text-sky/40">
           No suggestions available right now.
         </p>
@@ -147,7 +147,7 @@ export default function ContentSuggestions({
           <div
             key={post.postId}
             onClick={() => router.push(`/post/${post.postId}`)}
-            className="group relative flex flex-col h-[22rem] rounded-2xl overflow-hidden bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 cursor-pointer"
+            className="group relative flex flex-col h-[22rem] rounded-2xl overflow-hidden bg-surface-alt border border-border-default hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 cursor-pointer"
           >
             {/* Thumbnail */}
             <div className="relative h-[45%] w-full overflow-hidden bg-cream-300/30 dark:bg-navy-700/60">
@@ -177,7 +177,7 @@ export default function ContentSuggestions({
 
             {/* Content */}
             <div className="flex flex-col flex-1 p-4">
-              <h3 className="text-sm font-bold text-navy dark:text-cream leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
+              <h3 className="text-sm font-bold text-heading leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
                 {post.title}
               </h3>
 
@@ -245,7 +245,7 @@ export function ContentSuggestionsSection({
     <section className="mt-8">
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-4 h-4 text-steel dark:text-sky" />
-        <h3 className="text-sm font-bold text-navy dark:text-cream tracking-tight">
+        <h3 className="text-sm font-bold text-heading tracking-tight">
           {title}
         </h3>
       </div>
