@@ -154,74 +154,39 @@ export default function MassEmailPage() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 py-6 relative">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
-      </div>
-
+    <div className="w-full">
       {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-steel dark:text-sky hover:text-steel-600 dark:hover:text-sky/80 transition-colors mb-4 cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-sky shadow-sm shadow-steel/20 dark:shadow-sky/15">
-            <Mail className="w-5 h-5 text-cream-50" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-navy dark:text-cream">
-              Mass Email
-            </h1>
-            <p className="text-xs text-steel/60 dark:text-sky/40">
-              Send emails to all users on the platform
-            </p>
-          </div>
-          <span className="ml-auto px-2.5 py-1 text-[10px] font-bold rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            ADMIN ONLY
-          </span>
-        </div>
-        <div className="mt-4 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
+      <div className="pt-6 pb-5 px-1">
+        <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+          Mass Email
+        </h1>
+        <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
+          Send emails to all users on the platform
+        </p>
       </div>
 
       {/* Form */}
       <div className="space-y-5">
         {/* Recipient Filter */}
-        <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-3">
-          <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
-            <Users className="w-4 h-4 text-steel dark:text-sky" />
+        <div className="space-y-3">
+          <label className="text-sm font-semibold text-navy dark:text-cream">
             Recipients
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
             {recipientOptions.map((opt) => {
               const isActive = JSON.stringify(targetRoles) === JSON.stringify(opt.roles);
-              const Icon = opt.icon;
               return (
                 <button
                   key={opt.label}
                   type="button"
                   onClick={() => setTargetRoles([...opt.roles])}
-                  className={`relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-center transition-all cursor-pointer border ${
+                  className={`px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? "bg-steel/10 dark:bg-sky/10 border-steel/40 dark:border-sky/40 shadow-sm"
-                      : "bg-cream-100/40 dark:bg-navy-700/20 border-cream-300/40 dark:border-navy-700/40 hover:border-steel/20 dark:hover:border-sky/20"
+                      ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                      : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
                   }`}
                 >
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${isActive ? "bg-steel/15 dark:bg-sky/15" : "bg-cream-300/30 dark:bg-navy-600/30"}`}>
-                    <Icon className={`w-4 h-4 ${isActive ? "text-steel dark:text-sky" : "text-steel/50 dark:text-sky/40"}`} />
-                  </div>
-                  <span className={`text-xs font-semibold ${isActive ? "text-navy dark:text-cream" : "text-steel/60 dark:text-sky/40"}`}>
-                    {opt.label}
-                  </span>
-                  <span className={`text-[10px] leading-tight ${isActive ? "text-steel/70 dark:text-sky/50" : "text-steel/40 dark:text-sky/25"}`}>
-                    {opt.description}
-                  </span>
+                  {opt.label}
                 </button>
               );
             })}
@@ -229,9 +194,8 @@ export default function MassEmailPage() {
         </div>
 
         {/* Subject */}
-        <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-3">
-          <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
-            <Mail className="w-4 h-4 text-steel dark:text-sky" />
+        <div className="space-y-3">
+          <label className="text-sm font-semibold text-navy dark:text-cream">
             Subject *
           </label>
           <input
@@ -239,16 +203,16 @@ export default function MassEmailPage() {
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Enter email subject line"
-            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+            className="w-full h-10 px-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
           />
         </div>
 
         {/* Body — Rich Text Editor */}
-        <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-3">
-          <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
+        <div className="space-y-3">
+          <label className="text-sm font-semibold text-navy dark:text-cream">
             Email Body *
           </label>
-          <div className="quill-wrapper rounded-xl overflow-hidden border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40">
+          <div className="quill-wrapper rounded-2xl overflow-hidden bg-cream-300/20 dark:bg-navy-700/20">
             <ReactQuill
               theme="snow"
               value={body}
@@ -256,13 +220,13 @@ export default function MassEmailPage() {
               modules={quillModules}
               formats={quillFormats}
               placeholder="Write the email content here..."
-              className="[&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-cream-300 dark:[&_.ql-toolbar]:border-navy-700 [&_.ql-toolbar]:bg-cream-100/50 dark:[&_.ql-toolbar]:bg-navy-700/60 [&_.ql-container]:border-none [&_.ql-container]:min-h-[200px] [&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-editor]:text-navy dark:[&_.ql-editor]:text-cream [&_.ql-editor.ql-blank::before]:text-steel/40 dark:[&_.ql-editor.ql-blank::before]:text-sky/30"
+              className="[&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-cream-300/40 dark:[&_.ql-toolbar]:border-navy-700/40 [&_.ql-toolbar]:bg-cream-300/20 dark:[&_.ql-toolbar]:bg-navy-700/20 [&_.ql-container]:border-none [&_.ql-container]:min-h-[200px] [&_.ql-editor]:min-h-[200px] [&_.ql-editor]:text-sm [&_.ql-editor]:text-navy dark:[&_.ql-editor]:text-cream [&_.ql-editor.ql-blank::before]:text-steel/40 dark:[&_.ql-editor.ql-blank::before]:text-sky/25"
             />
           </div>
         </div>
 
         {/* Attachments */}
-        <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-3">
+        <div className="space-y-3">
           <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
             <Paperclip className="w-4 h-4 text-steel dark:text-sky" />
             Attachments
@@ -336,7 +300,7 @@ export default function MassEmailPage() {
         <button
           onClick={handleSend}
           disabled={sending || !subject.trim() || isBodyEmpty}
-          className="w-full h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold text-cream-50 bg-gradient-to-r from-steel to-steel-600 hover:from-steel-600 hover:to-steel dark:from-sky dark:to-sky/80 dark:hover:from-sky/90 dark:hover:to-sky dark:text-navy shadow-md shadow-steel/20 dark:shadow-sky/15 transition-all cursor-pointer disabled:opacity-50"
+          className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold text-cream-50 bg-navy hover:bg-navy/80 dark:bg-cream dark:text-navy dark:hover:bg-cream/80 transition-all cursor-pointer disabled:opacity-50"
         >
           {sending ? (
             <>

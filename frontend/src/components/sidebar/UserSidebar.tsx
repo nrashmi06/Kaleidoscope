@@ -35,52 +35,71 @@ export function UserSidebar() {
     (item) => !item.adminOnly || role === "ADMIN"
   );
 
+  const mainItems = visibleItems.filter((item) => !item.adminOnly);
+  const adminItems = visibleItems.filter((item) => item.adminOnly);
+
   return (
-    <div className="w-full flex flex-col gap-5">
+    <div className="w-full flex flex-col gap-2">
       {/* Navigation */}
       <nav>
-        <p className="px-3 mb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-steel/60 dark:text-sky/40">
-          Menu
-        </p>
         <div className="space-y-0.5">
-          {visibleItems.map((item, index) => {
+          {mainItems.map((item, index) => {
             const isActive = pathname === item.path;
 
             return (
               <button
                 key={index}
                 onClick={() => router.push(item.path)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 cursor-pointer active:scale-[0.98]
                   ${
                     isActive
-                      ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                      : "text-navy/80 dark:text-cream/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 hover:text-navy dark:hover:text-cream"
+                      ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-md shadow-navy/15 dark:shadow-cream/10"
+                      : "text-navy/60 dark:text-cream/55 hover:bg-cream-300/50 dark:hover:bg-navy-700/50 hover:text-navy dark:hover:text-cream"
                   }`}
               >
                 <item.icon
                   className={`w-[18px] h-[18px] flex-shrink-0 ${
-                    isActive
-                      ? ""
-                      : "text-steel/70 dark:text-sky/50"
+                    isActive ? "" : "opacity-70"
                   }`}
                 />
                 {item.label}
-                {item.adminOnly && (
-                  <span className="ml-auto px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                    ADMIN
-                  </span>
-                )}
               </button>
             );
           })}
         </div>
       </nav>
 
-      {/* Subtle separator */}
-      <div className="mx-3 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
+      {/* Admin section */}
+      {adminItems.length > 0 && (
+        <nav className="mt-2">
+          <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-steel/50 dark:text-sky/35">
+            Admin
+          </p>
+          <div className="space-y-0.5">
+            {adminItems.map((item, index) => {
+              const isActive = pathname === item.path;
+              return (
+                <button
+                  key={index}
+                  onClick={() => router.push(item.path)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 cursor-pointer active:scale-[0.98]
+                    ${
+                      isActive
+                        ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-md shadow-navy/15 dark:shadow-cream/10"
+                        : "text-navy/60 dark:text-cream/55 hover:bg-cream-300/50 dark:hover:bg-navy-700/50 hover:text-navy dark:hover:text-cream"
+                    }`}
+                >
+                  <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
 
       {/* Suggestions */}
-      <div>
+      <div className="mt-2">
         <FollowSuggestions />
       </div>
     </div>

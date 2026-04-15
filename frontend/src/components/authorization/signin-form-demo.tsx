@@ -69,13 +69,13 @@ export default function SigninForm() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="mx-auto w-full max-w-md p-6 sm:p-8 rounded-2xl bg-white/90 dark:bg-zinc-950/80 backdrop-blur-md shadow-xl border border-blue-200 dark:border-blue-500"
+      className="mx-auto w-full max-w-md p-6 sm:p-8 rounded-2xl bg-cream-50/90 dark:bg-navy-700/80 backdrop-blur-md shadow-xl border border-steel/20 dark:border-sky/20"
     >
       {/* Title */}
-      <h2 className="text-2xl text-center font-bold text-indigo-900 dark:text-indigo-300">
+      <h2 className="text-2xl text-center font-display font-bold text-navy dark:text-cream">
         Welcome to KaleidoScope
       </h2>
-      <p className="mt-2 text-center text-sm font-semibold text-zinc-500 dark:text-neutral-400">
+      <p className="mt-2 text-center text-sm font-semibold text-steel/60 dark:text-sky/40">
         Please log in to continue
       </p>
 
@@ -83,7 +83,7 @@ export default function SigninForm() {
       <form className="my-8" onSubmit={handleSubmit} aria-label="Login form">
         {/* Email Input */}
         <LabelInputContainer className="mb-4">
-          <Label htmlFor="email" className="text-indigo-900 dark:text-neutral-200">
+          <Label htmlFor="email" className="text-navy dark:text-cream">
             Email Address
           </Label>
           <Input
@@ -94,13 +94,13 @@ export default function SigninForm() {
             autoComplete="email"
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="transition-all duration-200 bg-gray-50 dark:bg-zinc-900 border border-indigo-300 dark:border-indigo-600 focus:ring-2 focus:ring-indigo-500"
+            className="transition-all duration-200 bg-cream-50/60 dark:bg-navy-700/30 border border-steel/20 dark:border-sky/20 focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30"
           />
         </LabelInputContainer>
 
         {/* Password Input */}
         <LabelInputContainer className="mb-6">
-          <Label htmlFor="password" className="text-indigo-900 dark:text-neutral-200">
+          <Label htmlFor="password" className="text-navy dark:text-cream">
             Password
           </Label>
           <Input
@@ -111,7 +111,7 @@ export default function SigninForm() {
             autoComplete="current-password"
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="transition-all duration-200 bg-gray-50 dark:bg-zinc-900 border border-indigo-300 dark:border-indigo-600 focus:ring-2 focus:ring-indigo-500"
+            className="transition-all duration-200 bg-cream-50/60 dark:bg-navy-700/30 border border-steel/20 dark:border-sky/20 focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30"
           />
         </LabelInputContainer>
 
@@ -120,7 +120,7 @@ export default function SigninForm() {
           type="submit"
           disabled={isLoading}
           className={cn(
-            "group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-semibold shadow-lg transition-all hover:brightness-110",
+            "group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-steel to-steel-600 dark:from-sky dark:to-sky/80 text-cream-50 dark:text-navy font-semibold shadow-lg shadow-steel/20 dark:shadow-sky/15 transition-all hover:brightness-110",
             isLoading && "opacity-70 cursor-not-allowed"
           )}
         >
@@ -129,14 +129,14 @@ export default function SigninForm() {
         </button>
 
         {/* Divider */}
-        <div className="my-6 h-[1px] w-full bg-gradient-to-r from-transparent via-indigo-300 to-transparent dark:via-neutral-600" />
+        <div className="my-6 h-[1px] w-full bg-gradient-to-r from-transparent via-steel/30 dark:via-sky/20 to-transparent" />
 
         {/* Links */}
-        <div className="text-center text-sm text-neutral-700 dark:text-neutral-300 space-y-2">
+        <div className="text-center text-sm text-steel/70 dark:text-sky/50 space-y-2">
           <p>
             <a
               href="/forgot-password"
-              className="font-semibold text-indigo-900 underline dark:text-indigo-300"
+              className="font-semibold text-navy dark:text-cream underline hover:text-steel dark:hover:text-sky transition-colors"
             >
               Forgot your password?
             </a>
@@ -145,7 +145,7 @@ export default function SigninForm() {
             Don&apos;t have an account?{" "}
             <a
               href="/signup"
-              className="font-semibold text-indigo-900 underline dark:text-indigo-300"
+              className="font-semibold text-navy dark:text-cream underline hover:text-steel dark:hover:text-sky transition-colors"
             >
               Sign up
             </a>
@@ -154,7 +154,7 @@ export default function SigninForm() {
             <button
               type="button"
               onClick={() => setShowResendVerification(!showResendVerification)}
-              className="font-semibold text-indigo-900 underline dark:text-indigo-300 cursor-pointer"
+              className="font-semibold text-navy dark:text-cream underline hover:text-steel dark:hover:text-sky transition-colors cursor-pointer"
             >
               Resend verification email
             </button>
@@ -163,8 +163,8 @@ export default function SigninForm() {
 
         {/* Resend Verification Section */}
         {showResendVerification && (
-          <div className="mt-4 p-4 rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/20">
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-3">
+          <div className="mt-4 p-4 rounded-lg border border-steel/20 dark:border-sky/20 bg-steel/5 dark:bg-sky/5">
+            <p className="text-xs text-steel/60 dark:text-sky/40 mb-3">
               Enter the email you used to register and we&apos;ll resend the verification link.
             </p>
             <div className="flex gap-2">
@@ -173,14 +173,14 @@ export default function SigninForm() {
                 placeholder="you@example.com"
                 value={resendEmail}
                 onChange={(e) => setResendEmail(e.target.value)}
-                className="flex-1 text-sm bg-white dark:bg-zinc-900 border-indigo-300 dark:border-indigo-600"
+                className="flex-1 text-sm bg-cream-50/60 dark:bg-navy-700/30 border-steel/20 dark:border-sky/20"
               />
               <button
                 type="button"
                 onClick={handleResendVerification}
                 disabled={resendLoading}
                 className={cn(
-                  "px-4 py-2 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-all",
+                  "px-4 py-2 rounded-md text-sm font-semibold text-cream-50 dark:text-navy bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 transition-all",
                   resendLoading && "opacity-70 cursor-not-allowed"
                 )}
               >
@@ -223,8 +223,8 @@ export default function SigninForm() {
 const BottomGradient = React.memo(function BottomGradient() {
   return (
     <>
-      <span className="absolute inset-x-0 -bottom-px h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-      <span className="absolute inset-x-10 -bottom-px mx-auto h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
+      <span className="absolute inset-x-0 -bottom-px h-px w-full bg-gradient-to-r from-transparent via-sky to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
+      <span className="absolute inset-x-10 -bottom-px mx-auto h-px w-1/2 bg-gradient-to-r from-transparent via-steel to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
     </>
   );
 });

@@ -141,11 +141,11 @@ export default function ArticlesPage() {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {[...Array(ARTICLES_PER_PAGE)].map((_, i) => (
             <div
               key={i}
-              className="h-[22rem] rounded-2xl bg-cream-300/40 dark:bg-navy-700/40 animate-pulse"
+              className="h-[22rem] rounded-2xl bg-cream-300/30 dark:bg-navy-700/30 animate-pulse"
             />
           ))}
         </div>
@@ -154,17 +154,17 @@ export default function ArticlesPage() {
 
     if (error) {
       return (
-        <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 backdrop-blur-sm">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 mb-4">
-            <AlertCircle className="w-6 h-6 text-red-500" />
+        <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/20 mb-5">
+            <AlertCircle className="w-6 h-6 text-red-500 dark:text-red-400" />
           </div>
-          <h3 className="text-base font-display font-semibold text-red-700 dark:text-red-300 mb-1.5">
+          <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
             Failed to Load Articles
           </h3>
-          <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-5 max-w-sm">
+          <p className="text-sm text-navy/40 dark:text-cream/35 mb-6 max-w-sm">
             {error}
           </p>
-          <Button onClick={handleRetry} variant="destructive" size="sm">
+          <Button onClick={handleRetry} variant="destructive" size="sm" className="rounded-full px-6">
             Try Again
           </Button>
         </div>
@@ -173,14 +173,14 @@ export default function ArticlesPage() {
 
     if (blogs.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-dashed border-cream-300 dark:border-navy-700 bg-cream-50/50 dark:bg-navy/50 backdrop-blur-sm">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
-            <Inbox className="w-6 h-6 text-steel dark:text-sky/60" />
+        <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-5">
+            <Inbox className="w-6 h-6 text-navy/25 dark:text-cream/25" />
           </div>
-          <h3 className="text-base font-display font-semibold text-navy dark:text-cream mb-1.5">
+          <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
             No Articles Found
           </h3>
-          <p className="text-sm text-steel dark:text-sky/60">
+          <p className="text-sm text-navy/40 dark:text-cream/35">
             {debouncedQuery.trim()
               ? `No articles matching "${debouncedQuery}" were found.`
               : "There are no articles to display yet."}
@@ -193,7 +193,7 @@ export default function ArticlesPage() {
       <AnimatePresence>
         <motion.div
           layout
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
         >
           {blogs.map((blog, index) => (
             <motion.div
@@ -229,62 +229,47 @@ export default function ArticlesPage() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-6 relative">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
-      </div>
-
+    <div className="w-full">
       {/* ── Header Section ── */}
-      <div className="mb-6">
-        {/* Title row */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-steel-600 shadow-lg shadow-steel/25 dark:shadow-steel/15 dark:from-sky dark:to-steel">
-              <Book className="w-5 h-5 text-cream-50" />
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
-                Articles
-              </h1>
-              {!loading && pagination.totalElements > 0 && (
-                <p className="text-[11px] text-steel dark:text-sky/60 tabular-nums">
-                  {pagination.totalElements} articles
-                  {pagination.totalPages > 1 &&
-                    ` · Page ${currentPage + 1} of ${pagination.totalPages}`}
-                </p>
-              )}
-            </div>
+      <div className="pt-6 pb-5 px-1">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+              Articles
+            </h1>
+            {!loading && pagination.totalElements > 0 && (
+              <p className="mt-1 text-sm text-steel/50 dark:text-sky/35 tabular-nums">
+                {pagination.totalElements} articles
+                {pagination.totalPages > 1 &&
+                  ` · Page ${currentPage + 1} of ${pagination.totalPages}`}
+              </p>
+            )}
           </div>
 
           <Button
             onClick={() => router.push("/articles/create")}
             size="sm"
-            className="h-9 rounded-xl bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky/80 shadow-sm shadow-steel/20 dark:shadow-sky/15"
+            className="h-8 rounded-full bg-navy text-cream-50 hover:bg-navy/80 dark:bg-cream dark:text-navy dark:hover:bg-cream/80 text-[13px] font-semibold px-4"
           >
             <PencilLine className="w-3.5 h-3.5 mr-1.5" />
             Write
           </Button>
         </div>
 
-        {/* Search bar — compact inline */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/50 dark:text-sky/40" />
+        {/* Search bar */}
+        <div className="mt-4 flex items-center gap-3 max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/40 dark:text-sky/30" />
             <Input
               type="text"
               value={query}
               onChange={handleQueryChange}
               placeholder="Search articles..."
-              className="pl-10 h-9 text-sm bg-cream-50/60 dark:bg-navy-700/30 border-cream-300/40 dark:border-navy-700/40 rounded-xl"
+              className="pl-10 h-10 text-sm bg-cream-300/30 dark:bg-navy-700/30 border-0 rounded-xl placeholder:text-steel/40 dark:placeholder:text-sky/25 focus-visible:ring-2 focus-visible:ring-steel/20 dark:focus-visible:ring-sky/20"
               disabled={loading}
             />
           </div>
         </div>
-
-        {/* Gradient divider */}
-        <div className="mt-5 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
       </div>
 
       {/* ── Content Grid ── */}
@@ -292,20 +277,20 @@ export default function ArticlesPage() {
 
       {/* ── Pagination ── */}
       {!loading && blogs.length > 0 && pagination.totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-1.5">
+        <div className="mt-12 flex items-center justify-center gap-1">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={pagination.first}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
 
           {getPageNumbers().map((page, idx) =>
             page === "..." ? (
               <span
                 key={`dots-${idx}`}
-                className="w-9 h-9 flex items-center justify-center text-xs text-steel/50 dark:text-sky/30"
+                className="w-10 h-10 flex items-center justify-center text-sm text-navy/25 dark:text-cream/20"
               >
                 ...
               </span>
@@ -313,10 +298,10 @@ export default function ArticlesPage() {
               <button
                 key={page}
                 onClick={() => handlePageChange(page as number)}
-                className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                   currentPage === page
-                    ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                    : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                    ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
+                    : "text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
                 }`}
               >
                 {(page as number) + 1}
@@ -327,9 +312,9 @@ export default function ArticlesPage() {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={pagination.last}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}

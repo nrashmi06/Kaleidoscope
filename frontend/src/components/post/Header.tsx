@@ -11,13 +11,13 @@ export default function Header({ router }: HeaderProps) {
     <div className="flex items-center gap-4 mb-8">
       <button
         onClick={() => router.back()}
-        className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className="p-2 rounded-lg bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/30 dark:hover:bg-navy-700/40 transition-colors"
       >
-        <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <ArrowLeft className="w-5 h-5 text-steel/60 dark:text-sky/40" />
       </button>
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create New Post</h1>
-        <p className="text-gray-600 dark:text-gray-400">Share your thoughts with the world</p>
+        <h1 className="text-3xl font-display font-bold text-navy dark:text-cream">Create New Post</h1>
+        <p className="text-steel/60 dark:text-sky/40">Share your thoughts with the world</p>
       </div>
     </div>
   );

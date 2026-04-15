@@ -8,15 +8,11 @@ import PostLoader from "@/components/loading/PostLoader";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { AlertCircle, Inbox } from "lucide-react";
 
-// --- FIX IS HERE ---
-// We import the types used by the feed (NormalizedPostFeedItem) and the adapter function
 import {
   type NormalizedPostFeedItem,
   mapFeedItemToPost,
 } from "@/lib/types/postFeed";
-// We import the 'Post' type from its original source file
 import { type Post } from "@/lib/types/post";
-// --- END OF FIX ---
 
 interface PostFeedGridProps {
   isLoading: boolean;
@@ -37,7 +33,7 @@ export function PostFeedGrid({
 }: PostFeedGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
         {Array.from({ length: 6 }).map((_, i) => (
           <PostLoader key={i} />
         ))}
@@ -47,15 +43,17 @@ export function PostFeedGrid({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-red-200/60 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 backdrop-blur-sm">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 mb-4">
-          <AlertCircle className="w-6 h-6 text-red-500" />
+      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/20 mb-5">
+          <AlertCircle className="w-6 h-6 text-red-500 dark:text-red-400" />
         </div>
-        <h3 className="text-base font-display font-semibold text-red-700 dark:text-red-300 mb-1.5">
-          Failed to Load Feed
+        <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
+          Something went wrong
         </h3>
-        <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-5 max-w-sm">{error}</p>
-        <Button onClick={onRetry} variant="destructive" size="sm">
+        <p className="text-sm text-steel/50 dark:text-sky/35 mb-6 max-w-sm">
+          {error}
+        </p>
+        <Button onClick={onRetry} variant="destructive" size="sm" className="rounded-full px-6">
           Try Again
         </Button>
       </div>
@@ -64,14 +62,14 @@ export function PostFeedGrid({
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-2xl border border-dashed border-cream-300 dark:border-navy-700 bg-cream-50/50 dark:bg-navy/50 backdrop-blur-sm">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
-          <Inbox className="w-6 h-6 text-steel dark:text-sky/60" />
+      <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-5">
+          <Inbox className="w-6 h-6 text-steel/40 dark:text-sky/30" />
         </div>
-        <h3 className="text-base font-display font-semibold text-navy dark:text-cream mb-1.5">
-          No Posts Found
+        <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
+          No Posts Yet
         </h3>
-        <p className="text-sm text-steel dark:text-sky/60">
+        <p className="text-sm text-steel/50 dark:text-sky/35">
           Try adjusting your filters or check back later.
         </p>
       </div>
@@ -82,7 +80,7 @@ export function PostFeedGrid({
     <AnimatePresence>
       <motion.div
         layout
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10"
       >
         {posts.map((postItem, index) => {
           const adaptedPost: Post = mapFeedItemToPost(postItem);
@@ -91,10 +89,14 @@ export function PostFeedGrid({
             <motion.div
               key={postItem.postId}
               layout
-              initial={{ opacity: 0, y: 24, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.97 }}
-              transition={{ duration: 0.35, delay: index * 0.04, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{
+                duration: 0.5,
+                delay: index * 0.06,
+                ease: [0.25, 0.1, 0.25, 1],
+              }}
             >
               <SocialPostCard
                 post={adaptedPost}

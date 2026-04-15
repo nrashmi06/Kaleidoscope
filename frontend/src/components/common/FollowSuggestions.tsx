@@ -39,31 +39,31 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
   }, [token, page, size]);
 
   return (
-    <div className="px-3 py-3 hidden md:block">
-      <p className="px-3 mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-steel/60 dark:text-sky/40">
-        Suggestions
+    <div className="py-1 hidden md:block">
+      <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-navy/30 dark:text-cream/25">
+        Suggested
       </p>
 
       {loading ? (
-        <div className="px-3 space-y-3">
+        <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-3 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-cream-300 dark:bg-navy-700" />
-              <div className="flex-1 h-3.5 bg-cream-300 dark:bg-navy-700 rounded" />
+            <div key={i} className="flex items-center gap-2.5 px-3 py-1.5 animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-cream-300/50 dark:bg-navy-700/50" />
+              <div className="flex-1 h-3 bg-cream-300/50 dark:bg-navy-700/50 rounded-full" />
             </div>
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="px-3 text-xs text-steel dark:text-sky">No suggestions right now.</p>
+        <p className="px-3 text-[12px] text-navy/35 dark:text-cream/30">No suggestions right now.</p>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {items.map((user) => (
-            <div key={user.userId} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-cream-300 dark:hover:bg-navy-700 transition-colors">
+            <div key={user.userId} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl hover:bg-cream-300/30 dark:hover:bg-navy-700/30 transition-colors duration-200">
               <div
                 className="flex items-center gap-2.5 min-w-0 cursor-pointer"
                 onClick={() => router.push(`/profile/${user.userId}`)}
               >
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-700 flex-shrink-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-cream-300/50 dark:bg-navy-700/50 flex-shrink-0">
                   <Image
                     src={user.profilePictureUrl || "/person.jpg"}
                     width={32}
@@ -72,7 +72,7 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="text-sm font-medium text-navy dark:text-cream truncate hover:underline">
+                <span className="text-[13px] font-medium text-navy/70 dark:text-cream/70 truncate hover:text-navy dark:hover:text-cream transition-colors">
                   {user.username}
                 </span>
               </div>

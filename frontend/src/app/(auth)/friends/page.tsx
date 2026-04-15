@@ -150,27 +150,16 @@ export default function FriendsPage() {
   }, [token, userId, dispatch]);
 
   return (
-    <div className="min-h-screen w-full relative">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.05] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/4 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="w-full">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-navy shadow-lg shadow-steel/25 dark:shadow-steel/15">
-            <Users2 className="w-5 h-5 text-cream-50" />
-          </div>
-          <div>
-            <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
-              Friends
-            </h1>
-            <p className="text-[11px] text-steel dark:text-sky">
-              Manage your connections
-            </p>
-          </div>
+        <div className="pt-6 pb-5 px-1">
+          <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+            Friends
+          </h1>
+          <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
+            Manage your connections
+          </p>
         </div>
 
         <div className="space-y-6">

@@ -83,15 +83,15 @@ export default function UsernameCheckInput({
   const getStatusIcon = (currentStatus: Status) => {
     switch (currentStatus) {
       case "loading":
-        return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+        return <Loader2 className="w-4 h-4 animate-spin text-steel dark:text-sky" />;
       case "available":
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />;
       case "taken":
-        return <XCircle className="w-4 h-4 text-red-600" />;
+        return <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />;
       case "invalid":
-        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+        return <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />;
       case "error":
-        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+        return <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />;
       default:
         return null;
     }
@@ -117,7 +117,7 @@ export default function UsernameCheckInput({
     <div className="flex w-full flex-col space-y-2">
       <Label
         htmlFor="username-check"
-        className="text-gray-800 dark:text-neutral-200 font-medium"
+        className="text-navy dark:text-cream font-medium"
       >
         Username <span className="text-red-500">*</span>
       </Label>
@@ -131,14 +131,14 @@ export default function UsernameCheckInput({
           onChange={(e) => onChange(e.target.value)}
           required
           className={`
-            pr-10 text-sm transition-all duration-200 
-            bg-gray-50 dark:bg-zinc-900 
+            pr-10 text-sm transition-all duration-200
+            bg-cream-50/60 dark:bg-navy-700/30
             border ${
               status === "taken" || status === "invalid" || status === "error"
                 ? "border-red-400 focus:ring-red-400"
                 : status === "available"
                 ? "border-green-400 focus:ring-green-400"
-                : "border-gray-300 dark:border-neutral-700 focus:ring-indigo-500"
+                : "border-cream-300/40 dark:border-navy-700/40 focus:ring-steel/30 dark:focus:ring-sky/30"
             }
             focus:ring-2 focus:outline-none rounded-md
           `}
@@ -156,7 +156,7 @@ export default function UsernameCheckInput({
           className={`text-xs mt-1 ${
             status === "taken" || status === "invalid" || status === "error"
               ? "text-red-600 dark:text-red-400"
-              : "text-gray-500 dark:text-gray-400"
+              : "text-steel/50 dark:text-sky/40"
           }`}
         >
           {statusMessage()}

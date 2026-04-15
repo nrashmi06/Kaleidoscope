@@ -75,19 +75,16 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
       }
 
       const currentStep = steps[stepIndex];
-      
-      // Mark current step as active
+
       setCurrentStepIndex(stepIndex);
 
       timeoutId = setTimeout(() => {
-        // Mark current step as completed
-        setSteps(prev => 
-          prev.map((step, index) => 
+        setSteps(prev =>
+          prev.map((step, index) =>
             index === stepIndex ? { ...step, completed: true } : step
           )
         );
 
-        // Move to next step after a brief delay
         setTimeout(() => {
           processStep(stepIndex + 1);
         }, 300);
@@ -104,18 +101,18 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
   if (!isLoading) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 backdrop-blur-sm">
       <div className="w-full max-w-md mx-4">
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700">
+        <div className="bg-cream-50 dark:bg-navy-700/90 rounded-3xl p-8 shadow-2xl border border-cream-300/40 dark:border-navy-600/40">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <Loader2 className="w-10 h-10 text-white animate-spin" />
+            <div className="w-20 h-20 bg-gradient-to-r from-steel to-sky rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Loader2 className="w-10 h-10 text-cream-50 animate-spin" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+            <h2 className="text-2xl font-display font-bold text-navy dark:text-cream mb-2">
               Creating Your Account
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-steel/60 dark:text-sky/40">
               Please wait while we set everything up for you
             </p>
           </div>
@@ -133,22 +130,22 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
                   key={step.id}
                   className={`flex items-center space-x-4 p-4 rounded-xl transition-all duration-500 ${
                     isActive
-                      ? "bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700"
+                      ? "bg-steel/10 dark:bg-sky/10 border-2 border-steel/30 dark:border-sky/30"
                       : isCompleted
                       ? "bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700"
-                      : "bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent"
+                      : "bg-cream-100/40 dark:bg-navy-700/30 border-2 border-transparent"
                   }`}
                 >
                   {/* Icon */}
                   <div
                     className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
                       isCompleted
-                        ? "bg-green-500 text-white"
+                        ? "bg-green-500 text-cream-50"
                         : isActive
-                        ? "bg-blue-500 text-white animate-pulse"
+                        ? "bg-steel dark:bg-sky text-cream-50 dark:text-navy animate-pulse"
                         : isPending
-                        ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
-                        : "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                        ? "bg-cream-300/40 dark:bg-navy-600/40 text-steel/40 dark:text-sky/30"
+                        : "bg-cream-300/40 dark:bg-navy-600/40 text-steel/40 dark:text-sky/30"
                     }`}
                   >
                     {isCompleted ? (
@@ -167,8 +164,8 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
                         isCompleted
                           ? "text-green-700 dark:text-green-300"
                           : isActive
-                          ? "text-blue-700 dark:text-blue-300"
-                          : "text-gray-500 dark:text-gray-400"
+                          ? "text-navy dark:text-cream"
+                          : "text-steel/50 dark:text-sky/40"
                       }`}
                     >
                       {step.message}
@@ -178,7 +175,7 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
                   {/* Loading indicator for active step */}
                   {isActive && (
                     <div className="w-6 h-6">
-                      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-6 h-6 border-2 border-steel dark:border-sky border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   )}
 
@@ -195,13 +192,13 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
 
           {/* Progress Bar */}
           <div className="mt-8">
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <div className="flex justify-between text-sm text-steel/60 dark:text-sky/40 mb-2">
               <span>Progress</span>
               <span>{Math.round(((currentStepIndex + (steps[currentStepIndex]?.completed ? 1 : 0)) / steps.length) * 100)}%</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-cream-300/40 dark:bg-navy-600/40 rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500 ease-out"
+                className="bg-gradient-to-r from-steel to-sky h-2 rounded-full transition-all duration-500 ease-out"
                 style={{
                   width: `${((currentStepIndex + (steps[currentStepIndex]?.completed ? 1 : 0)) / steps.length) * 100}%`,
                 }}
@@ -210,9 +207,9 @@ export const RegistrationLoader: React.FC<RegistrationLoaderProps> = ({
           </div>
 
           {/* Fun fact or tip */}
-          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-              💡 <span className="font-medium">Did you know?</span> Kaleidoscope uses advanced security measures to protect your data.
+          <div className="mt-6 p-4 bg-cream-100/40 dark:bg-navy-700/30 rounded-xl">
+            <p className="text-sm text-steel/60 dark:text-sky/40 text-center">
+              <span className="font-medium">Did you know?</span> Kaleidoscope uses advanced security measures to protect your data.
             </p>
           </div>
         </div>
