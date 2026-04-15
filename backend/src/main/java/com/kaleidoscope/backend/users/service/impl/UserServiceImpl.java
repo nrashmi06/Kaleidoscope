@@ -128,9 +128,13 @@ public class UserServiceImpl implements UserService {
     public void updateUserProfileStatus(Long userId, String accountStatus) {
         User user = getUserById(userId);
 
+        if (accountStatus == null || accountStatus.trim().isEmpty()) {
+            throw new IllegalArgumentException("Profile status is required");
+        }
+
         AccountStatus newAccountStatus;
         try {
-            newAccountStatus = AccountStatus.valueOf(accountStatus.toUpperCase());
+            newAccountStatus = AccountStatus.valueOf(accountStatus.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid profile status: " + accountStatus);
         }

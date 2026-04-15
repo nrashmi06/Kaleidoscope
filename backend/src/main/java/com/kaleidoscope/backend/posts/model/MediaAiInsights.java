@@ -59,6 +59,11 @@ public class MediaAiInsights {
     @Column(name = "image_embedding", columnDefinition = "vector(512)")
     private float[] imageEmbedding;
 
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "services_completed", columnDefinition = "text[]")
+    @Builder.Default
+    private String[] servicesCompleted = new String[0];
+
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;

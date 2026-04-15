@@ -9,14 +9,17 @@ import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
 import com.kaleidoscope.backend.async.service.PostAggregationTriggerService;
 import com.kaleidoscope.backend.async.service.PostProcessingStatusService;
 import com.kaleidoscope.backend.async.service.ReadModelUpdateService;
+import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.document.SearchAssetDocument;
 import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
+import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostMediaRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
+import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.posts.repository.search.SearchAssetSearchRepository;
 import com.kaleidoscope.backend.users.model.User;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +31,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component // Changed from @Service for injection into RedisStreamConfig
@@ -49,6 +57,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     private final PostProcessingStatusService postProcessingStatusService;
     private final PostAggregationTriggerService postAggregationTriggerService;
     private final PostRepository postRepository; // Need this to get media IDs
+    private final PostSearchRepository postSearchRepository;
+    private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
 
     @Override
     @Transactional
@@ -104,7 +114,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 // Create new entity
                 log.debug("Creating new MediaAiInsights for mediaId: {}, service: {}",
                         resultDTO.getMediaId(), service);
-                mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia);
+                mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia, service);
             }
 
             MediaAiInsights savedInsights = mediaAiInsightsRepository.save(mediaAiInsights);
@@ -124,8 +134,16 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             // 1b. Update the 'read_model_recommendations_knn' backup table
             readModelUpdateService.updateRecommendationsKnnReadModel(savedInsights, postMedia);
 
+            // 1c. Update the 'read_model_feed_personalized' table
+            readModelUpdateService.updateFeedPersonalizedReadModel(savedInsights, postMedia);
+
             // 2. Trigger ES Sync for the read model
             elasticsearchSyncTriggerService.triggerSync("read_model_media_search", postMedia.getMediaId());
+            elasticsearchSyncTriggerService.triggerSync("read_model_recommendations_knn", postMedia.getMediaId());
+            elasticsearchSyncTriggerService.triggerSync("read_model_feed_personalized", postMedia.getMediaId());
+
+            // Keep `posts` index fresh for /posts/filter?q=... ML text search
+            syncPostDocumentMlFields(postMedia.getPost().getPostId());
 
             // 3. Check if all media for this post are processed
             Long postId = postMedia.getPost().getPostId();
@@ -214,7 +232,8 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         return Arrays.asList(value.split(","));
     }
 
-    private MediaAiInsights createMediaAiInsightsEntity(MediaAiInsightsResultDTO resultDTO, PostMedia postMedia) {
+    private MediaAiInsights createMediaAiInsightsEntity(MediaAiInsightsResultDTO resultDTO, PostMedia postMedia,
+            String service) {
         log.debug("Creating MediaAiInsights entity for mediaId: {}", resultDTO.getMediaId());
 
         return MediaAiInsights.builder()
@@ -233,6 +252,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 .tags(resultDTO.getTags() != null ? resultDTO.getTags().toArray(new String[0]) : new String[0])
                 .scenes(resultDTO.getScenes() != null ? resultDTO.getScenes().toArray(new String[0]) : new String[0])
                 .imageEmbedding(parseEmbedding(resultDTO.getImageEmbedding()))
+                .servicesCompleted(service != null && !service.isBlank() ? new String[] { service } : new String[0])
                 .build();
     }
 
@@ -259,7 +279,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             log.debug("Updated isSafe: {}", newData.getIsSafe());
         }
 
-        if ("captioning".equals(service) && newData.getCaption() != null && !newData.getCaption().trim().isEmpty()) {
+        if ("image_captioning".equals(service) && newData.getCaption() != null && !newData.getCaption().trim().isEmpty()) {
             existing.setCaption(newData.getCaption());
             log.debug("Updated caption: {}", newData.getCaption());
         }
@@ -280,6 +300,21 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             if (embedding != null) {
                 existing.setImageEmbedding(embedding);
                 log.debug("Updated image embedding");
+            }
+        }
+
+        // Track reported services and dedupe for redeliveries.
+        if (service != null && !service.isBlank()) {
+            String[] current = existing.getServicesCompleted();
+            if (current == null) {
+                existing.setServicesCompleted(new String[] { service });
+            } else {
+                boolean alreadyPresent = Arrays.asList(current).contains(service);
+                if (!alreadyPresent) {
+                    String[] updated = Arrays.copyOf(current, current.length + 1);
+                    updated[current.length] = service;
+                    existing.setServicesCompleted(updated);
+                }
             }
         }
 
@@ -373,5 +408,51 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    private void syncPostDocumentMlFields(Long postId) {
+        Optional<PostDocument> postDocumentOpt = postSearchRepository.findById(postId.toString());
+        if (postDocumentOpt.isEmpty()) {
+            log.warn("PostDocument not found for postId: {} while syncing ML fields", postId);
+            return;
+        }
+
+        Set<String> tags = new LinkedHashSet<>();
+        Set<String> scenes = new LinkedHashSet<>();
+        Set<String> captions = new LinkedHashSet<>();
+        int totalFaceCount = 0;
+
+        List<MediaAiInsights> allInsights = mediaAiInsightsRepository.findByPost_PostId(postId);
+        for (MediaAiInsights insight : allInsights) {
+            if (insight.getTags() != null) {
+                Arrays.stream(insight.getTags())
+                        .filter(tag -> tag != null && !tag.isBlank())
+                        .map(tag -> tag.trim().toLowerCase(Locale.ROOT))
+                        .forEach(tags::add);
+            }
+
+            if (insight.getScenes() != null) {
+                Arrays.stream(insight.getScenes())
+                        .filter(scene -> scene != null && !scene.isBlank())
+                        .map(scene -> scene.trim().toLowerCase(Locale.ROOT))
+                        .forEach(scenes::add);
+            }
+
+            if (insight.getCaption() != null && !insight.getCaption().isBlank()) {
+                captions.add(insight.getCaption().trim());
+            }
+
+            totalFaceCount += mediaDetectedFaceRepository.findByMediaAiInsights_MediaId(insight.getMediaId()).size();
+        }
+
+        PostDocument postDocument = postDocumentOpt.get();
+        postDocument.setMlImageTags(new ArrayList<>(tags));
+        postDocument.setMlScenes(new ArrayList<>(scenes));
+        postDocument.setMlCaptions(new ArrayList<>(captions));
+        postDocument.setPeopleCount(totalFaceCount > 0 ? totalFaceCount : null);
+
+        postSearchRepository.save(postDocument);
+        log.info("Synced PostDocument ML fields for postId: {} (tags={}, scenes={}, captions={}, faces={})",
+                postId, tags.size(), scenes.size(), captions.size(), totalFaceCount);
     }
 }

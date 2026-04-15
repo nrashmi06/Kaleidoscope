@@ -64,14 +64,16 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
             log.info("Processing notification event - type: {}, recipientUserId: {}, actorUserId: {}",
                     event.type(), event.recipientUserId(), event.actorUserId());
 
-            // Fetch user preferences
-            UserNotificationPreferences preferences = preferencesRepository.findByUserId(event.recipientUserId())
-                    .orElse(null);
-            
-            if (preferences == null) {
-                log.warn("No notification preferences found for userId: {}, skipping notification", event.recipientUserId());
+            // Fetch recipient user
+            User recipientUser = userRepository.findById(event.recipientUserId()).orElse(null);
+            if (recipientUser == null) {
+                log.error("Recipient user not found: {}", event.recipientUserId());
                 return;
             }
+
+            // Fetch or create user preferences so notifications are not silently dropped.
+            UserNotificationPreferences preferences = preferencesRepository.findByUserId(event.recipientUserId())
+                    .orElseGet(() -> createDefaultPreferences(recipientUser));
 
             // Check if any notification channel is enabled
             boolean pushEnabled = isPushEnabled(preferences, event.type());
@@ -80,13 +82,6 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
             if (!pushEnabled && !emailEnabled) {
                 log.debug("All notification channels disabled for userId: {}, type: {}", 
                         event.recipientUserId(), event.type());
-                return;
-            }
-
-            // Fetch recipient user
-            User recipientUser = userRepository.findById(event.recipientUserId()).orElse(null);
-            if (recipientUser == null) {
-                log.error("Recipient user not found: {}", event.recipientUserId());
                 return;
             }
 
@@ -155,11 +150,10 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
                 }
             }
 
-            // Handle push notification if enabled
+            // Push preference in this app maps to SSE/in-app realtime updates.
+            // Count updates are already emitted above via notificationSseService.sendCountUpdate(...).
             if (pushEnabled) {
-                // TODO: Implement push notification logic
-                log.info("Push notification enabled for userId: {}, type: {} (implementation pending)", 
-                        event.recipientUserId(), event.type());
+                log.debug("SSE push enabled for userId: {}, type: {}", event.recipientUserId(), event.type());
             }
 
             log.info("✅ Successfully processed notification event - messageId: {}, type: {}, recipientUserId: {}",
@@ -342,5 +336,27 @@ public class NotificationConsumer implements StreamListener<String, MapRecord<St
         }
         
         return variables;
+    }
+
+    private UserNotificationPreferences createDefaultPreferences(User recipientUser) {
+        UserNotificationPreferences defaults = UserNotificationPreferences.builder()
+                .user(recipientUser)
+                .likesEmail(false)
+                .likesPush(false)
+                .commentsEmail(false)
+                .commentsPush(true)
+                .followsEmail(true)
+                .followsPush(true)
+                .mentionsEmail(false)
+                .mentionsPush(true)
+                .systemEmail(false)
+                .systemPush(true)
+                .followRequestPush(true)
+                .followAcceptPush(true)
+                .build();
+
+        UserNotificationPreferences saved = preferencesRepository.save(defaults);
+        log.info("Created default notification preferences for userId: {} during notification processing", recipientUser.getUserId());
+        return saved;
     }
 }

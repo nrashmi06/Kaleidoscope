@@ -1,6 +1,5 @@
 package com.kaleidoscope.backend.async.service;
 
-import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.posts.repository.PostMediaRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
@@ -39,9 +38,8 @@ public class PostProcessingStatusService {
                 return false; 
             }
 
-            // This new query efficiently counts completed items
-            long processedMedia = mediaAiInsightsRepository.countByPost_PostIdAndStatus(
-                postId, MediaAiStatus.COMPLETED);
+            // Count only media where all required services have reported.
+            long processedMedia = mediaAiInsightsRepository.countFullyProcessedByPostId(postId);
 
             log.debug("PostID: {} has {} total media and {} processed media.", postId, totalMedia, processedMedia);
             return totalMedia == processedMedia;

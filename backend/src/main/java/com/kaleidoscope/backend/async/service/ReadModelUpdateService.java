@@ -5,9 +5,11 @@ import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.readmodels.model.FaceSearchReadModel;
+import com.kaleidoscope.backend.readmodels.model.FeedPersonalizedReadModel;
 import com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel;
 import com.kaleidoscope.backend.readmodels.model.RecommendationsKnnReadModel;
 import com.kaleidoscope.backend.readmodels.repository.FaceSearchReadModelRepository;
+import com.kaleidoscope.backend.readmodels.repository.FeedPersonalizedReadModelRepository;
 import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
 import com.kaleidoscope.backend.readmodels.repository.RecommendationsKnnReadModelRepository;
 import com.kaleidoscope.backend.users.model.User;
@@ -31,6 +33,7 @@ public class ReadModelUpdateService {
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
     private final FaceSearchReadModelRepository faceSearchReadModelRepository;
     private final RecommendationsKnnReadModelRepository recommendationsKnnReadModelRepository;
+    private final FeedPersonalizedReadModelRepository feedPersonalizedReadModelRepository;
     // Note: We are not injecting PostRepository here to get author info,
     // as PostMedia -> Post -> User is already available.
 
@@ -121,6 +124,39 @@ public class ReadModelUpdateService {
             log.error("Failed to update RecommendationsKnnReadModel for mediaId: {}: {}",
                     postMedia.getMediaId(), e.getMessage(), e);
             // Don't re-throw, just log the error
+        }
+    }
+
+    /**
+     * Creates or updates a record in the 'read_model_feed_personalized' table.
+     * Personalization fields are left null for the ranking service to populate.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateFeedPersonalizedReadModel(MediaAiInsights insights, PostMedia postMedia) {
+        log.debug("Updating FeedPersonalizedReadModel for mediaId: {}", postMedia.getMediaId());
+        try {
+            Post post = postMedia.getPost();
+            User uploader = post.getUser();
+
+            FeedPersonalizedReadModel readModel = feedPersonalizedReadModelRepository
+                    .findByMediaId(postMedia.getMediaId())
+                    .orElse(new FeedPersonalizedReadModel());
+
+            readModel.setMediaId(postMedia.getMediaId());
+            readModel.setPostId(post.getPostId());
+            readModel.setUploaderId(uploader.getUserId());
+            readModel.setUploaderUsername(uploader.getUsername());
+            readModel.setMediaUrl(postMedia.getMediaUrl());
+            readModel.setCaption(insights.getCaption());
+            readModel.setReactionCount(0);
+            readModel.setCommentCount(0);
+            readModel.setCreatedAt(post.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
+
+            feedPersonalizedReadModelRepository.save(readModel);
+            log.info("Successfully updated FeedPersonalizedReadModel for mediaId: {}", postMedia.getMediaId());
+        } catch (Exception e) {
+            log.error("Failed to update FeedPersonalizedReadModel for mediaId: {}: {}",
+                    postMedia.getMediaId(), e.getMessage(), e);
         }
     }
 
