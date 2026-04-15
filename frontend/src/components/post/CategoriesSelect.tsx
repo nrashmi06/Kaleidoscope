@@ -13,8 +13,8 @@ interface Props {
 
 export default function CategoriesSelect({ categories, selectedIds, onToggle }: Props) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+    <div className="bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 p-6">
+      <label className="block text-sm font-medium text-navy dark:text-cream mb-2">
         Categories *
       </label>
       <div className="flex flex-wrap gap-2">
@@ -25,10 +25,10 @@ export default function CategoriesSelect({ categories, selectedIds, onToggle }: 
               type="button"
               key={cat.categoryId}
               onClick={() => onToggle(cat.categoryId)}
-              className={`px-3 py-1 rounded-full border transition-all ${
+              className={`px-3 py-1 rounded-full border transition-all cursor-pointer ${
                 selected
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-200 border-gray-300 dark:border-gray-600"
+                  ? "bg-steel text-cream-50 border-steel dark:bg-sky dark:text-navy dark:border-sky"
+                  : "bg-cream-300/40 dark:bg-navy-700/40 text-navy dark:text-cream border-cream-300/40 dark:border-navy-700/40 hover:border-steel/30 dark:hover:border-sky/30"
               }`}
             >
               {cat.name}

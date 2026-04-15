@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       )}
 
-      <div className="flex flex-col min-h-screen w-full bg-cream dark:bg-navy-900">
+      <div className="flex flex-col min-h-screen w-full bg-cream dark:bg-navy-900 grain relative">
         {/* Top Navbar — seamless, no hard border */}
         <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-cream-50/90 dark:bg-navy/90 backdrop-blur-md">
           <div className="relative w-full h-full">

@@ -57,18 +57,18 @@ export function BlogCommentActions({ blogId, commentId }: BlogCommentActionsProp
     .map(([type]) => type as ReactionType);
 
   return (
-    <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+    <div className="mt-2 flex items-center justify-between text-xs text-steel/60 dark:text-sky/50">
       <div className="relative flex items-center gap-2" ref={pickerRef}>
         {showPicker && (
           <div className="absolute bottom-8 left-0 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200" style={{ width: "max-content" }}>
-            <div className="flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 shadow-xl ring-1 ring-black/5 backdrop-blur-xl dark:bg-gray-900/95 dark:ring-white/10">
+            <div className="flex items-center gap-2 rounded-full bg-cream-50/95 px-3 py-2 shadow-xl ring-1 ring-navy/5 backdrop-blur-xl dark:bg-navy/95 dark:ring-cream/10">
               {(Object.keys(ReactionIcons) as ReactionType[]).map((type) => (
                 <button
                   key={type}
                   onClick={() => handleReaction(type)}
                   disabled={isPending}
-                  className={`relative flex h-7 w-7 items-center justify-center rounded-full text-lg transition-all hover:-translate-y-1 hover:scale-110 ${
-                    currentUserReaction === type ? "ring-2 ring-blue-500 bg-blue-100 dark:bg-blue-900/40" : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className={`relative flex h-7 w-7 items-center justify-center rounded-full text-lg transition-all hover:-translate-y-1 hover:scale-110 cursor-pointer ${
+                    currentUserReaction === type ? "ring-2 ring-steel bg-steel/15 dark:bg-sky/20 dark:ring-sky" : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
                   }`}
                 >
                   {ReactionIcons[type]}
@@ -79,8 +79,8 @@ export function BlogCommentActions({ blogId, commentId }: BlogCommentActionsProp
         )}
         <button
           onClick={() => setShowPicker(!showPicker)}
-          className={`flex items-center gap-1 rounded-full px-2 py-1 transition-all ${
-            currentUserReaction ? "text-blue-600 bg-blue-100 dark:bg-blue-900/30" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+          className={`flex items-center gap-1 rounded-full px-2 py-1 transition-all cursor-pointer ${
+            currentUserReaction ? "text-steel bg-steel/15 dark:bg-sky/15 dark:text-sky" : "text-steel/50 hover:bg-cream-300/40 dark:text-sky/40 dark:hover:bg-navy-700/40"
           }`}
         >
           <span className="text-base">{currentUserReaction ? ReactionIcons[currentUserReaction] : ReactionIcons.LIKE}</span>
@@ -93,9 +93,9 @@ export function BlogCommentActions({ blogId, commentId }: BlogCommentActionsProp
             const count = counts[type] ?? 0;
             if (count <= 0) return null;
             return (
-              <div key={type} className="flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 dark:bg-gray-800/50">
+              <div key={type} className="flex items-center gap-1 rounded-full bg-cream-50/60 px-2 py-0.5 dark:bg-navy-700/30">
                 <span className="text-sm">{ReactionIcons[type]}</span>
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{count}</span>
+                <span className="text-xs font-semibold text-navy/70 dark:text-cream/60">{count}</span>
               </div>
             );
           })}

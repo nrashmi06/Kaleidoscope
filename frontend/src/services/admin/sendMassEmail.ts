@@ -4,7 +4,7 @@ import { AdminMapper } from "@/mapper/adminMapper";
 interface SendMassEmailRequest {
   subject: string;
   body: string;
-  recipientFilter?: string;
+  targetRoles: string[];
   attachments?: File[];
 }
 
@@ -25,11 +25,18 @@ export const sendMassEmail = async (
 
   try {
     const formData = new FormData();
-    formData.append("subject", data.subject);
-    formData.append("body", data.body);
-    if (data.recipientFilter) {
-      formData.append("recipientFilter", data.recipientFilter);
-    }
+
+    // Backend expects a JSON part named "emailData" with subject, body, targetRoles
+    const emailData = {
+      subject: data.subject,
+      body: data.body,
+      targetRoles: data.targetRoles,
+    };
+    formData.append(
+      "emailData",
+      new Blob([JSON.stringify(emailData)], { type: "application/json" })
+    );
+
     if (data.attachments) {
       data.attachments.forEach((file) => {
         formData.append("attachments", file);

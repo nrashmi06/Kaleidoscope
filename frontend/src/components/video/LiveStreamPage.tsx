@@ -106,7 +106,7 @@ export default function LiveStream() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <p className="text-gray-600 flex items-center gap-2">
+          <p className="text-steel dark:text-sky/60 flex items-center gap-2 text-sm">
             <span className="flex items-center gap-1">
               <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-md shadow-red-500/40" />
               <span className="text-red-500 font-semibold">{totalLiveSessions}</span>
@@ -117,15 +117,15 @@ export default function LiveStream() {
         <div className="flex gap-3">
           <button
             onClick={prevSlide}
-            className="p-2 rounded-full border-2 border-blue-300 bg-white hover:bg-blue-50 hover:scale-110 transition"
+            className="p-2 rounded-full border-2 border-cream-300/60 dark:border-navy-700/60 bg-cream-50 dark:bg-navy-700/50 hover:bg-cream-300/30 dark:hover:bg-navy-600/40 hover:scale-110 transition cursor-pointer"
           >
-            <ChevronLeft className="w-5 h-5 text-blue-600" />
+            <ChevronLeft className="w-5 h-5 text-steel dark:text-sky" />
           </button>
           <button
             onClick={nextSlide}
-            className="p-2 rounded-full border-2 border-blue-300 bg-white hover:bg-blue-50 hover:scale-110 transition"
+            className="p-2 rounded-full border-2 border-cream-300/60 dark:border-navy-700/60 bg-cream-50 dark:bg-navy-700/50 hover:bg-cream-300/30 dark:hover:bg-navy-600/40 hover:scale-110 transition cursor-pointer"
           >
-            <ChevronRight className="w-5 h-5 text-blue-600" />
+            <ChevronRight className="w-5 h-5 text-steel dark:text-sky" />
           </button>
         </div>
       </div>
@@ -137,16 +137,16 @@ export default function LiveStream() {
           className="absolute left-16 scale-75 opacity-60 hover:opacity-80 transition cursor-pointer z-10"
           onClick={prevSlide}
         >
-          <div className="relative w-64 h-40 rounded-lg overflow-hidden shadow-md">
+          <div className="relative w-64 h-40 rounded-2xl overflow-hidden shadow-md border border-cream-300/30 dark:border-navy-700/30">
             <Image
               src={leftCard.thumbnail}
               alt={leftCard.title}
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs">Live</div>
-            <div className="absolute bottom-2 left-2 text-white">
+            <div className="absolute inset-0 bg-navy/40" />
+            <div className="absolute top-2 left-2 bg-red-500 text-cream-50 px-2 py-1 rounded-lg text-xs font-semibold">Live</div>
+            <div className="absolute bottom-2 left-2 text-cream-50">
               <p className="text-sm font-semibold truncate">{leftCard.title}</p>
               <p className="text-xs opacity-80">{leftCard.viewers.toLocaleString()} watching</p>
             </div>
@@ -155,44 +155,44 @@ export default function LiveStream() {
 
         {/* Center */}
         <div className="z-20 transform scale-100">
-          <div className="relative w-96 h-80 rounded-lg overflow-hidden shadow-2xl ">
+          <div className="relative w-96 h-80 rounded-2xl overflow-hidden shadow-2xl shadow-steel/10 dark:shadow-sky/10 border border-cream-300/20 dark:border-navy-700/20">
             <Image
               src={centerCard.thumbnail}
               alt={centerCard.title}
               fill
-              className="object-cover mix-blend-overlay"
+              className="object-cover"
             />
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-md">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <div className="absolute inset-0 bg-navy/40" />
+            <div className="absolute top-4 left-4 bg-red-600 text-cream-50 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-md">
+              <span className="w-2 h-2 bg-cream-50 rounded-full animate-pulse" />
               LIVE
             </div>
-            <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+            <div className="absolute top-4 right-4 bg-navy/60 backdrop-blur-sm text-cream-50 px-3 py-1 rounded-full text-sm flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="font-semibold">{centerCard.viewers.toLocaleString()}</span>
             </div>
             <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition">
-              <div className="bg-white p-4 rounded-full shadow-lg">
-                <Play className="w-6 h-6 text-blue-700" fill="currentColor" />
+              <div className="bg-cream-50/90 dark:bg-navy/80 p-4 rounded-full shadow-lg backdrop-blur-sm">
+                <Play className="w-6 h-6 text-steel dark:text-sky" fill="currentColor" />
               </div>
             </div>
-            <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
+            <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-navy/80 to-transparent text-cream-50">
               {centerCard.startTime && (
-                <p className="text-yellow-300 text-sm mb-1">{centerCard.startTime}</p>
+                <p className="text-sky-200 text-sm mb-1">{centerCard.startTime}</p>
               )}
-              <h3 className="text-2xl font-bold">{centerCard.title}</h3>
-              <p className="text-sm mb-3 line-clamp-2">{centerCard.description}</p>
+              <h3 className="text-2xl font-display font-bold">{centerCard.title}</h3>
+              <p className="text-sm mb-3 line-clamp-2 text-cream-50/80">{centerCard.description}</p>
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600" />
-                  <span>{centerCard.creator}</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-steel to-sky" />
+                  <span className="text-sm">{centerCard.creator}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center text-white/80 gap-1">
+                  <div className="flex items-center text-cream-50/80 gap-1">
                     <Heart className="w-4 h-4" />
-                    <span>{centerCard.likes}</span>
+                    <span className="text-sm">{centerCard.likes}</span>
                   </div>
-                  <button className="px-3 py-1.5 bg-white text-blue-700 rounded font-semibold hover:bg-blue-100 transition">
+                  <button className="px-3 py-1.5 bg-steel dark:bg-sky text-cream-50 dark:text-navy rounded-xl font-semibold hover:bg-steel-600 dark:hover:bg-sky/80 transition text-sm cursor-pointer">
                     Watch Now
                   </button>
                 </div>
@@ -206,16 +206,16 @@ export default function LiveStream() {
           className="absolute right-16 scale-75 opacity-60 hover:opacity-80 transition cursor-pointer z-10"
           onClick={nextSlide}
         >
-          <div className="relative w-64 h-40 rounded-lg overflow-hidden shadow-md">
+          <div className="relative w-64 h-40 rounded-2xl overflow-hidden shadow-md border border-cream-300/30 dark:border-navy-700/30">
             <Image
               src={rightCard.thumbnail}
               alt={rightCard.title}
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs">Live</div>
-            <div className="absolute bottom-2 left-2 text-white">
+            <div className="absolute inset-0 bg-navy/40" />
+            <div className="absolute top-2 left-2 bg-red-500 text-cream-50 px-2 py-1 rounded-lg text-xs font-semibold">Live</div>
+            <div className="absolute bottom-2 left-2 text-cream-50">
               <p className="text-sm font-semibold truncate">{rightCard.title}</p>
               <p className="text-xs opacity-80">{rightCard.viewers.toLocaleString()} watching</p>
             </div>
@@ -229,10 +229,10 @@ export default function LiveStream() {
           <button
             key={i}
             onClick={() => setCurrentIndex(i)}
-            className={`h-2 rounded-full transition-all duration-300 ${
+            className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
               i === currentIndex
-                ? "bg-blue-500 w-8 shadow-md shadow-blue-500/50"
-                : "bg-gray-300 w-2 hover:bg-blue-300"
+                ? "bg-steel dark:bg-sky w-8 shadow-md shadow-steel/30 dark:shadow-sky/30"
+                : "bg-cream-300 dark:bg-navy-700 w-2 hover:bg-steel/50 dark:hover:bg-sky/50"
             }`}
           />
         ))}

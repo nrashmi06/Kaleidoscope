@@ -39,7 +39,7 @@ export function UserSidebar() {
     <div className="w-full flex flex-col gap-5">
       {/* Navigation */}
       <nav>
-        <p className="px-3 mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-steel/60 dark:text-sky/40">
+        <p className="px-3 mb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-steel/60 dark:text-sky/40">
           Menu
         </p>
         <div className="space-y-0.5">

@@ -1,5 +1,7 @@
 import React from "react";
-import { Heading1 } from "lucide-react"; // Import an icon for context
+import { Heading1 } from "lucide-react";
+
+const MAX_TITLE_LENGTH = 200;
 
 interface Props {
   value: string;
@@ -7,45 +9,59 @@ interface Props {
 }
 
 export default function TitleInput({ value, onChange }: Props) {
+  const charCount = value.length;
+  const isOverLimit = charCount > MAX_TITLE_LENGTH;
+  const isNearLimit = charCount > MAX_TITLE_LENGTH * 0.85;
+
   return (
     <div className="
-      bg-white dark:bg-slate-800 
-      rounded-xl border border-gray-200 dark:border-slate-700 
-      p-6 shadow-lg transition-all duration-300 hover:shadow-xl
+      bg-cream-50 dark:bg-navy-700/50
+      rounded-xl border border-cream-300/40 dark:border-navy-700/40
+      p-6 shadow-sm transition-all duration-300 hover:shadow-md
     ">
-      <label 
-        className="
-          block text-sm sm:text-base font-bold text-gray-800 dark:text-gray-200 
-          mb-3 transition-colors duration-200
-        "
-      >
-        Article Title
-        <span className="text-red-600 dark:text-red-400 ml-1">*</span>
-      </label>
-      
+      <div className="flex items-center justify-between mb-3">
+        <label
+          className="
+            block text-sm sm:text-base font-bold text-navy dark:text-cream
+            transition-colors duration-200
+          "
+        >
+          Title
+          <span className="text-red-600 dark:text-red-400 ml-1">*</span>
+        </label>
+        <span className={`text-xs tabular-nums ${
+          isOverLimit
+            ? "text-red-500 font-semibold"
+            : isNearLimit
+            ? "text-amber-500"
+            : "text-steel/50 dark:text-sky/40"
+        }`}>
+          {charCount}/{MAX_TITLE_LENGTH}
+        </span>
+      </div>
+
       <div className="relative">
-        {/* Icon for visual context */}
         <Heading1 className="
-          absolute left-3 top-1/2 transform -translate-y-1/2 
-          w-5 h-5 text-gray-400 dark:text-gray-500
+          absolute left-3 top-1/2 transform -translate-y-1/2
+          w-5 h-5 text-steel/40 dark:text-sky/30
         " />
-        
+
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          maxLength={MAX_TITLE_LENGTH}
           placeholder="Enter your post title..."
-          className="
-            w-full pl-10 pr-4 py-3 
-            border border-gray-300 dark:border-gray-700 
-            rounded-lg 
-            bg-gray-50 dark:bg-neutral-800 
-            text-gray-900 dark:text-white 
-            placeholder-gray-500 dark:placeholder-gray-400 
-            focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
+          className={`
+            w-full pl-10 pr-4 py-3
+            border rounded-lg
+            bg-cream-50/60 dark:bg-navy-700/30
+            text-navy dark:text-cream
+            placeholder-steel/40 dark:placeholder-sky/30
+            focus:ring-3 focus:ring-steel/30 focus:border-steel dark:focus:ring-sky/30 dark:focus:border-sky
             transition-all duration-300
-            shadow-inner dark:shadow-none
-          "
+            ${isOverLimit ? "border-red-400 dark:border-red-500" : "border-cream-300/40 dark:border-navy-700/40"}
+          `}
           required
         />
       </div>

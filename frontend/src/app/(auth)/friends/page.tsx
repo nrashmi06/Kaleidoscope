@@ -164,7 +164,7 @@ export default function FriendsPage() {
             <Users2 className="w-5 h-5 text-cream-50" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-navy dark:text-cream tracking-tight">
+            <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
               Friends
             </h1>
             <p className="text-[11px] text-steel dark:text-sky">

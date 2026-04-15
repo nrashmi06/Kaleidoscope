@@ -83,7 +83,7 @@ export function UserProfileHeader({
 
         {/* Name & Bio */}
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-navy dark:text-cream flex items-center gap-2">
+          <h1 className="text-2xl font-display font-bold text-navy dark:text-cream flex items-center gap-2">
             {profile.username}
             <Sparkles className="w-4 h-4 text-steel dark:text-sky" />
           </h1>

@@ -74,6 +74,8 @@ export interface PostFilterParams {
   sort?: string[];
   locationId?: number;
   userId?: number;
+  nearbyLocationId?: number;
+  radiusKm?: number;
 }
 // --- END OF FIX ---
 

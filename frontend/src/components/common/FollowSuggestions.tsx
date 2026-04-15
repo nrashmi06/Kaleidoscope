@@ -40,7 +40,7 @@ export default function FollowSuggestions({ page = 0, size = 5 }: Props) {
 
   return (
     <div className="px-3 py-3 hidden md:block">
-      <p className="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-steel dark:text-sky">
+      <p className="px-3 mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-steel/60 dark:text-sky/40">
         Suggestions
       </p>
 

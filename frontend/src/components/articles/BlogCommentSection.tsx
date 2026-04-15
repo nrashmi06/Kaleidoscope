@@ -112,18 +112,18 @@ export function BlogCommentSection({ blogId }: BlogCommentSectionProps) {
     <section className="w-full mt-4">
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
-            <MessageSquare className="w-5 h-5 text-white" />
+          <div className="p-2 bg-gradient-to-br from-steel to-steel-600 dark:from-sky dark:to-steel rounded-lg shadow-sm shadow-steel/20 dark:shadow-sky/15">
+            <MessageSquare className="w-5 h-5 text-cream-50" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Comments</h3>
+          <h3 className="text-lg font-display font-bold text-navy dark:text-cream">Comments</h3>
           {comments.length > 0 && (
-            <span className="px-2.5 py-0.5 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 text-sm font-semibold rounded-full">
+            <span className="px-2.5 py-0.5 bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky text-sm font-semibold rounded-full">
               {comments.length}
             </span>
           )}
         </div>
         {hasLoadedInitial && comments.length > 0 && (
-          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-neutral-500">
+          <div className="flex items-center gap-1 text-xs text-steel/50 dark:text-sky/40">
             <Sparkles className="w-3 h-3" />
             <span>Latest first</span>
           </div>
@@ -171,7 +171,7 @@ export function BlogCommentSection({ blogId }: BlogCommentSectionProps) {
           {page + 1 < totalPages && (
             <div className="flex justify-center pt-4">
               <button onClick={() => fetchComments(page + 1)} disabled={isLoading}
-                className="px-6 py-3 bg-gray-50 dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-neutral-300 rounded-xl font-semibold transition-all shadow-sm hover:shadow-md">
+                className="px-6 py-3 bg-cream-50 dark:bg-navy-700/50 hover:bg-steel/10 dark:hover:bg-sky/10 text-navy dark:text-cream rounded-xl font-semibold transition-all shadow-sm hover:shadow-md border border-cream-300/40 dark:border-navy-700/40 cursor-pointer">
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Load More"}
               </button>
             </div>
@@ -181,9 +181,9 @@ export function BlogCommentSection({ blogId }: BlogCommentSectionProps) {
 
       {hasLoadedInitial && comments.length === 0 && !error && !isLoading && (
         <div className="py-12 text-center">
-          <MessageSquare className="w-8 h-8 mx-auto mb-4 text-gray-400 dark:text-neutral-500" />
-          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No comments yet</h4>
-          <p className="text-gray-500 dark:text-neutral-400 text-sm">Be the first to share your thoughts!</p>
+          <MessageSquare className="w-8 h-8 mx-auto mb-4 text-steel/40 dark:text-sky/30" />
+          <h4 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">No comments yet</h4>
+          <p className="text-steel/60 dark:text-sky/50 text-sm">Be the first to share your thoughts!</p>
         </div>
       )}
     </section>
@@ -206,36 +206,36 @@ function BlogCommentItem({
   const isAuthor = currentUserId === comment.author.userId;
 
   return (
-    <article className="group flex items-start gap-3 p-3 bg-white dark:bg-neutral-900/40 rounded-xl border border-gray-100 dark:border-gray-800 hover:shadow-sm transition-all">
+    <article className="group flex items-start gap-3 p-3 bg-cream-50/50 dark:bg-navy-700/30 rounded-xl border border-cream-300/30 dark:border-navy-700/30 hover:shadow-sm transition-all">
       <Image
         src={comment.author.profilePictureUrl || "/default-avatar.png"}
         alt={comment.author.username}
         width={36}
         height={36}
         onClick={() => router.push(`/profile/${comment.author.userId}`)}
-        className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80 transition-opacity"
+        className="w-9 h-9 rounded-full object-cover border border-cream-300/40 dark:border-navy-600/40 cursor-pointer hover:opacity-80 transition-opacity"
       />
       <div className="flex-1">
         <header className="flex items-start justify-between">
           <div>
             <div
               onClick={() => router.push(`/profile/${comment.author.userId}`)}
-              className="text-sm font-semibold text-gray-800 dark:text-gray-200 cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+              className="text-sm font-semibold text-navy dark:text-cream cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
             >
               {comment.author.username}
             </div>
-            <time className="text-xs text-gray-400 dark:text-gray-500">{new Date(comment.createdAt).toLocaleString()}</time>
+            <time className="text-xs text-steel/50 dark:text-sky/40">{new Date(comment.createdAt).toLocaleString()}</time>
           </div>
           {isAuthor && (
             <div className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                <MoreVertical size={18} className="text-gray-500" />
+              <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 rounded-full hover:bg-cream-300/40 dark:hover:bg-navy-700/40 cursor-pointer">
+                <MoreVertical size={18} className="text-steel/50 dark:text-sky/40" />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-neutral-900 border rounded-lg shadow-lg z-50">
+                <div className="absolute right-0 mt-2 w-40 bg-cream-50 dark:bg-navy-700 border border-cream-300/40 dark:border-navy-600/40 rounded-lg shadow-lg z-50">
                   <button
                     onClick={() => { onDelete(comment.commentId); setMenuOpen(false); }}
-                    className="flex items-center gap-2 px-3 py-2 w-full text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 text-sm"
+                    className="flex items-center gap-2 px-3 py-2 w-full text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 text-sm cursor-pointer"
                   >
                     <Trash2 size={14} /> Delete
                   </button>
@@ -244,7 +244,7 @@ function BlogCommentItem({
             </div>
           )}
         </header>
-        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{comment.body}</p>
+        <p className="mt-1 text-sm text-navy/80 dark:text-cream/80">{comment.body}</p>
         <BlogCommentActions blogId={blogId} commentId={comment.commentId} />
       </div>
     </article>

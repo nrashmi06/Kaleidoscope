@@ -91,6 +91,15 @@ export default function CreatePostPage() {
     ) {
       return toast.error("Title, body and categories are required");
     }
+    if (formData.title.length > 200) {
+      return toast.error("Title must be 200 characters or less");
+    }
+    if (formData.summary && formData.summary.length > 500) {
+      return toast.error("Summary must be 500 characters or less");
+    }
+    if (formData.body.length > 50000) {
+      return toast.error("Post body is too long (max 50,000 characters)");
+    }
 
     setLoading(true);
     try {
@@ -110,7 +119,7 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
+    <div className="min-h-screen bg-cream-50/50 dark:bg-navy-900/50">
       <div className="max-w-4xl mx-auto p-6">
         <Header router={router} />
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -126,6 +135,7 @@ export default function CreatePostPage() {
             placeholder="Write your post content here... Use # to add hashtags, **bold text**, *italic text*"
             minRows={8}
             maxRows={20}
+            maxLength={50000}
           />
           <EnhancedBodyInput
             inputType="summary"
@@ -135,6 +145,7 @@ export default function CreatePostPage() {
             placeholder="A short summary for previews (max 500 characters)"
             minRows={4}
             maxRows={8}
+            maxLength={500}
           />
 
           <VisibilitySelect
@@ -191,14 +202,14 @@ export default function CreatePostPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 px-6 py-3 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+              className="flex-1 px-6 py-3 border border-cream-300/40 dark:border-navy-700/40 text-navy dark:text-cream rounded-xl hover:bg-cream-300/30 dark:hover:bg-navy-700/30 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 disabled:opacity-50 text-cream-50 dark:text-navy rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm shadow-steel/20 dark:shadow-sky/15"
             >
               {loading ? "Creating..." : "Create Post"}
             </button>

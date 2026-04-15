@@ -89,6 +89,8 @@ export interface BlogFilterRequest {
   status?: BlogStatus;
   visibility?: BlogVisibility;
   q?: string;
+  nearbyLocationId?: number;
+  radiusKm?: number;
 }
 
 /**
