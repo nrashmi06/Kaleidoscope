@@ -17,17 +17,20 @@ spring:
     password: ${SPRING_ELASTICSEARCH_PASSWORD:}
 
   jpa:
+    open-in-view: false
     hibernate:
-      # Temporary recovery mode: recreate schema on app startup.
-      # Switch this to validate (preferred) or update after bootstrap is complete.
-      ddl-auto: create
+      # Non-destructive mode for ongoing deploys.
+      ddl-auto: update
     properties:
       hibernate:
+        show_sql: false
+        format_sql: false
         hbm2ddl:
-          auto: create
+          auto: update
 
 # Logstash Configuration (Production only)
-# This block is *added* in prod and doesn't exist in base
+# These are used by logback-spring.xml if configured there,
+# though current logback-spring.xml for prod doesn't use them yet.
 logstash:
   host: ${LOGSTASH_HOST:127.0.0.1}
   port: ${LOGSTASH_PORT:5000}
