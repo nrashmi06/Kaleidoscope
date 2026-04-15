@@ -60,11 +60,11 @@ export function BlogActions({ blogId }: BlogActionsProps) {
     .map(([type]) => type as ReactionType);
 
   return (
-    <div className="flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-800">
+    <div className="flex items-center justify-between border-t border-cream-300/30 pt-3 dark:border-navy-700/30">
       <div className="relative flex items-center gap-2" ref={reactionRef}>
         {showReactionPicker && (
           <div className="absolute bottom-12 left-35 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200" style={{ width: "max-content", maxWidth: "90vw" }}>
-            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 rounded-full bg-white/95 px-3 py-2 sm:px-4 sm:py-3 shadow-xl ring-1 ring-black/5 backdrop-blur-xl dark:bg-gray-900/95 dark:ring-white/10">
+            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 rounded-full bg-cream-50/95 px-3 py-2 sm:px-4 sm:py-3 shadow-xl ring-1 ring-navy/5 backdrop-blur-xl dark:bg-navy/95 dark:ring-cream/10">
               {(Object.keys(ReactionIcons) as ReactionType[]).map((type) => (
                 <button
                   key={type}
@@ -72,16 +72,16 @@ export function BlogActions({ blogId }: BlogActionsProps) {
                   onMouseEnter={() => setHoveredReaction(type)}
                   onMouseLeave={() => setHoveredReaction(null)}
                   disabled={isPending}
-                  className={`group relative flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full text-xl sm:text-2xl transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-110 active:scale-95 ${
+                  className={`group relative flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full text-xl sm:text-2xl transition-all duration-200 ease-out hover:-translate-y-1 hover:scale-110 active:scale-95 cursor-pointer ${
                     currentUserReaction === type
-                      ? "ring-2 ring-blue-500 bg-blue-100 dark:bg-blue-900/40"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                      ? "ring-2 ring-steel bg-steel/15 dark:bg-sky/20 dark:ring-sky"
+                      : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
                   }`}
                   aria-label={type}
                 >
                   <span className="relative z-10">{ReactionIcons[type]}</span>
                   {hoveredReaction === type && (
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white dark:bg-gray-700 shadow-md">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-navy px-2 py-1 text-xs font-medium text-cream-50 dark:bg-navy-700 shadow-md">
                       {type.charAt(0) + type.slice(1).toLowerCase()}
                     </div>
                   )}
@@ -93,10 +93,10 @@ export function BlogActions({ blogId }: BlogActionsProps) {
 
         <button
           onClick={() => setShowReactionPicker((prev) => !prev)}
-          className={`group relative flex items-center gap-2 overflow-hidden rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
+          className={`group relative flex items-center gap-2 overflow-hidden rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 cursor-pointer ${
             currentUserReaction
-              ? "bg-gradient-to-r from-blue-500/10 to-blue-600/10 text-blue-600 ring-1 ring-blue-500/20 dark:from-blue-500/20 dark:to-blue-600/20 dark:text-blue-400 dark:ring-blue-500/30"
-              : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/50"
+              ? "bg-gradient-to-r from-steel/10 to-steel/15 text-steel ring-1 ring-steel/20 dark:from-sky/15 dark:to-sky/20 dark:text-sky dark:ring-sky/30"
+              : "text-navy/70 hover:bg-cream-300/40 dark:text-cream/60 dark:hover:bg-navy-700/40"
           }`}
         >
           <div className="flex -space-x-1.5">
@@ -105,8 +105,8 @@ export function BlogActions({ blogId }: BlogActionsProps) {
                 key={index}
                 className={`flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-base ring-2 transition-transform group-hover:-translate-y-0.5 ${
                   currentUserReaction === type
-                    ? "bg-blue-100 text-blue-600 ring-blue-300 dark:bg-blue-900/40 dark:ring-blue-700"
-                    : "bg-white ring-white dark:bg-gray-900 dark:ring-gray-900"
+                    ? "bg-steel/15 text-steel ring-steel/30 dark:bg-sky/20 dark:ring-sky/30"
+                    : "bg-cream-50 ring-cream-50 dark:bg-navy dark:ring-navy"
                 }`}
                 style={{ transitionDelay: `${index * 30}ms`, zIndex: 3 - index }}
               >
@@ -125,9 +125,9 @@ export function BlogActions({ blogId }: BlogActionsProps) {
               const count = counts[type];
               if (!count || count <= 0) return null;
               return (
-                <div key={type} className="group flex cursor-pointer items-center gap-1 rounded-full bg-gray-50 px-2.5 py-1 transition-all duration-200 hover:bg-gray-100 hover:scale-105 dark:bg-gray-800/50 dark:hover:bg-gray-800">
+                <div key={type} className="group flex cursor-pointer items-center gap-1 rounded-full bg-cream-50/60 px-2.5 py-1 transition-all duration-200 hover:bg-cream-300/40 hover:scale-105 dark:bg-navy-700/30 dark:hover:bg-navy-700/50">
                   <span className="text-base transition-transform group-hover:scale-110">{ReactionIcons[type]}</span>
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{count}</span>
+                  <span className="text-xs font-semibold text-navy/70 dark:text-cream/60">{count}</span>
                 </div>
               );
             })}
@@ -136,7 +136,7 @@ export function BlogActions({ blogId }: BlogActionsProps) {
       </div>
 
       {total > 0 && (
-        <button className="group flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-all duration-200">
+        <button className="group flex items-center gap-1.5 text-sm font-medium text-steel/60 hover:text-navy dark:text-sky/50 dark:hover:text-cream transition-all duration-200 cursor-pointer">
           <span className="transition-transform group-hover:scale-110">{total}</span>
           <span className="text-xs uppercase tracking-wider opacity-75">{total === 1 ? "reaction" : "reactions"}</span>
         </button>

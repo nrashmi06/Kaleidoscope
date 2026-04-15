@@ -25,7 +25,7 @@ export function UserProfilePosts({
   return (
     <div className="px-6 sm:px-8 pb-6">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-navy dark:text-cream flex items-center gap-2">
+        <h2 className="text-lg font-display font-bold text-navy dark:text-cream flex items-center gap-2">
           <FileText className="w-5 h-5 text-steel dark:text-sky" />
           Posts
           <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky">

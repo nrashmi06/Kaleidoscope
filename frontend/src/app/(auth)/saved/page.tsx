@@ -125,7 +125,7 @@ export default function SavedPage() {
             <Bookmark className="w-5 h-5 text-cream-50" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-navy dark:text-cream tracking-tight">
+            <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
               Saved
             </h1>
             {!loading && items.length > 0 && (
@@ -182,7 +182,7 @@ export default function SavedPage() {
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
             <Inbox className="w-6 h-6 text-steel dark:text-sky/60" />
           </div>
-          <h3 className="text-base font-semibold text-navy dark:text-cream mb-1.5">
+          <h3 className="text-base font-display font-semibold text-navy dark:text-cream mb-1.5">
             No saved {activeTab}
           </h3>
           <p className="text-sm text-steel dark:text-sky/60">
@@ -253,7 +253,7 @@ export default function SavedPage() {
 
                     {/* Content */}
                     <div className="flex flex-col flex-1 p-4">
-                      <h3 className="text-sm font-bold text-navy dark:text-cream leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
+                      <h3 className="text-sm font-display font-bold text-navy dark:text-cream leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
                         {title}
                       </h3>
 

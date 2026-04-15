@@ -129,7 +129,7 @@ function SocialPostCardComponent({
             <div>
               <span
                 onClick={() => router.push(`/profile/${post.author.userId}`)}
-                className="font-semibold text-sm text-white drop-shadow-sm cursor-pointer hover:underline"
+                className="font-display font-semibold text-sm text-white drop-shadow-sm cursor-pointer hover:underline"
               >
                 {post.author.username}
               </span>

@@ -110,7 +110,7 @@ export function UserProfile({ userId }: UserProfileProps) {
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
           <X className="w-7 h-7 text-red-500" />
         </div>
-        <h3 className="text-xl font-bold text-navy dark:text-cream mb-2">
+        <h3 className="text-xl font-display font-bold text-navy dark:text-cream mb-2">
           Profile Error
         </h3>
         <p className="text-sm text-steel dark:text-sky/60 mb-6">{error}</p>

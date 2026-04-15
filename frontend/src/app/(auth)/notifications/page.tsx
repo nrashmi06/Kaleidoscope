@@ -104,7 +104,7 @@ export default function NotificationsPage() {
               <Bell className="w-5 h-5 text-cream-50" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-navy dark:text-cream tracking-tight">
+              <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
                 Notifications
               </h1>
               {!loading && (
@@ -151,7 +151,7 @@ export default function NotificationsPage() {
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 mb-4">
               <span className="text-2xl">⚠️</span>
             </div>
-            <h3 className="text-base font-semibold text-red-700 dark:text-red-300 mb-1.5">
+            <h3 className="text-base font-display font-semibold text-red-700 dark:text-red-300 mb-1.5">
               Failed to Load
             </h3>
             <p className="text-sm text-red-600/80 dark:text-red-400/80">
@@ -166,7 +166,7 @@ export default function NotificationsPage() {
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
               <Inbox className="w-6 h-6 text-steel dark:text-sky/60" />
             </div>
-            <h3 className="text-base font-semibold text-navy dark:text-cream mb-1.5">
+            <h3 className="text-base font-display font-semibold text-navy dark:text-cream mb-1.5">
               All caught up!
             </h3>
             <p className="text-sm text-steel dark:text-sky/60">

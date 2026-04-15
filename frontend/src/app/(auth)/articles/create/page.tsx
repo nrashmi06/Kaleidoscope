@@ -16,21 +16,20 @@ export default function Page(): React.ReactElement {
 
   return (
     // Replaced inline styles with theme-aware Tailwind classes
-    <div className="p-6 md:p-8 min-h-screen bg-gray-50 dark:bg-neutral-950">
-      
+    <div className="p-6 md:p-8 min-h-screen bg-cream-50/50 dark:bg-navy-900/50">
+
       {/* Header and Back Button */}
       <div className="max-w-4xl mx-auto mb-8">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center text-gray-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mb-4"
+          className="inline-flex items-center text-steel/60 dark:text-sky/40 hover:text-steel dark:hover:text-sky transition-colors mb-4"
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           <span className="font-medium">Back</span>
         </button>
-        
-        {/* Replaced inline styles with theme-aware Tailwind classes */}
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+
+        <h1 className="text-3xl md:text-4xl font-display font-bold text-navy dark:text-cream">
           Create Blog Post
         </h1>
       </div>

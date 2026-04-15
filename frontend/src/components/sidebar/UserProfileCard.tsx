@@ -46,7 +46,7 @@ export function UserProfileCard() {
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-navy dark:text-cream truncate text-sm">
+          <h3 className="font-display font-semibold text-navy dark:text-cream truncate text-sm">
             {user.username || "Anonymous"}
           </h3>
           <div className="flex items-center gap-1.5 mt-0.5 text-steel/70 dark:text-sky/50">

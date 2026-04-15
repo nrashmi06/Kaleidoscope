@@ -29,6 +29,8 @@ export default function LocationsPage() {
   const [posts, setPosts] = useState<NormalizedPostFeedItem[]>([]);
   const [isPostsLoading, setIsPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
+  const [searchMode, setSearchMode] = useState<"exact" | "nearby">("exact");
+  const [radiusKm, setRadiusKm] = useState(5);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -49,18 +51,16 @@ export default function LocationsPage() {
   }, [accessToken]);
 
   const fetchPostsForLocation = useCallback(
-    async (locationId: number) => {
+    async (locationId: number, mode: "exact" | "nearby" = "exact", radius: number = 5) => {
       if (!accessToken) return;
       setIsPostsLoading(true);
       setPostsError(null);
       setPosts([]);
       try {
-        const result = await getPostsController(accessToken, {
-          locationId,
-          page: 0,
-          size: 50,
-          sort: ["createdAt,desc"],
-        });
+        const filters = mode === "nearby"
+          ? { nearbyLocationId: locationId, radiusKm: radius, page: 0, size: 50, sort: ["createdAt,desc"] as string[] }
+          : { locationId, page: 0, size: 50, sort: ["createdAt,desc"] as string[] };
+        const result = await getPostsController(accessToken, filters);
         if (result.success) setPosts(result.posts);
         else setPostsError(result.error || "Failed to load posts for this location.");
       } catch (err) {
@@ -77,10 +77,10 @@ export default function LocationsPage() {
       const loc = locations.find((l) => l.name === label);
       if (loc) {
         setSelectedLocation(loc);
-        fetchPostsForLocation(loc.locationId);
+        fetchPostsForLocation(loc.locationId, searchMode, radiusKm);
       }
     },
-    [locations, fetchPostsForLocation]
+    [locations, fetchPostsForLocation, searchMode, radiusKm]
   );
 
   const handleDeleteLocation = useCallback(
@@ -133,7 +133,7 @@ export default function LocationsPage() {
               <Globe2 className="w-5 h-5 text-cream-50" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-navy dark:text-cream tracking-tight">
+              <h1 className="text-lg font-display font-bold text-navy dark:text-cream tracking-tight">
                 Explore Locations
               </h1>
               <p className="text-[11px] text-steel dark:text-sky">
@@ -230,7 +230,7 @@ export default function LocationsPage() {
                       <MapPin className="w-5 h-5 text-steel dark:text-sky" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="font-semibold text-navy dark:text-cream truncate text-sm">
+                      <h2 className="font-display font-semibold text-navy dark:text-cream truncate text-sm">
                         {selectedLocation.name}
                       </h2>
                       <p className="text-[11px] text-steel dark:text-sky mt-0.5 tabular-nums">
@@ -260,6 +260,63 @@ export default function LocationsPage() {
                   </div>
                 </div>
 
+                {/* Search mode toggle */}
+                <div className="mb-4 flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setSearchMode("exact");
+                        fetchPostsForLocation(selectedLocation.locationId, "exact");
+                      }}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                        searchMode === "exact"
+                          ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
+                          : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                      }`}
+                    >
+                      Exact Location
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSearchMode("nearby");
+                        fetchPostsForLocation(selectedLocation.locationId, "nearby", radiusKm);
+                      }}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                        searchMode === "nearby"
+                          ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
+                          : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                      }`}
+                    >
+                      Nearby Posts
+                    </button>
+                  </div>
+
+                  {searchMode === "nearby" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min={1}
+                        max={50}
+                        value={radiusKm}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setRadiusKm(val);
+                        }}
+                        onMouseUp={() => {
+                          fetchPostsForLocation(selectedLocation.locationId, "nearby", radiusKm);
+                        }}
+                        onTouchEnd={() => {
+                          fetchPostsForLocation(selectedLocation.locationId, "nearby", radiusKm);
+                        }}
+                        className="w-28 h-1.5 accent-steel dark:accent-sky cursor-pointer"
+                      />
+                      <span className="text-[11px] font-semibold text-navy dark:text-cream tabular-nums min-w-[3.5rem]">
+                        {radiusKm} km
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 {(isPostsLoading || posts.length > 0 || postsError) && (
                   <PostFeedGrid
                     isLoading={isPostsLoading}
@@ -268,11 +325,11 @@ export default function LocationsPage() {
                     accessToken={accessToken!}
                     onPostDeleted={() => {
                       if (selectedLocation)
-                        fetchPostsForLocation(selectedLocation.locationId);
+                        fetchPostsForLocation(selectedLocation.locationId, searchMode, radiusKm);
                     }}
                     onRetry={() => {
                       if (selectedLocation)
-                        fetchPostsForLocation(selectedLocation.locationId);
+                        fetchPostsForLocation(selectedLocation.locationId, searchMode, radiusKm);
                     }}
                   />
                 )}

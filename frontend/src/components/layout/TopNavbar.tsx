@@ -53,7 +53,7 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
           className="mr-3"
           priority
         />
-        <span className="text-lg font-semibold text-navy dark:text-cream tracking-wide">
+        <span className="text-lg font-display font-semibold text-navy dark:text-cream tracking-wide italic">
           Kaleidoscope
         </span>
       </div>

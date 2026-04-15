@@ -95,6 +95,18 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
       setError("Title, body, and at least one category are required.");
       return;
     }
+    if (formData.title.length > 200) {
+      setError("Title must be 200 characters or less.");
+      return;
+    }
+    if (formData.summary && formData.summary.length > 500) {
+      setError("Summary must be 500 characters or less.");
+      return;
+    }
+    if (formData.body.length > 50000) {
+      setError("Article body is too long (max 50,000 characters).");
+      return;
+    }
     
     setLoading(true);
 
@@ -152,11 +164,11 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
 
   return (
     <form 
-        onSubmit={onSubmit} 
-        className="max-w-4xl mx-auto p-6 md:p-8 rounded-xl bg-white dark:bg-neutral-900 shadow-2xl border border-gray-200 dark:border-neutral-800 transition-colors"
+        onSubmit={onSubmit}
+        className="max-w-4xl mx-auto p-6 md:p-8 rounded-xl bg-cream-50 dark:bg-navy-800 shadow-lg border border-cream-300/40 dark:border-navy-700/40 transition-colors"
     >
-      <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-3">
-        <Zap className="w-6 h-6 text-blue-600" /> {isEditMode ? "Edit Article" : "New Article"}
+      <h2 className="text-3xl font-display font-bold mb-6 text-navy dark:text-cream flex items-center gap-3">
+        <Zap className="w-6 h-6 text-steel dark:text-sky" /> {isEditMode ? "Edit Article" : "New Article"}
       </h2>
 
       {/* --- TITLE --- */}
@@ -174,6 +186,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
           accessToken={accessToken}
           placeholder="Write your article body content here... Use # to add hashtags, **bold text**, *italic text*"
           minRows={10}
+          maxLength={50000}
         />
       </div>
 
@@ -186,21 +199,22 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
           accessToken={accessToken}
           placeholder="A short summary for previews (max 500 characters)"
           minRows={4}
+          maxLength={500}
         />
       </div>
 
       {/* ✅ LINKED BLOG SEARCH & SELECT (Passing the array of IDs) */}
-      <div className="mt-6 p-6 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-            <Link className="w-4 h-4 text-blue-500" /> Link Related Blog(s) (Optional)
+      <div className="mt-6 p-6 bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 shadow-sm">
+        <label className="block text-sm font-semibold text-navy dark:text-cream mb-2 flex items-center gap-2">
+            <Link className="w-4 h-4 text-steel dark:text-sky" /> Link Related Blog(s) (Optional)
         </label>
         <LinkedBlogSearch
             onBlogSelect={handleLinkedBlogSelect}
             selectedBlogIds={formData.blogTagIds} // Pass the array
         />
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-            Search for and link related published blog posts. 
-            Total linked IDs: <span className="font-medium text-gray-700 dark:text-gray-300">{formData.blogTagIds.length}</span>
+        <p className="text-xs text-steel/50 dark:text-sky/40 mt-3">
+            Search for and link related published blog posts.
+            Total linked IDs: <span className="font-medium text-navy dark:text-cream">{formData.blogTagIds.length}</span>
         </p>
       </div>
 
@@ -230,10 +244,10 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
       
       {/* --- 3. MEDIA UPLOAD --- */}
       <section className="space-y-6 mt-6">
-        <p className="font-bold mb-3 text-gray-800 dark:text-gray-300 flex items-center gap-2">
+        <p className="font-bold mb-3 text-navy dark:text-cream flex items-center gap-2">
           <ImageIcon className="w-4 h-4" /> Media Details
         </p>
-        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-neutral-800/50">
+        <div className="p-6 rounded-xl border border-cream-300/40 dark:border-navy-700/40 bg-cream-50/60 dark:bg-navy-700/30">
           <BlogMediaUpload 
             accessToken={accessToken}
             formData={formData}
@@ -257,20 +271,20 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
       )}
 
       {/* Submit Button */}
-      <button 
-        type="submit" 
+      <button
+        type="submit"
         disabled={loading}
         className={cn(
-            "w-full px-6 py-3 font-bold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 mt-6",
-            loading 
-              ? "bg-gray-400 text-white cursor-not-allowed disabled:opacity-70" 
-              : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white"
+            "w-full px-6 py-3 font-bold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 mt-6",
+            loading
+              ? "opacity-50 cursor-not-allowed bg-steel dark:bg-sky text-cream-50 dark:text-navy"
+              : "bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 text-cream-50 dark:text-navy shadow-steel/20 dark:shadow-sky/15"
         )}
       >
         {loading ? (
           <div className="flex items-center justify-center">
             <Loader2 className="animate-spin w-5 h-5 mr-2" />
-            <span className="text-white">{isEditMode ? "Updating..." : "Creating..."}</span>
+            <span>{isEditMode ? "Updating..." : "Creating..."}</span>
           </div>
         ) : isEditMode ? 'Update Article' : 'Create Blog'}
       </button>

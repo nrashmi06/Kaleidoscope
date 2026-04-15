@@ -25,10 +25,12 @@ import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
+const ALL_ROLES = ["USER", "MODERATOR", "ADMIN"];
+
 const recipientOptions = [
-  { value: "", label: "All Users", icon: Globe, description: "Send to every registered user" },
-  { value: "ACTIVE", label: "Active Users", icon: Users, description: "Users who logged in recently" },
-  { value: "ADMIN", label: "Admins Only", icon: ShieldAlert, description: "Administrative accounts only" },
+  { roles: ["USER", "MODERATOR", "ADMIN"], label: "All Users", icon: Globe, description: "Send to every registered user" },
+  { roles: ["USER"], label: "Users Only", icon: Users, description: "Standard user accounts" },
+  { roles: ["ADMIN"], label: "Admins Only", icon: ShieldAlert, description: "Administrative accounts only" },
 ] as const;
 
 function formatFileSize(bytes: number): string {
@@ -44,7 +46,7 @@ export default function MassEmailPage() {
 
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [recipientFilter, setRecipientFilter] = useState("");
+  const [targetRoles, setTargetRoles] = useState<string[]>(ALL_ROLES);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -132,7 +134,7 @@ export default function MassEmailPage() {
       {
         subject,
         body,
-        recipientFilter: recipientFilter || undefined,
+        targetRoles,
         attachments: attachments.length > 0 ? attachments : undefined,
       },
       accessToken!
@@ -143,7 +145,7 @@ export default function MassEmailPage() {
       toast.success(res.message);
       setSubject("");
       setBody("");
-      setRecipientFilter("");
+      setTargetRoles(ALL_ROLES);
       setAttachments([]);
     } else {
       toast.error(res.message);
@@ -198,13 +200,13 @@ export default function MassEmailPage() {
           </label>
           <div className="grid grid-cols-3 gap-2">
             {recipientOptions.map((opt) => {
-              const isActive = recipientFilter === opt.value;
+              const isActive = JSON.stringify(targetRoles) === JSON.stringify(opt.roles);
               const Icon = opt.icon;
               return (
                 <button
-                  key={opt.value}
+                  key={opt.label}
                   type="button"
-                  onClick={() => setRecipientFilter(opt.value)}
+                  onClick={() => setTargetRoles([...opt.roles])}
                   className={`relative flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-center transition-all cursor-pointer border ${
                     isActive
                       ? "bg-steel/10 dark:bg-sky/10 border-steel/40 dark:border-sky/40 shadow-sm"

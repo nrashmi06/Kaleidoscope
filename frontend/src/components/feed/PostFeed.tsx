@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getPostsController } from "@/controllers/postController/getPostsController";
+import { getPostSuggestionsController } from "@/controllers/postController/postSuggestionsController";
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
 import {
   type NormalizedPostFeedItem,
@@ -25,7 +26,9 @@ import {
 
 import { FeedFilterSheet } from "@/components/feed/FeedFilterSheet";
 import { PostFeedGrid } from "@/components/feed/PostFeedGrid";
-import { ContentSuggestionsSection } from "@/components/common/ContentSuggestions";
+import ContentSuggestions from "@/components/common/ContentSuggestions";
+
+type FeedMode = "suggestions" | "search";
 
 const defaultFilters: PostFilterParams = {
   q: "",
@@ -40,22 +43,27 @@ const defaultFilters: PostFilterParams = {
 export default function PostFeed() {
   const accessToken = useAccessToken();
 
+  const [feedMode, setFeedMode] = useState<FeedMode>("suggestions");
+
+  // --- Suggestions state ---
+  const [suggestionsPage, setSuggestionsPage] = useState(0);
+  const [suggestionsTotalPages, setSuggestionsTotalPages] = useState(0);
+  const [suggestionsTotalElements, setSuggestionsTotalElements] = useState(0);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [suggestionsData, setSuggestionsData] = useState<NormalizedPostFeedItem[]>([]);
+
+  // --- Search state ---
   const [posts, setPosts] = useState<NormalizedPostFeedItem[]>([]);
-  const [pagination, setPagination] = useState<NormalizedPagination | null>(
-    null
-  );
+  const [pagination, setPagination] = useState<NormalizedPagination | null>(null);
   const [categories, setCategories] = useState<FlatCategory[]>([]);
-
-  const [activeFilters, setActiveFilters] =
-    useState<PostFilterParams>(defaultFilters);
-  const [stagedFilters, setStagedFilters] =
-    useState<PostFilterParams>(defaultFilters);
+  const [activeFilters, setActiveFilters] = useState<PostFilterParams>(defaultFilters);
+  const [stagedFilters, setStagedFilters] = useState<PostFilterParams>(defaultFilters);
   const debouncedSearchQuery = useDebounce(stagedFilters.q || "", 400);
-
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
+  // Fetch categories (needed for filter sheet)
   useEffect(() => {
     if (!accessToken) return;
     getParentCategoriesController(accessToken)
@@ -67,6 +75,76 @@ export default function PostFeed() {
       .catch((err) => console.error("Failed to fetch categories:", err));
   }, [accessToken]);
 
+  // --- Suggestions fetching ---
+  const fetchSuggestions = useCallback(
+    async (page: number) => {
+      if (!accessToken) return;
+      setSuggestionsLoading(true);
+      try {
+        const res = await getPostSuggestionsController(accessToken, page, 9);
+        if (res.success && res.data) {
+          const data = res.data as {
+            content?: Array<{
+              postId: number;
+              title: string;
+              summary: string;
+              createdAt: string;
+              author: { userId: number; username: string; profilePictureUrl?: string; email?: string; accountStatus?: string };
+              thumbnailUrl?: string | null;
+              mediaDetails?: Array<{ url: string; mediaType: string }>;
+              commentCount: number;
+              reactionCount: number;
+              viewCount: number;
+              categories?: Array<{ categoryId: number; name: string }>;
+              hashtags?: string[];
+              visibility?: "PUBLIC" | "FOLLOWERS";
+            }>;
+            totalPages?: number;
+            totalElements?: number;
+          };
+          const content = data.content || [];
+          // Normalize suggestion items to NormalizedPostFeedItem
+          const normalized: NormalizedPostFeedItem[] = content.map((item) => ({
+            postId: item.postId,
+            title: item.title,
+            summary: item.summary || "",
+            visibility: item.visibility || "PUBLIC",
+            createdAt: new Date(item.createdAt),
+            formattedCreatedAt: "",
+            author: {
+              userId: item.author.userId,
+              email: item.author.email || "",
+              username: item.author.username,
+              profilePictureUrl: item.author.profilePictureUrl || "/default-avatar.png",
+              accountStatus: item.author.accountStatus || "ACTIVE",
+            },
+            categories: item.categories || [],
+            thumbnailUrl: item.thumbnailUrl || null,
+            hashtags: item.hashtags || [],
+            reactionCount: item.reactionCount || 0,
+            commentCount: item.commentCount || 0,
+            viewCount: item.viewCount || 0,
+          }));
+          setSuggestionsData(normalized);
+          setSuggestionsTotalPages(data.totalPages || 1);
+          setSuggestionsTotalElements(data.totalElements || content.length);
+        }
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    },
+    [accessToken]
+  );
+
+  useEffect(() => {
+    if (feedMode === "suggestions") {
+      fetchSuggestions(suggestionsPage);
+    }
+  }, [feedMode, suggestionsPage, fetchSuggestions]);
+
+  // --- Search / filter fetching ---
   const fetchFeed = useCallback(
     async (filters: PostFilterParams) => {
       if (!accessToken) {
@@ -77,7 +155,6 @@ export default function PostFeed() {
 
       setIsLoading(true);
       setError(null);
-      window.scrollTo(0, 0);
 
       try {
         const result = await getPostsController(accessToken, filters);
@@ -102,16 +179,20 @@ export default function PostFeed() {
   );
 
   useEffect(() => {
-    setActiveFilters((prev) => ({
-      ...prev,
-      q: debouncedSearchQuery,
-      page: 0,
-    }));
-  }, [debouncedSearchQuery]);
+    if (feedMode === "search") {
+      setActiveFilters((prev) => ({
+        ...prev,
+        q: debouncedSearchQuery,
+        page: 0,
+      }));
+    }
+  }, [debouncedSearchQuery, feedMode]);
 
   useEffect(() => {
-    fetchFeed(activeFilters);
-  }, [activeFilters, fetchFeed]);
+    if (feedMode === "search") {
+      fetchFeed(activeFilters);
+    }
+  }, [activeFilters, fetchFeed, feedMode]);
 
   const handleStagedFilterChange = (
     key: keyof PostFilterParams,
@@ -134,8 +215,16 @@ export default function PostFeed() {
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 0 && newPage < (pagination?.totalPages || 0)) {
-      setActiveFilters((prev) => ({ ...prev, page: newPage }));
+    if (feedMode === "suggestions") {
+      if (newPage >= 0 && newPage < suggestionsTotalPages) {
+        setSuggestionsPage(newPage);
+        window.scrollTo(0, 0);
+      }
+    } else {
+      if (newPage >= 0 && newPage < (pagination?.totalPages || 0)) {
+        setActiveFilters((prev) => ({ ...prev, page: newPage }));
+        window.scrollTo(0, 0);
+      }
     }
   };
 
@@ -144,30 +233,48 @@ export default function PostFeed() {
   };
 
   const handlePostDeleted = useCallback(() => {
-    fetchFeed(activeFilters);
-  }, [fetchFeed, activeFilters]);
+    if (feedMode === "suggestions") {
+      fetchSuggestions(suggestionsPage);
+    } else {
+      fetchFeed(activeFilters);
+    }
+  }, [feedMode, fetchSuggestions, suggestionsPage, fetchFeed, activeFilters]);
 
-  // Generate visible page numbers
+  const handleModeSwitch = (mode: FeedMode) => {
+    if (mode === feedMode) return;
+    setFeedMode(mode);
+    if (mode === "search" && posts.length === 0) {
+      // Trigger initial search load
+      setActiveFilters({ ...defaultFilters });
+    }
+  };
+
+  // Pagination helpers
+  const currentPage = feedMode === "suggestions" ? suggestionsPage : (pagination?.currentPage || 0);
+  const totalPages = feedMode === "suggestions" ? suggestionsTotalPages : (pagination?.totalPages || 0);
+  const totalElements = feedMode === "suggestions" ? suggestionsTotalElements : (pagination?.totalElements || 0);
+  const isFirst = currentPage === 0;
+  const isLast = currentPage >= totalPages - 1;
+  const currentLoading = feedMode === "suggestions" ? suggestionsLoading : isLoading;
+
   const getPageNumbers = () => {
-    if (!pagination) return [];
-    const total = pagination.totalPages;
-    const current = pagination.currentPage;
+    if (totalPages <= 1) return [];
     const pages: (number | "...")[] = [];
 
-    if (total <= 5) {
-      for (let i = 0; i < total; i++) pages.push(i);
+    if (totalPages <= 5) {
+      for (let i = 0; i < totalPages; i++) pages.push(i);
     } else {
       pages.push(0);
-      if (current > 2) pages.push("...");
+      if (currentPage > 2) pages.push("...");
       for (
-        let i = Math.max(1, current - 1);
-        i <= Math.min(total - 2, current + 1);
+        let i = Math.max(1, currentPage - 1);
+        i <= Math.min(totalPages - 2, currentPage + 1);
         i++
       ) {
         pages.push(i);
       }
-      if (current < total - 3) pages.push("...");
-      pages.push(total - 1);
+      if (currentPage < totalPages - 3) pages.push("...");
+      pages.push(totalPages - 1);
     }
     return pages;
   };
@@ -189,42 +296,70 @@ export default function PostFeed() {
               <Sparkles className="w-5 h-5 text-cream-50" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-navy dark:text-cream tracking-tight">
+              <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
                 Your Feed
               </h1>
-              {!isLoading && pagination && (
+              {!currentLoading && (
                 <p className="text-[11px] text-steel dark:text-sky/60 tabular-nums">
-                  {pagination.totalElements} posts
-                  {pagination.totalPages > 1 &&
-                    ` · Page ${pagination.currentPage + 1} of ${pagination.totalPages}`}
+                  {totalElements} posts
+                  {totalPages > 1 &&
+                    ` · Page ${currentPage + 1} of ${totalPages}`}
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Search & filter bar — compact inline */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/50 dark:text-sky/40" />
-            <Input
-              type="text"
-              value={stagedFilters.q || ""}
-              onChange={(e) => handleQueryChange(e.target.value)}
-              placeholder="Search posts..."
-              className="pl-10 h-9 text-sm bg-cream-50/60 dark:bg-navy-700/30 border-cream-300/40 dark:border-navy-700/40 rounded-xl"
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsFilterSheetOpen(true)}
-            className="h-9 rounded-xl border-cream-300/40 dark:border-navy-700/40"
+        {/* Mode toggle tabs */}
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => handleModeSwitch("suggestions")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all cursor-pointer ${
+              feedMode === "suggestions"
+                ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
+                : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+            }`}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
-            Filters
-          </Button>
+            <Sparkles className="w-3.5 h-3.5" />
+            For You
+          </button>
+          <button
+            onClick={() => handleModeSwitch("search")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all cursor-pointer ${
+              feedMode === "search"
+                ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
+                : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+            }`}
+          >
+            <Search className="w-3.5 h-3.5" />
+            Search
+          </button>
         </div>
+
+        {/* Search & filter bar — only visible in search mode */}
+        {feedMode === "search" && (
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/50 dark:text-sky/40" />
+              <Input
+                type="text"
+                value={stagedFilters.q || ""}
+                onChange={(e) => handleQueryChange(e.target.value)}
+                placeholder="Search posts..."
+                className="pl-10 h-9 text-sm bg-cream-50/60 dark:bg-navy-700/30 border-cream-300/40 dark:border-navy-700/40 rounded-xl"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFilterSheetOpen(true)}
+              className="h-9 rounded-xl border-cream-300/40 dark:border-navy-700/40"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+              Filters
+            </Button>
+          </div>
+        )}
 
         {/* Gradient divider */}
         <div className="mt-5 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
@@ -241,23 +376,34 @@ export default function PostFeed() {
         onClear={clearFilters}
       />
 
-      {/* ── Content Grid ── */}
-      <PostFeedGrid
-        isLoading={isLoading}
-        error={error}
-        posts={posts}
-        accessToken={accessToken}
-        onPostDeleted={() => handlePostDeleted()}
-        onRetry={() => fetchFeed(activeFilters)}
-      />
+      {/* ── Content ── */}
+      {feedMode === "suggestions" ? (
+        <PostFeedGrid
+          isLoading={suggestionsLoading}
+          error={null}
+          posts={suggestionsData}
+          accessToken={accessToken}
+          onPostDeleted={() => handlePostDeleted()}
+          onRetry={() => fetchSuggestions(suggestionsPage)}
+        />
+      ) : (
+        <PostFeedGrid
+          isLoading={isLoading}
+          error={error}
+          posts={posts}
+          accessToken={accessToken}
+          onPostDeleted={() => handlePostDeleted()}
+          onRetry={() => fetchFeed(activeFilters)}
+        />
+      )}
 
       {/* ── Pagination ── */}
-      {!isLoading && pagination && pagination.totalPages > 1 && (
+      {!currentLoading && totalPages > 1 && (
         <div className="mt-8 flex items-center justify-center gap-1.5">
           {/* Previous */}
           <button
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.isFirst}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={isFirst}
             className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -277,7 +423,7 @@ export default function PostFeed() {
                 key={page}
                 onClick={() => handlePageChange(page as number)}
                 className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  pagination.currentPage === page
+                  currentPage === page
                     ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
                     : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
                 }`}
@@ -289,22 +435,13 @@ export default function PostFeed() {
 
           {/* Next */}
           <button
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.isLast}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={isLast}
             className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-      )}
-
-      {/* Suggested Posts */}
-      {!isLoading && posts.length > 0 && accessToken && (
-        <ContentSuggestionsSection
-          type="posts"
-          accessToken={accessToken}
-          title="Suggested Posts"
-        />
       )}
     </div>
   );
