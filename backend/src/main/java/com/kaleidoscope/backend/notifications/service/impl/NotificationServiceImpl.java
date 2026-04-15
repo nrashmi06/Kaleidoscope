@@ -60,6 +60,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         String redisKey = String.format(UNREAD_COUNT_KEY_PATTERN, userId);
         Long count = null;
+        Long dbCount;
 
         try {
             // Try fetching count from Redis first
@@ -76,17 +77,26 @@ public class NotificationServiceImpl implements NotificationService {
 
             // If not found in Redis or parse error, query database
             if (count == null) {
-                count = notificationRepository.countByRecipientUserUserIdAndIsReadFalse(userId);
+                dbCount = notificationRepository.countByRecipientUserUserIdAndIsReadFalse(userId);
+                count = dbCount;
                 log.debug("Queried database for unread count for userId: {}, count: {}", userId, count);
 
-                // Cache the count in Redis with TTL
-                try {
-                    stringRedisTemplate.opsForValue().set(redisKey, count.toString(), REDIS_TTL_HOURS, TimeUnit.HOURS);
-                    log.debug("Cached unread count in Redis for userId: {} with TTL of {} hours", userId, REDIS_TTL_HOURS);
-                } catch (Exception e) {
-                    log.error("Failed to cache count in Redis for userId: {}", userId, e);
-                    // Continue without caching - not critical
+                // If found in Redis, reconcile stale cache values after DB resets/manual cleanup.
+            } else {
+                dbCount = notificationRepository.countByRecipientUserUserIdAndIsReadFalse(userId);
+                if (!count.equals(dbCount)) {
+                    log.warn("Unread count cache mismatch for userId: {}. Redis={}, DB={}. Healing cache.", userId, count, dbCount);
+                    count = dbCount;
                 }
+            }
+
+            // Cache the count in Redis with TTL
+            try {
+                stringRedisTemplate.opsForValue().set(redisKey, count.toString(), REDIS_TTL_HOURS, TimeUnit.HOURS);
+                log.debug("Cached unread count in Redis for userId: {} with TTL of {} hours", userId, REDIS_TTL_HOURS);
+            } catch (Exception e) {
+                log.error("Failed to cache count in Redis for userId: {}", userId, e);
+                // Continue without caching - not critical
             }
 
             return count;
@@ -149,15 +159,13 @@ public class NotificationServiceImpl implements NotificationService {
         int updatedCount = notificationRepository.markAllAsReadForUser(userId);
         log.info("Marked {} notifications as read for userId: {}", updatedCount, userId);
 
-        if (updatedCount > 0) {
-            // Reset unread count in Redis
-            String countKey = String.format(UNREAD_COUNT_KEY_PATTERN, userId);
-            stringRedisTemplate.opsForValue().set(countKey, "0", REDIS_TTL_HOURS, TimeUnit.HOURS);
+        // Always reset Redis count, even when DB updated 0 rows, to heal stale cache after manual DB cleanup.
+        String countKey = String.format(UNREAD_COUNT_KEY_PATTERN, userId);
+        stringRedisTemplate.opsForValue().set(countKey, "0", REDIS_TTL_HOURS, TimeUnit.HOURS);
 
-            // Send SSE update
-            notificationSseService.sendCountUpdate(userId, 0L);
-            log.debug("Reset unread count to 0 for userId: {}", userId);
-        }
+        // Send SSE update
+        notificationSseService.sendCountUpdate(userId, 0L);
+        log.debug("Reset unread count to 0 for userId: {}", userId);
 
         return updatedCount;
     }

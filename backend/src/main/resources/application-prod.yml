@@ -19,14 +19,12 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      # Non-destructive mode for ongoing deploys.
-      ddl-auto: create
+      # In production, avoid destructive schema changes at app startup.
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         show_sql: false
         format_sql: false
-        hbm2ddl:
-          auto: create
 
 # Logstash Configuration (Production only)
 # These are used by logback-spring.xml if configured there,

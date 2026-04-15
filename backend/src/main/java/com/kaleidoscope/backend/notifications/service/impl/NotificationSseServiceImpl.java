@@ -152,19 +152,25 @@ public class NotificationSseServiceImpl implements NotificationSseService {
                 log.debug("[SSE] No cached count found in Redis for userId: {}, querying database", userId);
             }
 
-            // If not found in Redis or parse error, query database
-            if (count == null) {
-                count = notificationRepository.countByRecipientUserUserIdAndIsReadFalse(userId);
-                log.info("[SSE] Queried database for unread count for userId: {}, count: {}", userId, count);
+            // Always reconcile with DB to avoid stale Redis counts (e.g., manual DB truncation/reset).
+            Long dbCount = notificationRepository.countByRecipientUserUserIdAndIsReadFalse(userId);
 
-                // Cache the count in Redis with TTL
-                try {
-                    stringRedisTemplate.opsForValue().set(redisKey, count.toString(), REDIS_TTL_HOURS, TimeUnit.HOURS);
-                    log.debug("[SSE] Cached unread count in Redis for userId: {} with TTL of {} hours", userId, REDIS_TTL_HOURS);
-                } catch (Exception e) {
-                    log.error("[SSE] Failed to cache count in Redis for userId: {} - {}", userId, e.getMessage());
-                    // Continue without caching - not critical
-                }
+            // If not found in Redis or parse error, use database result
+            if (count == null) {
+                count = dbCount;
+                log.info("[SSE] Queried database for unread count for userId: {}, count: {}", userId, count);
+            } else if (!count.equals(dbCount)) {
+                log.warn("[SSE] Unread count cache mismatch for userId: {}. Redis={}, DB={}. Sending DB value.", userId, count, dbCount);
+                count = dbCount;
+            }
+
+            // Cache the reconciled count in Redis with TTL.
+            try {
+                stringRedisTemplate.opsForValue().set(redisKey, count.toString(), REDIS_TTL_HOURS, TimeUnit.HOURS);
+                log.debug("[SSE] Cached unread count in Redis for userId: {} with TTL of {} hours", userId, REDIS_TTL_HOURS);
+            } catch (Exception e) {
+                log.error("[SSE] Failed to cache count in Redis for userId: {} - {}", userId, e.getMessage());
+                // Continue without caching - not critical
             }
 
             // Send the count to the client as initial broadcast

@@ -10,6 +10,7 @@ import com.kaleidoscope.backend.async.service.PostAggregationTriggerService;
 import com.kaleidoscope.backend.async.service.PostProcessingStatusService;
 import com.kaleidoscope.backend.async.service.ReadModelUpdateService;
 import com.kaleidoscope.backend.posts.document.PostDocument;
+import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
 import com.kaleidoscope.backend.posts.document.SearchAssetDocument;
 import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
@@ -21,6 +22,7 @@ import com.kaleidoscope.backend.posts.repository.PostMediaRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
 import com.kaleidoscope.backend.posts.repository.search.SearchAssetSearchRepository;
+import com.kaleidoscope.backend.posts.repository.search.MediaSearchRepository;
 import com.kaleidoscope.backend.users.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +61,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     private final PostRepository postRepository; // Need this to get media IDs
     private final PostSearchRepository postSearchRepository;
     private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
+    private final MediaSearchRepository mediaSearchRepository;
 
     @Override
     @Transactional
@@ -130,6 +133,10 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             // 1. Update the new 'read_model_media_search' table
             // This runs in a new transaction
             readModelUpdateService.updateMediaSearchReadModel(savedInsights, postMedia);
+
+            // Java owns media_search indexing; persist document directly after ML completion.
+            mediaSearchRepository.save(toMediaSearchDocument(postMedia, savedInsights));
+            log.info("Indexed media_search document for mediaId: {}", postMedia.getMediaId());
 
             // 1b. Update the 'read_model_recommendations_knn' backup table
             readModelUpdateService.updateRecommendationsKnnReadModel(savedInsights, postMedia);
@@ -408,6 +415,46 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    private MediaSearchDocument toMediaSearchDocument(PostMedia postMedia, MediaAiInsights insights) {
+        Post post = postMedia.getPost();
+        User user = post.getUser();
+
+        MediaSearchDocument.PostInfo postInfo = MediaSearchDocument.PostInfo.builder()
+                .title(post.getTitle())
+                .visibility(post.getVisibility() != null ? post.getVisibility().name() : null)
+                .categories(post.getCategories() != null
+                        ? post.getCategories().stream()
+                                .filter(pc -> pc != null && pc.getCategory() != null && pc.getCategory().getName() != null)
+                                .map(pc -> pc.getCategory().getName())
+                                .collect(Collectors.toList())
+                        : List.of())
+                .build();
+
+        MediaSearchDocument.UploaderInfo uploaderInfo = MediaSearchDocument.UploaderInfo.builder()
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .build();
+
+        return MediaSearchDocument.builder()
+                .id(String.valueOf(postMedia.getMediaId()))
+                .mediaId(postMedia.getMediaId())
+                .postId(post.getPostId())
+                .mediaUrl(postMedia.getMediaUrl())
+                .mediaType(postMedia.getMediaType() != null ? postMedia.getMediaType().name() : null)
+                .aiStatus(insights.getStatus() != null ? insights.getStatus().name() : null)
+                .isSafe(insights.getIsSafe())
+                .aiCaption(insights.getCaption())
+                .aiTags(insights.getTags() != null ? Arrays.asList(insights.getTags()) : List.of())
+                .scenes(insights.getScenes() != null ? Arrays.asList(insights.getScenes()) : List.of())
+                .detectedFaceCount(mediaDetectedFaceRepository.findByMediaAiInsights_MediaId(postMedia.getMediaId()).size())
+                .postInfo(postInfo)
+                .uploaderInfo(uploaderInfo)
+                .reactionCount(0L)
+                .commentCount(0L)
+                .createdAt(post.getCreatedAt())
+                .build();
     }
 
     private void syncPostDocumentMlFields(Long postId) {

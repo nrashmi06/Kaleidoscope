@@ -93,7 +93,7 @@ springdoc:
   show-actuator: false
 
 allowed:
-  origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+  origins: ${ALLOWED_ORIGINS:https://project-kaleidoscope.tech,https://www.project-kaleidoscope.tech,http://localhost:3000,http://localhost:8080}
 
 jwt:
   secret: ${JWT_SECRET}
