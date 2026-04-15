@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { Eye, Heart, MessageCircle, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import { useRouter } from "next/navigation";
 import type { BlogAuthor, CategorySummary } from "@/lib/types/blogFilter.types";
 
@@ -33,7 +34,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 }) => {
   const router = useRouter();
   const timeAgo = createdAt
-    ? formatDistanceToNow(new Date(createdAt), { addSuffix: true })
+    ? formatDistanceToNow(parseUTC(createdAt), { addSuffix: true })
     : null;
 
   return (

@@ -8,6 +8,7 @@ import { addBlogCommentController } from "@/controllers/blogInteractionControlle
 import { deleteBlogCommentController } from "@/controllers/blogInteractionController/deleteBlogCommentController";
 import { CommentsListResponse, CommentItem as CommentType } from "@/lib/types/comment";
 import { useAccessToken } from "@/hooks/useAccessToken";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import { useUserData } from "@/hooks/useUserData";
 import CommentInput from "@/components/feed/socialMediaPostCardComponents/comments/CommentInput";
 import CommentSkeleton from "@/components/loading/CommentSkeleton";
@@ -224,7 +225,7 @@ function BlogCommentItem({
             >
               {comment.author.username}
             </div>
-            <time className="text-xs text-steel/50 dark:text-sky/40">{new Date(comment.createdAt).toLocaleString()}</time>
+            <time className="text-xs text-steel/50 dark:text-sky/40">{parseUTC(comment.createdAt).toLocaleString()}</time>
           </div>
           {isAuthor && (
             <div className="relative">

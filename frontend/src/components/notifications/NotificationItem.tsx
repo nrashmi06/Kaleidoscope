@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import { useAppDispatch } from "@/hooks/appDispatch";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { setCount } from "@/store/notificationSlice";
@@ -157,7 +158,7 @@ export default function NotificationItem({
                 {item.message}
               </p>
               <span className="text-[11px] text-steel/50 dark:text-sky/40">
-                {new Date(item.createdAt).toLocaleString(undefined, {
+                {parseUTC(item.createdAt).toLocaleString(undefined, {
                   month: "short",
                   day: "numeric",
                   hour: "2-digit",

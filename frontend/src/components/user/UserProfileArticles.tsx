@@ -6,6 +6,7 @@ import { filterBlogsController } from "@/controllers/blog/blogFilter.controller"
 import type { BlogItem } from "@/lib/types/blogFilter.types";
 import { Book, Eye, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { parseUTC } from "@/lib/utils/parseUTC";
 
 interface UserProfileArticlesProps {
   userId: number;
@@ -131,7 +132,7 @@ export function UserProfileArticles({
                 )}
                 <div className="flex items-center gap-3 mt-1.5 text-[11px] text-navy/40 dark:text-cream/30">
                   <span>
-                    {formatDistanceToNow(new Date(article.createdAt), { addSuffix: true })}
+                    {formatDistanceToNow(parseUTC(article.createdAt), { addSuffix: true })}
                   </span>
                   {article.categories.map((cat) => (
                     <span key={cat.categoryId}>{cat.name}</span>

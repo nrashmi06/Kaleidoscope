@@ -32,7 +32,7 @@ export interface BlogDetailResponse {
   media: MediaResponse[];
   location?: LocationResponse;
   blogTags: BlogTagSummary[];
-  tags: string[];
+  tags: BlogTagSummary[];
   reactionCount: number;
   commentCount: number;
   viewCount: number;
@@ -46,15 +46,15 @@ export interface BlogUpdateRequest {
   body?: string;
   summary?: string;
   mediaDetails?: {
-    mediaId: number;
+    mediaId?: number | null;
     url: string;
     mediaType: string;
     position: number;
-    width: number;
-    height: number;
-    fileSizeKb: number;
+    width?: number;
+    height?: number;
+    fileSizeKb?: number;
     durationSeconds?: number | null;
-    extraMetadata: Record<string, string>;
+    extraMetadata?: Record<string, unknown>;
   }[];
   locationId?: number;
   categoryIds?: number[];

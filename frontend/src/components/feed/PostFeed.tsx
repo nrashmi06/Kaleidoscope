@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getPostsController } from "@/controllers/postController/getPostsController";
@@ -107,7 +108,7 @@ export default function PostFeed() {
             title: item.title,
             summary: item.summary || "",
             visibility: item.visibility || "PUBLIC",
-            createdAt: new Date(item.createdAt),
+            createdAt: parseUTC(item.createdAt),
             formattedCreatedAt: "",
             author: {
               userId: item.author.userId,
