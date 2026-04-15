@@ -40,8 +40,8 @@ export function BlogSaveButton({ blogId }: BlogSaveButtonProps) {
       disabled={isPending}
       className={`p-2 rounded-lg transition-all duration-200 ${
         isSaved
-          ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400"
-          : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-400"
+          ? "text-steel bg-steel/10 dark:bg-sky/15 dark:text-sky"
+          : "text-steel/50 hover:bg-cream-300/30 dark:hover:bg-navy-700/40 dark:text-sky/40"
       }`}
       aria-label={isSaved ? "Unsave article" : "Save article"}
     >

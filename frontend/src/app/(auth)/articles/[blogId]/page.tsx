@@ -256,7 +256,7 @@ export default function BlogDetailPage() {
                         : blog.blogStatus === "REJECTED"
                         ? "bg-red-500/20 text-red-300"
                         : blog.blogStatus === "ARCHIVED"
-                        ? "bg-gray-500/20 text-gray-300"
+                        ? "bg-steel/20 text-steel-300"
                         : "bg-amber-500/20 text-amber-300"
                     }`}
                   >

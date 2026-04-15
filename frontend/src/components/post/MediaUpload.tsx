@@ -171,30 +171,30 @@ export default function MediaUpload({
       {/* --- Modern Dropzone --- */}
       <label
         htmlFor="file-upload"
-        className={`flex flex-col items-center justify-center w-full p-8 py-10 border-2 border-dashed rounded-lg transition-colors
+        className={`flex flex-col items-center justify-center w-full p-8 py-10 border-2 border-dashed rounded-xl transition-colors
         ${
           uploading
-            ? "border-gray-300 bg-gray-50 dark:border-neutral-700 dark:bg-neutral-800/50"
-            : "border-gray-400 dark:border-neutral-600 cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:border-blue-500 dark:hover:bg-neutral-800"
+            ? "border-cream-300/40 bg-cream-50/50 dark:border-navy-700/40 dark:bg-navy-700/30"
+            : "border-cream-400 dark:border-navy-600 cursor-pointer hover:border-steel/50 hover:bg-steel/5 dark:hover:border-sky/40 dark:hover:bg-sky/5"
         }`}
       >
         {uploading ? (
           <>
-            <Loader2 className="w-8 h-8 mb-3 text-blue-500 animate-spin" />
-            <span className="font-medium text-gray-700 dark:text-gray-300">
+            <Loader2 className="w-8 h-8 mb-3 text-steel dark:text-sky animate-spin" />
+            <span className="font-medium text-navy dark:text-cream">
               Uploading files...
             </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-steel/60 dark:text-sky/50">
               Please wait.
             </span>
           </>
         ) : (
           <>
-            <UploadCloud className="w-8 h-8 mb-3 text-gray-500 dark:text-gray-400" />
-            <span className="font-medium text-gray-700 dark:text-gray-300">
+            <UploadCloud className="w-8 h-8 mb-3 text-steel/50 dark:text-sky/40" />
+            <span className="font-medium text-navy dark:text-cream">
               Click to upload or drag and drop
             </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-steel/60 dark:text-sky/50">
               PNG, JPG or JPEG
             </span>
           </>
@@ -204,14 +204,14 @@ export default function MediaUpload({
       {/* --- Preview Grid --- */}
       {mediaPreview.length > 0 && (
         <div className="mt-4">
-          <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">
+          <h4 className="text-sm font-medium text-navy dark:text-cream mb-3">
             Previews
           </h4>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {mediaPreview.map((src, i) => (
               <div
                 key={i} // Note: Using index as key is okay here because the list is append-only
-                className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-700"
+                className="relative group aspect-square rounded-xl overflow-hidden border border-cream-300/40 dark:border-navy-700/40"
               >
                 {/* Check if it's a video or image for preview */}
                 {src.startsWith("data:image") ? (
@@ -232,8 +232,8 @@ export default function MediaUpload({
                   />
                 ) : (
                   // Fallback for unknown types
-                  <div className="w-full h-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center">
-                    <FileImage className="w-6 h-6 text-gray-400" />
+                  <div className="w-full h-full bg-cream-300/30 dark:bg-navy-700/40 flex items-center justify-center">
+                    <FileImage className="w-6 h-6 text-steel/40 dark:text-sky/30" />
                   </div>
                 )}
 
@@ -242,7 +242,7 @@ export default function MediaUpload({
                   type="button"
                   onClick={() => handleRemoveMedia(i)} // Pass index to handler
                   disabled={uploading}
-                  className="absolute top-1.5 right-1.5 z-10 p-0.5 bg-red-600 hover:bg-red-700 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all shadow-md disabled:opacity-50 disabled:pointer-events-none"
+                  className="absolute top-1.5 right-1.5 z-10 p-0.5 bg-red-600 hover:bg-red-700 rounded-full text-cream-50 opacity-0 group-hover:opacity-100 transition-all shadow-md disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                   aria-label="Remove media"
                 >
                   <X className="w-3.5 h-3.5" />
