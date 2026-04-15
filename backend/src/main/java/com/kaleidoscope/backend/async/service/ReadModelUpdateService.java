@@ -66,7 +66,7 @@ public class ReadModelUpdateService {
                 readModel.setAiScenes(String.join(",", insights.getScenes()));
             }
 
-            readModel.setImageEmbedding(convertEmbeddingToString(insights.getImageEmbedding()));
+            readModel.setImageEmbedding(insights.getImageEmbedding());
             readModel.setIsSafe(insights.getIsSafe());
 
             // detected_user_ids/usernames are updated by the FaceDetection consumer
@@ -101,12 +101,13 @@ public class ReadModelUpdateService {
     public void updateRecommendationsKnnReadModel(MediaAiInsights insights, PostMedia postMedia) {
         log.debug("Updating RecommendationsKnnReadModel for mediaId: {}", postMedia.getMediaId());
         try {
-            if (insights.getImageEmbedding() != null && insights.getImageEmbedding().length != 1408) {
+            Integer embeddingSize = extractEmbeddingSize(insights.getImageEmbedding());
+            if (embeddingSize != null && embeddingSize != 1408) {
                 log.warn("Unexpected image embedding size {} for mediaId={}, expected 1408",
-                        insights.getImageEmbedding().length, postMedia.getMediaId());
+                        embeddingSize, postMedia.getMediaId());
             }
 
-            String embeddingStr = convertEmbeddingToString(insights.getImageEmbedding());
+            String embeddingStr = insights.getImageEmbedding();
             if (embeddingStr == null) {
                 log.debug("Skipping RecommendationsKnnReadModel for mediaId: {} - no image embedding available yet",
                         postMedia.getMediaId());
@@ -208,21 +209,21 @@ public class ReadModelUpdateService {
         }
     }
 
-    /**
-     * Converts float[] embedding to JSON string format for storage in read models.
-     * PostgreSQL stores as float[], but read models store as String.
-     */
-    private String convertEmbeddingToString(float[] embedding) {
-        if (embedding == null) {
+    private Integer extractEmbeddingSize(String embedding) {
+        if (embedding == null || embedding.isBlank()) {
             return null;
         }
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < embedding.length; i++) {
-            if (i > 0)
-                sb.append(",");
-            sb.append(embedding[i]);
+
+        String trimmed = embedding.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+            return null;
         }
-        sb.append("]");
-        return sb.toString();
+
+        String contents = trimmed.substring(1, trimmed.length() - 1).trim();
+        if (contents.isEmpty()) {
+            return 0;
+        }
+
+        return contents.split(",").length;
     }
 }

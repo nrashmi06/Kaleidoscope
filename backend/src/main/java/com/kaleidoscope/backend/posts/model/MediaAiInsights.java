@@ -55,9 +55,8 @@ public class MediaAiInsights {
     @Column(name = "scenes", columnDefinition = "text[]")
     private String[] scenes;
 
-    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "image_embedding", columnDefinition = "vector(1408)")
-    private float[] imageEmbedding;
+    private String imageEmbedding;
 
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "services_completed", columnDefinition = "text[]")
