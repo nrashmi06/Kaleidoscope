@@ -33,7 +33,9 @@ export const getSseTicketController = async (
       };
     }
   } catch (error) {
-    console.error("[getSseTicketController] Unexpected error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[SSE ticket controller] Error:", error instanceof Error ? error.message : error);
+    }
     return {
       success: false,
       message: "An unexpected error occurred. Please try again.",

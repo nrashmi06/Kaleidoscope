@@ -17,10 +17,9 @@ export const getSseTicketService = async (
   const url = AuthMapper.sseTicket;
 
   try {
-    // ✅ 2. Use 'axiosInstance' here instead of 'axios.post'
     const response = await axiosInstance.post<SseTicketApiResponse>(
       url,
-      {}, // Empty body for a POST request
+      {},
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -30,9 +29,14 @@ export const getSseTicketService = async (
     );
     return response.data;
   } catch (error) {
-    console.error("[getSseTicketService] Error:", error);
+    // Quiet log — SSE ticket failures are non-critical and retried automatically
+    if (process.env.NODE_ENV !== "production") {
+      const msg = isAxiosError(error)
+        ? `${(error as AxiosError).response?.status ?? "network"} — ${(error as AxiosError).message}`
+        : (error instanceof Error ? error.message : "Unknown error");
+      console.debug("[SSE ticket] Could not obtain ticket:", msg);
+    }
 
-    // ✅ 3. The 'isAxiosError' check is still correct
     if (isAxiosError(error)) {
       const axiosError = error as AxiosError<SseTicketApiResponse>;
       if (axiosError.response?.data) {
@@ -42,7 +46,7 @@ export const getSseTicketService = async (
 
     return {
       success: false,
-      message: "Failed to obtain SSE ticket. Please try again.",
+      message: "Failed to obtain SSE ticket.",
       data: null,
       errors: [error instanceof Error ? error.message : "Unknown error"],
       timestamp: Date.now(),

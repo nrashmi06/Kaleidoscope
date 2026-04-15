@@ -204,6 +204,10 @@ export default function PostFeed() {
   const applyFilters = () => {
     setActiveFilters({ ...stagedFilters, page: 0 });
     setIsFilterSheetOpen(false);
+    // Switch to search mode when filters are applied
+    if (feedMode === "suggestions") {
+      setFeedMode("search");
+    }
   };
 
   const clearFilters = () => {
@@ -332,15 +336,14 @@ export default function PostFeed() {
           </div>
         </motion.div>
 
-        {/* Search bar — slides in when search mode active */}
-        {feedMode === "search" && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mt-4 flex items-center gap-3 max-w-lg"
-          >
+        {/* Search bar + Filters — always visible */}
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.3 }}
+          className="mt-4 flex items-center gap-3 max-w-lg"
+        >
+          {feedMode === "search" && (
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/40 dark:text-sky/30" />
               <Input
@@ -351,15 +354,15 @@ export default function PostFeed() {
                 className="pl-10 h-10 text-sm bg-cream-300/30 dark:bg-navy-700/30 border-0 rounded-xl placeholder:text-steel/40 dark:placeholder:text-sky/25 focus-visible:ring-2 focus-visible:ring-steel/20 dark:focus-visible:ring-sky/20"
               />
             </div>
-            <button
-              onClick={() => setIsFilterSheetOpen(true)}
-              className="flex items-center gap-1.5 h-10 px-4 text-[13px] font-medium text-navy/60 dark:text-cream/60 hover:text-navy dark:hover:text-cream bg-cream-300/30 dark:bg-navy-700/30 rounded-xl transition-colors cursor-pointer"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Filters
-            </button>
-          </motion.div>
-        )}
+          )}
+          <button
+            onClick={() => setIsFilterSheetOpen(true)}
+            className="flex items-center gap-1.5 h-10 px-4 text-[13px] font-medium text-navy/60 dark:text-cream/60 hover:text-navy dark:hover:text-cream bg-cream-300/30 dark:bg-navy-700/30 rounded-xl transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Filters
+          </button>
+        </motion.div>
       </div>
 
       {/* Filter Modal */}

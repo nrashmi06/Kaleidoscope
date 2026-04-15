@@ -42,8 +42,9 @@ export function startNotificationStream(dispatch: AppDispatch, token: string | n
     //   baseReconnectDelay * Math.pow(2, reconnectAttempts) + (Math.random() * 100000)
     // );
 
-    // ✅ 3. Use the fixed 10-minute delay and update the log message
-    console.warn(`[SSE Controller] Connection lost. Reconnecting in 10 minutes... (Attempt ${reconnectAttempts})`);
+    if (process.env.NODE_ENV !== "production") {
+      console.debug(`[SSE] Reconnecting in 10 min (attempt ${reconnectAttempts})`);
+    }
 
     reconnectTimer = window.setTimeout(() => {
       reconnectTimer = 0;

@@ -9,8 +9,7 @@ import { createBlogController } from "@/controllers/blog/createBlogController";
 import { updateBlogController } from "@/controllers/blog/updateBlogController";
 import { BlogRequest, BlogDataResponse } from "@/lib/types/createBlog";
 import { useAccessToken } from "@/hooks/useAccessToken"; 
-import { cn } from "@/lib/utils"; 
-import { Loader2, Zap, Link, Image as ImageIcon } from "lucide-react"; 
+import { Loader2, Link, Image as ImageIcon } from "lucide-react";
 import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
 import TitleInput from "@/components/post/TitleInput"; 
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
@@ -163,131 +162,116 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
   };
 
   return (
-    <form 
-        onSubmit={onSubmit}
-        className="max-w-4xl mx-auto p-6 md:p-8 rounded-xl bg-cream-50 dark:bg-navy-800 shadow-lg border border-cream-300/40 dark:border-navy-700/40 transition-colors"
-    >
-      <h2 className="text-3xl font-display font-bold mb-6 text-navy dark:text-cream flex items-center gap-3">
-        <Zap className="w-6 h-6 text-steel dark:text-sky" /> {isEditMode ? "Edit Article" : "New Article"}
-      </h2>
-
+    <form onSubmit={onSubmit} className="max-w-4xl mx-auto space-y-6">
       {/* --- TITLE --- */}
       <TitleInput
         value={formData.title}
         onChange={(value) => handleEnhancedInputChange('title', value)}
       />
-      
+
       {/* --- BODY CONTENT --- */}
-      <div className="mt-6">
-        <EnhancedBodyInput
-          inputType="body"
-          value={formData.body}
-          onChange={(value) => handleEnhancedInputChange('body', value)}
-          accessToken={accessToken}
-          placeholder="Write your article body content here... Use # to add hashtags, **bold text**, *italic text*"
-          minRows={10}
-          maxLength={50000}
-        />
-      </div>
+      <EnhancedBodyInput
+        inputType="body"
+        value={formData.body}
+        onChange={(value) => handleEnhancedInputChange('body', value)}
+        accessToken={accessToken}
+        placeholder="Write your article body content here... Use # to add hashtags, **bold text**, *italic text*"
+        minRows={10}
+        maxLength={50000}
+      />
 
       {/* --- SUMMARY --- */}
-      <div className="mt-6">
-        <EnhancedBodyInput
-          inputType="summary"
-          value={formData.summary}
-          onChange={(value) => handleEnhancedInputChange('summary', value)}
-          accessToken={accessToken}
-          placeholder="A short summary for previews (max 500 characters)"
-          minRows={4}
-          maxLength={500}
-        />
-      </div>
+      <EnhancedBodyInput
+        inputType="summary"
+        value={formData.summary}
+        onChange={(value) => handleEnhancedInputChange('summary', value)}
+        accessToken={accessToken}
+        placeholder="A short summary for previews (max 500 characters)"
+        minRows={4}
+        maxLength={500}
+      />
 
-      {/* ✅ LINKED BLOG SEARCH & SELECT (Passing the array of IDs) */}
-      <div className="mt-6 p-6 bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 shadow-sm">
+      {/* LINKED BLOG SEARCH & SELECT */}
+      <div className="p-6 bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 shadow-sm">
         <label className="block text-sm font-semibold text-navy dark:text-cream mb-2 flex items-center gap-2">
-            <Link className="w-4 h-4 text-steel dark:text-sky" /> Link Related Blog(s) (Optional)
+            <Link className="w-4 h-4 text-navy/50 dark:text-cream/50" /> Link Related Article(s) (Optional)
         </label>
         <LinkedBlogSearch
             onBlogSelect={handleLinkedBlogSelect}
-            selectedBlogIds={formData.blogTagIds} // Pass the array
+            selectedBlogIds={formData.blogTagIds}
         />
-        <p className="text-xs text-steel/50 dark:text-sky/40 mt-3">
-            Search for and link related published blog posts.
-            Total linked IDs: <span className="font-medium text-navy dark:text-cream">{formData.blogTagIds.length}</span>
+        <p className="text-xs text-navy/40 dark:text-cream/35 mt-3">
+            Search for and link related published articles.
+            Total linked: <span className="font-medium text-navy dark:text-cream">{formData.blogTagIds.length}</span>
         </p>
       </div>
 
-      {/* --- 1. LOCATION SEARCH --- */}
-      <div className="mt-6">
-        <LocationSearch
-          selectedLocation={selectedLocation}
-          onLocationSelect={setSelectedLocation}
-        />
-      </div>
-      
-      {/* --- 2. CATEGORY SELECT --- */}
-      <div className="mt-6">
-        <CategoriesSelect
-          categories={categories}
-          selectedIds={formData.categoryIds}
-          onToggle={(id) =>
-            setFormData(prev => ({
-              ...prev,
-              categoryIds: prev.categoryIds.includes(id)
-                ? prev.categoryIds.filter((c) => c !== id)
-                : [...prev.categoryIds, id],
-            }))
-          }
-        />
-      </div>
-      
-      {/* --- 3. MEDIA UPLOAD --- */}
-      <section className="space-y-6 mt-6">
-        <p className="font-bold mb-3 text-navy dark:text-cream flex items-center gap-2">
+      {/* --- LOCATION SEARCH --- */}
+      <LocationSearch
+        selectedLocation={selectedLocation}
+        onLocationSelect={setSelectedLocation}
+      />
+
+      {/* --- CATEGORY SELECT --- */}
+      <CategoriesSelect
+        categories={categories}
+        selectedIds={formData.categoryIds}
+        onToggle={(id) =>
+          setFormData(prev => ({
+            ...prev,
+            categoryIds: prev.categoryIds.includes(id)
+              ? prev.categoryIds.filter((c) => c !== id)
+              : [...prev.categoryIds, id],
+          }))
+        }
+      />
+
+      {/* --- MEDIA UPLOAD --- */}
+      <div className="p-6 rounded-xl border border-cream-300/40 dark:border-navy-700/40 bg-cream-50 dark:bg-navy-700/50 shadow-sm">
+        <p className="font-bold mb-4 text-navy dark:text-cream flex items-center gap-2">
           <ImageIcon className="w-4 h-4" /> Media Details
         </p>
-        <div className="p-6 rounded-xl border border-cream-300/40 dark:border-navy-700/40 bg-cream-50/60 dark:bg-navy-700/30">
-          <BlogMediaUpload 
-            accessToken={accessToken}
-            formData={formData}
-            setFormData={setFormData}
-          />
-        </div>
-      </section>
-      
-      {/* Feedback Messages... */}
+        <BlogMediaUpload
+          accessToken={accessToken}
+          formData={formData}
+          setFormData={setFormData}
+        />
+      </div>
+
+      {/* Feedback Messages */}
       {error && (
-        <div className="mt-4 p-4 rounded-lg border border-red-400 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center gap-2">
-            <span>⚠️</span>
+        <div className="p-4 rounded-2xl border border-red-200/60 dark:border-red-900/30 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 flex items-center gap-2">
             <p className="font-medium text-sm">{error}</p>
         </div>
       )}
       {message && (
-        <div className="mt-4 p-4 rounded-lg border border-green-400 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center gap-2">
-            <span>✅</span>
+        <div className="p-4 rounded-2xl border border-green-200/60 dark:border-green-900/30 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 flex items-center gap-2">
             <p className="font-medium text-sm">{message}</p>
         </div>
       )}
 
-      {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={loading}
-        className={cn(
-            "w-full px-6 py-3 font-bold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 mt-6",
-            loading
-              ? "opacity-50 cursor-not-allowed bg-steel dark:bg-sky text-cream-50 dark:text-navy"
-              : "bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 text-cream-50 dark:text-navy shadow-steel/20 dark:shadow-sky/15"
-        )}
-      >
-        {loading ? (
-          <div className="flex items-center justify-center">
-            <Loader2 className="animate-spin w-5 h-5 mr-2" />
-            <span>{isEditMode ? "Updating..." : "Creating..."}</span>
-          </div>
-        ) : isEditMode ? 'Update Article' : 'Create Blog'}
-      </button>
+      {/* Action Buttons */}
+      <div className="flex gap-3 pt-2">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex-1 h-12 rounded-full text-[15px] font-bold text-navy/70 dark:text-cream/60 bg-cream-300/40 dark:bg-navy-700/40 hover:bg-cream-300/60 dark:hover:bg-navy-700/60 active:scale-[0.98] transition-all cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex-[2] h-12 rounded-full text-[15px] font-bold text-cream-50 dark:text-navy bg-navy dark:bg-cream hover:bg-navy/90 dark:hover:bg-cream/90 active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="animate-spin w-5 h-5 mr-2" />
+              <span>{isEditMode ? "Updating..." : "Creating..."}</span>
+            </div>
+          ) : isEditMode ? 'Update Article' : 'Create Article'}
+        </button>
+      </div>
     </form>
   );
 };

@@ -27,8 +27,8 @@ export default function CategoriesSelect({ categories, selectedIds, onToggle }: 
               onClick={() => onToggle(cat.categoryId)}
               className={`px-3 py-1 rounded-full border transition-all cursor-pointer ${
                 selected
-                  ? "bg-steel text-cream-50 border-steel dark:bg-sky dark:text-navy dark:border-sky"
-                  : "bg-cream-300/40 dark:bg-navy-700/40 text-navy dark:text-cream border-cream-300/40 dark:border-navy-700/40 hover:border-steel/30 dark:hover:border-sky/30"
+                  ? "bg-navy text-cream-50 border-navy dark:bg-cream dark:text-navy dark:border-cream shadow-sm"
+                  : "bg-cream-300/40 dark:bg-navy-700/40 text-navy/60 dark:text-cream/50 border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/60 dark:hover:bg-navy-700/60"
               }`}
             >
               {cat.name}

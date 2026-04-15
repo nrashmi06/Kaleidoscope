@@ -23,7 +23,6 @@ import { LocationSearch } from "@/components/post/LocationSearch";
 import CategoriesSelect from "@/components/post/CategoriesSelect";
 import MediaUpload from "@/components/post/MediaUpload";
 import TagUsers from "@/components/post/TagUsers";
-import PostPreview from "@/components/post/PostPreview";
 import Header from "@/components/post/Header";
 import { TaggableUser } from "@/lib/types/usertag"; // <-- Import TaggableUser type
 
@@ -193,23 +192,18 @@ export default function CreatePostPage() {
               })
             }
           />
-          <PostPreview
-            formData={formData}
-            mediaPreviewLength={formData.mediaDetails?.length || 0}
-            selectedLocation={selectedLocation}
-          />
-          <div className="flex gap-4 pt-6">
+          <div className="flex gap-3 pt-6">
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 px-6 py-3 border border-cream-300/40 dark:border-navy-700/40 text-navy dark:text-cream rounded-xl hover:bg-cream-300/30 dark:hover:bg-navy-700/30 transition-colors"
+              className="flex-1 h-12 rounded-full text-[15px] font-bold text-navy/70 dark:text-cream/60 bg-cream-300/40 dark:bg-navy-700/40 hover:bg-cream-300/60 dark:hover:bg-navy-700/60 active:scale-[0.98] transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 disabled:opacity-50 text-cream-50 dark:text-navy rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm shadow-steel/20 dark:shadow-sky/15"
+              className="flex-[2] h-12 rounded-full text-[15px] font-bold text-cream-50 dark:text-navy bg-navy dark:bg-cream hover:bg-navy/90 dark:hover:bg-cream/90 active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
             >
               {loading ? "Creating..." : "Create Post"}
             </button>

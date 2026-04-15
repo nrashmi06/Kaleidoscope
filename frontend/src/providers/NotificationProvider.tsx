@@ -26,9 +26,6 @@ export default function NotificationProvider({ children }: Props) {
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
-      const masked = token ? (token.length > 12 ? `${token.slice(0,6)}...${token.slice(-6)}` : token) : '(none)';
-      console.debug(`[SSE provider] token: ${masked}, interests: ${isUserInterestSelected}, isAdmin: ${isAdmin}, stream active: ${isActive}`);
-      // ✅ 4. Updated debug log
       console.debug(`[SSE provider] token: ${Boolean(token)}, interests: ${isUserInterestSelected}, isAdmin: ${isAdmin}, stream active: ${isActive}`);
     }
   }, [token, isUserInterestSelected, isActive, isAdmin]);

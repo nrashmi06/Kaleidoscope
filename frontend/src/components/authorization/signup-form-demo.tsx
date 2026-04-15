@@ -11,6 +11,61 @@ import type { RegisterFormState } from "@/lib/types/auth";
 import UsernameCheckInput from "../auth/UsernameCheckInput";
 import { X, CheckCircle, Loader2 } from "lucide-react";
 
+/**
+ * Compress an image file to fit within maxSizeKB using canvas.
+ * Returns a new File with reduced dimensions and JPEG compression.
+ */
+function compressImage(file: File, maxSizeKB = 2048, maxDimension = 1024): Promise<File> {
+  return new Promise((resolve, reject) => {
+    // If already small enough, return as-is
+    if (file.size <= maxSizeKB * 1024) {
+      resolve(file);
+      return;
+    }
+
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        const ratio = Math.min(maxDimension / width, maxDimension / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not supported")); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try progressively lower quality until under limit
+      let quality = 0.8;
+      const tryCompress = () => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error("Compression failed")); return; }
+            if (blob.size <= maxSizeKB * 1024 || quality <= 0.3) {
+              resolve(new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
+            } else {
+              quality -= 0.1;
+              tryCompress();
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      tryCompress();
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+    img.src = url;
+  });
+}
+
 export default function SignupForm() {
   const [formState, setFormState] = useState<RegisterFormState>({
     email: "",
@@ -77,9 +132,12 @@ export default function SignupForm() {
     setIsRegistering(true);
 
     try {
+      // Compress profile picture to avoid 413 error (backend limit: 10MB)
+      const compressedPicture = await compressImage(profilePicture, 2048, 1024);
+
       const result = await registerUserWithProfile(
         { email, password, username, designation, summary },
-        profilePicture
+        compressedPicture
       );
 
       if (result.success) {
