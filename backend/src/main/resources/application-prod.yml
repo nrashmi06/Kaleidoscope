@@ -16,6 +16,16 @@ spring:
     username: ${SPRING_ELASTICSEARCH_USERNAME:}
     password: ${SPRING_ELASTICSEARCH_PASSWORD:}
 
+  jpa:
+    hibernate:
+      # Temporary recovery mode: recreate schema on app startup.
+      # Switch this to validate (preferred) or update after bootstrap is complete.
+      ddl-auto: create
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: create
+
 # Logstash Configuration (Production only)
 # This block is *added* in prod and doesn't exist in base
 logstash:
