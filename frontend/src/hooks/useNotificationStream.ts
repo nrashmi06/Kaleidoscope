@@ -27,8 +27,9 @@ export default function useNotificationStream(active = true) {
       return undefined;
     }
 
-    // This call will now be made as long as a token exists.
-    console.info('[Notification] Starting SSE stream' , token);
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[SSE] Starting notification stream");
+    }
     stopRef.current = startNotificationStream(dispatch, token);
 
     return () => {

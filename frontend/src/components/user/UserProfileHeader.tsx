@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Sparkles, ShieldAlert } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { type MappedUserProfile } from "@/lib/types/userProfile";
 import { type UserBlockStatusData } from "@/lib/types/userBlockStatus";
 import FollowButton from "@/components/common/FollowButton";
@@ -28,8 +28,8 @@ export function UserProfileHeader({
 
   return (
     <div className="relative">
-      {/* Cover Photo */}
-      <div className="h-52 w-full bg-cream-300/30 dark:bg-navy-700/60 overflow-hidden relative rounded-2xl">
+      {/* Cover Photo — full bleed with soft gradient overlay */}
+      <div className="h-48 sm:h-56 w-full bg-cream-300/30 dark:bg-navy-700/60 overflow-hidden relative">
         <Image
           src={profile.coverPhotoUrl}
           alt="Cover photo"
@@ -37,36 +37,54 @@ export function UserProfileHeader({
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-navy/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-cream-50/80 dark:to-navy-900/80" />
       </div>
 
-      {/* Profile Info */}
-      <div className="px-6 sm:px-8 pb-6">
-        {/* Avatar & Actions */}
-        <div className="flex justify-between items-end mb-4">
-          {/* Avatar */}
-          <div className="w-28 h-28 -mt-14 rounded-full overflow-hidden border-4 border-cream dark:border-navy-900 shadow-lg relative z-10 bg-cream-300 dark:bg-navy-600 ring-2 ring-steel/10 dark:ring-sky/10">
+      {/* Profile Info — overlapping the cover */}
+      <div className="relative max-w-3xl mx-auto px-6 sm:px-8 -mt-16">
+        <div className="flex flex-col items-center text-center">
+          {/* Avatar — centered, large, Pinterest-style circle */}
+          <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-cream-50 dark:border-navy-900 shadow-xl relative z-10 bg-cream-300 dark:bg-navy-600 ring-2 ring-cream-300/40 dark:ring-navy-700/40">
             <Image
               src={profile.profilePictureUrl}
               alt={profile.username}
-              width={112}
-              height={112}
+              width={128}
+              height={128}
               className="w-full h-full object-cover"
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pb-2">
+          {/* Name */}
+          <h1 className="mt-4 text-2xl sm:text-3xl font-display font-bold text-navy dark:text-cream tracking-tight">
+            {profile.username}
+          </h1>
+
+          {/* Designation */}
+          {profile.designation && (
+            <p className="mt-1 text-sm font-medium text-steel/70 dark:text-sky/50 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5" />
+              {profile.designation}
+            </p>
+          )}
+
+          {/* Bio */}
+          {profile.summary && (
+            <p className="mt-2.5 text-sm text-navy/60 dark:text-cream/50 leading-relaxed max-w-lg">
+              {profile.summary}
+            </p>
+          )}
+
+          {/* Action Buttons — centered, Pinterest pill style */}
+          <div className="mt-5 flex items-center gap-2.5">
             {isOwner ? (
               <button
                 onClick={handleEditProfile}
-                className="px-5 py-2 text-sm font-semibold rounded-xl bg-steel text-cream-50 hover:bg-steel-600 dark:bg-sky dark:text-navy dark:hover:bg-sky/80 transition-all shadow-sm shadow-steel/20 dark:shadow-sky/15 cursor-pointer"
+                className="h-10 px-6 text-sm font-semibold rounded-full bg-cream-300/50 dark:bg-navy-700/50 text-navy dark:text-cream border border-cream-400/30 dark:border-navy-600/30 hover:bg-cream-300/70 dark:hover:bg-navy-700/70 transition-all cursor-pointer"
               >
                 Edit Profile
               </button>
             ) : blockStatus?.isBlockedBy ? (
-              <div className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-cream-300/50 dark:bg-navy-700/50 text-steel/60 dark:text-sky/40 border border-cream-300/40 dark:border-navy-700/40">
-                <ShieldAlert className="w-4 h-4" />
+              <div className="h-10 flex items-center gap-2 px-5 text-sm font-semibold rounded-full bg-cream-300/30 dark:bg-navy-700/30 text-steel/50 dark:text-sky/35 border border-cream-300/40 dark:border-navy-700/40">
                 You are blocked
               </div>
             ) : (
@@ -79,24 +97,6 @@ export function UserProfileHeader({
               </>
             )}
           </div>
-        </div>
-
-        {/* Name & Bio */}
-        <div className="space-y-1">
-          <h1 className="text-2xl font-display font-bold text-navy dark:text-cream flex items-center gap-2">
-            {profile.username}
-            <Sparkles className="w-4 h-4 text-steel dark:text-sky" />
-          </h1>
-          {profile.designation && (
-            <p className="text-sm font-medium text-navy/70 dark:text-cream/70">
-              {profile.designation}
-            </p>
-          )}
-          {profile.summary && (
-            <p className="text-sm text-steel/70 dark:text-sky/50 leading-relaxed max-w-2xl">
-              {profile.summary}
-            </p>
-          )}
         </div>
       </div>
     </div>

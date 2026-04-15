@@ -77,26 +77,25 @@ export function UserProfile({ userId }: UserProfileProps) {
     fetchProfile();
   }, [fetchProfile]);
 
-  // --- Loading ---
+  // --- Loading skeleton (Pinterest-style centered) ---
   if (loading) {
     return (
       <div className="w-full overflow-hidden animate-pulse">
-        <div className="h-52 bg-cream-300/40 dark:bg-navy-700/40 w-full rounded-2xl" />
-        <div className="px-6 sm:px-8 pb-6 -mt-2">
-          <div className="w-28 h-28 -mt-14 rounded-full bg-cream-300/60 dark:bg-navy-600/60 border-4 border-cream dark:border-navy-900 shadow-md" />
-          <div className="pt-4 space-y-3">
-            <div className="h-7 w-2/5 bg-cream-300/50 dark:bg-navy-600/50 rounded-md" />
-            <div className="h-4 w-3/5 bg-cream-300/40 dark:bg-navy-600/40 rounded-md" />
-            <div className="h-3 w-4/5 bg-cream-300/30 dark:bg-navy-600/30 rounded-md" />
+        <div className="h-56 bg-cream-300/30 dark:bg-navy-700/30 w-full" />
+        <div className="max-w-3xl mx-auto px-6 sm:px-8 -mt-16 flex flex-col items-center">
+          <div className="w-32 h-32 rounded-full bg-cream-300/50 dark:bg-navy-600/50 border-4 border-cream-50 dark:border-navy-900 shadow-lg" />
+          <div className="pt-4 space-y-3 w-full flex flex-col items-center">
+            <div className="h-7 w-48 bg-cream-300/40 dark:bg-navy-600/40 rounded-md" />
+            <div className="h-4 w-32 bg-cream-300/30 dark:bg-navy-600/30 rounded-md" />
+            <div className="h-3 w-64 bg-cream-300/20 dark:bg-navy-600/20 rounded-md" />
             <div className="flex gap-3 pt-3">
-              <div className="h-9 w-24 bg-steel/20 dark:bg-sky/10 rounded-full" />
-              <div className="h-9 w-24 bg-cream-300/40 dark:bg-navy-600/40 rounded-full" />
+              <div className="h-10 w-28 bg-cream-300/40 dark:bg-navy-600/40 rounded-full" />
             </div>
           </div>
         </div>
-        <div className="h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent mx-6" />
-        <div className="px-6 pt-6 space-y-4">
-          <div className="h-6 w-32 bg-cream-300/40 dark:bg-navy-600/40 rounded" />
+        <div className="max-w-5xl mx-auto px-6 pt-8">
+          <div className="h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent mb-6" />
+          <div className="h-6 w-32 bg-cream-300/30 dark:bg-navy-600/30 rounded mb-4" />
           <PostLoader />
         </div>
       </div>
@@ -106,17 +105,17 @@ export function UserProfile({ userId }: UserProfileProps) {
   // --- Error ---
   if (error) {
     return (
-      <div className="w-full max-w-2xl mx-auto p-8 text-center bg-cream-50 dark:bg-navy-700/50 rounded-2xl border border-red-200/60 dark:border-red-900/30">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+      <div className="w-full max-w-2xl mx-auto p-8 text-center rounded-2xl bg-cream-50/50 dark:bg-navy-700/20 border border-cream-300/40 dark:border-navy-700/40">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-100/60 dark:bg-red-900/20 flex items-center justify-center">
           <X className="w-7 h-7 text-red-500" />
         </div>
         <h3 className="text-xl font-display font-bold text-navy dark:text-cream mb-2">
           Profile Error
         </h3>
-        <p className="text-sm text-steel dark:text-sky/60 mb-6">{error}</p>
+        <p className="text-sm text-navy/50 dark:text-cream/40 mb-6">{error}</p>
         <button
           onClick={fetchProfile}
-          className="px-6 py-2.5 bg-steel text-cream-50 dark:bg-sky dark:text-navy rounded-xl flex items-center gap-2 mx-auto transition-all font-semibold cursor-pointer"
+          className="h-10 px-6 text-sm font-semibold rounded-full text-cream-50 dark:text-navy bg-navy dark:bg-cream hover:bg-navy/90 dark:hover:bg-cream/90 inline-flex items-center gap-2 transition-all cursor-pointer"
         >
           <RefreshCw className="w-4 h-4" /> Try Again
         </button>

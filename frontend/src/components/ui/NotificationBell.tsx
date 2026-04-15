@@ -19,10 +19,10 @@ export default function NotificationBell() {
     <div className="relative inline-flex items-center">
       <Link href="/notifications" aria-label="Notifications" title="Notifications">
         <button
-          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+          className="p-1 rounded hover:bg-cream-300/50 dark:hover:bg-navy-700/50 transition cursor-pointer"
           type="button"
         >
-          <Bell className={`w-5 h-5 ${connected ? "text-blue-500" : "text-neutral-500"}`} />
+          <Bell className={`w-5 h-5 ${connected ? "text-steel dark:text-sky" : "text-navy/50 dark:text-cream/50"}`} />
         </button>
       </Link>
 

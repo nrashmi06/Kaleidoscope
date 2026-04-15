@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { PostCreateRequestDTO, MediaUploadRequestDTO } from "@/lib/types/post";
 import { toast } from "react-hot-toast";
@@ -26,6 +26,25 @@ export default function MediaUpload({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const initializedRef = useRef(false);
+
+  // Initialize previews from existing media URLs (for edit mode)
+  useEffect(() => {
+    if (
+      !initializedRef.current &&
+      formData.mediaDetails &&
+      formData.mediaDetails.length > 0 &&
+      mediaPreview.length === 0
+    ) {
+      const existingUrls = formData.mediaDetails
+        .filter((m) => m.url && !m.url.startsWith("data:"))
+        .map((m) => m.url);
+      if (existingUrls.length > 0) {
+        setMediaPreview(existingUrls);
+        initializedRef.current = true;
+      }
+    }
+  }, [formData.mediaDetails, mediaPreview.length]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     // ... (All existing logic remains exactly the same) ...
@@ -214,7 +233,7 @@ export default function MediaUpload({
                 className="relative group aspect-square rounded-xl overflow-hidden border border-cream-300/40 dark:border-navy-700/40"
               >
                 {/* Check if it's a video or image for preview */}
-                {src.startsWith("data:image") ? (
+                {src.startsWith("data:image") || src.startsWith("https://") || src.startsWith("http://") ? (
                   <Image
                     src={src}
                     alt={`preview ${i}`}

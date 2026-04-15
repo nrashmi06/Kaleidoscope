@@ -6,35 +6,32 @@ import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-/**
- * Next.js Page to host the BlogForm for creating new articles.
- */
 export default function Page(): React.ReactElement {
-  // We include useRouter here to enable navigation features often expected on new pages
-  // Note: The BlogForm component already handles the primary UI/logic
   const router = useRouter();
 
   return (
-    // Replaced inline styles with theme-aware Tailwind classes
-    <div className="p-6 md:p-8 min-h-screen bg-cream-50/50 dark:bg-navy-900/50">
+    <div className="min-h-screen">
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => router.back()}
+            className="p-2 rounded-lg bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/30 dark:hover:bg-navy-600/40 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5 text-navy/60 dark:text-cream/50" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-navy dark:text-cream">
+              Create Article
+            </h1>
+            <p className="text-navy/50 dark:text-cream/40 text-sm">
+              Write and publish a new article
+            </p>
+          </div>
+        </div>
 
-      {/* Header and Back Button */}
-      <div className="max-w-4xl mx-auto mb-8">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center text-steel/60 dark:text-sky/40 hover:text-steel dark:hover:text-sky transition-colors mb-4"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          <span className="font-medium">Back</span>
-        </button>
-
-        <h1 className="text-3xl md:text-4xl font-display font-bold text-navy dark:text-cream">
-          Create Blog Post
-        </h1>
+        <BlogForm />
       </div>
-      
-      <BlogForm />
     </div>
   );
 }

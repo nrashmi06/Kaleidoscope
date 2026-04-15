@@ -116,10 +116,13 @@ export default function NotificationItem({
   return (
     <>
       <div
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
-        className={`group relative flex items-start gap-3 p-4 rounded-2xl transition-all duration-200 cursor-pointer ${
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick(); }}
+        className={`group relative flex items-start gap-3 p-4 rounded-2xl transition-all duration-200 cursor-pointer select-none ${
           isReadLocal
-            ? "hover:bg-cream-300/20 dark:hover:bg-navy-700/20"
+            ? "hover:bg-cream-300/30 dark:hover:bg-navy-700/30"
             : "bg-cream-300/20 dark:bg-navy-700/20 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
         } ${
           busy ? "opacity-70 pointer-events-none" : ""
