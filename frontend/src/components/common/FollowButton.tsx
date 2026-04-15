@@ -101,7 +101,7 @@ export default function FollowButton({ targetUserId }: FollowButtonProps) {
           ? "bg-navy text-cream-50 hover:bg-navy/80 dark:bg-cream dark:text-navy dark:hover:bg-cream/80"
           : label === "Requested"
             ? "bg-cream-300/50 dark:bg-navy-700/50 text-navy/60 dark:text-cream/60"
-            : "bg-cream-300/50 dark:bg-navy-700/50 text-navy dark:text-cream hover:bg-cream-300/70 dark:hover:bg-navy-700/70"
+            : "bg-cream-300/50 dark:bg-navy-700/50 text-heading hover:bg-cream-300/70 dark:hover:bg-navy-700/70"
       }`}
     >
       {loading ? "..." : label}

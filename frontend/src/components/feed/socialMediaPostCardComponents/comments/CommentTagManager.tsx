@@ -37,17 +37,17 @@ export default function CommentTagManager({
 
   return (
     <div className="fixed inset-0 bg-navy/50 backdrop-blur-sm flex items-center justify-center z-[999]">
-      <div className="bg-cream-50 dark:bg-navy rounded-2xl shadow-xl shadow-navy/10 dark:shadow-black/30 border border-cream-300/40 dark:border-navy-700/40 w-full max-w-md p-6 animate-in fade-in duration-300">
+      <div className="bg-cream-50 dark:bg-navy rounded-2xl shadow-xl shadow-navy/10 dark:shadow-black/30 border border-border-default w-full max-w-md p-6 animate-in fade-in duration-300">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-navy dark:text-cream">
+          <h2 className="text-lg font-semibold text-heading">
             Manage Tags
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition"
+            className="p-2 rounded-full hover:bg-surface-hover transition"
           >
-            <X size={18} className="text-navy dark:text-cream" />
+            <X size={18} className="text-heading" />
           </button>
         </div>
 
@@ -57,7 +57,7 @@ export default function CommentTagManager({
             {comment.tags.map((tag) => (
               <div
                 key={tag.tagId}
-                className="flex items-center justify-between bg-cream-100/40 dark:bg-navy-700/30 px-3 py-2 rounded-lg border border-cream-300/40 dark:border-navy-700/40"
+                className="flex items-center justify-between bg-cream-100/40 dark:bg-navy-700/30 px-3 py-2 rounded-lg border border-border-default"
               >
                 <span className="text-sm text-navy/80 dark:text-cream/80">
                   @{tag.taggedUsername}
@@ -83,7 +83,7 @@ export default function CommentTagManager({
         <div className="mt-5 flex justify-end">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 text-sm font-medium text-navy/70 dark:text-cream/60 px-4 py-2 rounded-lg hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition cursor-pointer"
+            className="flex items-center gap-2 text-sm font-medium text-sub px-4 py-2 rounded-lg hover:bg-surface-hover transition cursor-pointer"
           >
             Close
           </button>

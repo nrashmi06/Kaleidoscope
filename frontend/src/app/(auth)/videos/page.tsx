@@ -24,7 +24,7 @@ export default function VideosPage() {
     <div className="w-full">
       {/* Live Stream Section */}
       <div className="w-full mb-1">
-        <h2 className="text-xl font-display font-bold text-navy dark:text-cream mb-1">
+        <h2 className="text-xl font-display font-bold text-heading mb-1">
           Live Stream
         </h2>
         <LiveStreamPage />
@@ -32,7 +32,7 @@ export default function VideosPage() {
 
       {/* Page Header */}
       <div className="w-full pt-6 pb-5 px-1">
-        <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+        <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
           Videos
         </h1>
         <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">

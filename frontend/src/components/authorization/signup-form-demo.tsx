@@ -165,9 +165,9 @@ export default function SignupForm() {
     return (
       <>
         <RegistrationLoader isLoading={isRegistering} />
-        <section className="mx-auto mt-20 flex w-full max-w-md flex-col items-center rounded-xl border border-steel/20 dark:border-sky/20 bg-cream-50 dark:bg-navy-700/50 p-8 shadow-md">
+        <section className="mx-auto mt-20 flex w-full max-w-md flex-col items-center rounded-xl border border-steel/20 dark:border-sky/20 bg-surface-alt p-8 shadow-md">
           <CheckCircle className="w-10 h-10 text-steel dark:text-sky mb-3" />
-          <h1 className="text-lg font-display font-semibold text-navy dark:text-cream">
+          <h1 className="text-lg font-display font-semibold text-heading">
             Registration Successful
           </h1>
           <p className="mt-2 text-sm text-steel/60 dark:text-sky/40 text-center">
@@ -176,7 +176,7 @@ export default function SignupForm() {
           <button
             type="button"
             onClick={handleResendEmail}
-            className="mt-5 rounded-md bg-steel dark:bg-sky px-5 py-2 text-cream-50 dark:text-navy text-sm font-semibold hover:bg-steel-600 dark:hover:bg-sky/80 transition-all"
+            className="mt-5 rounded-md bg-steel dark:bg-sky px-5 py-2 text-on-primary text-sm font-semibold hover:bg-steel-600 dark:hover:bg-sky/80 transition-all"
           >
             Resend Verification Email
           </button>
@@ -191,8 +191,8 @@ export default function SignupForm() {
   return (
     <>
       <RegistrationLoader isLoading={isRegistering} />
-      <section className="mx-auto mt-10 mb-20 w-full max-w-md rounded-xl border border-cream-300/40 dark:border-navy-700/40 bg-cream-50 dark:bg-navy-700/50 p-8 shadow-md">
-        <h1 className="text-center text-xl font-display font-semibold text-navy dark:text-cream">
+      <section className="mx-auto mt-10 mb-20 w-full max-w-md rounded-xl border border-border-default bg-surface-alt p-8 shadow-md">
+        <h1 className="text-center text-xl font-display font-semibold text-heading">
           Create your account
         </h1>
 
@@ -325,7 +325,7 @@ export default function SignupForm() {
             type="submit"
             disabled={isRegistering || !isUsernameAvailable}
             className={cn(
-              "relative mt-6 h-11 w-full rounded-lg text-cream-50 dark:text-navy font-semibold text-base transition-all",
+              "relative mt-6 h-11 w-full rounded-lg text-on-primary font-semibold text-base transition-all",
               isRegistering || !isUsernameAvailable
                 ? "bg-steel/40 dark:bg-sky/40 cursor-not-allowed"
                 : "bg-steel hover:bg-steel-600 dark:bg-sky dark:hover:bg-sky/80 shadow-lg shadow-steel/20 dark:shadow-sky/15"

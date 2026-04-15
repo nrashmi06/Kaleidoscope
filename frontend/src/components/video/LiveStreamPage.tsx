@@ -117,13 +117,13 @@ export default function LiveStream() {
         <div className="flex gap-3">
           <button
             onClick={prevSlide}
-            className="p-2 rounded-full border-2 border-cream-300/60 dark:border-navy-700/60 bg-cream-50 dark:bg-navy-700/50 hover:bg-cream-300/30 dark:hover:bg-navy-600/40 hover:scale-110 transition cursor-pointer"
+            className="p-2 rounded-full border-2 border-cream-300/60 dark:border-navy-700/60 bg-surface-alt hover:bg-cream-300/30 dark:hover:bg-navy-600/40 hover:scale-110 transition cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5 text-steel dark:text-sky" />
           </button>
           <button
             onClick={nextSlide}
-            className="p-2 rounded-full border-2 border-cream-300/60 dark:border-navy-700/60 bg-cream-50 dark:bg-navy-700/50 hover:bg-cream-300/30 dark:hover:bg-navy-600/40 hover:scale-110 transition cursor-pointer"
+            className="p-2 rounded-full border-2 border-cream-300/60 dark:border-navy-700/60 bg-surface-alt hover:bg-cream-300/30 dark:hover:bg-navy-600/40 hover:scale-110 transition cursor-pointer"
           >
             <ChevronRight className="w-5 h-5 text-steel dark:text-sky" />
           </button>
@@ -137,7 +137,7 @@ export default function LiveStream() {
           className="absolute left-16 scale-75 opacity-60 hover:opacity-80 transition cursor-pointer z-10"
           onClick={prevSlide}
         >
-          <div className="relative w-64 h-40 rounded-2xl overflow-hidden shadow-md border border-cream-300/30 dark:border-navy-700/30">
+          <div className="relative w-64 h-40 rounded-2xl overflow-hidden shadow-md border border-border-subtle">
             <Image
               src={leftCard.thumbnail}
               alt={leftCard.title}
@@ -192,7 +192,7 @@ export default function LiveStream() {
                     <Heart className="w-4 h-4" />
                     <span className="text-sm">{centerCard.likes}</span>
                   </div>
-                  <button className="px-3 py-1.5 bg-steel dark:bg-sky text-cream-50 dark:text-navy rounded-xl font-semibold hover:bg-steel-600 dark:hover:bg-sky/80 transition text-sm cursor-pointer">
+                  <button className="px-3 py-1.5 bg-steel dark:bg-sky text-on-primary rounded-xl font-semibold hover:bg-steel-600 dark:hover:bg-sky/80 transition text-sm cursor-pointer">
                     Watch Now
                   </button>
                 </div>
@@ -206,7 +206,7 @@ export default function LiveStream() {
           className="absolute right-16 scale-75 opacity-60 hover:opacity-80 transition cursor-pointer z-10"
           onClick={nextSlide}
         >
-          <div className="relative w-64 h-40 rounded-2xl overflow-hidden shadow-md border border-cream-300/30 dark:border-navy-700/30">
+          <div className="relative w-64 h-40 rounded-2xl overflow-hidden shadow-md border border-border-subtle">
             <Image
               src={rightCard.thumbnail}
               alt={rightCard.title}

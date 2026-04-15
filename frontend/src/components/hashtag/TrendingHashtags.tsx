@@ -26,7 +26,7 @@ import toast from "react-hot-toast";
 
 // Skeleton component for loading state
 const HashtagSkeleton = () => (
-  <div className="flex items-center justify-between p-4 bg-cream-50/80 dark:bg-navy-700/30 rounded-lg animate-pulse">
+  <div className="flex items-center justify-between p-4 bg-surface rounded-lg animate-pulse">
     <div className="flex items-center gap-3">
       <div className="w-8 h-8 rounded-full bg-cream-300/60 dark:bg-navy-700/60" />
       <div className="w-24 h-4 bg-cream-300/60 dark:bg-navy-700/60 rounded" />
@@ -149,9 +149,9 @@ export const TrendingHashtags: React.FC = () => {
 
     if (hashtags.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-8 bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 rounded-lg">
+        <div className="flex flex-col items-center justify-center text-center p-8 bg-surface border border-border-default rounded-lg">
           <Hash className="w-8 h-8 text-steel/50 dark:text-sky/30 mb-3" />
-          <p className="font-semibold text-navy/70 dark:text-cream/60">
+          <p className="font-semibold text-sub">
             No Trending Hashtags Found
           </p>
           <p className="text-sm text-steel/60 dark:text-sky/40 mt-1">
@@ -176,13 +176,13 @@ export const TrendingHashtags: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center justify-between p-3.5 bg-cream-50 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 rounded-lg shadow-sm hover:bg-cream-300/20 dark:hover:bg-navy-700/40 transition-colors"
+            className="flex items-center justify-between p-3.5 bg-cream-50 dark:bg-navy-700/30 border border-border-default rounded-lg shadow-sm hover:bg-cream-300/20 dark:hover:bg-navy-700/40 transition-colors"
           >
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky">
                 <Hash className="w-4 h-4" />
               </div>
-              <span className="font-medium text-navy dark:text-cream">
+              <span className="font-medium text-heading">
                 {tag.name}
               </span>
             </div>
@@ -251,7 +251,7 @@ export const TrendingHashtags: React.FC = () => {
 
       {/* Pagination Controls */}
       {pagination && pagination.totalElements > 0 && (
-        <div className="flex items-center justify-between pt-4 border-t border-cream-300/40 dark:border-navy-700/40">
+        <div className="flex items-center justify-between pt-4 border-t border-border-default">
           <Button
             onClick={() => setPage((p) => p - 1)}
             disabled={pagination.first || isLoading}

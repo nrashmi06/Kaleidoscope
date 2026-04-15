@@ -79,7 +79,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Open sidebar menu"
             >
-              <Menu className="w-5 h-5 text-navy dark:text-cream" />
+              <Menu className="w-5 h-5 text-heading" />
             </button>
             <TopNavbar onLogout={handleLogout} />
           </div>
@@ -106,7 +106,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             />
             <div className="relative w-[280px] h-full bg-[#f5f0e8] dark:bg-[#0a0a0f] shadow-2xl shadow-black/20 z-50 overflow-y-auto transform translate-x-0 transition-transform duration-300">
               <div className="flex items-center justify-between px-4 pt-5 pb-2">
-                <span className="text-sm font-display font-semibold text-navy dark:text-cream">Menu</span>
+                <span className="text-sm font-display font-semibold text-heading">Menu</span>
                 <button
                   onClick={() => setIsSidebarOpen(false)}
                   className="p-2 rounded-xl hover:bg-cream-300/50 dark:hover:bg-navy-700/50 transition-colors"

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 const BlockCardSkeleton: React.FC = () => (
-  <div className="p-4 rounded-xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 animate-pulse">
+  <div className="p-4 rounded-xl bg-surface border border-border-default animate-pulse">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3 flex-1">
         <div className="h-4 w-24 rounded bg-cream-300/50 dark:bg-navy-600/50" />
@@ -137,8 +137,8 @@ export const AdminBlocksList: React.FC = () => {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h2 className="text-lg font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h2 className="text-lg font-bold text-heading flex items-center gap-2 mb-5">
           <ShieldBan className="w-5 h-5 text-steel dark:text-sky" />
           All User Blocks
           {!isLoading && (
@@ -161,7 +161,7 @@ export const AdminBlocksList: React.FC = () => {
         {error && (
           <div className="flex flex-col items-center justify-center text-center py-12 rounded-xl border border-dashed border-red-200/50 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10">
             <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400 mb-3" />
-            <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+            <h3 className="text-sm font-semibold text-heading mb-1">
               Error loading blocks
             </h3>
             <p className="text-xs text-steel/60 dark:text-sky/40 mb-4">
@@ -183,7 +183,7 @@ export const AdminBlocksList: React.FC = () => {
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
               <ShieldBan className="w-6 h-6 text-steel/50 dark:text-sky/40" />
             </div>
-            <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+            <h3 className="text-sm font-semibold text-heading mb-1">
               No Blocks Found
             </h3>
             <p className="text-xs text-steel/60 dark:text-sky/40">
@@ -198,15 +198,15 @@ export const AdminBlocksList: React.FC = () => {
             {blocks.map((block) => (
               <div
                 key={block.blockId}
-                className="p-4 rounded-xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40"
+                className="p-4 rounded-xl bg-surface border border-border-default"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="text-sm font-semibold text-navy dark:text-cream truncate">
+                    <span className="text-sm font-semibold text-heading truncate">
                       {block.blocker.username}
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-steel/40 dark:text-sky/30 flex-shrink-0" />
-                    <span className="text-sm font-semibold text-navy dark:text-cream truncate">
+                    <span className="text-sm font-semibold text-heading truncate">
                       {block.blocked.username}
                     </span>
                   </div>
@@ -238,11 +238,11 @@ export const AdminBlocksList: React.FC = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-5 pt-4 border-t border-cream-300/30 dark:border-navy-700/30">
+          <div className="flex items-center justify-between mt-5 pt-4 border-t border-border-subtle">
             <button
               onClick={() => fetchPage(currentPage - 1)}
               disabled={currentPage === 0 || isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-border-default hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               Previous
@@ -253,7 +253,7 @@ export const AdminBlocksList: React.FC = () => {
             <button
               onClick={() => fetchPage(currentPage + 1)}
               disabled={currentPage + 1 >= totalPages || isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-steel dark:text-sky bg-cream-100/60 dark:bg-navy-700/40 border border-border-default hover:bg-cream-200/60 dark:hover:bg-navy-700/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               Next
               <ChevronRight className="w-3.5 h-3.5" />

@@ -92,7 +92,7 @@ export default function FriendsTabContainer({
 
       <div className="p-5 space-y-5">
         {/* Tab Navigation */}
-        <div className="flex gap-3 p-1.5 rounded-xl bg-cream-100/60 dark:bg-navy-700/30 border border-cream-300/30 dark:border-navy-700/30">
+        <div className="flex gap-3 p-1.5 rounded-xl bg-cream-100/60 dark:bg-navy-700/30 border border-border-subtle">
           <TabButton
             active={activeTab === "FOLLOWING"}
             label="Following"

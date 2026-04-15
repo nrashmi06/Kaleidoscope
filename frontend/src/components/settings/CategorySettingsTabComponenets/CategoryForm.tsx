@@ -102,10 +102,10 @@ export const CategoryForm: React.FC<Props> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 space-y-5"
+      className="p-6 rounded-2xl bg-surface border border-border-default space-y-5"
     >
       {/* Form Header */}
-      <div className="flex items-center gap-2 pb-4 border-b border-cream-300/30 dark:border-navy-700/30">
+      <div className="flex items-center gap-2 pb-4 border-b border-border-subtle">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-steel/8 dark:bg-sky/8">
           {isEditing ? (
             <Pencil className="w-4 h-4 text-steel dark:text-sky" />
@@ -114,7 +114,7 @@ export const CategoryForm: React.FC<Props> = ({
           )}
         </div>
         <div>
-          <h2 className="text-base font-bold text-navy dark:text-cream">
+          <h2 className="text-base font-bold text-heading">
             {isEditing ? "Edit Category" : "Create New Category"}
           </h2>
           <p className="text-[11px] text-steel/50 dark:text-sky/35">
@@ -128,11 +128,11 @@ export const CategoryForm: React.FC<Props> = ({
       {/* Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-navy dark:text-cream">
+          <label className="text-sm font-semibold text-heading">
             Name *
           </label>
           <input
-            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Enter category name"
@@ -141,14 +141,14 @@ export const CategoryForm: React.FC<Props> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-navy dark:text-cream">
+          <label className="text-sm font-semibold text-heading">
             Parent Category{" "}
             <span className="font-normal text-steel/40 dark:text-sky/30">
               (optional)
             </span>
           </label>
           <select
-            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all appearance-none cursor-pointer"
+            className="w-full h-11 px-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all appearance-none cursor-pointer"
             value={form.parentId ?? ""}
             onChange={(e) =>
               setForm({
@@ -174,11 +174,11 @@ export const CategoryForm: React.FC<Props> = ({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-navy dark:text-cream">
+        <label className="text-sm font-semibold text-heading">
           Description *
         </label>
         <textarea
-          className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
+          className="w-full px-4 py-3 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all resize-none"
           value={form.description}
           onChange={(e) =>
             setForm({ ...form, description: e.target.value })
@@ -199,7 +199,7 @@ export const CategoryForm: React.FC<Props> = ({
       />
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-cream-300/30 dark:border-navy-700/30">
+      <div className="flex gap-3 pt-4 border-t border-border-subtle">
         <button
           type="submit"
           className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold text-cream-50 bg-gradient-to-r from-steel to-steel-600 hover:from-steel-600 hover:to-steel dark:from-sky dark:to-sky/80 dark:hover:from-sky/90 dark:hover:to-sky dark:text-navy shadow-md shadow-steel/20 dark:shadow-sky/15 transition-all cursor-pointer disabled:opacity-50"

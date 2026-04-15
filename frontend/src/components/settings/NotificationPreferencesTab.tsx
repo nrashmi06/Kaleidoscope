@@ -328,8 +328,8 @@ export const NotificationPreferencesTab = () => {
   return (
     <div className="space-y-6">
       {/* ── Section 1: Master Toggles ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-5">
           <Bell className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Quick Controls
         </h3>
@@ -340,7 +340,7 @@ export const NotificationPreferencesTab = () => {
             className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition-all ${
               allEmailEnabled
                 ? "bg-steel/5 dark:bg-sky/5 border-steel/20 dark:border-sky/20"
-                : "bg-cream-100/40 dark:bg-navy-700/20 border-cream-300/30 dark:border-navy-700/30"
+                : "bg-cream-100/40 dark:bg-navy-700/20 border-border-subtle"
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
@@ -360,7 +360,7 @@ export const NotificationPreferencesTab = () => {
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-sm font-semibold text-navy dark:text-cream block">
+                <span className="text-sm font-semibold text-heading block">
                   All Email Notifications
                 </span>
                 <span className="text-[11px] text-steel/50 dark:text-sky/30 block truncate">
@@ -380,7 +380,7 @@ export const NotificationPreferencesTab = () => {
             className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition-all ${
               allPushEnabled
                 ? "bg-steel/5 dark:bg-sky/5 border-steel/20 dark:border-sky/20"
-                : "bg-cream-100/40 dark:bg-navy-700/20 border-cream-300/30 dark:border-navy-700/30"
+                : "bg-cream-100/40 dark:bg-navy-700/20 border-border-subtle"
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
@@ -400,7 +400,7 @@ export const NotificationPreferencesTab = () => {
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-sm font-semibold text-navy dark:text-cream block">
+                <span className="text-sm font-semibold text-heading block">
                   All Push Notifications
                 </span>
                 <span className="text-[11px] text-steel/50 dark:text-sky/30 block truncate">
@@ -418,8 +418,8 @@ export const NotificationPreferencesTab = () => {
       </div>
 
       {/* ── Section 2: Per-Channel Preferences ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-5">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-5">
           <Settings className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Channel Preferences
         </h3>
@@ -430,7 +430,7 @@ export const NotificationPreferencesTab = () => {
             return (
               <div
                 key={key}
-                className="p-4 rounded-xl bg-cream-100/40 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30"
+                className="p-4 rounded-xl bg-cream-100/40 dark:bg-navy-700/20 border border-border-subtle"
               >
                 <div className="flex items-start gap-3">
                   {/* Icon */}
@@ -440,7 +440,7 @@ export const NotificationPreferencesTab = () => {
 
                   {/* Label + description + toggles */}
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-semibold text-navy dark:text-cream block">
+                    <span className="text-sm font-semibold text-heading block">
                       {label}
                     </span>
                     <span className="text-[11px] text-steel/50 dark:text-sky/30 block mb-3">
@@ -457,7 +457,7 @@ export const NotificationPreferencesTab = () => {
                               : "text-steel/40 dark:text-sky/30"
                           }`}
                         />
-                        <span className="text-xs font-medium text-navy dark:text-cream">
+                        <span className="text-xs font-medium text-heading">
                           Email
                         </span>
                         <Toggle
@@ -476,7 +476,7 @@ export const NotificationPreferencesTab = () => {
                               : "text-steel/40 dark:text-sky/30"
                           }`}
                         />
-                        <span className="text-xs font-medium text-navy dark:text-cream">
+                        <span className="text-xs font-medium text-heading">
                           Push
                         </span>
                         <Toggle
@@ -495,15 +495,15 @@ export const NotificationPreferencesTab = () => {
       </div>
 
       {/* ── Section 3: Reset to Defaults ── */}
-      <div className="p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-        <h3 className="text-base font-bold text-navy dark:text-cream flex items-center gap-2 mb-4">
+      <div className="p-6 rounded-2xl bg-surface border border-border-default">
+        <h3 className="text-base font-bold text-heading flex items-center gap-2 mb-4">
           <RotateCcw className="w-4.5 h-4.5 text-steel dark:text-sky" />
           Reset
         </h3>
 
-        <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-cream-100/50 dark:bg-navy-700/20 border border-cream-300/30 dark:border-navy-700/30">
+        <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-cream-100/50 dark:bg-navy-700/20 border border-border-subtle">
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+            <h4 className="text-sm font-semibold text-heading mb-1">
               Reset to Defaults
             </h4>
             <p className="text-xs text-steel/60 dark:text-sky/40 leading-relaxed">

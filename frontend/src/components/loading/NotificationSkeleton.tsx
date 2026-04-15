@@ -4,7 +4,7 @@ import React from "react";
 
 export default function NotificationSkeleton() {
   return (
-    <div className="animate-pulse flex items-start gap-3 p-4 rounded-xl border border-cream-300/30 dark:border-navy-700/30 bg-cream-50/50 dark:bg-navy-700/30">
+    <div className="animate-pulse flex items-start gap-3 p-4 rounded-xl border border-border-subtle bg-cream-50/50 dark:bg-navy-700/30">
       {/* Avatar */}
       <div className="w-10 h-10 rounded-full bg-cream-300/60 dark:bg-navy-600/60 flex-shrink-0" />
       {/* Content */}

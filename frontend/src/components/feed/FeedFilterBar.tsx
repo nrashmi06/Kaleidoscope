@@ -52,7 +52,7 @@ export function FeedFilterBar({
 
       {!isLoading && pagination && (
         <p className="text-xs text-steel dark:text-sky/60">
-          Showing <span className="font-semibold text-navy dark:text-cream">{totalPosts}</span> of <span className="font-semibold text-navy dark:text-cream">{pagination.totalElements}</span> results
+          Showing <span className="font-semibold text-heading">{totalPosts}</span> of <span className="font-semibold text-heading">{pagination.totalElements}</span> results
         </p>
       )}
     </div>

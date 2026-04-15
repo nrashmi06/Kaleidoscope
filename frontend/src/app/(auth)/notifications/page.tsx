@@ -94,7 +94,7 @@ export default function NotificationsPage() {
       <div className="pt-6 pb-5 px-1">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+            <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
               Notifications
             </h1>
             {!loading && (
@@ -137,10 +137,10 @@ export default function NotificationsPage() {
             <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/20 mb-5">
               <span className="text-2xl">⚠️</span>
             </div>
-            <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
+            <h3 className="text-lg font-display font-semibold text-heading mb-2">
               Failed to Load
             </h3>
-            <p className="text-sm text-navy/40 dark:text-cream/35">
+            <p className="text-sm text-faint">
               {error}
             </p>
           </div>
@@ -152,10 +152,10 @@ export default function NotificationsPage() {
             <div className="flex items-center justify-center w-14 h-14 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-5">
               <Inbox className="w-6 h-6 text-navy/25 dark:text-cream/25" />
             </div>
-            <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
+            <h3 className="text-lg font-display font-semibold text-heading mb-2">
               All caught up!
             </h3>
-            <p className="text-sm text-navy/40 dark:text-cream/35">
+            <p className="text-sm text-faint">
               You don&apos;t have any notifications right now.
             </p>
           </div>
@@ -192,7 +192,7 @@ export default function NotificationsPage() {
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={pagination.isFirst}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-muted hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -211,8 +211,8 @@ export default function NotificationsPage() {
                 onClick={() => handlePageChange(page as number)}
                 className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                   currentPage === page
-                    ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
-                    : "text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                    ? "bg-btn-primary text-on-primary"
+                    : "text-muted hover:text-navy dark:hover:text-cream hover:bg-surface-hover"
                 }`}
               >
                 {(page as number) + 1}
@@ -223,7 +223,7 @@ export default function NotificationsPage() {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={pagination.isLast}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-navy/50 dark:text-cream/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-muted hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

@@ -91,7 +91,7 @@ export default function MassEmailPage() {
           <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 mb-4">
             <ShieldAlert className="w-7 h-7 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-xl font-bold text-navy dark:text-cream mb-2">Access Denied</h2>
+          <h2 className="text-xl font-bold text-heading mb-2">Access Denied</h2>
           <p className="text-sm text-steel/60 dark:text-sky/40 mb-6">
             You need admin privileges to access this page.
           </p>
@@ -157,7 +157,7 @@ export default function MassEmailPage() {
     <div className="w-full">
       {/* Header */}
       <div className="pt-6 pb-5 px-1">
-        <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+        <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
           Mass Email
         </h1>
         <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
@@ -169,7 +169,7 @@ export default function MassEmailPage() {
       <div className="space-y-5">
         {/* Recipient Filter */}
         <div className="space-y-3">
-          <label className="text-sm font-semibold text-navy dark:text-cream">
+          <label className="text-sm font-semibold text-heading">
             Recipients
           </label>
           <div className="inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
@@ -195,7 +195,7 @@ export default function MassEmailPage() {
 
         {/* Subject */}
         <div className="space-y-3">
-          <label className="text-sm font-semibold text-navy dark:text-cream">
+          <label className="text-sm font-semibold text-heading">
             Subject *
           </label>
           <input
@@ -203,13 +203,13 @@ export default function MassEmailPage() {
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Enter email subject line"
-            className="w-full h-10 px-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
+            className="w-full h-10 px-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
           />
         </div>
 
         {/* Body — Rich Text Editor */}
         <div className="space-y-3">
-          <label className="text-sm font-semibold text-navy dark:text-cream">
+          <label className="text-sm font-semibold text-heading">
             Email Body *
           </label>
           <div className="quill-wrapper rounded-2xl overflow-hidden bg-cream-300/20 dark:bg-navy-700/20">
@@ -227,7 +227,7 @@ export default function MassEmailPage() {
 
         {/* Attachments */}
         <div className="space-y-3">
-          <label className="flex items-center gap-2 text-sm font-semibold text-navy dark:text-cream">
+          <label className="flex items-center gap-2 text-sm font-semibold text-heading">
             <Paperclip className="w-4 h-4 text-steel dark:text-sky" />
             Attachments
           </label>
@@ -254,11 +254,11 @@ export default function MassEmailPage() {
               {attachments.map((file, index) => (
                 <div
                   key={`${file.name}-${index}`}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl bg-cream-100/60 dark:bg-navy-600/20 border border-cream-300/30 dark:border-navy-700/30"
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl bg-cream-100/60 dark:bg-navy-600/20 border border-border-subtle"
                 >
                   <FileIcon className="w-4 h-4 text-steel/50 dark:text-sky/40 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-navy dark:text-cream truncate">
+                    <p className="text-xs font-medium text-heading truncate">
                       {file.name}
                     </p>
                     <p className="text-[10px] text-steel/50 dark:text-sky/35">

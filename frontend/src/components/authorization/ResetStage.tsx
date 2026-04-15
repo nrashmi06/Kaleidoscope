@@ -116,7 +116,7 @@ export default function ResetStage({
   return (
     <form className="my-8 space-y-6" onSubmit={handleResetSubmit}>
       <div>
-        <Label className="mb-2 block text-sm text-navy dark:text-cream">OTP</Label>
+        <Label className="mb-2 block text-sm text-heading">OTP</Label>
         <div className="flex justify-between gap-2">
           {otp.map((digit, i) => (
             <Input
@@ -139,7 +139,7 @@ export default function ResetStage({
       </div>
 
       <div className={cn("flex w-full flex-col space-y-2")}>
-        <Label htmlFor="new-password" className="text-sm font-medium text-navy dark:text-cream">New Password</Label>
+        <Label htmlFor="new-password" className="text-sm font-medium text-heading">New Password</Label>
         <Input
           id="new-password"
           type="password"
@@ -151,7 +151,7 @@ export default function ResetStage({
       </div>
 
       <div className={cn("flex w-full flex-col space-y-2")}>
-        <Label htmlFor="confirm-password" className="text-sm font-medium text-navy dark:text-cream">Confirm Password</Label>
+        <Label htmlFor="confirm-password" className="text-sm font-medium text-heading">Confirm Password</Label>
         <Input
           id="confirm-password"
           type="password"
@@ -163,7 +163,7 @@ export default function ResetStage({
 
       <button
         type="submit"
-        className="group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-steel to-steel-600 dark:from-sky dark:to-sky/80 text-cream-50 dark:text-navy shadow-lg shadow-steel/20 dark:shadow-sky/15 transition-all hover:brightness-110 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="group/btn relative h-10 w-full rounded-md bg-gradient-to-r from-steel to-steel-600 dark:from-sky dark:to-sky/80 text-on-primary shadow-lg shadow-steel/20 dark:shadow-sky/15 transition-all hover:brightness-110 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Reset Password
       </button>
@@ -193,7 +193,7 @@ const PasswordHintToast = ({
   ];
 
   return (
-    <div className="mt-4 rounded-lg bg-steel/10 dark:bg-sky/10 p-4 text-sm text-navy dark:text-cream border border-steel/20 dark:border-sky/20 transition-all">
+    <div className="mt-4 rounded-lg bg-steel/10 dark:bg-sky/10 p-4 text-sm text-heading border border-steel/20 dark:border-sky/20 transition-all">
       <p className="font-semibold mb-2">Password must include:</p>
       <ul className="space-y-1">
         {rules.map((rule, idx) => (

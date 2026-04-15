@@ -145,8 +145,8 @@ export default function LinkedBlogSearch({
           onFocus={handleInputFocus}
           placeholder={selectedBlogIds.length > 0 ? "Search to link another blog..." : "Search and select blogs to link..."}
           className={cn(
-            "w-full pl-10 pr-4 py-3 border rounded-xl bg-cream-50 dark:bg-navy-700/30 text-navy dark:text-cream focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 transition-all placeholder-steel/40 dark:placeholder-sky/30",
-            selectedBlogIds.length > 0 ? "border-steel/40 focus:border-steel/50 dark:border-sky/30 dark:focus:border-sky/40" : "border-cream-300/40 dark:border-navy-700/40"
+            "w-full pl-10 pr-4 py-3 border rounded-xl bg-cream-50 dark:bg-navy-700/30 text-heading focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 transition-all placeholder-steel/40 dark:placeholder-sky/30",
+            selectedBlogIds.length > 0 ? "border-steel/40 focus:border-steel/50 dark:border-sky/30 dark:focus:border-sky/40" : "border-border-default"
           )}
           disabled={loading}
         />
@@ -157,7 +157,7 @@ export default function LinkedBlogSearch({
       </div>
 
       {selectedBlogData.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-3 border border-cream-300/30 dark:border-navy-700/30 rounded-xl bg-cream-50/50 dark:bg-navy-700/20">
+        <div className="flex flex-wrap gap-2 p-3 border border-border-subtle rounded-xl bg-cream-50/50 dark:bg-navy-700/20">
           {selectedBlogData.map((blog) => (
             <div
               key={blog.blogId}
@@ -178,7 +178,7 @@ export default function LinkedBlogSearch({
       )}
 
       {showDropdown && !loading && (filteredResults.length > 0 || error) && (
-        <div className="absolute z-50 w-full mt-1 bg-cream-50/95 dark:bg-navy/95 backdrop-blur-md border border-cream-300/40 dark:border-navy-700/40 rounded-xl shadow-lg shadow-navy/[0.06] dark:shadow-black/30 max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-cream-50/95 dark:bg-navy/95 backdrop-blur-md border border-border-default rounded-xl shadow-lg shadow-navy/[0.06] dark:shadow-black/30 max-h-60 overflow-y-auto">
 
           {error && (
             <div className="p-3 text-red-500 dark:text-red-400 text-xs">{error}</div>
@@ -196,7 +196,7 @@ export default function LinkedBlogSearch({
               )}
             >
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-navy dark:text-cream line-clamp-1">
+                <h4 className="text-sm font-semibold text-heading line-clamp-1">
                   {blog.title}
                 </h4>
                 <div className="text-xs text-steel/60 dark:text-sky/50 mt-1 flex items-center gap-1">

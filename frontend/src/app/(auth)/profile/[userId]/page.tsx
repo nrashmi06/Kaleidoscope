@@ -13,10 +13,10 @@ export default function UserProfilePage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-display font-bold text-navy dark:text-cream mb-2">
+          <h1 className="text-2xl font-display font-bold text-heading mb-2">
             Invalid Profile ID
           </h1>
-          <p className="text-sm text-navy/40 dark:text-cream/35 mb-6">
+          <p className="text-sm text-faint mb-6">
             The user ID provided is not valid.
           </p>
           <button

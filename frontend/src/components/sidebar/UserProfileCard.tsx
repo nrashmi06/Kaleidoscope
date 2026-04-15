@@ -25,7 +25,7 @@ export function UserProfileCard() {
       <button
         onClick={handleViewProfile}
         disabled={!isUserAuthenticated}
-        className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+        className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-surface-hover transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
       >
         {/* Avatar */}
         <div className="relative flex-shrink-0">
@@ -50,7 +50,7 @@ export function UserProfileCard() {
 
         {/* Info */}
         <div className="flex-1 min-w-0 text-left">
-          <h3 className="font-semibold text-navy dark:text-cream truncate text-[13px] leading-tight">
+          <h3 className="font-semibold text-heading truncate text-[13px] leading-tight">
             {user.username || "Anonymous"}
           </h3>
           <p className="text-[11px] text-steel/60 dark:text-sky/40 truncate mt-0.5">

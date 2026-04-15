@@ -47,7 +47,7 @@ export function PostFeedGrid({
         <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/20 mb-5">
           <AlertCircle className="w-6 h-6 text-red-500 dark:text-red-400" />
         </div>
-        <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
+        <h3 className="text-lg font-display font-semibold text-heading mb-2">
           Something went wrong
         </h3>
         <p className="text-sm text-steel/50 dark:text-sky/35 mb-6 max-w-sm">
@@ -66,7 +66,7 @@ export function PostFeedGrid({
         <div className="flex items-center justify-center w-14 h-14 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-5">
           <Inbox className="w-6 h-6 text-steel/40 dark:text-sky/30" />
         </div>
-        <h3 className="text-lg font-display font-semibold text-navy dark:text-cream mb-2">
+        <h3 className="text-lg font-display font-semibold text-heading mb-2">
           No Posts Yet
         </h3>
         <p className="text-sm text-steel/50 dark:text-sky/35">

@@ -130,7 +130,7 @@ export function CommentActions({ postId, commentId }: CommentActionsProps) {
                     className={`relative flex h-7 w-7 items-center justify-center rounded-full text-lg transition-all duration-200 hover:-translate-y-1 hover:scale-110 ${
                       isActive
                         ? "ring-2 ring-steel bg-steel/15 dark:bg-sky/15 dark:ring-sky"
-                        : "hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                        : "hover:bg-surface-hover"
                     }`}
                     aria-label={type}
                   >
@@ -189,7 +189,7 @@ export function CommentActions({ postId, commentId }: CommentActionsProps) {
                 <span className="text-base transition-transform group-hover:scale-110">
                   {ReactionIcons[type as keyof typeof ReactionIcons]}
                 </span>
-                <span className="text-xs font-semibold text-navy/70 dark:text-cream/60">
+                <span className="text-xs font-semibold text-sub">
                   {count}
                 </span>
               </div>

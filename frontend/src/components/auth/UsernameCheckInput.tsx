@@ -117,7 +117,7 @@ export default function UsernameCheckInput({
     <div className="flex w-full flex-col space-y-2">
       <Label
         htmlFor="username-check"
-        className="text-navy dark:text-cream font-medium"
+        className="text-heading font-medium"
       >
         Username <span className="text-red-500">*</span>
       </Label>
@@ -138,7 +138,7 @@ export default function UsernameCheckInput({
                 ? "border-red-400 focus:ring-red-400"
                 : status === "available"
                 ? "border-green-400 focus:ring-green-400"
-                : "border-cream-300/40 dark:border-navy-700/40 focus:ring-steel/30 dark:focus:ring-sky/30"
+                : "border-border-default focus:ring-steel/30 dark:focus:ring-sky/30"
             }
             focus:ring-2 focus:outline-none rounded-md
           `}

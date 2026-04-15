@@ -72,7 +72,7 @@ export const SettingsTabs = ({ activeTab, onTabChange }: Props) => {
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40">
                   <ShieldAlert className="w-6 h-6 text-red-500 dark:text-red-400" />
                 </div>
-                <h3 className="text-base font-semibold text-navy dark:text-cream">
+                <h3 className="text-base font-semibold text-heading">
                   Access Denied
                 </h3>
                 <p className="text-sm text-steel/60 dark:text-sky/40">
@@ -95,7 +95,7 @@ export const SettingsTabs = ({ activeTab, onTabChange }: Props) => {
   return (
     <div className="space-y-6">
       {/* Tab Navigation - Pill style */}
-      <div className="flex flex-wrap gap-2 p-1.5 bg-cream-100/60 dark:bg-navy-700/30 rounded-xl border border-cream-300/40 dark:border-navy-700/40">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-cream-100/60 dark:bg-navy-700/30 rounded-xl border border-border-default">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;

@@ -4,7 +4,7 @@ import { Play } from "lucide-react";
 
 export default function VideoCard() {
   return (
-    <div className="w-full overflow-hidden rounded-2xl bg-cream-50 dark:bg-navy-700/50 border border-cream-300/40 dark:border-navy-700/40 hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 group cursor-pointer">
+    <div className="w-full overflow-hidden rounded-2xl bg-surface-alt border border-border-default hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 group cursor-pointer">
       {/* Video Thumbnail */}
       <div className="relative aspect-video bg-navy/10 dark:bg-navy-700 overflow-hidden">
         <Image
@@ -40,10 +40,10 @@ export default function VideoCard() {
 
         {/* Meta info */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-display font-bold text-navy dark:text-cream leading-snug mb-1 line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
+          <h3 className="text-sm font-display font-bold text-heading leading-snug mb-1 line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
             The Title Of The Video On Display
           </h3>
-          <p className="text-[11px] font-medium text-navy/70 dark:text-cream/60 mb-0.5">Jhon Doe</p>
+          <p className="text-[11px] font-medium text-sub mb-0.5">Jhon Doe</p>
           <p className="text-[11px] text-steel/50 dark:text-sky/40">19 hours ago</p>
         </div>
       </div>

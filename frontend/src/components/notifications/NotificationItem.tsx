@@ -123,7 +123,7 @@ export default function NotificationItem({
         className={`group relative flex items-start gap-3 p-4 rounded-2xl transition-all duration-200 cursor-pointer select-none ${
           isReadLocal
             ? "hover:bg-cream-300/30 dark:hover:bg-navy-700/30"
-            : "bg-cream-300/20 dark:bg-navy-700/20 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+            : "bg-cream-300/20 dark:bg-navy-700/20 hover:bg-surface-hover"
         } ${
           busy ? "opacity-70 pointer-events-none" : ""
         }`}
@@ -150,8 +150,8 @@ export default function NotificationItem({
               <p
                 className={`text-sm leading-relaxed ${
                   isReadLocal
-                    ? "text-navy/70 dark:text-cream/60"
-                    : "text-navy dark:text-cream font-medium"
+                    ? "text-sub"
+                    : "text-heading font-medium"
                 }`}
               >
                 {item.message}

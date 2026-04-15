@@ -149,7 +149,7 @@ export default function AdminArticlesPage() {
           <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 mb-4">
             <ShieldAlert className="w-7 h-7 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-xl font-bold text-navy dark:text-cream mb-2">Access Denied</h2>
+          <h2 className="text-xl font-bold text-heading mb-2">Access Denied</h2>
           <p className="text-sm text-steel/60 dark:text-sky/40 mb-6">
             You need admin privileges to access this page.
           </p>
@@ -168,7 +168,7 @@ export default function AdminArticlesPage() {
     <div className="w-full">
       {/* Header */}
       <div className="pt-6 pb-5 px-1">
-        <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+        <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
           Manage Articles
         </h1>
         <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
@@ -183,7 +183,7 @@ export default function AdminArticlesPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search articles by title..."
-            className="w-full h-10 pl-10 pr-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
+            className="w-full h-10 pl-10 pr-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-heading text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
           />
         </div>
 
@@ -226,7 +226,7 @@ export default function AdminArticlesPage() {
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-200/50 dark:bg-navy-700/40 mb-3">
               <FileText className="w-6 h-6 text-steel/40 dark:text-sky/30" />
             </div>
-            <p className="text-sm font-medium text-navy dark:text-cream mb-1">No articles found</p>
+            <p className="text-sm font-medium text-heading mb-1">No articles found</p>
             <p className="text-xs text-steel/50 dark:text-sky/35">
               Try adjusting your search or filter criteria.
             </p>
@@ -240,7 +240,7 @@ export default function AdminArticlesPage() {
               <div className="flex items-start gap-4">
                 {/* Thumbnail */}
                 {blog.thumbnailUrl && (
-                  <div className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-cream-300/40 dark:bg-navy-700/40">
+                  <div className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-surface-hover">
                     <img
                       src={blog.thumbnailUrl}
                       alt=""
@@ -271,7 +271,7 @@ export default function AdminArticlesPage() {
 
                   <h3
                     onClick={() => router.push(`/articles/${blog.blogId}`)}
-                    className="text-sm font-semibold text-navy dark:text-cream truncate cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
+                    className="text-sm font-semibold text-heading truncate cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
                   >
                     {blog.title}
                   </h3>
@@ -289,7 +289,7 @@ export default function AdminArticlesPage() {
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button
                     onClick={() => router.push(`/articles/${blog.blogId}`)}
-                    className="flex items-center justify-center w-8 h-8 rounded-lg border border-cream-300/40 dark:border-navy-700/40 bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer"
+                    className="flex items-center justify-center w-8 h-8 rounded-lg border border-border-default bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer"
                     title="View"
                   >
                     <Eye className="w-3.5 h-3.5 text-steel/60 dark:text-sky/40" />
@@ -344,7 +344,7 @@ export default function AdminArticlesPage() {
                     <button
                       onClick={() => handleStatusUpdate(blog.blogId, "ARCHIVED")}
                       disabled={updatingBlogId === blog.blogId}
-                      className="flex items-center justify-center w-8 h-8 rounded-lg border border-cream-300/40 dark:border-navy-700/40 bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer disabled:opacity-50"
+                      className="flex items-center justify-center w-8 h-8 rounded-lg border border-border-default bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer disabled:opacity-50"
                       title="Archive"
                     >
                       {updatingBlogId === blog.blogId ? (
@@ -367,7 +367,7 @@ export default function AdminArticlesPage() {
           <button
             onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
             disabled={pagination.first}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -394,8 +394,8 @@ export default function AdminArticlesPage() {
                   onClick={() => setCurrentPage(item)}
                   className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                     currentPage === item
-                      ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
-                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                      ? "bg-btn-primary text-on-primary"
+                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover"
                   }`}
                 >
                   {item + 1}
@@ -406,7 +406,7 @@ export default function AdminArticlesPage() {
           <button
             onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages - 1, p + 1))}
             disabled={pagination.last}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-surface-hover disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

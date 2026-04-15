@@ -111,7 +111,7 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
           className="mr-2.5 group-hover:scale-105 transition-transform duration-200"
           priority
         />
-        <span className="text-[17px] font-display font-semibold text-navy dark:text-cream tracking-tight italic">
+        <span className="text-[17px] font-display font-semibold text-heading tracking-tight italic">
           Kaleidoscope
         </span>
       </div>
@@ -128,7 +128,7 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
               if (searchResults.length > 0) setShowSearchResults(true);
             }}
             placeholder="Search people..."
-            className="w-full h-9 pl-9 pr-8 text-sm bg-cream-300/30 dark:bg-navy-700/40 border-0 rounded-xl text-navy dark:text-cream placeholder:text-navy/35 dark:placeholder:text-cream/25 focus:outline-none focus:ring-2 focus:ring-navy/15 dark:focus:ring-cream/15 transition-all"
+            className="w-full h-9 pl-9 pr-8 text-sm bg-cream-300/30 dark:bg-navy-700/40 border-0 rounded-xl text-heading placeholder:text-placeholder focus:outline-none focus:ring-2 focus:ring-navy/15 dark:focus:ring-cream/15 transition-all"
           />
           {searchQuery && (
             <button
@@ -152,7 +152,7 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
                 <Loader2 className="w-5 h-5 animate-spin text-navy/30 dark:text-cream/30" />
               </div>
             ) : searchResults.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-navy/50 dark:text-cream/40">
+              <div className="px-4 py-6 text-center text-sm text-muted">
                 No users found
               </div>
             ) : (
@@ -170,10 +170,10 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
                     className="w-8 h-8 rounded-full object-cover bg-cream-300/50 dark:bg-navy-600/50"
                   />
                   <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-navy dark:text-cream truncate">
+                    <p className="text-[13px] font-medium text-heading truncate">
                       {u.username}
                     </p>
-                    <p className="text-[11px] text-navy/40 dark:text-cream/35 truncate">
+                    <p className="text-[11px] text-faint truncate">
                       {u.email}
                     </p>
                   </div>
@@ -221,7 +221,7 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
               }}
               className="flex items-center gap-3 px-4 py-2.5 text-navy/80 dark:text-cream/80 hover:bg-cream-300/40 dark:hover:bg-navy-600/40 w-full text-left text-[13px] transition-colors cursor-pointer"
             >
-              <IconUser size={16} className="text-navy/40 dark:text-cream/40" />
+              <IconUser size={16} className="text-icon-muted" />
               Profile
             </button>
             <button
@@ -231,7 +231,7 @@ export default function TopNavbar({ onLogout }: TopNavbarProps) {
               }}
               className="flex items-center gap-3 px-4 py-2.5 text-navy/80 dark:text-cream/80 hover:bg-cream-300/40 dark:hover:bg-navy-600/40 w-full text-left text-[13px] transition-colors cursor-pointer"
             >
-              <IconSettings size={16} className="text-navy/40 dark:text-cream/40" />
+              <IconSettings size={16} className="text-icon-muted" />
               Settings
             </button>
             <div className="mx-3 my-1 h-px bg-cream-300/50 dark:bg-navy-600/50" />

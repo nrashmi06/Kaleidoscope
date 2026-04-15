@@ -265,13 +265,13 @@ export default function EnhancedBodyInput({
 
   return (
     <div
-      className={`relative bg-cream-50 dark:bg-navy-700/50 rounded-xl border border-cream-300/40 dark:border-navy-700/40 shadow-sm transition-all duration-300 hover:shadow-md ${className}`}
+      className={`relative bg-surface-alt rounded-xl border border-border-default shadow-sm transition-all duration-300 hover:shadow-md ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-cream-300/30 dark:border-navy-700/40">
         <div className="flex items-center space-x-1">
           <Type className="h-4 w-4 text-steel/50 dark:text-sky/40" />
-          <span className="text-sm font-medium text-navy dark:text-cream">
+          <span className="text-sm font-medium text-heading">
             {inputType === 'body' ? 'Content' : 'Summary'}
           </span>
           <span className="text-red-500">*</span>
@@ -328,13 +328,13 @@ export default function EnhancedBodyInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full resize-none border-0 bg-transparent text-navy dark:text-cream placeholder-steel/40 dark:placeholder-sky/30 focus:ring-0 focus:outline-none text-base leading-relaxed"
+          className="w-full resize-none border-0 bg-transparent text-heading placeholder-steel/40 dark:placeholder-sky/30 focus:ring-0 focus:outline-none text-base leading-relaxed"
           style={{ minHeight: `${minRows * 24}px` }}
         />
 
         {/* Hashtag suggestions */}
         {showHashtagSuggestions && (
-          <div className="absolute left-4 right-4 mt-2 bg-cream-50 dark:bg-navy border border-cream-300/40 dark:border-navy-700/40 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
+          <div className="absolute left-4 right-4 mt-2 bg-cream-50 dark:bg-navy border border-border-default rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
             <div className="px-3 py-2 border-b border-cream-200 dark:border-navy-700/40 flex items-center space-x-2">
               <Hash className="h-3 w-3 text-steel dark:text-sky" />
               <span className="text-xs font-medium text-steel/60 dark:text-sky/40">
@@ -359,7 +359,7 @@ export default function EnhancedBodyInput({
                   >
                     <div className="flex items-center space-x-2">
                       <Hash className="h-3 w-3 text-steel/40 dark:text-sky/30" />
-                      <span className="text-sm text-navy dark:text-cream">
+                      <span className="text-sm text-heading">
                         {hashtag.name}
                       </span>
                     </div>

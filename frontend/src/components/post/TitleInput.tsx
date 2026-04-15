@@ -15,14 +15,14 @@ export default function TitleInput({ value, onChange }: Props) {
 
   return (
     <div className="
-      bg-cream-50 dark:bg-navy-700/50
-      rounded-xl border border-cream-300/40 dark:border-navy-700/40
+      bg-surface-alt
+      rounded-xl border border-border-default
       p-6 shadow-sm transition-all duration-300 hover:shadow-md
     ">
       <div className="flex items-center justify-between mb-3">
         <label
           className="
-            block text-sm sm:text-base font-bold text-navy dark:text-cream
+            block text-sm sm:text-base font-bold text-heading
             transition-colors duration-200
           "
         >
@@ -56,11 +56,11 @@ export default function TitleInput({ value, onChange }: Props) {
             w-full pl-10 pr-4 py-3
             border rounded-lg
             bg-cream-50/60 dark:bg-navy-700/30
-            text-navy dark:text-cream
+            text-heading
             placeholder-steel/40 dark:placeholder-sky/30
             focus:ring-3 focus:ring-steel/30 focus:border-steel dark:focus:ring-sky/30 dark:focus:border-sky
             transition-all duration-300
-            ${isOverLimit ? "border-red-400 dark:border-red-500" : "border-cream-300/40 dark:border-navy-700/40"}
+            ${isOverLimit ? "border-red-400 dark:border-red-500" : "border-border-default"}
           `}
           required
         />

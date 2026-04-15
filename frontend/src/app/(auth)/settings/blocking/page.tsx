@@ -7,8 +7,8 @@ import { ShieldAlert, Shield } from "lucide-react";
 
 const BlockedUserListPlaceholder: React.FC = () => {
   return (
-    <div className="w-full max-w-lg p-6 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-      <h2 className="text-lg font-bold text-navy dark:text-cream mb-5 flex items-center gap-2">
+    <div className="w-full max-w-lg p-6 rounded-2xl bg-surface border border-border-default">
+      <h2 className="text-lg font-bold text-heading mb-5 flex items-center gap-2">
         <Shield className="w-5 h-5 text-steel dark:text-sky" />
         Blocked Users
       </h2>
@@ -17,7 +17,7 @@ const BlockedUserListPlaceholder: React.FC = () => {
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cream-300/50 dark:bg-navy-700/50 border border-cream-400/40 dark:border-navy-600/40 mb-4">
           <ShieldAlert className="w-6 h-6 text-steel/50 dark:text-sky/40" />
         </div>
-        <h3 className="text-sm font-semibold text-navy dark:text-cream mb-1">
+        <h3 className="text-sm font-semibold text-heading mb-1">
           No Blocked Users
         </h3>
         <p className="text-xs text-steel/60 dark:text-sky/40">

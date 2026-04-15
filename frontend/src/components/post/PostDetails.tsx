@@ -167,7 +167,7 @@ export function PostDetails({
   if (loading) {
     return (
       <div className="w-full animate-pulse space-y-6">
-        <div className="w-full h-[28rem] rounded-2xl bg-cream-300/40 dark:bg-navy-700/40 flex items-center justify-center">
+        <div className="w-full h-[28rem] rounded-2xl bg-surface-hover flex items-center justify-center">
           <ImageIcon className="w-12 h-12 text-steel/20 dark:text-sky/10" />
         </div>
         <div className="max-w-3xl mx-auto space-y-4 px-4">
@@ -194,11 +194,11 @@ export function PostDetails({
   if (error) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-full max-w-lg text-center p-10 bg-cream-50 dark:bg-navy-700/50 rounded-2xl border border-red-200/60 dark:border-red-900/30">
+        <div className="w-full max-w-lg text-center p-10 bg-surface-alt rounded-2xl border border-red-200/60 dark:border-red-900/30">
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 mx-auto mb-4">
             <X className="w-6 h-6 text-red-500" />
           </div>
-          <h3 className="text-lg font-bold text-navy dark:text-cream mb-2">Error Loading Post</h3>
+          <h3 className="text-lg font-bold text-heading mb-2">Error Loading Post</h3>
           <p className="text-sm text-steel dark:text-sky/60 mb-6">{error}</p>
           <button onClick={handleRetry}
             className="px-6 py-2 bg-steel text-cream-50 dark:bg-sky dark:text-navy rounded-xl font-semibold cursor-pointer">
@@ -300,7 +300,7 @@ export function PostDetails({
                 <div>
                   <p
                     onClick={() => router.push(`/profile/${post.author.userId}`)}
-                    className="text-sm font-bold text-navy dark:text-cream cursor-pointer hover:text-steel dark:hover:text-sky transition-colors hover:underline"
+                    className="text-sm font-bold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors hover:underline"
                   >
                     {post.author.username}
                   </p>
@@ -358,7 +358,7 @@ export function PostDetails({
               remarkPlugins={[remarkGfm]}
               components={{
                 a: MarkdownLink,
-                strong: ({ children }) => <strong className="font-extrabold text-navy dark:text-cream">{children}</strong>,
+                strong: ({ children }) => <strong className="font-extrabold text-heading">{children}</strong>,
                 em: ({ children }) => <em className="italic text-navy/70 dark:text-cream/70">{children}</em>,
                 h1: ({ children }) => <h1 className="text-3xl font-extrabold my-6 border-b border-cream-300/40 dark:border-navy-600/40 pb-2">{children}</h1>,
                 h2: ({ children }) => <h2 className="text-2xl font-bold my-5 pt-3 text-steel dark:text-sky">{children}</h2>,

@@ -13,7 +13,7 @@ export function PostTaggedUsers({ post }: { post: Post }) {
   return (
     <div className="relative">
       <div
-        className="flex flex-wrap gap-1.5 pt-2 border-t border-cream-300/40 dark:border-navy-700/40"
+        className="flex flex-wrap gap-1.5 pt-2 border-t border-border-default"
         onMouseEnter={() => setShowHover(true)}
         onMouseLeave={() => setShowHover(false)}
       >

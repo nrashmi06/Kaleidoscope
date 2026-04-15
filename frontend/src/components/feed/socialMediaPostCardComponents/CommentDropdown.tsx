@@ -170,11 +170,11 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           <div className="p-2 bg-gradient-to-br from-steel to-steel-600 dark:from-sky dark:to-steel rounded-lg shadow-sm shadow-steel/20 dark:shadow-sky/15">
             <MessageSquare className="w-5 h-5 text-cream-50" />
           </div>
-          <h3 className="text-lg font-bold text-navy dark:text-cream">
+          <h3 className="text-lg font-bold text-heading">
             Comments
           </h3>
           {comments.length > 0 && (
-            <span className="px-2.5 py-0.5 bg-cream-300/40 dark:bg-navy-700/40 text-navy/70 dark:text-cream/60 text-sm font-semibold rounded-full">
+            <span className="px-2.5 py-0.5 bg-surface-hover text-sub text-sm font-semibold rounded-full">
               {comments.length}
             </span>
           )}
@@ -257,7 +257,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
               <button
                 onClick={handleLoadMore}
                 disabled={isLoading}
-                className="group relative px-6 py-3 bg-cream-50/80 dark:bg-navy-700/30 hover:bg-steel/10 dark:hover:bg-sky/10 text-navy/70 dark:text-cream/60 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transform hover:scale-105 border border-cream-300/40 dark:border-navy-700/40 cursor-pointer"
+                className="group relative px-6 py-3 bg-surface hover:bg-steel/10 dark:hover:bg-sky/10 text-sub rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transform hover:scale-105 border border-border-default cursor-pointer"
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
@@ -281,10 +281,10 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       {/* Empty State */}
       {hasLoadedInitial && comments.length === 0 && !error && !isLoading && (
         <div className="py-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-cream-300/30 dark:bg-navy-700/30 rounded-2xl flex items-center justify-center border border-cream-300/40 dark:border-navy-700/40">
+          <div className="w-16 h-16 mx-auto mb-4 bg-cream-300/30 dark:bg-navy-700/30 rounded-2xl flex items-center justify-center border border-border-default">
             <MessageSquare className="w-8 h-8 text-steel/40 dark:text-sky/30" />
           </div>
-          <h4 className="text-lg font-semibold text-navy dark:text-cream mb-2">
+          <h4 className="text-lg font-semibold text-heading mb-2">
             No comments yet
           </h4>
           <p className="text-steel/60 dark:text-sky/40 text-sm">

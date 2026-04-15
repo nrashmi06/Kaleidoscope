@@ -12,7 +12,7 @@ function Page() {
           <div className="absolute inset-0 w-full h-full bg-transparent">
             <div className="absolute top-1/2 transform -translate-y-1/2 text-center w-full px-6">
               <div className="space-y-4">
-                <div className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-center text-navy dark:text-cream">
+                <div className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-center text-heading">
                   <Image
                     src="/team.png"
                     alt="img"

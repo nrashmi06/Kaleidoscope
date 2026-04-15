@@ -104,7 +104,7 @@ export function FeedFilterSheet({
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-4 sm:pt-6 pb-2">
-              <h2 className="text-[18px] font-bold text-navy dark:text-cream tracking-tight">
+              <h2 className="text-[18px] font-bold text-heading tracking-tight">
                 Filters
                 {activeFilterCount > 0 && (
                   <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-[11px] font-bold rounded-full bg-steel text-cream-50 dark:bg-sky dark:text-navy">
@@ -126,7 +126,7 @@ export function FeedFilterSheet({
             <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-4 space-y-6">
               {/* ── Hashtag ── */}
               <section>
-                <label className="flex items-center gap-2 text-[13px] font-semibold text-navy/70 dark:text-cream/60 mb-2.5 uppercase tracking-wide">
+                <label className="flex items-center gap-2 text-[13px] font-semibold text-sub mb-2.5 uppercase tracking-wide">
                   <Hash className="w-3.5 h-3.5" />
                   Hashtag
                 </label>
@@ -142,7 +142,7 @@ export function FeedFilterSheet({
                       bg-cream-300/30 dark:bg-navy-700/40
                       border-2 border-transparent
                       focus:border-steel/30 dark:focus:border-sky/30
-                      text-navy dark:text-cream text-[15px]
+                      text-heading text-[15px]
                       placeholder:text-steel/35 dark:placeholder:text-sky/25
                       focus:outline-none transition-all duration-200"
                   />
@@ -154,7 +154,7 @@ export function FeedFilterSheet({
                         bg-navy/8 dark:bg-cream/8 hover:bg-navy/15 dark:hover:bg-cream/15
                         transition-colors cursor-pointer"
                     >
-                      <X className="w-3.5 h-3.5 text-navy/50 dark:text-cream/40" />
+                      <X className="w-3.5 h-3.5 text-muted" />
                     </button>
                   )}
                 </div>
@@ -162,7 +162,7 @@ export function FeedFilterSheet({
 
               {/* ── Category ── */}
               <section>
-                <label className="flex items-center gap-2 text-[13px] font-semibold text-navy/70 dark:text-cream/60 mb-2.5 uppercase tracking-wide">
+                <label className="flex items-center gap-2 text-[13px] font-semibold text-sub mb-2.5 uppercase tracking-wide">
                   <Layers className="w-3.5 h-3.5" />
                   Category
                 </label>
@@ -176,7 +176,7 @@ export function FeedFilterSheet({
                     className={`inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
                       !stagedFilters.categoryId
                         ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
-                        : "bg-cream-300/40 dark:bg-navy-700/40 text-navy/60 dark:text-cream/50 hover:bg-cream-300/60 dark:hover:bg-navy-700/60"
+                        : "bg-surface-hover text-navy/60 dark:text-cream/50 hover:bg-surface-hover"
                     }`}
                   >
                     <Sparkles className="w-3 h-3" />
@@ -198,7 +198,7 @@ export function FeedFilterSheet({
                         className={`inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
                           isActive
                             ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
-                            : "bg-cream-300/40 dark:bg-navy-700/40 text-navy/60 dark:text-cream/50 hover:bg-cream-300/60 dark:hover:bg-navy-700/60"
+                            : "bg-surface-hover text-navy/60 dark:text-cream/50 hover:bg-surface-hover"
                         }`}
                       >
                         {isActive && <Check className="w-3 h-3" />}
@@ -211,7 +211,7 @@ export function FeedFilterSheet({
 
               {/* ── Visibility ── */}
               <section>
-                <label className="flex items-center gap-2 text-[13px] font-semibold text-navy/70 dark:text-cream/60 mb-2.5 uppercase tracking-wide">
+                <label className="flex items-center gap-2 text-[13px] font-semibold text-sub mb-2.5 uppercase tracking-wide">
                   <Eye className="w-3.5 h-3.5" />
                   Visibility
                 </label>
@@ -246,8 +246,8 @@ export function FeedFilterSheet({
                           <p
                             className={`text-[14px] font-semibold leading-tight ${
                               isActive
-                                ? "text-navy dark:text-cream"
-                                : "text-navy/70 dark:text-cream/60"
+                                ? "text-heading"
+                                : "text-sub"
                             }`}
                           >
                             {opt.label}
@@ -255,7 +255,7 @@ export function FeedFilterSheet({
                           <p
                             className={`text-[12px] mt-0.5 leading-tight ${
                               isActive
-                                ? "text-navy/50 dark:text-cream/40"
+                                ? "text-muted"
                                 : "text-navy/35 dark:text-cream/25"
                             }`}
                           >
@@ -263,7 +263,7 @@ export function FeedFilterSheet({
                           </p>
                         </div>
                         {isActive && (
-                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-navy dark:bg-cream flex items-center justify-center">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-btn-primary flex items-center justify-center">
                             <Check className="w-3 h-3 text-cream dark:text-navy" />
                           </div>
                         )}
@@ -280,9 +280,9 @@ export function FeedFilterSheet({
                 <button
                   onClick={onClear}
                   className="flex-1 h-12 rounded-full text-[15px] font-bold
-                    text-navy/70 dark:text-cream/60
-                    bg-cream-300/40 dark:bg-navy-700/40
-                    hover:bg-cream-300/60 dark:hover:bg-navy-700/60
+                    text-sub
+                    bg-surface-hover
+                    hover:bg-surface-hover
                     active:scale-[0.98]
                     transition-all duration-150 cursor-pointer"
                 >
@@ -291,9 +291,9 @@ export function FeedFilterSheet({
                 <button
                   onClick={onApply}
                   className="flex-[2] h-12 rounded-full text-[15px] font-bold
-                    text-cream-50 dark:text-navy
-                    bg-navy dark:bg-cream
-                    hover:bg-navy/90 dark:hover:bg-cream/90
+                    text-on-primary
+                    bg-btn-primary
+                    hover:bg-btn-primary-hover
                     active:scale-[0.98]
                     shadow-md shadow-navy/15 dark:shadow-cream/10
                     transition-all duration-150 cursor-pointer"

@@ -154,7 +154,7 @@ export default function FriendsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div className="pt-6 pb-5 px-1">
-          <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+          <h1 className="text-2xl font-display font-bold text-heading tracking-tight">
             Friends
           </h1>
           <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">

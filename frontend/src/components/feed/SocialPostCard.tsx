@@ -138,7 +138,7 @@ function SocialPostCardComponent({
                         setIsMenuOpen(false);
                         router.push(`/post/${post.postId}/edit`);
                       }}
-                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-navy dark:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition-colors cursor-pointer"
+                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-heading hover:bg-surface-hover transition-colors cursor-pointer"
                     >
                       <Pencil className="w-4 h-4 text-steel/60 dark:text-sky/40" />
                       Edit Post
@@ -201,7 +201,7 @@ function SocialPostCardComponent({
                   e.stopPropagation();
                   router.push(`/profile/${post.author.userId}`);
                 }}
-                className="text-sm font-semibold text-navy dark:text-cream cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
+                className="text-sm font-semibold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
               >
                 {post.author.username}
               </span>
@@ -213,7 +213,7 @@ function SocialPostCardComponent({
 
           {/* Title / Summary */}
           {post.title && (
-            <h3 className="text-base font-semibold text-navy dark:text-cream leading-snug line-clamp-2 tracking-tight">
+            <h3 className="text-base font-semibold text-heading leading-snug line-clamp-2 tracking-tight">
               {post.title}
             </h3>
           )}

@@ -51,17 +51,17 @@ export function UserProfileStats({
       {/* Pinterest-style centered stat row */}
       <div className="flex items-center justify-center gap-5 text-sm">
         <div className="flex items-center gap-1.5">
-          <span className="font-bold text-navy dark:text-cream">
+          <span className="font-bold text-heading">
             {followerCount}
           </span>
-          <span className="text-navy/50 dark:text-cream/40">followers</span>
+          <span className="text-muted">followers</span>
         </div>
         <span className="w-1 h-1 rounded-full bg-cream-400 dark:bg-navy-600" />
         <div className="flex items-center gap-1.5">
-          <span className="font-bold text-navy dark:text-cream">
+          <span className="font-bold text-heading">
             {followingCount}
           </span>
-          <span className="text-navy/50 dark:text-cream/40">following</span>
+          <span className="text-muted">following</span>
         </div>
         <FollowStatusPill status={followStatus} isPrivate={isPrivate} />
       </div>

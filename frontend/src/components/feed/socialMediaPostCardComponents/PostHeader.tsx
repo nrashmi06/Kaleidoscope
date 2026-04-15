@@ -83,7 +83,7 @@ export function PostHeader({
           <div>
             <span
               onClick={() => router.push(`/profile/${post.author.userId}`)}
-              className="font-semibold text-sm text-navy dark:text-cream cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+              className="font-semibold text-sm text-heading cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
             >
               {post.author.username}
             </span>
