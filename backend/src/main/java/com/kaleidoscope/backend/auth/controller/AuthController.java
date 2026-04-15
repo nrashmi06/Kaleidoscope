@@ -216,6 +216,7 @@ public class AuthController implements AuthApi {
 
     @Override
     @GetMapping(AuthRoutes.CHECK_USERNAME_AVAILABILITY)
+    @PreAuthorize("permitAll()")
     public ResponseEntity<AppResponse<UsernameAvailabilityResponseDTO>> checkUsernameAvailability(
             @RequestParam String username) {
 

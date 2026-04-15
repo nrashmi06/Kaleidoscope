@@ -5,6 +5,7 @@ import com.kaleidoscope.backend.auth.dto.response.SseTicketResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserLoginResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UserRegistrationResponseDTO;
 import com.kaleidoscope.backend.auth.dto.response.UsernameAvailabilityResponseDTO;
+import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.shared.response.AppResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -134,6 +135,8 @@ public interface AuthApi {
             @ApiResponse(responseCode = "200", description = "Username availability checked successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid username format")
     })
+    @GetMapping(AuthRoutes.CHECK_USERNAME_AVAILABILITY)
+    @PreAuthorize("permitAll()")
     ResponseEntity<AppResponse<UsernameAvailabilityResponseDTO>> checkUsernameAvailability(
             @Parameter(description = "Username to check") @RequestParam String username
     );
