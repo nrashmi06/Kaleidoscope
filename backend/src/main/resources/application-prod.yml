@@ -20,13 +20,13 @@ spring:
     open-in-view: false
     hibernate:
       # Non-destructive mode for ongoing deploys.
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         show_sql: false
         format_sql: false
         hbm2ddl:
-          auto: update
+          auto: create
 
 # Logstash Configuration (Production only)
 # These are used by logback-spring.xml if configured there,
