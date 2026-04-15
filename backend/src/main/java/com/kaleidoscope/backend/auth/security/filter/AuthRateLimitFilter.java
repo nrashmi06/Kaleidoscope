@@ -25,10 +25,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
-    private static final int LOGIN_LIMIT = 5;
-    private static final Duration LOGIN_WINDOW = Duration.ofMinutes(15);
+    private static final int LOGIN_LIMIT = 30;
+    private static final Duration LOGIN_WINDOW = Duration.ofHours(1);
 
-    private static final int REGISTER_LIMIT = 3;
+    private static final int REGISTER_LIMIT = 15;
     private static final Duration REGISTER_WINDOW = Duration.ofHours(1);
 
     private final StringRedisTemplate stringRedisTemplate;
