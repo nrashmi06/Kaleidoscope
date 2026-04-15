@@ -40,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -89,11 +90,20 @@ public class PostServiceImpl implements PostService {
             throw new IllegalStatePostActionException("Authenticated user not found for ID: " + userId);
         }
         log.info("Authenticated user validated: username={}, userId={}", currentUser.getUsername(), userId);
+        boolean isAdmin = jwtUtils.isAdminFromContext();
 
         // 1. Map the DTO to a Post entity
         log.debug("Mapping PostCreateRequestDTO to Post entity with title: '{}'", postCreateRequestDTO.title());
         Post post = postMapper.toEntity(postCreateRequestDTO);
         post.setUser(currentUser);
+
+        // Admin-created posts should be visible immediately to all users.
+        // Posts do not have an approval workflow, so admins are treated as
+        // trusted publishers and their posts are forced to public/published.
+        if (isAdmin) {
+            post.setStatus(PostStatus.PUBLISHED);
+            post.setVisibility(PostVisibility.PUBLIC);
+        }
 
         log.info("Post creation initiated by user '{}' with title: '{}'", currentUser.getUsername(),
                 postCreateRequestDTO.title());
@@ -175,9 +185,8 @@ public class PostServiceImpl implements PostService {
                 log.debug("Associating media with post: publicId={}, mediaType={}", publicId, mediaItem.getMediaType());
                 savedPost.addMedia(mediaItem);
 
-                tracker.setStatus(MediaAssetStatus.ASSOCIATED);
-                tracker.setContentType(ContentType.POST.name());
-                tracker.setContentId(savedPost.getPostId());
+                updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.ASSOCIATED, ContentType.POST.name(),
+                    savedPost.getPostId(), publicId);
                 log.info("Media asset successfully associated: publicId={}, postId={}", publicId,
                         savedPost.getPostId());
             }
@@ -401,9 +410,8 @@ public class PostServiceImpl implements PostService {
                 finalMediaList.add(newMedia);
                 newMediaItems.add(newMedia);
 
-                tracker.setStatus(MediaAssetStatus.ASSOCIATED);
-                tracker.setContentType(ContentType.POST.name());
-                tracker.setContentId(post.getPostId());
+                updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.ASSOCIATED, ContentType.POST.name(),
+                    post.getPostId(), publicId);
                 log.debug("Associated new media with post");
             } else {
                 incomingMediaIds.add(dto.mediaId());
@@ -420,11 +428,9 @@ public class PostServiceImpl implements PostService {
             if (!incomingMediaIds.contains(entry.getKey())) {
                 log.debug("Marking media for delete: {}", entry.getValue().getMediaUrl());
                 String publicId = imageStorageService.extractPublicIdFromUrl(entry.getValue().getMediaUrl());
-                mediaAssetTrackerRepository.findByPublicId(publicId).ifPresent(tracker -> {
-                    tracker.setStatus(MediaAssetStatus.MARKED_FOR_DELETE);
-                    tracker.setContentType(ContentType.POST.name());
-                    tracker.setContentId(post.getPostId());
-                });
+                mediaAssetTrackerRepository.findByPublicId(publicId)
+                        .ifPresent(tracker -> updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.MARKED_FOR_DELETE,
+                                ContentType.POST.name(), post.getPostId(), publicId));
             }
         }
 
@@ -559,11 +565,9 @@ public class PostServiceImpl implements PostService {
         for (PostMedia media : post.getMedia()) {
             log.debug("Unlinking and deleting media: {}", media.getMediaUrl());
             String publicId = imageStorageService.extractPublicIdFromUrl(media.getMediaUrl());
-            mediaAssetTrackerRepository.findByPublicId(publicId).ifPresent(tracker -> {
-                tracker.setStatus(MediaAssetStatus.UNLINKED);
-                tracker.setContentType(ContentType.POST.name());
-                tracker.setContentId(post.getPostId());
-            });
+            mediaAssetTrackerRepository.findByPublicId(publicId)
+                    .ifPresent(tracker -> updateMediaAssetTrackerSafely(tracker, MediaAssetStatus.UNLINKED,
+                            ContentType.POST.name(), post.getPostId(), publicId));
             imageStorageService.deleteImageByPublicId(imageStorageService.extractPublicIdFromUrl(media.getMediaUrl()));
         }
 
@@ -641,6 +645,37 @@ public class PostServiceImpl implements PostService {
         } catch (Exception e) {
             log.error("Failed to track viewed post {} for user {} in Redis: {}", postId, userId, e.getMessage());
             // Don't throw - this is a non-critical feature
+        }
+    }
+
+    private void updateMediaAssetTrackerSafely(MediaAssetTracker tracker,
+                                               MediaAssetStatus status,
+                                               String contentType,
+                                               Long contentId,
+                                               String publicId) {
+        final int maxAttempts = 3;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                tracker.setStatus(status);
+                tracker.setContentType(contentType);
+                tracker.setContentId(contentId);
+                mediaAssetTrackerRepository.saveAndFlush(tracker);
+                return;
+            } catch (OptimisticLockingFailureException e) {
+                log.warn("Optimistic lock conflict updating media asset tracker: publicId={}, attempt={}/{}",
+                        publicId, attempt, maxAttempts);
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+                tracker = mediaAssetTrackerRepository.findByPublicId(publicId)
+                        .orElseThrow(() -> new IllegalStatePostActionException(
+                                "Media asset tracker disappeared for public_id: " + publicId));
+                if (tracker.getStatus() != MediaAssetStatus.PENDING
+                        && status == MediaAssetStatus.ASSOCIATED) {
+                    throw new IllegalStatePostActionException(
+                            "Media asset already transitioned to " + tracker.getStatus());
+                }
+            }
         }
     }
 

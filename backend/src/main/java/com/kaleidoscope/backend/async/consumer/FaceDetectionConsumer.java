@@ -221,6 +221,10 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
 
         // Convert embedding to PostgreSQL vector format: [0.0,0.0,0.0,...]
         String embeddingVector = formatEmbeddingForVector(face.getEmbedding());
+        if (embeddingVector == null) {
+            log.debug("No face embedding present for mediaId={}, incoming faceId={}. Persisting bbox/confidence only.",
+                mediaAiInsights.getMediaId(), face.getFaceId());
+        }
 
         Float confidenceScore = face.getConfidence() != null ? face.getConfidence().floatValue() : null;
 

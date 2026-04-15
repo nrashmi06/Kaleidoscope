@@ -101,6 +101,11 @@ public class ReadModelUpdateService {
     public void updateRecommendationsKnnReadModel(MediaAiInsights insights, PostMedia postMedia) {
         log.debug("Updating RecommendationsKnnReadModel for mediaId: {}", postMedia.getMediaId());
         try {
+            if (insights.getImageEmbedding() != null && insights.getImageEmbedding().length != 1408) {
+                log.warn("Unexpected image embedding size {} for mediaId={}, expected 1408",
+                        insights.getImageEmbedding().length, postMedia.getMediaId());
+            }
+
             String embeddingStr = convertEmbeddingToString(insights.getImageEmbedding());
             if (embeddingStr == null) {
                 log.debug("Skipping RecommendationsKnnReadModel for mediaId: {} - no image embedding available yet",

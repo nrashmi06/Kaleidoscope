@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.async.dto.PostInsightsEnrichedDTO;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
-import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
 import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
 import com.kaleidoscope.backend.posts.document.PostDocument;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
@@ -56,7 +55,6 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
     private final ObjectMapper objectMapper;
     private final PostSearchReadModelRepository postSearchReadModelRepository;
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
-    private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
     private final ElasticsearchOperations elasticsearchOperations;
     private final PostRepository postRepository;  // ADDED: To fetch Post entity for author info
     private final PostSearchRepository postSearchRepository;
@@ -146,16 +144,12 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
                 log.info("Back-filled post_all_tags for {} media items in postId: {}", mediaModels.size(), postId);
             }
 
-            // 3. Trigger ES sync for the post
-            elasticsearchSyncTriggerService.triggerSync("read_model_post_search", postId);
-
             // Keep `posts` index in sync for filterPosts() ML text search (mlCaptions/mlImageTags/mlScenes)
             updatePostDocumentMlFields(postId, enriched);
 
             // 4. Trigger ES sync for all associated media (as they were updated)
             for (MediaSearchReadModel media : mediaModels) {
                 mediaSearchRepository.save(toMediaSearchDocument(media));
-                elasticsearchSyncTriggerService.triggerSync("read_model_media_search", media.getMediaId());
             }
 
             log.info("Successfully processed post-insights-enriched message for postId: {}, messageId: {}",

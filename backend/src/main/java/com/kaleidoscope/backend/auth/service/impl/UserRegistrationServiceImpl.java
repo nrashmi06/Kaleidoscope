@@ -11,6 +11,7 @@ import com.kaleidoscope.backend.auth.exception.email.InvalidEmailException;
 import com.kaleidoscope.backend.auth.mapper.AuthMapper;
 import com.kaleidoscope.backend.auth.model.EmailVerification;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
+import com.kaleidoscope.backend.auth.security.VerificationTokenSecurity;
 import com.kaleidoscope.backend.auth.service.EmailService;
 import com.kaleidoscope.backend.auth.service.UserRegistrationService;
 import com.kaleidoscope.backend.shared.exception.Image.ImageStorageException;
@@ -163,26 +164,23 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
 
     private void sendVerificationEmailSafely(User user) {
         try {
-            String token = generateVerificationToken();
+            String rawToken = VerificationTokenSecurity.generateSecureToken();
+            String tokenHash = VerificationTokenSecurity.sha256(rawToken);
 
             // Create email verification record using mapper
             EmailVerification emailVerification = AuthMapper.toEmailVerification(
                     user.getUserId(),
                     user.getEmail(),
-                    token
+                tokenHash
             );
             emailVerificationRepository.save(emailVerification);
-            emailService.sendVerificationEmail(user.getEmail(), token);
+            emailService.sendVerificationEmail(user.getEmail(), rawToken);
 
             log.debug("Verification email sent for user: {}", user.getEmail());
         } catch (Exception e) {
             // Don't let email sending failures break user registration
             log.error("Failed to send verification email for user: {}, error: {}", user.getEmail(), e.getMessage());
         }
-    }
-
-    private String generateVerificationToken() {
-        return java.util.UUID.randomUUID().toString().substring(0, 10);
     }
 
     private boolean isValidEmail(String email) {

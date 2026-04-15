@@ -144,8 +144,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             // 1c. Update the 'read_model_feed_personalized' table
             readModelUpdateService.updateFeedPersonalizedReadModel(savedInsights, postMedia);
 
-            // 2. Trigger ES Sync for the read model
-            elasticsearchSyncTriggerService.triggerSync("read_model_media_search", postMedia.getMediaId());
+            // 2. Trigger ES Sync for read models still owned by Python sync
             elasticsearchSyncTriggerService.triggerSync("read_model_recommendations_knn", postMedia.getMediaId());
             elasticsearchSyncTriggerService.triggerSync("read_model_feed_personalized", postMedia.getMediaId());
 

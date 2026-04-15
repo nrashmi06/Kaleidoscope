@@ -76,6 +76,7 @@ public class BlogServiceImpl implements BlogService {
         if (currentUser == null) {
             throw new IllegalArgumentException("Authenticated user not found for ID: " + userId);
         }
+        boolean isAdmin = jwtUtils.isAdminFromContext();
 
         // Validate categories early and provide specific error message
         if (blogCreateRequestDTO.categoryIds() == null || blogCreateRequestDTO.categoryIds().isEmpty()) {
@@ -95,7 +96,13 @@ public class BlogServiceImpl implements BlogService {
 
         Blog blog = blogMapper.toEntity(blogCreateRequestDTO);
         blog.setUser(currentUser);
-        blog.setBlogStatus(BlogStatus.APPROVAL_PENDING);
+        if (isAdmin) {
+            blog.setBlogStatus(BlogStatus.PUBLISHED);
+            blog.setReviewer(currentUser);
+            blog.setReviewedAt(LocalDateTime.now());
+        } else {
+            blog.setBlogStatus(BlogStatus.APPROVAL_PENDING);
+        }
 
         // Handle location if provided
         if (blogCreateRequestDTO.locationId() != null) {

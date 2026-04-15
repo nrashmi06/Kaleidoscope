@@ -2,6 +2,7 @@ package com.kaleidoscope.backend.auth.config;
 
 import com.kaleidoscope.backend.auth.routes.AuthRoutes;
 import com.kaleidoscope.backend.auth.security.CustomAccessDeniedHandler;
+import com.kaleidoscope.backend.auth.security.filter.AuthRateLimitFilter;
 import com.kaleidoscope.backend.auth.security.filter.SseAuthenticationFilter;
 import com.kaleidoscope.backend.auth.security.jwt.AuthEntryPointJwt;
 import com.kaleidoscope.backend.auth.security.jwt.AuthTokenFilter;
@@ -69,6 +70,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             CustomAccessDeniedHandler customAccessDeniedHandler,
+            AuthRateLimitFilter authRateLimitFilter,
             AuthTokenFilter authTokenFilter,
             SseAuthenticationFilter sseAuthenticationFilter
     ) throws Exception {
@@ -111,6 +113,7 @@ public class SecurityConfig {
                 )
                 .csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(correlationIdFilter, HeaderWriterFilter.class) // Run correlation ID very early
+                .addFilterBefore(authRateLimitFilter, SseAuthenticationFilter.class) // Protect auth endpoints from brute force
                 .addFilterBefore(sseAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // SSE auth check
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class) // Standard JWT auth check
                 .build();

@@ -15,7 +15,7 @@ public class RecommendationsKnnReadModel {
     private Long mediaId;
 
     @Column(name = "image_embedding", columnDefinition = "TEXT", nullable = false)
-    private String imageEmbedding; // 512-dim vector as JSON string
+    private String imageEmbedding; // 1408-dim vector as JSON string
 
     @Column(name = "media_url", nullable = false)
     private String mediaUrl;

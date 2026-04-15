@@ -10,6 +10,7 @@ import com.kaleidoscope.backend.auth.exception.auth.UnauthorizedAccessException;
 import com.kaleidoscope.backend.auth.exception.email.EmailAlreadyVerifiedException;
 import com.kaleidoscope.backend.auth.model.EmailVerification;
 import com.kaleidoscope.backend.auth.repository.EmailVerificationRepository;
+import com.kaleidoscope.backend.auth.security.VerificationTokenSecurity;
 import com.kaleidoscope.backend.auth.security.jwt.JwtUtils;
 import com.kaleidoscope.backend.auth.service.AuthService;
 import com.kaleidoscope.backend.auth.service.EmailService;
@@ -147,8 +148,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             throw new UserNotFoundException("User not found with email: " + email);
         }
 
-        // Generate a new 6-digit numeric token
-        String token = UUID.randomUUID().toString().replaceAll("[^0-9]", "").substring(0, 6);
+        String rawToken = VerificationTokenSecurity.generateSecureToken();
+        String tokenHash = VerificationTokenSecurity.sha256(rawToken);
 
         // Create or update email verification record
         Optional<EmailVerification> existingVerification = emailVerificationRepository.findByEmail(email);
@@ -156,13 +157,13 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
 
         if (existingVerification.isPresent()) {
             emailVerification = existingVerification.get();
-            emailVerification.setVerificationCode(token);
+            emailVerification.setVerificationCode(tokenHash);
             emailVerification.setStatus("pending");
             emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
         } else {
             emailVerification = new EmailVerification();
             emailVerification.setUserId(user.getUserId());
-            emailVerification.setVerificationCode(token);
+            emailVerification.setVerificationCode(tokenHash);
             emailVerification.setEmail(email);
             emailVerification.setStatus("pending");
             emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
@@ -170,12 +171,14 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         }
 
         emailVerificationRepository.save(emailVerification);
-        emailService.sendPasswordResetEmail(user.getEmail(), token);
+        emailService.sendPasswordResetEmail(user.getEmail(), rawToken);
     }
 
     @Override
     public void resetPassword(String token, String newPassword) {
-        EmailVerification emailVerification = emailVerificationRepository.findByVerificationCode(token)
+        String tokenHash = VerificationTokenSecurity.sha256(token);
+
+        EmailVerification emailVerification = emailVerificationRepository.findByVerificationCode(tokenHash)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid verification code"));
 
         if (emailVerification.getExpiryTime().isBefore(LocalDateTime.now())) {
@@ -232,7 +235,9 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
     @Override
     @Transactional
     public void verifyUser(String verificationCode) {
-        EmailVerification emailVerification = emailVerificationRepository.findByVerificationCode(verificationCode)
+        String verificationCodeHash = VerificationTokenSecurity.sha256(verificationCode);
+
+        EmailVerification emailVerification = emailVerificationRepository.findByVerificationCode(verificationCodeHash)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid verification code"));
         if ("verified".equals(emailVerification.getStatus())) {
             return; // Already verified, just return success
@@ -268,14 +273,15 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             throw new EmailAlreadyVerifiedException("User is already verified");
         }
 
-        String token = UUID.randomUUID().toString().substring(0, 10);
+        String rawToken = VerificationTokenSecurity.generateSecureToken();
+        String tokenHash = VerificationTokenSecurity.sha256(rawToken);
         Optional<EmailVerification> existing = emailVerificationRepository.findByEmail(email);
         EmailVerification emailVerification;
 
         if (existing.isPresent()) {
             // Update existing row with new code and expiry
             emailVerification = existing.get();
-            emailVerification.setVerificationCode(token);
+            emailVerification.setVerificationCode(tokenHash);
             emailVerification.setExpiryTime(LocalDateTime.now().plusMinutes(5));
             emailVerification.setStatus("pending");
             emailVerification.setCreatedAt(LocalDateTime.now());
@@ -284,14 +290,14 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
             emailVerification = new EmailVerification();
             emailVerification.setUserId(user.getUserId());
             emailVerification.setEmail(email);
-            emailVerification.setVerificationCode(token);
+            emailVerification.setVerificationCode(tokenHash);
             emailVerification.setExpiryTime(LocalDateTime.now().plusHours(24));
             emailVerification.setStatus("pending");
             emailVerification.setCreatedAt(LocalDateTime.now());
         }
         emailVerificationRepository.save(emailVerification);
 
-        emailService.sendVerificationEmail(user.getEmail(), token);
+        emailService.sendVerificationEmail(user.getEmail(), rawToken);
     }
 
 

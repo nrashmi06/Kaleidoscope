@@ -222,6 +222,8 @@ stateDiagram-v2
 - **PRIVATE**: Visible only to post author
 - **FRIENDS_ONLY**: Visible to friends/followers only
 
+Admin-created posts are published immediately and forced to `PUBLIC` visibility so they appear in user feeds.
+
 ## Media Processing Pipeline
 
 ### Upload Flow

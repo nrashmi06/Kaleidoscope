@@ -44,7 +44,7 @@ public class SearchAssetDocument {
     private List<String> scenes;
 
     @Field(type = FieldType.Keyword)
-    private String imageEmbedding; // Vector(512) for similarity search
+    private String imageEmbedding; // Vector(1408) for similarity search
 
     @Field(type = FieldType.Object)
     private Map<String, Object> detectedUsers;

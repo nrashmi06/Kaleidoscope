@@ -38,6 +38,12 @@ public class UserProfileFaceEmbeddingConsumer implements StreamListener<String, 
             Long userId = Long.parseLong(recordValue.get("userId"));
             String embeddingStr = recordValue.get("faceEmbedding");
 
+            if (isEmptyEmbeddingPayload(embeddingStr)) {
+                log.warn("Profile face embedding is empty for userId={} (provider returned no vector). Skipping sync and acknowledging messageId={}",
+                        userId, messageId);
+                return;
+            }
+
             // Parse face embedding array
             float[] faceEmbedding = parseFaceEmbedding(embeddingStr);
 
@@ -70,8 +76,16 @@ public class UserProfileFaceEmbeddingConsumer implements StreamListener<String, 
      */
     private float[] parseFaceEmbedding(String embeddingStr) {
         try {
+            if (embeddingStr == null || embeddingStr.isBlank()) {
+                throw new IllegalArgumentException("Face embedding payload is blank");
+            }
+
             // Remove brackets and whitespace
             String cleaned = embeddingStr.trim().replaceAll("[\\[\\]\\s]", "");
+
+            if (cleaned.isBlank()) {
+                throw new IllegalArgumentException("Face embedding payload is empty");
+            }
             
             // Split by comma
             String[] parts = cleaned.split(",");
@@ -87,5 +101,18 @@ public class UserProfileFaceEmbeddingConsumer implements StreamListener<String, 
             log.error("Failed to parse face embedding: {}", embeddingStr, e);
             throw new IllegalArgumentException("Invalid face embedding format", e);
         }
+    }
+
+    private boolean isEmptyEmbeddingPayload(String embeddingStr) {
+        if (embeddingStr == null) {
+            return true;
+        }
+
+        String trimmed = embeddingStr.trim();
+        if (trimmed.isEmpty()) {
+            return true;
+        }
+
+        return "[]".equals(trimmed) || "[ ]".equals(trimmed);
     }
 }

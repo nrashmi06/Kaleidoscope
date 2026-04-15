@@ -56,7 +56,7 @@ public class MediaAiInsights {
     private String[] scenes;
 
     @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "image_embedding", columnDefinition = "vector(512)")
+    @Column(name = "image_embedding", columnDefinition = "vector(1408)")
     private float[] imageEmbedding;
 
     @JdbcTypeCode(SqlTypes.ARRAY)

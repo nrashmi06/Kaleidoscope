@@ -3,10 +3,11 @@ package com.kaleidoscope.backend.async.consumer;
 import com.kaleidoscope.backend.async.dto.FaceRecognitionResultDTO;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
-import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
+import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
 import com.kaleidoscope.backend.posts.enums.FaceDetectionStatus;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
+import com.kaleidoscope.backend.posts.repository.search.MediaSearchRepository;
 import com.kaleidoscope.backend.readmodels.repository.FaceSearchReadModelRepository;
 import com.kaleidoscope.backend.readmodels.repository.MediaSearchReadModelRepository;
 import com.kaleidoscope.backend.shared.exception.other.UserNotFoundException;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 @Component
@@ -32,7 +34,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
     private final UserRepository userRepository;
     private final FaceSearchReadModelRepository faceSearchReadModelRepository;
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
-    private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
+    private final MediaSearchRepository mediaSearchRepository;
 
     @Override
     @Transactional
@@ -96,11 +98,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                         faceSearchReadModelRepository.save(faceSearch);
                         log.info("Updated read_model_face_search for faceId: {}", faceIdString);
 
-                        // 2. Trigger ES Sync for the face
-                        // Use faceSearch.getId() which is the primary key of the read_model_face_search table
-                        elasticsearchSyncTriggerService.triggerSync("read_model_face_search", faceSearch.getId());
-
-                        // 3. Update 'read_model_media_search'
+                        // 2. Update 'read_model_media_search'
                         updateMediaSearchWithDetectedUser(updatedFace.getMediaAiInsights().getMediaId(), suggestedUser);
 
                     }, () -> {
@@ -124,7 +122,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
     }
 
     private void updateMediaSearchWithDetectedUser(Long mediaId, User detectedUser) {
-        mediaSearchReadModelRepository.findById(mediaId).ifPresentOrElse(mediaSearch -> {
+            mediaSearchReadModelRepository.findById(mediaId).ifPresentOrElse(mediaSearch -> {
             String userIdStr = String.valueOf(detectedUser.getUserId());
             String username = detectedUser.getUsername();
 
@@ -147,12 +145,38 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             mediaSearchReadModelRepository.save(mediaSearch);
             log.info("Updated read_model_media_search for mediaId: {} with detected userId: {}", mediaId, userIdStr);
 
-            // Trigger ES Sync for the media item
-            elasticsearchSyncTriggerService.triggerSync("read_model_media_search", mediaId);
+                mediaSearchRepository.save(toMediaSearchDocument(mediaSearch));
+                log.info("Indexed media_search document for mediaId: {} after face recognition", mediaId);
 
         }, () -> {
             log.warn("Could not find MediaSearchReadModel for mediaId: {} to add detected user", mediaId);
         });
+    }
+
+    private MediaSearchDocument toMediaSearchDocument(com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel media) {
+        return MediaSearchDocument.builder()
+                .id(String.valueOf(media.getMediaId()))
+                .mediaId(media.getMediaId())
+                .postId(media.getPostId())
+                .mediaUrl(media.getMediaUrl())
+                .aiCaption(media.getAiCaption())
+                .aiTags(splitCsv(media.getAiTags()))
+                .scenes(splitCsv(media.getAiScenes()))
+                .isSafe(media.getIsSafe())
+                .reactionCount(media.getReactionCount() != null ? media.getReactionCount().longValue() : 0L)
+                .commentCount(media.getCommentCount() != null ? media.getCommentCount().longValue() : 0L)
+                .createdAt(media.getCreatedAt() != null ? media.getCreatedAt().atZone(java.time.ZoneOffset.UTC).toLocalDateTime() : null)
+                .build();
+    }
+
+    private java.util.List<String> splitCsv(String value) {
+        if (value == null || value.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList();
     }
 
     private FaceRecognitionResultDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {

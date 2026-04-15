@@ -40,7 +40,7 @@ public class MediaSearchReadModel {
     private String aiScenes; // Comma-separated string
 
     @Column(name = "image_embedding", columnDefinition = "TEXT")
-    private String imageEmbedding; // 512-dim vector as JSON string
+    private String imageEmbedding; // 1408-dim vector as JSON string
 
     @Column(name = "is_safe")
     private Boolean isSafe;
