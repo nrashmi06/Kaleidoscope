@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Kaleidoscope notification system provides real-time notifications to users through multiple channels (in-app, email, and future push notifications). It leverages Redis Streams for asynchronous event processing, Server-Sent Events (SSE) for real-time browser updates, and intelligent caching for performance optimization.
+The Kaleidoscope notification system provides notifications through two channels: in-app realtime updates via SSE and email. It leverages Redis Streams for asynchronous event processing, Server-Sent Events (SSE) for real-time browser updates, and intelligent caching for performance optimization.
 
 ## Table of Contents
 
@@ -125,10 +125,10 @@ Server-Sent Events (SSE) provides a unidirectional, persistent HTTP connection t
 
 **Frontend Connection**:
 ```javascript
-// Include JWT token as query parameter for authentication
-const token = "your-jwt-token";
+// Step 1: fetch a short-lived SSE ticket from authenticated API call
+const ticket = "one-time-sse-ticket";
 const eventSource = new EventSource(
-  `http://localhost:8080/kaleidoscope/api/notifications/stream?token=${token}`
+  `http://localhost:8080/kaleidoscope/api/notifications/stream?ticket=${ticket}`
 );
 
 // Listen for unread count updates
@@ -154,9 +154,9 @@ eventSource.onerror = (error) => {
 
 **Controller Endpoint**:
 ```
-GET /api/notifications/stream?token={jwt}
+GET /api/notifications/stream?ticket={one-time-ticket}
 Content-Type: text/event-stream
-Authentication: JWT token via query parameter
+Authentication: one-time Redis-backed SSE ticket
 ```
 
 **Key Features**:
@@ -167,8 +167,8 @@ Authentication: JWT token via query parameter
 - **Graceful Shutdown**: Proper cleanup on connection close/timeout/error
 
 **Authentication**:
-- Uses `SseAuthenticationFilter` to authenticate via query parameter `token`
-- Validates JWT token before establishing SSE connection
+- Uses `SseAuthenticationFilter` to authenticate via query parameter `ticket`
+- Validates and consumes a one-time ticket from Redis before establishing SSE connection
 - Populates Spring Security context for authorization
 
 **Connection Lifecycle**:

@@ -27,7 +27,9 @@ public class ElasticsearchSyncTriggerService {
             "read_model_media_search", "media_search",
             "read_model_post_search", "post_search",
             "read_model_user_search", "user_search",
-            "read_model_face_search", "face_search" // ADDED: Face search mapping
+            "read_model_face_search", "face_search",
+            "read_model_recommendations_knn", "recommendations_knn",
+            "read_model_feed_personalized", "feed_personalized"
     );
 
     /**

@@ -22,7 +22,7 @@ public class UserNotificationPreferencesMapper {
                 .likesPush(false)
                 .commentsEmail(false)
                 .commentsPush(true)
-                .followsEmail(false)
+                .followsEmail(true)
                 .followsPush(true)
                 .mentionsEmail(false)
                 .mentionsPush(true)
@@ -65,6 +65,8 @@ public class UserNotificationPreferencesMapper {
         preferences.setMentionsPush(dto.mentionsPush());
         preferences.setSystemEmail(dto.systemEmail());
         preferences.setSystemPush(dto.systemPush());
+        preferences.setFollowRequestPush(dto.followRequestPush());
+        preferences.setFollowAcceptPush(dto.followAcceptPush());
         return preferences;
     }
 
@@ -103,6 +105,8 @@ public class UserNotificationPreferencesMapper {
         preferences.setFollowsPush(false);
         preferences.setMentionsPush(false);
         preferences.setSystemPush(false);
+        preferences.setFollowRequestPush(false);
+        preferences.setFollowAcceptPush(false);
         return preferences;
     }
 
@@ -111,7 +115,7 @@ public class UserNotificationPreferencesMapper {
         preferences.setLikesPush(false);
         preferences.setCommentsEmail(false);
         preferences.setCommentsPush(true);
-        preferences.setFollowsEmail(false);
+        preferences.setFollowsEmail(true);
         preferences.setFollowsPush(true);
         preferences.setMentionsEmail(false);
         preferences.setMentionsPush(true);

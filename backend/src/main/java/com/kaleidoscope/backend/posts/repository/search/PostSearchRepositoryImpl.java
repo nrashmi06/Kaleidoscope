@@ -381,11 +381,25 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
                                         .value(trimmedQuery)
                                         .boost(2.0f))._toQuery());
 
+                        // Partial match for AI image tags (POC-friendly fallback)
+                        textQueryBuilder.should(WildcardQuery.of(w -> w
+                                        .field("mlImageTags")
+                                        .value("*" + trimmedQuery + "*")
+                                        .caseInsensitive(true)
+                                        .boost(1.5f))._toQuery());
+
                         // Search in AI scenes (keyword match)
                         textQueryBuilder.should(TermQuery.of(t -> t
                                         .field("mlScenes")
                                         .value(trimmedQuery)
                                         .boost(1.0f))._toQuery());
+
+                        // Partial match for AI scenes (POC-friendly fallback)
+                        textQueryBuilder.should(WildcardQuery.of(w -> w
+                                        .field("mlScenes")
+                                        .value("*" + trimmedQuery + "*")
+                                        .caseInsensitive(true)
+                                        .boost(0.8f))._toQuery());
 
                         textQueryBuilder.minimumShouldMatch("1");
                         queryBuilder.must(textQueryBuilder.build()._toQuery());

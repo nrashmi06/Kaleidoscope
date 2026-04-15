@@ -302,6 +302,18 @@ public class UserExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<AppResponse<Object>> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
+        String path = ((ServletWebRequest) request).getRequest().getRequestURI();
+        log.warn("IllegalArgumentException caught by UserExceptionHandler: {}", ex.getMessage());
+        AppResponse<Object> response = AppResponse.error(
+                "Invalid request",
+                ex.getMessage(),
+                path
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     // Generic Exception Handler for Users Package
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<AppResponse<Object>> handleRuntimeException(RuntimeException ex, WebRequest request) {

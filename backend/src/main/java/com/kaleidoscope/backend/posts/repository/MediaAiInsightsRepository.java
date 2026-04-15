@@ -22,6 +22,15 @@ public interface MediaAiInsightsRepository extends JpaRepository<MediaAiInsights
     @Query("SELECT m FROM MediaAiInsights m WHERE m.status = :status AND m.isSafe = true")
     List<MediaAiInsights> findSafeMediaByStatus(@Param("status") MediaAiStatus status);
 
-    // --- ADDED FOR POST PROCESSING STATUS CHECK ---
     long countByPost_PostIdAndStatus(Long postId, MediaAiStatus status);
+
+    /**
+     * Counts media items for a post where all required ML services have reported.
+     */
+    @Query(value = """
+            SELECT COUNT(*) FROM media_ai_insights
+            WHERE post_id = :postId
+              AND services_completed @> ARRAY['moderation','tagging','scene_recognition','image_captioning']
+            """, nativeQuery = true)
+    long countFullyProcessedByPostId(@Param("postId") Long postId);
 }
