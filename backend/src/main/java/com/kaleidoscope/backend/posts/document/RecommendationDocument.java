@@ -19,7 +19,7 @@ public class RecommendationDocument {
     private Long mediaId;
 
     @Field(type = FieldType.Keyword)
-    private String imageEmbedding; // Vector(512) for similarity matching
+    private String imageEmbedding; // Vector(1408) for similarity matching
 
     @Field(type = FieldType.Keyword)
     private String mediaUrl;

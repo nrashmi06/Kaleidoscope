@@ -24,8 +24,8 @@ public class FaceSearchReadModel {
     @Column(name = "post_id", nullable = false)
     private Long postId;
 
-    @Column(name = "face_embedding", columnDefinition = "TEXT", nullable = false)
-    private String faceEmbedding; // 1024-dim vector as JSON string
+    @Column(name = "face_embedding", columnDefinition = "TEXT", nullable = true)
+    private String faceEmbedding; // May be null when upstream provider does not return embeddings
 
     @Column(name = "bbox", columnDefinition = "TEXT")
     private String bbox; // Stored as JSON string "[x,y,w,h]"

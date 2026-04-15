@@ -20,7 +20,7 @@ spring:
     open-in-view: false
     hibernate:
       # In production, avoid destructive schema changes at app startup.
-      ddl-auto: ${SPRING_JPA_DDL_AUTO:validate}
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:update}
     properties:
       hibernate:
         show_sql: false

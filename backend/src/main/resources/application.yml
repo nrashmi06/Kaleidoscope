@@ -44,7 +44,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: ${SPRING_JPA_DDL_AUTO:validate}
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:update}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

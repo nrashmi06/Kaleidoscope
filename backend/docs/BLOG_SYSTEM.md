@@ -224,7 +224,7 @@ public enum BlogStatus {
 **Process**:
 1. Authenticate user via JWT
 2. Validate category IDs exist
-3. Create blog entity with status `APPROVAL_PENDING`
+3. Create blog entity with status `APPROVAL_PENDING` for regular users, or `PUBLISHED` for admins
 4. Associate location (if provided)
 5. Save blog to generate ID
 6. Add categories to blog
@@ -747,7 +747,8 @@ Optional<Blog> findByIdIncludingDeleted(@Param("id") Long id);
 
 ### 3. Status Workflow
 
-✅ **Default to APPROVAL_PENDING** on creation  
+✅ **Default to APPROVAL_PENDING** on creation for regular users  
+✅ **Publish admin-created blogs immediately**  
 ✅ **Only admins** can change status  
 ✅ **Set reviewedAt timestamp** on approval/rejection  
 ✅ **Record reviewer** for accountability

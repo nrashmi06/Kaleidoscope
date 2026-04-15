@@ -68,6 +68,10 @@ public class MediaAssetTracker {
     @Builder.Default
     private MediaAssetStatus status = MediaAssetStatus.PENDING;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
