@@ -10,7 +10,7 @@ import { PostMedia } from "./socialMediaPostCardComponents/PostMedia";
 import { PostTaggedUsers } from "./socialMediaPostCardComponents/PostTaggedUsers";
 import { PostModal } from "@/components/ui/PostModal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
-import { Eye, MoreVertical, Trash2, Pencil, ShieldAlert } from "lucide-react";
+import { MoreVertical, Trash2, Pencil, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -99,91 +99,75 @@ function SocialPostCardComponent({
 
   return (
     <>
-      <article className="group relative w-full rounded-2xl overflow-hidden h-[480px] bg-cream-50 dark:bg-navy border border-cream-300/40 dark:border-navy-700/40 shadow-sm hover:shadow-xl hover:shadow-steel/[0.08] dark:hover:shadow-sky/[0.06] transition-all duration-300 hover:-translate-y-1">
-        {/* ── Image Section (55%) ── */}
-        <div
-          className="relative w-full overflow-hidden"
-          style={{ height: "55%" }}
-        >
-          <div className="absolute inset-0">
+      <article
+        onClick={() => setShowDetailModal(true)}
+        className="group relative w-full cursor-pointer"
+      >
+        {/* ── Image Container ── */}
+        <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-cream-300/20 dark:bg-navy-700/20">
+          {/* Media with scale-on-hover */}
+          <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.03]">
             <PostMedia post={post} fillContainer />
           </div>
 
-          {/* Gradient overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-black/25 pointer-events-none" />
+          {/* Subtle gradient at bottom for contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-          {/* Author info overlay */}
-          <div className="absolute bottom-20 left-4 z-10 flex items-center gap-2.5">
-            <div
-              onClick={() => router.push(`/profile/${post.author.userId}`)}
-              className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/25 bg-navy-700 flex-shrink-0 cursor-pointer hover:ring-white/50 transition-all"
-            >
-              <Image
-                src={post.author.profilePictureUrl || "/default-avatar.png"}
-                alt={post.author.username}
-                fill
-                className="object-cover"
-                sizes="36px"
-              />
-            </div>
-            <div>
-              <span
-                onClick={() => router.push(`/profile/${post.author.userId}`)}
-                className="font-display font-semibold text-sm text-white drop-shadow-sm cursor-pointer hover:underline"
-              >
-                {post.author.username}
-              </span>
-              <p className="text-[11px] text-white/70 drop-shadow-sm">
-                {timeAgo}
-              </p>
-            </div>
-          </div>
-
-          {/* Menu — only for own posts */}
+          {/* Menu — floats top-right */}
           {canDeletePost && (
-            <div className="absolute top-3 right-3 z-10" ref={menuRef}>
+            <div
+              className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              ref={menuRef}
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
-                onClick={() => setIsMenuOpen((p) => !p)}
-                className="p-1.5 rounded-lg bg-black/30 hover:bg-black/50 text-white/80 hover:text-white backdrop-blur-sm transition-all cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMenuOpen((p) => !p);
+                }}
+                className="p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/80 hover:text-white backdrop-blur-md transition-all cursor-pointer"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
               {isMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 bg-cream-50 dark:bg-navy border border-cream-300 dark:border-navy-700 rounded-xl shadow-lg shadow-navy/10 dark:shadow-black/30 z-20 py-1 backdrop-blur-sm">
+                <div className="absolute right-0 top-full mt-1.5 w-52 bg-cream-50/95 dark:bg-navy/95 backdrop-blur-xl border border-cream-300/60 dark:border-navy-700/60 rounded-2xl shadow-2xl shadow-navy/10 dark:shadow-black/30 z-20 py-1.5 overflow-hidden">
                   {isPostAuthor && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setIsMenuOpen(false);
                         router.push(`/post/${post.postId}/edit`);
                       }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-navy dark:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 rounded-lg transition-colors cursor-pointer"
+                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-navy dark:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 transition-colors cursor-pointer"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="w-4 h-4 text-steel/60 dark:text-sky/40" />
                       Edit Post
                     </button>
                   )}
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setIsMenuOpen(false);
                       setIsDeleteModalOpen(true);
                     }}
                     disabled={isDeleting}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     {isDeleting ? "Deleting..." : "Delete Post"}
                   </button>
                   {currentUser?.role === "ADMIN" && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setIsMenuOpen(false);
                         handleHardDelete();
                       }}
                       disabled={isHardDeleting}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       <ShieldAlert className="w-4 h-4" />
-                      {isHardDeleting ? "Deleting..." : "Hard Delete (Permanent)"}
+                      {isHardDeleting ? "Deleting..." : "Hard Delete"}
                     </button>
                   )}
                 </div>
@@ -192,58 +176,59 @@ function SocialPostCardComponent({
           )}
         </div>
 
-        {/* ── Wave SVG Divider ── */}
-        <svg
-          className="absolute left-0 w-full z-[5] pointer-events-none"
-          style={{ top: "calc(55% - 80px)", height: "130px" }}
-          viewBox="0 0 800 500"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M 0 30 C 150 30 250 200 400 200 S 650 30 800 30 L 800 500 L 0 500"
-            className="fill-cream-50 dark:fill-navy"
-          />
-          <path
-            d="M 0 30 C 150 30 250 200 400 200 S 650 30 800 30"
-            className="stroke-cream dark:stroke-cream/80"
-            fill="none"
-            strokeWidth="6"
-            strokeLinecap="round"
-          />
-        </svg>
-
-        {/* ── Content Section (45%) ── */}
-        <div
-          className="relative z-[6] flex flex-col px-5 pb-4"
-          style={{ height: "45%" }}
-        >
-          <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 pt-1">
-            <p className="text-sm text-navy/80 dark:text-cream/80 leading-relaxed">
+        {/* ── Content Below Image ── */}
+        <div className="mt-4 space-y-2.5 px-0.5">
+          {/* Author row */}
+          <div className="flex items-center gap-2.5">
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/profile/${post.author.userId}`);
+              }}
+              className="relative w-8 h-8 rounded-full overflow-hidden bg-cream-300/50 dark:bg-navy-700/50 flex-shrink-0 cursor-pointer"
+            >
+              <Image
+                src={post.author.profilePictureUrl || "/default-avatar.png"}
+                alt={post.author.username}
+                fill
+                className="object-cover"
+                sizes="32px"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
               <span
                 onClick={(e) => {
                   e.stopPropagation();
                   router.push(`/profile/${post.author.userId}`);
                 }}
-                className="font-semibold text-navy dark:text-cream mr-1.5 cursor-pointer hover:underline hover:text-steel dark:hover:text-sky transition-colors"
+                className="text-sm font-semibold text-navy dark:text-cream cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
               >
                 {post.author.username}
               </span>
-              {post.summary}
-            </p>
-            {post.taggedUsers && post.taggedUsers.length > 0 && (
-              <div className="mt-2">
-                <PostTaggedUsers post={post} />
-              </div>
-            )}
+              <p className="text-xs text-steel/40 dark:text-sky/25">
+                {timeAgo}
+              </p>
+            </div>
           </div>
 
-          <button
-            onClick={() => setShowDetailModal(true)}
-            className="mt-3 flex-shrink-0 w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky border border-steel/20 dark:border-sky/20 hover:bg-steel/20 dark:hover:bg-sky/20 hover:border-steel/30 dark:hover:border-sky/30 group/btn"
-          >
-            <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-            View Full Post
-          </button>
+          {/* Title / Summary */}
+          {post.title && (
+            <h3 className="text-base font-semibold text-navy dark:text-cream leading-snug line-clamp-2 tracking-tight">
+              {post.title}
+            </h3>
+          )}
+          {post.summary && (
+            <p className="text-sm text-steel/60 dark:text-sky/40 leading-relaxed line-clamp-2">
+              {post.summary}
+            </p>
+          )}
+
+          {/* Tagged users */}
+          {post.taggedUsers && post.taggedUsers.length > 0 && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <PostTaggedUsers post={post} />
+            </div>
+          )}
         </div>
       </article>
 

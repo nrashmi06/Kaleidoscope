@@ -10,12 +10,8 @@ import PostFeed from "@/components/feed/PostFeed";
 
 export default function FeedPage() {
   return (
-    <div className="min-h-screen w-full">
-      {/* ✅ 3. Render the new self-contained PostFeed component */}
+    <div className="w-full">
       <PostFeed />
-      
-      {/* ❌ 4. Old component is no longer used */}
-      {/* <FeedMain /> */}
     </div>
   );
 }

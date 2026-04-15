@@ -14,7 +14,6 @@ import {
 } from "@/lib/types/postFeed";
 import type { FlatCategory } from "@/lib/types/settings/category";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   ChevronLeft,
@@ -26,7 +25,7 @@ import {
 
 import { FeedFilterSheet } from "@/components/feed/FeedFilterSheet";
 import { PostFeedGrid } from "@/components/feed/PostFeedGrid";
-import ContentSuggestions from "@/components/common/ContentSuggestions";
+import { motion } from "framer-motion";
 
 type FeedMode = "suggestions" | "search";
 
@@ -63,7 +62,7 @@ export default function PostFeed() {
   const [error, setError] = useState<string | null>(null);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
-  // Fetch categories (needed for filter sheet)
+  // Fetch categories
   useEffect(() => {
     if (!accessToken) return;
     getParentCategoriesController(accessToken)
@@ -103,7 +102,6 @@ export default function PostFeed() {
             totalElements?: number;
           };
           const content = data.content || [];
-          // Normalize suggestion items to NormalizedPostFeedItem
           const normalized: NormalizedPostFeedItem[] = content.map((item) => ({
             postId: item.postId,
             title: item.title,
@@ -218,12 +216,12 @@ export default function PostFeed() {
     if (feedMode === "suggestions") {
       if (newPage >= 0 && newPage < suggestionsTotalPages) {
         setSuggestionsPage(newPage);
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } else {
       if (newPage >= 0 && newPage < (pagination?.totalPages || 0)) {
         setActiveFilters((prev) => ({ ...prev, page: newPage }));
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     }
   };
@@ -244,7 +242,6 @@ export default function PostFeed() {
     if (mode === feedMode) return;
     setFeedMode(mode);
     if (mode === "search" && posts.length === 0) {
-      // Trigger initial search load
       setActiveFilters({ ...defaultFilters });
     }
   };
@@ -280,89 +277,89 @@ export default function PostFeed() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-6 relative">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
-      </div>
+    <div className="w-full relative">
+      {/* ── Header ── */}
+      <div className="pt-6 pb-5 px-1">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        >
+          <div>
+            <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+              Feed
+            </h1>
+            {!currentLoading && (
+              <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
+                {totalElements} post{totalElements !== 1 ? "s" : ""}
+                {totalPages > 1 && (
+                  <span className="ml-1.5 text-steel/35 dark:text-sky/20">
+                    · Page {currentPage + 1}/{totalPages}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
 
-      {/* ── Header Section ── */}
-      <div className="mb-6">
-        {/* Title row */}
-        <div className="flex items-center justify-between gap-4 mb-4">
+          {/* Controls row */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-steel-600 shadow-lg shadow-steel/25 dark:shadow-steel/15 dark:from-sky dark:to-steel">
-              <Sparkles className="w-5 h-5 text-cream-50" />
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold text-navy dark:text-cream tracking-tight">
-                Your Feed
-              </h1>
-              {!currentLoading && (
-                <p className="text-[11px] text-steel dark:text-sky/60 tabular-nums">
-                  {totalElements} posts
-                  {totalPages > 1 &&
-                    ` · Page ${currentPage + 1} of ${totalPages}`}
-                </p>
-              )}
+            {/* Segmented control */}
+            <div className="inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
+              <button
+                onClick={() => handleModeSwitch("suggestions")}
+                className={`relative flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-medium rounded-full transition-all duration-300 cursor-pointer ${
+                  feedMode === "suggestions"
+                    ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                    : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                For You
+              </button>
+              <button
+                onClick={() => handleModeSwitch("search")}
+                className={`relative flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-medium rounded-full transition-all duration-300 cursor-pointer ${
+                  feedMode === "search"
+                    ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                    : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
+                }`}
+              >
+                <Search className="w-3.5 h-3.5" />
+                Search
+              </button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Mode toggle tabs */}
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            onClick={() => handleModeSwitch("suggestions")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all cursor-pointer ${
-              feedMode === "suggestions"
-                ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            For You
-          </button>
-          <button
-            onClick={() => handleModeSwitch("search")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all cursor-pointer ${
-              feedMode === "search"
-                ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
-            }`}
-          >
-            <Search className="w-3.5 h-3.5" />
-            Search
-          </button>
-        </div>
-
-        {/* Search & filter bar — only visible in search mode */}
+        {/* Search bar — slides in when search mode active */}
         {feedMode === "search" && (
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/50 dark:text-sky/40" />
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-4 flex items-center gap-3 max-w-lg"
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/40 dark:text-sky/30" />
               <Input
                 type="text"
                 value={stagedFilters.q || ""}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 placeholder="Search posts..."
-                className="pl-10 h-9 text-sm bg-cream-50/60 dark:bg-navy-700/30 border-cream-300/40 dark:border-navy-700/40 rounded-xl"
+                className="pl-10 h-10 text-sm bg-cream-300/30 dark:bg-navy-700/30 border-0 rounded-xl placeholder:text-steel/40 dark:placeholder:text-sky/25 focus-visible:ring-2 focus-visible:ring-steel/20 dark:focus-visible:ring-sky/20"
               />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={() => setIsFilterSheetOpen(true)}
-              className="h-9 rounded-xl border-cream-300/40 dark:border-navy-700/40"
+              className="flex items-center gap-1.5 h-10 px-4 text-[13px] font-medium text-navy/60 dark:text-cream/60 hover:text-navy dark:hover:text-cream bg-cream-300/30 dark:bg-navy-700/30 rounded-xl transition-colors cursor-pointer"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+              <SlidersHorizontal className="w-3.5 h-3.5" />
               Filters
-            </Button>
-          </div>
+            </button>
+          </motion.div>
         )}
-
-        {/* Gradient divider */}
-        <div className="mt-5 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
       </div>
 
       {/* Filter Modal */}
@@ -376,73 +373,77 @@ export default function PostFeed() {
         onClear={clearFilters}
       />
 
-      {/* ── Content ── */}
-      {feedMode === "suggestions" ? (
-        <PostFeedGrid
-          isLoading={suggestionsLoading}
-          error={null}
-          posts={suggestionsData}
-          accessToken={accessToken}
-          onPostDeleted={() => handlePostDeleted()}
-          onRetry={() => fetchSuggestions(suggestionsPage)}
-        />
-      ) : (
-        <PostFeedGrid
-          isLoading={isLoading}
-          error={error}
-          posts={posts}
-          accessToken={accessToken}
-          onPostDeleted={() => handlePostDeleted()}
-          onRetry={() => fetchFeed(activeFilters)}
-        />
-      )}
+      {/* ── Content Grid ── */}
+      <div className="py-4">
+        {feedMode === "suggestions" ? (
+          <PostFeedGrid
+            isLoading={suggestionsLoading}
+            error={null}
+            posts={suggestionsData}
+            accessToken={accessToken}
+            onPostDeleted={() => handlePostDeleted()}
+            onRetry={() => fetchSuggestions(suggestionsPage)}
+          />
+        ) : (
+          <PostFeedGrid
+            isLoading={isLoading}
+            error={error}
+            posts={posts}
+            accessToken={accessToken}
+            onPostDeleted={() => handlePostDeleted()}
+            onRetry={() => fetchFeed(activeFilters)}
+          />
+        )}
 
-      {/* ── Pagination ── */}
-      {!currentLoading && totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-1.5">
-          {/* Previous */}
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={isFirst}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+        {/* ── Pagination ── */}
+        {!currentLoading && totalPages > 1 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-12 flex items-center justify-center gap-1"
           >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={isFirst}
+              className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
 
-          {/* Page numbers */}
-          {getPageNumbers().map((page, idx) =>
-            page === "..." ? (
-              <span
-                key={`dots-${idx}`}
-                className="w-9 h-9 flex items-center justify-center text-xs text-steel/50 dark:text-sky/30"
-              >
-                ...
-              </span>
-            ) : (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page as number)}
-                className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  currentPage === page
-                    ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                    : "text-navy/70 dark:text-cream/60 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
-                }`}
-              >
-                {(page as number) + 1}
-              </button>
-            )
-          )}
+            {getPageNumbers().map((page, idx) =>
+              page === "..." ? (
+                <span
+                  key={`dots-${idx}`}
+                  className="w-10 h-10 flex items-center justify-center text-sm text-steel/30 dark:text-sky/20"
+                >
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page as number)}
+                  className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
+                    currentPage === page
+                      ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
+                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                  }`}
+                >
+                  {(page as number) + 1}
+                </button>
+              )
+            )}
 
-          {/* Next */}
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={isLast}
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-steel dark:text-sky/70 hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={isLast}
+              className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

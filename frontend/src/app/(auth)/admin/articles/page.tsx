@@ -165,66 +165,40 @@ export default function AdminArticlesPage() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-2 sm:px-4 py-6 relative">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-32 right-1/4 w-[400px] h-[400px] bg-steel/[0.04] dark:bg-steel/[0.03] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 left-[10%] w-80 h-80 bg-sky/[0.05] dark:bg-sky/[0.02] rounded-full blur-[80px]" />
-      </div>
-
+    <div className="w-full">
       {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-steel dark:text-sky hover:text-steel-600 dark:hover:text-sky/80 transition-colors mb-4 cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
+      <div className="pt-6 pb-5 px-1">
+        <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+          Manage Articles
+        </h1>
+        <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
+          Review, approve, and manage all articles
+        </p>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-sky shadow-sm shadow-steel/20 dark:shadow-sky/15">
-            <FileCheck className="w-5 h-5 text-cream-50" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-navy dark:text-cream">Manage Articles</h1>
-            <p className="text-xs text-steel/60 dark:text-sky/40">
-              Review, approve, and manage all articles
-            </p>
-          </div>
-          <span className="ml-auto px-2.5 py-1 text-[10px] font-bold rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            ADMIN ONLY
-          </span>
-        </div>
-        <div className="mt-4 h-px bg-gradient-to-r from-transparent via-cream-400/30 dark:via-navy-700/40 to-transparent" />
-      </div>
-
-      {/* Search & Filters */}
-      <div className="space-y-4 mb-6">
-        <div className="p-4 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/50 dark:text-sky/40" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search articles by title..."
-              className="w-full h-11 pl-10 pr-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-white dark:bg-navy-700/40 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/30 focus:outline-none focus:ring-2 focus:ring-steel/30 dark:focus:ring-sky/30 focus:border-steel dark:focus:border-sky transition-all"
-            />
-          </div>
+        {/* Search */}
+        <div className="mt-4 relative max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-steel/40 dark:text-sky/30" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search articles by title..."
+            className="w-full h-10 pl-10 pr-4 rounded-xl bg-cream-300/30 dark:bg-navy-700/30 border-0 text-navy dark:text-cream text-sm placeholder:text-steel/40 dark:placeholder:text-sky/25 focus:outline-none focus:ring-2 focus:ring-steel/20 dark:focus:ring-sky/20 transition-all"
+          />
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        {/* Status filters — pill segmented */}
+        <div className="mt-4 inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
           {STATUS_FILTERS.map((filter) => {
             const isActive = statusFilter === filter.value;
             return (
               <button
                 key={filter.value}
                 onClick={() => setStatusFilter(filter.value as BlogStatus | "")}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer ${
                   isActive
-                    ? "bg-steel/10 dark:bg-sky/10 border-steel/40 dark:border-sky/40 text-navy dark:text-cream shadow-sm"
-                    : "bg-cream-100/40 dark:bg-navy-700/20 border-cream-300/40 dark:border-navy-700/40 text-steel/60 dark:text-sky/40 hover:border-steel/20 dark:hover:border-sky/20"
+                    ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                    : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
                 }`}
               >
                 {filter.label}
@@ -234,7 +208,7 @@ export default function AdminArticlesPage() {
         </div>
 
         {!loading && (
-          <p className="text-xs text-steel/50 dark:text-sky/35 px-1">
+          <p className="mt-3 text-sm text-steel/50 dark:text-sky/35">
             {pagination.totalElements} article{pagination.totalElements !== 1 ? "s" : ""} found
           </p>
         )}
@@ -261,7 +235,7 @@ export default function AdminArticlesPage() {
           blogs.map((blog) => (
             <div
               key={blog.blogId}
-              className="p-4 rounded-2xl bg-cream-50/80 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40"
+              className="p-4 rounded-2xl hover:bg-cream-300/20 dark:hover:bg-navy-700/20 transition-colors"
             >
               <div className="flex items-start gap-4">
                 {/* Thumbnail */}
@@ -389,13 +363,13 @@ export default function AdminArticlesPage() {
 
       {/* Pagination */}
       {!loading && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
+        <div className="mt-12 flex items-center justify-center gap-1">
           <button
             onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
             disabled={pagination.first}
-            className="flex items-center justify-center w-9 h-9 rounded-lg border border-cream-300/40 dark:border-navy-700/40 bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4 text-steel dark:text-sky" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
 
           {Array.from({ length: pagination.totalPages }, (_, i) => i)
@@ -411,17 +385,17 @@ export default function AdminArticlesPage() {
             }, [])
             .map((item, idx) =>
               item === "ellipsis" ? (
-                <span key={`e-${idx}`} className="px-1 text-steel/40 dark:text-sky/30 text-sm">
+                <span key={`e-${idx}`} className="w-10 h-10 flex items-center justify-center text-sm text-steel/30 dark:text-sky/20">
                   ...
                 </span>
               ) : (
                 <button
                   key={item}
                   onClick={() => setCurrentPage(item)}
-                  className={`flex items-center justify-center w-9 h-9 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                  className={`w-10 h-10 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
                     currentPage === item
-                      ? "bg-steel/10 dark:bg-sky/10 border-steel/40 dark:border-sky/40 text-navy dark:text-cream"
-                      : "border-cream-300/40 dark:border-navy-700/40 bg-cream-100/40 dark:bg-navy-700/20 text-steel/60 dark:text-sky/40 hover:border-steel/20 dark:hover:border-sky/20"
+                      ? "bg-navy dark:bg-cream text-cream-50 dark:text-navy"
+                      : "text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
                   }`}
                 >
                   {item + 1}
@@ -432,9 +406,9 @@ export default function AdminArticlesPage() {
           <button
             onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages - 1, p + 1))}
             disabled={pagination.last}
-            className="flex items-center justify-center w-9 h-9 rounded-lg border border-cream-300/40 dark:border-navy-700/40 bg-cream-100/40 dark:bg-navy-700/20 hover:border-steel/30 dark:hover:border-sky/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-steel/60 dark:text-sky/40 hover:text-navy dark:hover:text-cream hover:bg-cream-300/40 dark:hover:bg-navy-700/40 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
           >
-            <ChevronRight className="w-4 h-4 text-steel dark:text-sky" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}

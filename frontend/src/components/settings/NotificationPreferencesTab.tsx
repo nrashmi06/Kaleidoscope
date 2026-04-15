@@ -39,6 +39,21 @@ interface NotificationPreferences {
   system: ChannelPreferences;
 }
 
+/** Parse flat backend response (commentsEmail, commentsPush, ...) into nested structure */
+function parseBackendPrefs(raw: Record<string, unknown>): NotificationPreferences {
+  const ch = (key: string): ChannelPreferences => ({
+    email: raw[`${key}Email`] === true,
+    push: raw[`${key}Push`] === true,
+  });
+  return {
+    comments: ch("comments"),
+    likes: ch("likes"),
+    follows: ch("follows"),
+    mentions: ch("mentions"),
+    system: ch("system"),
+  };
+}
+
 // ── Channel Config ─────────────────────────────────────────────────────────────
 
 const channels = [
@@ -136,15 +151,7 @@ export const NotificationPreferencesTab = () => {
         const res = await getNotificationPreferencesController(accessToken);
         if (res.success && res.data) {
           const raw = res.data as Record<string, unknown>;
-          const defaultChannel: ChannelPreferences = { email: true, push: true };
-          const normalized: NotificationPreferences = {
-            comments: isChannelPrefs(raw.comments) ? raw.comments : defaultChannel,
-            likes: isChannelPrefs(raw.likes) ? raw.likes : defaultChannel,
-            follows: isChannelPrefs(raw.follows) ? raw.follows : defaultChannel,
-            mentions: isChannelPrefs(raw.mentions) ? raw.mentions : defaultChannel,
-            system: isChannelPrefs(raw.system) ? raw.system : defaultChannel,
-          };
-          setPrefs(normalized);
+          setPrefs(parseBackendPrefs(raw));
         } else {
           toast.error(res.message || "Failed to load notification preferences.");
         }
@@ -290,14 +297,7 @@ export const NotificationPreferencesTab = () => {
         // Re-fetch after reset to get normalized data
         const fetchRes = await getNotificationPreferencesController(accessToken);
         if (fetchRes.success && fetchRes.data) {
-          const raw = fetchRes.data as Record<string, unknown>;
-          setPrefs({
-            comments: isChannelPrefs(raw.comments) ? raw.comments : defaultChannel,
-            likes: isChannelPrefs(raw.likes) ? raw.likes : defaultChannel,
-            follows: isChannelPrefs(raw.follows) ? raw.follows : defaultChannel,
-            mentions: isChannelPrefs(raw.mentions) ? raw.mentions : defaultChannel,
-            system: isChannelPrefs(raw.system) ? raw.system : defaultChannel,
-          });
+          setPrefs(parseBackendPrefs(fetchRes.data as Record<string, unknown>));
         }
         toast.success("Notification preferences reset to defaults.");
       } else {

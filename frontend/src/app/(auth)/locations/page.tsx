@@ -118,76 +118,56 @@ export default function LocationsPage() {
   const isDark = resolvedTheme === "dark";
 
   return (
-    <div className="min-h-screen w-full">
-      {/* Ambient background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 right-1/4 w-[500px] h-[500px] bg-steel/[0.06] dark:bg-steel/[0.04] rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 left-1/6 w-96 h-96 bg-sky/[0.06] dark:bg-sky/[0.03] rounded-full blur-[80px]" />
-      </div>
-
+    <div className="w-full">
       <div className="relative">
-        {/* Compact header row */}
-        <div className="flex items-center justify-between px-4 pt-6 pb-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-steel to-navy shadow-lg shadow-steel/25 dark:shadow-steel/15">
-              <Globe2 className="w-5 h-5 text-cream-50" />
-            </div>
+        {/* Header */}
+        <div className="pt-6 pb-5 px-1">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-display font-bold text-navy dark:text-cream tracking-tight">
-                Explore Locations
+              <h1 className="text-2xl font-display font-bold text-navy dark:text-cream tracking-tight">
+                Locations
               </h1>
-              <p className="text-[11px] text-steel dark:text-sky">
+              <p className="mt-1 text-sm text-steel/50 dark:text-sky/35">
                 {locations.length} locations worldwide
               </p>
             </div>
-          </div>
 
-          <AnimatePresence>
-            {selectedLocation && (
-              <motion.div
-                initial={{ opacity: 0, x: 20, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 20, scale: 0.9 }}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky/15 dark:bg-sky/10 border border-sky/30 dark:border-sky/20"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-steel opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-steel" />
-                </span>
-                <span className="text-xs font-semibold text-navy dark:text-sky">
-                  {selectedLocation.name}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            <AnimatePresence>
+              {selectedLocation && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                  className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cream-300/50 dark:bg-navy-700/50"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-navy/50 dark:bg-cream/50 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-navy dark:bg-cream" />
+                  </span>
+                  <span className="text-xs font-semibold text-navy dark:text-cream">
+                    {selectedLocation.name}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Globe card */}
-        <div className="max-w-7xl mx-auto px-4 pb-6">
-          <div className="relative rounded-2xl border border-cream-300 dark:border-navy-700 bg-cream-50/60 dark:bg-navy/60 backdrop-blur-sm shadow-xl shadow-navy/[0.04] dark:shadow-black/30 overflow-hidden">
-            {/* Top gradient accent line */}
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-steel/40 to-transparent" />
-
-            {/* Inner ambient glow */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50%] h-[50%] bg-steel/[0.03] dark:bg-sky/[0.04] rounded-full blur-[80px]" />
-            </div>
-
+        <div className="w-full pb-6">
+          <div className="relative rounded-2xl bg-cream-300/20 dark:bg-navy-700/20 overflow-hidden">
             {isLoading && (
               <div className="flex flex-col items-center justify-center py-32 gap-4">
-                <div className="relative">
-                  <Loader2 className="w-10 h-10 animate-spin text-steel" />
-                  <div className="absolute inset-0 w-10 h-10 rounded-full bg-steel/20 blur-xl" />
-                </div>
-                <p className="text-sm text-steel dark:text-sky">
+                <Loader2 className="w-8 h-8 animate-spin text-navy/30 dark:text-cream/30" />
+                <p className="text-sm text-navy/40 dark:text-cream/40">
                   Loading locations...
                 </p>
               </div>
             )}
             {error && (
               <div className="flex flex-col items-center justify-center py-32 gap-3">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40">
-                  <AlertCircle className="w-6 h-6 text-red-500" />
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/20 mb-1">
+                  <AlertCircle className="w-6 h-6 text-red-500 dark:text-red-400" />
                 </div>
                 <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               </div>
@@ -202,7 +182,7 @@ export default function LocationsPage() {
             )}
 
             {/* Bottom bar */}
-            <div className="relative border-t border-cream-300 dark:border-navy-700 px-4 py-2.5 flex items-center justify-between text-[11px] text-steel dark:text-sky/60">
+            <div className="relative border-t border-cream-300/40 dark:border-navy-700/40 px-4 py-2.5 flex items-center justify-between text-[11px] text-navy/35 dark:text-cream/30">
               <span className="flex items-center gap-1.5">
                 <Navigation className="w-3 h-3" />
                 Drag to rotate · Click a marker to explore
@@ -213,7 +193,7 @@ export default function LocationsPage() {
         </div>
 
         {/* Posts section */}
-        <div className="max-w-7xl mx-auto px-4 pb-16">
+        <div className="w-full pb-16">
           <AnimatePresence mode="wait">
             {selectedLocation ? (
               <motion.div
@@ -224,16 +204,14 @@ export default function LocationsPage() {
                 transition={{ duration: 0.25, ease: "easeOut" }}
               >
                 {/* Location detail card */}
-                <div className="mb-6 p-4 rounded-xl border border-cream-300 dark:border-navy-700 bg-cream-50 dark:bg-navy shadow-sm flex items-center justify-between gap-4">
+                <div className="mb-6 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-sky/20 to-steel/15 dark:from-sky/15 dark:to-steel/10 border border-sky/30 dark:border-sky/20 flex-shrink-0">
-                      <MapPin className="w-5 h-5 text-steel dark:text-sky" />
-                    </div>
+                    <MapPin className="w-5 h-5 text-navy/40 dark:text-cream/40 flex-shrink-0" />
                     <div className="min-w-0">
-                      <h2 className="font-display font-semibold text-navy dark:text-cream truncate text-sm">
+                      <h2 className="font-semibold text-navy dark:text-cream truncate text-base">
                         {selectedLocation.name}
                       </h2>
-                      <p className="text-[11px] text-steel dark:text-sky mt-0.5 tabular-nums">
+                      <p className="text-xs text-navy/35 dark:text-cream/30 mt-0.5 tabular-nums">
                         {selectedLocation.latitude.toFixed(2)}&deg;,{" "}
                         {selectedLocation.longitude.toFixed(2)}&deg;
                       </p>
@@ -241,9 +219,9 @@ export default function LocationsPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {isPostsLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-steel" />
+                      <Loader2 className="w-4 h-4 animate-spin text-navy/30 dark:text-cream/30" />
                     ) : posts.length > 0 ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky/15 dark:bg-sky/10 border border-sky/25 dark:border-sky/15 text-[11px] font-semibold text-navy dark:text-sky">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50 text-[11px] font-semibold text-navy/60 dark:text-cream/60">
                         <ImageIcon className="w-3 h-3" />
                         {posts.length} {posts.length === 1 ? "post" : "posts"}
                       </div>
@@ -251,7 +229,7 @@ export default function LocationsPage() {
                     {role === "ADMIN" && (
                       <button
                         onClick={() => handleDeleteLocation(selectedLocation)}
-                        className="p-1.5 rounded-lg text-red-500 dark:text-red-400 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-full text-red-500/70 hover:bg-red-500/[0.06] transition-colors cursor-pointer"
                         title="Delete location"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -260,18 +238,18 @@ export default function LocationsPage() {
                   </div>
                 </div>
 
-                {/* Search mode toggle */}
-                <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
+                {/* Search mode toggle — pill segmented control */}
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                  <div className="inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
                     <button
                       onClick={() => {
                         setSearchMode("exact");
                         fetchPostsForLocation(selectedLocation.locationId, "exact");
                       }}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                      className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
                         searchMode === "exact"
-                          ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                          : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                          ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                          : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
                       }`}
                     >
                       Exact Location
@@ -281,10 +259,10 @@ export default function LocationsPage() {
                         setSearchMode("nearby");
                         fetchPostsForLocation(selectedLocation.locationId, "nearby", radiusKm);
                       }}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                      className={`px-4 py-1.5 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
                         searchMode === "nearby"
-                          ? "bg-steel text-cream-50 shadow-sm shadow-steel/20 dark:bg-sky dark:text-navy dark:shadow-sky/15"
-                          : "text-navy/70 dark:text-cream/60 bg-cream-50/60 dark:bg-navy-700/30 border border-cream-300/40 dark:border-navy-700/40 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+                          ? "bg-navy text-cream dark:bg-cream dark:text-navy shadow-sm"
+                          : "text-navy/50 dark:text-cream/50 hover:text-navy dark:hover:text-cream"
                       }`}
                     >
                       Nearby Posts
@@ -343,10 +321,10 @@ export default function LocationsPage() {
                   animate={{ opacity: 1 }}
                   className="text-center py-10"
                 >
-                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream-300 dark:bg-navy-700 border border-cream-400 dark:border-navy-600 mb-3">
-                    <MapPin className="w-5 h-5 text-steel dark:text-sky" />
+                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream-300/30 dark:bg-navy-700/30 mb-3">
+                    <MapPin className="w-5 h-5 text-navy/30 dark:text-cream/30" />
                   </div>
-                  <p className="text-xs text-steel dark:text-sky/60">
+                  <p className="text-sm text-navy/35 dark:text-cream/30">
                     Click a location on the globe to see its posts
                   </p>
                 </motion.div>

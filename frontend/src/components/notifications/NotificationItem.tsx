@@ -117,11 +117,11 @@ export default function NotificationItem({
     <>
       <div
         onClick={handleClick}
-        className={`group relative flex items-start gap-3 p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+        className={`group relative flex items-start gap-3 p-4 rounded-2xl transition-all duration-200 cursor-pointer ${
           isReadLocal
-            ? "bg-cream-50/50 dark:bg-navy-700/30 border-cream-300/30 dark:border-navy-700/30"
-            : "bg-cream-50 dark:bg-navy-700/50 border-steel/20 dark:border-sky/20"
-        } hover:bg-cream-100/60 dark:hover:bg-navy-700/50 ${
+            ? "hover:bg-cream-300/20 dark:hover:bg-navy-700/20"
+            : "bg-cream-300/20 dark:bg-navy-700/20 hover:bg-cream-300/40 dark:hover:bg-navy-700/40"
+        } ${
           busy ? "opacity-70 pointer-events-none" : ""
         }`}
       >
@@ -133,7 +133,7 @@ export default function NotificationItem({
             width={40}
             height={40}
             onClick={handleAvatarClick}
-            className="w-10 h-10 rounded-full object-cover bg-cream-300 dark:bg-navy-600 cursor-pointer hover:opacity-80 transition-opacity ring-2 ring-cream-300/40 dark:ring-navy-600/40"
+            className="w-10 h-10 rounded-full object-cover bg-cream-300/50 dark:bg-navy-700/50 cursor-pointer hover:opacity-80 transition-opacity"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).src = "/person.jpg";
             }}
