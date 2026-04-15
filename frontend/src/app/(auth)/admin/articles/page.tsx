@@ -16,6 +16,8 @@ import {
   Eye,
   FileText,
   ChevronDown,
+  Heart,
+  MessageCircle,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
@@ -33,13 +35,13 @@ const STATUS_FILTERS: { value: BlogStatus | ""; label: string }[] = [
   { value: "ARCHIVED", label: "Archived" },
 ];
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  PUBLISHED:        { bg: "bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-400", border: "border-emerald-500/20" },
-  DRAFT:            { bg: "bg-amber-500/10",   text: "text-amber-700 dark:text-amber-400",     border: "border-amber-500/20" },
-  APPROVAL_PENDING: { bg: "bg-blue-500/10",    text: "text-blue-700 dark:text-blue-400",       border: "border-blue-500/20" },
-  FLAGGED:          { bg: "bg-orange-500/10",   text: "text-orange-700 dark:text-orange-400",   border: "border-orange-500/20" },
-  REJECTED:         { bg: "bg-red-500/10",      text: "text-red-700 dark:text-red-400",         border: "border-red-500/20" },
-  ARCHIVED:         { bg: "bg-gray-500/10",     text: "text-gray-600 dark:text-gray-400",       border: "border-gray-500/20" },
+const STATUS_STYLES: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+  PUBLISHED:        { bg: "bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-400", border: "border-emerald-500/20", dot: "bg-emerald-400" },
+  DRAFT:            { bg: "bg-amber-500/10",   text: "text-amber-700 dark:text-amber-400",     border: "border-amber-500/20",   dot: "bg-amber-400" },
+  APPROVAL_PENDING: { bg: "bg-blue-500/10",    text: "text-blue-700 dark:text-blue-400",       border: "border-blue-500/20",    dot: "bg-blue-400" },
+  FLAGGED:          { bg: "bg-orange-500/10",   text: "text-orange-700 dark:text-orange-400",   border: "border-orange-500/20",  dot: "bg-orange-400" },
+  REJECTED:         { bg: "bg-red-500/10",      text: "text-red-700 dark:text-red-400",         border: "border-red-500/20",     dot: "bg-red-400" },
+  ARCHIVED:         { bg: "bg-gray-500/10",     text: "text-gray-600 dark:text-gray-400",       border: "border-gray-500/20",    dot: "bg-gray-400" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -53,7 +55,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const ALL_STATUSES: BlogStatus[] = ["PUBLISHED", "DRAFT", "APPROVAL_PENDING", "FLAGGED", "REJECTED", "ARCHIVED"];
 
-const ARTICLES_PER_PAGE = 12;
+const ARTICLES_PER_PAGE = 16;
 
 const defaultPagination: PaginationMeta = {
   page: 0,
@@ -63,6 +65,14 @@ const defaultPagination: PaginationMeta = {
   first: true,
   last: true,
 };
+
+const PIN_ASPECTS = [
+  "aspect-[3/4]",
+  "aspect-[4/5]",
+  "aspect-[1/1]",
+  "aspect-[4/3]",
+  "aspect-[2/3]",
+];
 
 function StatusDropdown({
   current,
@@ -93,9 +103,10 @@ function StatusDropdown({
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
         disabled={isUpdating}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full border transition-colors cursor-pointer disabled:opacity-60 ${style.bg} ${style.text} ${style.border}`}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full bg-black/60 backdrop-blur-sm text-white border border-white/20 transition-colors cursor-pointer disabled:opacity-60 hover:bg-black/70"
       >
         {isUpdating && <Loader2 className="w-3 h-3 animate-spin" />}
+        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${style.dot}`} />
         {STATUS_LABELS[current] || current}
         <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -129,6 +140,8 @@ function StatusDropdown({
     </div>
   );
 }
+
+const SKELETON_HEIGHTS = ["h-52", "h-72", "h-60", "h-80", "h-48", "h-64", "h-56", "h-44", "h-68", "h-76", "h-58", "h-42", "h-52", "h-72", "h-60", "h-80"];
 
 export default function AdminArticlesPage() {
   const router = useRouter();
@@ -242,7 +255,7 @@ export default function AdminArticlesPage() {
         </div>
 
         {/* Status filter pills */}
-        <div className="mt-4 inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
+        <div className="mt-4 inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50 flex-wrap">
           {STATUS_FILTERS.map((filter) => {
             const isActive = statusFilter === filter.value;
             return (
@@ -268,11 +281,11 @@ export default function AdminArticlesPage() {
         )}
       </div>
 
-      {/* ── Articles Grid ── */}
+      {/* ── Articles Masonry ── */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-60 rounded-2xl bg-cream-300/30 dark:bg-navy-700/30 animate-pulse" />
+        <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
+          {SKELETON_HEIGHTS.map((h, i) => (
+            <div key={i} className={`break-inside-avoid mb-4 rounded-2xl bg-cream-300/30 dark:bg-navy-700/30 animate-pulse ${h}`} />
           ))}
         </div>
       ) : blogs.length === 0 ? (
@@ -284,92 +297,120 @@ export default function AdminArticlesPage() {
           <p className="text-xs text-muted">Try adjusting your search or filter criteria.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {blogs.map((blog) => (
-            <div
-              key={blog.blogId}
-              onClick={() => router.push(`/articles/${blog.blogId}`)}
-              className="group flex flex-col rounded-2xl bg-surface-alt border border-border-default hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 cursor-pointer overflow-hidden"
-            >
-              {/* Thumbnail */}
-              <div className="relative h-36 w-full overflow-hidden bg-cream-300/30 dark:bg-navy-700/40">
+        <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
+          {blogs.map((blog) => {
+            const aspectClass = PIN_ASPECTS[blog.blogId % PIN_ASPECTS.length];
+            return (
+              <div
+                key={blog.blogId}
+                className="break-inside-avoid mb-4 group cursor-pointer relative"
+                onClick={() => router.push(`/articles/${blog.blogId}`)}
+              >
+                {/* Pin image */}
                 {blog.thumbnailUrl ? (
-                  <Image
-                    src={blog.thumbnailUrl}
-                    alt={blog.title}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full bg-gradient-to-br from-steel/10 to-sky/10 dark:from-steel/20 dark:to-sky/10">
-                    <FileText className="w-8 h-8 text-steel/20 dark:text-sky/15" />
-                  </div>
-                )}
-                {/* View count overlay */}
-                {blog.viewCount > 0 && (
-                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium">
-                    <Eye className="w-3 h-3" />
-                    {blog.viewCount}
-                  </div>
-                )}
-              </div>
+                  <>
+                    <div className={`relative w-full ${aspectClass} overflow-hidden rounded-2xl bg-cream-300/20 dark:bg-navy-700/20`}>
+                      <Image
+                        src={blog.thumbnailUrl}
+                        alt={blog.title}
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-              {/* Content */}
-              <div className="flex flex-col flex-1 p-4 gap-2">
-                {/* Status + Categories */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <StatusDropdown
-                    current={blog.blogStatus}
-                    blogId={blog.blogId}
-                    onUpdate={handleStatusUpdate}
-                    isUpdating={updatingBlogId === blog.blogId}
-                  />
-                  {blog.categories.slice(0, 2).map((cat) => (
-                    <span key={cat.categoryId} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-cream-200/50 dark:bg-navy-600/30 text-steel/70 dark:text-sky/50">
-                      {cat.name}
-                    </span>
-                  ))}
-                </div>
+                      {/* View count */}
+                      {blog.viewCount > 0 && (
+                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium">
+                          <Eye className="w-3 h-3" />
+                          {blog.viewCount}
+                        </div>
+                      )}
 
-                {/* Title */}
-                <h3 className="text-sm font-bold text-heading leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
-                  {blog.title}
-                </h3>
-
-                <div className="flex-1" />
-
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-2 border-t border-border-subtle">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0">
-                      {blog.author.profilePictureUrl ? (
-                        <Image src={blog.author.profilePictureUrl} alt={blog.author.username} width={24} height={24} className="object-cover w-full h-full" />
-                      ) : (
-                        <div className="w-full h-full bg-steel/10 dark:bg-sky/10" />
+                      {/* Categories on hover */}
+                      {blog.categories.length > 0 && (
+                        <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          {blog.categories.slice(0, 2).map((cat) => (
+                            <span key={cat.categoryId} className="px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-sm text-white text-[10px] font-semibold">
+                              {cat.name}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <p
+
+                    {/* Status dropdown — outside overflow-hidden so menu isn't clipped */}
+                    <div className="absolute top-2.5 left-2.5 z-10" onClick={(e) => e.stopPropagation()}>
+                      <StatusDropdown
+                        current={blog.blogStatus}
+                        blogId={blog.blogId}
+                        onUpdate={handleStatusUpdate}
+                        isUpdating={updatingBlogId === blog.blogId}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-2xl bg-gradient-to-br from-cream-300/40 to-cream-200/20 dark:from-navy-700/50 dark:to-navy-600/20 p-5 min-h-[140px] flex flex-col justify-between">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <StatusDropdown
+                        current={blog.blogStatus}
+                        blogId={blog.blogId}
+                        onUpdate={handleStatusUpdate}
+                        isUpdating={updatingBlogId === blog.blogId}
+                      />
+                    </div>
+                    <h3 className="text-base font-bold text-heading leading-snug line-clamp-4 mt-3">
+                      {blog.title}
+                    </h3>
+                  </div>
+                )}
+
+                {/* Content below pin */}
+                <div className="px-1 pt-2.5 pb-1 space-y-1">
+                  <h3 className="text-[13px] font-semibold text-heading leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
+                    {blog.title}
+                  </h3>
+
+                  {/* Author + stats */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <div className="w-5 h-5 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0">
+                        {blog.author.profilePictureUrl ? (
+                          <Image src={blog.author.profilePictureUrl} alt={blog.author.username} width={20} height={20} className="object-cover w-full h-full" />
+                        ) : (
+                          <div className="w-full h-full bg-steel/10 dark:bg-sky/10" />
+                        )}
+                      </div>
+                      <span
                         onClick={(e) => { e.stopPropagation(); router.push(`/profile/${blog.author.userId}`); }}
-                        className="text-[11px] font-medium text-sub truncate cursor-pointer hover:underline hover:text-steel dark:hover:text-sky"
+                        className="text-[11px] font-medium text-sub truncate cursor-pointer hover:text-steel dark:hover:text-sky"
                       >
                         {blog.author.username}
-                      </p>
-                      <p className="text-[10px] text-faint">
+                      </span>
+                      <span className="text-[10px] text-faint">
                         {formatDistanceToNow(parseUTC(blog.createdAt), { addSuffix: true })}
-                      </p>
+                      </span>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 text-[10px] text-faint">
-                    {blog.reactionCount > 0 && <span>{blog.reactionCount} reactions</span>}
-                    {blog.commentCount > 0 && <span>{blog.commentCount} comments</span>}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {blog.reactionCount > 0 && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-steel/40 dark:text-sky/30">
+                          <Heart className="w-2.5 h-2.5" />
+                          {blog.reactionCount}
+                        </span>
+                      )}
+                      {blog.commentCount > 0 && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-steel/40 dark:text-sky/30">
+                          <MessageCircle className="w-2.5 h-2.5" />
+                          {blog.commentCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -20,6 +20,14 @@ interface ArticleCardProps {
   onClick?: () => void;
 }
 
+const PIN_ASPECTS = [
+  "aspect-[3/4]",
+  "aspect-[4/5]",
+  "aspect-[1/1]",
+  "aspect-[4/3]",
+  "aspect-[2/3]",
+];
+
 export const ArticleCard: React.FC<ArticleCardProps> = ({
   title,
   summary,
@@ -30,6 +38,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   reactionCount = 0,
   commentCount = 0,
   createdAt,
+  blogId,
   onClick,
 }) => {
   const router = useRouter();
@@ -37,127 +46,121 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     ? formatDistanceToNow(parseUTC(createdAt), { addSuffix: true })
     : null;
 
+  const aspectClass = PIN_ASPECTS[(blogId ?? 0) % PIN_ASPECTS.length];
+
   return (
     <div
       onClick={onClick}
-      className="group relative flex flex-col h-[22rem] rounded-2xl overflow-hidden bg-surface-alt border border-border-default hover:border-steel/30 dark:hover:border-sky/30 shadow-sm hover:shadow-lg hover:shadow-steel/[0.06] dark:hover:shadow-sky/[0.04] transition-all duration-300 cursor-pointer"
+      className="group relative w-full cursor-pointer"
     >
-      {/* Thumbnail / Cover */}
-      <div className="relative h-[45%] w-full overflow-hidden bg-cream-300/30 dark:bg-navy-700/60">
-        {thumbnailUrl ? (
+      {/* Pin image */}
+      {thumbnailUrl ? (
+        <div
+          className={`relative w-full ${aspectClass} overflow-hidden rounded-2xl bg-cream-300/20 dark:bg-navy-700/20`}
+        >
           <Image
             src={thumbnailUrl}
             alt={title}
             fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
-        ) : (
-          <div className="flex items-center justify-center h-full bg-gradient-to-br from-steel/10 to-sky/10 dark:from-steel/20 dark:to-sky/10">
-            <div className="w-14 h-14 rounded-2xl bg-steel/10 dark:bg-sky/10 flex items-center justify-center">
-              <svg
-                className="w-7 h-7 text-steel/40 dark:text-sky/30"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                viewBox="0 0 24 24"
-              >
-                <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-              </svg>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+          {/* View count badge */}
+          {views > 0 && (
+            <div className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium">
+              <Eye className="w-3 h-3" />
+              {views}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* View count badge */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-lg bg-navy/60 backdrop-blur-sm text-cream-50 text-[11px] font-medium">
-          <Eye className="w-3 h-3" />
-          {views}
+          {/* Categories — bottom-left */}
+          {categories && categories.length > 0 && (
+            <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {categories.slice(0, 2).map((cat) => (
+                <span
+                  key={cat.categoryId}
+                  className="px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-sm text-white text-[10px] font-semibold"
+                >
+                  {cat.name}
+                </span>
+              ))}
+              {categories.length > 2 && (
+                <span className="px-1.5 py-0.5 rounded-md bg-black/40 backdrop-blur-sm text-white text-[10px] font-medium">
+                  +{categories.length - 2}
+                </span>
+              )}
+            </div>
+          )}
         </div>
+      ) : (
+        /* No-thumbnail pin */
+        <div className="rounded-2xl bg-gradient-to-br from-cream-300/40 to-cream-200/20 dark:from-navy-700/50 dark:to-navy-600/20 p-5 min-h-[140px] flex flex-col justify-end">
+          <h3 className="text-base font-bold text-heading leading-snug line-clamp-4">
+            {title}
+          </h3>
+          {summary && (
+            <p className="mt-1.5 text-xs text-sub leading-relaxed line-clamp-2">
+              {summary}
+            </p>
+          )}
+        </div>
+      )}
 
-        {/* Categories */}
-        {categories && categories.length > 0 && (
-          <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
-            {categories.slice(0, 2).map((cat) => (
-              <span
-                key={cat.categoryId}
-                className="px-2 py-0.5 rounded-md bg-steel/70 backdrop-blur-sm text-cream-50 text-[10px] font-semibold uppercase tracking-wide"
-              >
-                {cat.name}
-              </span>
-            ))}
-            {categories.length > 2 && (
-              <span className="px-1.5 py-0.5 rounded-md bg-navy/50 backdrop-blur-sm text-cream-50 text-[10px] font-medium">
-                +{categories.length - 2}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex flex-col flex-1 p-4">
-        <h3 className="text-sm font-display font-bold text-heading leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
-          {title}
-        </h3>
-
-        {summary && (
-          <p className="mt-1.5 text-[12px] text-steel/70 dark:text-sky/50 leading-relaxed line-clamp-2">
-            {summary}
-          </p>
+      {/* Content below pin */}
+      <div className="px-1 pt-2.5 pb-1 space-y-1">
+        {thumbnailUrl && (
+          <h3 className="text-[13px] font-semibold text-heading leading-snug line-clamp-2 group-hover:text-steel dark:group-hover:text-sky transition-colors">
+            {title}
+          </h3>
         )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Footer: author + stats */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-cream-300/30 dark:border-navy-600/30">
-          {/* Author */}
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-6 h-6 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0 flex items-center justify-center">
+        {/* Author + stats row */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <div className="w-5 h-5 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0 flex items-center justify-center">
               {author?.profilePictureUrl ? (
                 <Image
                   src={author.profilePictureUrl}
                   alt={author.username}
-                  width={24}
-                  height={24}
+                  width={20}
+                  height={20}
                   className="object-cover w-full h-full"
                 />
               ) : (
-                <User className="w-3 h-3 text-steel/60 dark:text-sky/40" />
+                <User className="w-2.5 h-2.5 text-steel/60 dark:text-sky/40" />
               )}
             </div>
-            <div className="min-w-0">
-              <p
-                onClick={(e) => {
-                  if (author?.userId) {
-                    e.stopPropagation();
-                    router.push(`/profile/${author.userId}`);
-                  }
-                }}
-                className={`text-[11px] font-medium text-navy/80 dark:text-cream/70 truncate ${
-                  author?.userId ? "cursor-pointer hover:underline hover:text-steel dark:hover:text-sky" : ""
-                }`}
-              >
-                {author?.username || "Anonymous"}
-              </p>
-              {timeAgo && (
-                <p className="text-[10px] text-steel/50 dark:text-sky/30">
-                  {timeAgo}
-                </p>
-              )}
-            </div>
+            <span
+              onClick={(e) => {
+                if (author?.userId) {
+                  e.stopPropagation();
+                  router.push(`/profile/${author.userId}`);
+                }
+              }}
+              className={`text-[11px] font-medium text-sub truncate ${
+                author?.userId ? "cursor-pointer hover:text-steel dark:hover:text-sky" : ""
+              }`}
+            >
+              {author?.username || "Anonymous"}
+            </span>
           </div>
 
-          {/* Stats */}
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1 text-[11px] text-steel/60 dark:text-sky/40">
-              <Heart className="w-3 h-3" />
-              {reactionCount}
-            </span>
-            <span className="flex items-center gap-1 text-[11px] text-steel/60 dark:text-sky/40">
-              <MessageCircle className="w-3 h-3" />
-              {commentCount}
-            </span>
+          {/* Compact stats */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {reactionCount > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] text-steel/40 dark:text-sky/30">
+                <Heart className="w-2.5 h-2.5" />
+                {reactionCount}
+              </span>
+            )}
+            {commentCount > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] text-steel/40 dark:text-sky/30">
+                <MessageCircle className="w-2.5 h-2.5" />
+                {commentCount}
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type ArticleMode = "suggestions" | "search";
 
-const ARTICLES_PER_PAGE = 9;
+const ARTICLES_PER_PAGE = 12;
 const defaultPagination: PaginationMeta = {
   page: 0,
   size: ARTICLES_PER_PAGE,
@@ -180,13 +180,19 @@ export default function ArticlesPage() {
     return pages;
   };
 
+  // ── Skeletons ──
+  const SKELETON_HEIGHTS = ["h-52", "h-72", "h-60", "h-80", "h-48", "h-64", "h-56", "h-44", "h-68", "h-76", "h-58", "h-42"];
+
   // ── Render grid ──
   const renderContent = () => {
     if (currentLoading) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
           {[...Array(ARTICLES_PER_PAGE)].map((_, i) => (
-            <div key={i} className="h-[22rem] rounded-2xl bg-cream-300/30 dark:bg-navy-700/30 animate-pulse" />
+            <div
+              key={i}
+              className={`break-inside-avoid mb-4 rounded-2xl bg-cream-300/30 dark:bg-navy-700/30 animate-pulse ${SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]}`}
+            />
           ))}
         </div>
       );
@@ -229,14 +235,14 @@ export default function ArticlesPage() {
 
     return (
       <AnimatePresence>
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
           {currentData.map((blog, index) => (
             <motion.div
               key={blog.blogId}
-              layout
-              initial={{ opacity: 0, y: 24, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.97 }}
+              className="break-inside-avoid mb-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.35, delay: index * 0.04, ease: "easeOut" }}
             >
               <ArticleCard
@@ -254,7 +260,7 @@ export default function ArticlesPage() {
               />
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       </AnimatePresence>
     );
   };
@@ -281,7 +287,7 @@ export default function ArticlesPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Segmented control — For You / Browse */}
+            {/* Segmented control */}
             <div className="inline-flex p-1 rounded-full bg-cream-300/50 dark:bg-navy-700/50">
               <button
                 onClick={() => handleModeSwitch("suggestions")}
