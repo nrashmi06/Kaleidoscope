@@ -257,7 +257,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 .caption(resultDTO.getCaption())
                 .tags(resultDTO.getTags() != null ? resultDTO.getTags().toArray(new String[0]) : new String[0])
                 .scenes(resultDTO.getScenes() != null ? resultDTO.getScenes().toArray(new String[0]) : new String[0])
-                .imageEmbedding(parseEmbedding(resultDTO.getImageEmbedding()))
+                .imageEmbedding(normalizeEmbedding(resultDTO.getImageEmbedding()))
                 .servicesCompleted(service != null && !service.isBlank() ? new String[] { service } : new String[0])
                 .build();
     }
@@ -302,7 +302,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
 
         // Image embedding can come from any service that provides it
         if (newData.getImageEmbedding() != null && !newData.getImageEmbedding().trim().isEmpty()) {
-            float[] embedding = parseEmbedding(newData.getImageEmbedding());
+            String embedding = normalizeEmbedding(newData.getImageEmbedding());
             if (embedding != null) {
                 existing.setImageEmbedding(embedding);
                 log.debug("Updated image embedding");
@@ -331,28 +331,46 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         return existing;
     }
 
-    private float[] parseEmbedding(String raw) {
+    private String normalizeEmbedding(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
         }
+
+        String trimmed = raw.trim();
+
         try {
-            if (raw.startsWith("[")) {
-                List<Double> values = objectMapper.readValue(raw, new TypeReference<>() {
+            if (trimmed.startsWith("[")) {
+                List<Double> values = objectMapper.readValue(trimmed, new TypeReference<>() {
                 });
-                float[] vector = new float[values.size()];
+                StringBuilder sb = new StringBuilder("[");
                 for (int i = 0; i < values.size(); i++) {
-                    vector[i] = values.get(i).floatValue();
+                    if (i > 0) {
+                        sb.append(",");
+                    }
+                    sb.append(values.get(i).floatValue());
                 }
-                return vector;
+                sb.append("]");
+                return sb.toString();
             }
-            String[] parts = raw.split(",");
-            float[] vector = new float[parts.length];
+
+            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                trimmed = trimmed.substring(1, trimmed.length() - 1);
+            }
+
+            String[] parts = trimmed.split(",");
+            StringBuilder sb = new StringBuilder("[");
             for (int i = 0; i < parts.length; i++) {
-                vector[i] = Float.parseFloat(parts[i].trim());
+                String value = parts[i].trim().replace("\"", "");
+                float parsed = Float.parseFloat(value);
+                if (i > 0) {
+                    sb.append(",");
+                }
+                sb.append(parsed);
             }
-            return vector;
+            sb.append("]");
+            return sb.toString();
         } catch (Exception ex) {
-            log.warn("Failed to parse image embedding, returning null", ex);
+            log.warn("Failed to normalize image embedding, returning null", ex);
             return null;
         }
     }
@@ -393,27 +411,13 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                 .caption(insights.getCaption())
                 .tags(insights.getTags() != null ? Arrays.asList(insights.getTags()) : List.of())
                 .scenes(insights.getScenes() != null ? Arrays.asList(insights.getScenes()) : List.of())
-                .imageEmbedding(convertEmbeddingToString(insights.getImageEmbedding()))
+                .imageEmbedding(insights.getImageEmbedding())
                 .detectedUsers(detectedUsers) // Initialize empty - populated by face pipeline
                 .reactionCount(0) // Initialize to 0 - updated by separate reaction events
                 .commentCount(0) // Initialize to 0 - updated by separate comment events
                 .createdAt(post.getCreatedAt().atOffset(java.time.ZoneOffset.UTC))
                 .lastUpdated(java.time.OffsetDateTime.now())
                 .build();
-    }
-
-    private String convertEmbeddingToString(float[] embedding) {
-        if (embedding == null) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < embedding.length; i++) {
-            if (i > 0)
-                sb.append(",");
-            sb.append(embedding[i]);
-        }
-        sb.append("]");
-        return sb.toString();
     }
 
     private MediaSearchDocument toMediaSearchDocument(PostMedia postMedia, MediaAiInsights insights) {

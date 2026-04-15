@@ -49,6 +49,7 @@ Kaleidoscope/
 ### For Developers
 - **🏗️ [Backend Architecture Guide](backend/docs/BACKEND_ARCHITECTURE.md)** - Complete backend structure, coding principles, and design patterns
 - **🔌 [API Documentation](backend/docs/api/API_OVERVIEW.md)** - Master API documentation with links to all endpoints
+- **🛡️ [Rate Limiting System](backend/docs/RATE_LIMITING_SYSTEM.md)** - Auth endpoint throttling, Redis keying strategy, and 429 troubleshooting
 - **🧪 [API Testing](Kaleidoscope-api-test/)** - Bruno HTTP client test collections
 
 ### Architecture Deep Dive
