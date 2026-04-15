@@ -8,29 +8,27 @@ import { useRouter } from "next/navigation";
 import { createBlogController } from "@/controllers/blog/createBlogController";
 import { updateBlogController } from "@/controllers/blog/updateBlogController";
 import { BlogRequest, BlogDataResponse } from "@/lib/types/createBlog";
-import { useAccessToken } from "@/hooks/useAccessToken"; 
+import { useAccessToken } from "@/hooks/useAccessToken";
 import { Loader2, Link, Image as ImageIcon } from "lucide-react";
 import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
-import TitleInput from "@/components/post/TitleInput"; 
+import TitleInput from "@/components/post/TitleInput";
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
-import { LocationOption, CategorySummaryResponseDTO } from "@/lib/types/post"; 
+import { LocationOption, CategorySummaryResponseDTO } from "@/lib/types/post";
 import { LocationSearch } from "@/components/post/LocationSearch";
 import CategoriesSelect from "@/components/post/CategoriesSelect";
 import LinkedBlogSearch from "./LinkedBlogSearch";
 import BlogMediaUpload from "./form-components/BlogMediaUpload";
 
-// ✅ REMOVED: interface BlogFormLocalState
-type BlogFormState = BlogRequest; // Use BlogRequest directly
+type BlogFormState = BlogRequest;
 
 const initialState: BlogFormState = {
   title: "",
   body: "",
   summary: "",
   categoryIds: [],
-  blogTagIds: [], 
+  blogTagIds: [],
   locationId: undefined,
   mediaDetails: [],
-  // ✅ REMOVED: linkedBlogTitle: undefined, 
 };
 
 interface BlogFormProps {
@@ -45,21 +43,21 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [, setSubmittedData] = useState<BlogDataResponse | string | null>(null);
-  
-  const accessToken = useAccessToken(); 
+  const [, setSubmittedData] = useState<BlogDataResponse | null>(null);
+  const [hasUploadErrors, setHasUploadErrors] = useState(false);
+
+  const accessToken = useAccessToken();
 
   const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(null);
   const [categories, setCategories] = useState<CategorySummaryResponseDTO[]>([]);
 
-  // ✅ UPDATED: Used keyof BlogRequest
   const handleEnhancedInputChange = useCallback((name: keyof BlogRequest, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   }, []);
-  
+
   const handleLinkedBlogSelect = useCallback((linkedBlogIds: number[]) => {
     setFormData(prev => ({
         ...prev,
@@ -72,7 +70,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
       getParentCategoriesController(accessToken)
         .then((res) => {
           if (res.success && res.data?.content) {
-            setCategories(res.data.content as CategorySummaryResponseDTO[]); 
+            setCategories(res.data.content as CategorySummaryResponseDTO[]);
           }
         })
         .catch(console.error);
@@ -83,13 +81,20 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setMessage('');
-    setError(null); 
-    setSubmittedData(null); 
-    
+    setError(null);
+    setSubmittedData(null);
+
     if (!accessToken) {
         setError("User not authenticated. Please log in.");
         return;
     }
+
+    // Block submit if uploads have errors
+    if (hasUploadErrors) {
+      setError("Some media files failed to upload. Please retry or remove them before submitting.");
+      return;
+    }
+
     if (!formData.title.trim() || !formData.body.trim() || formData.categoryIds.length === 0) {
       setError("Title, body, and at least one category are required.");
       return;
@@ -106,22 +111,25 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
       setError("Article body is too long (max 50,000 characters).");
       return;
     }
-    
+
     setLoading(true);
 
-    // ✅ REMOVED DESTRUCTURING: formData now strictly matches BlogRequest
-    const apiPayload = formData; 
-    
+    // Reindex all media positions 0-based before sending
+    const reindexedMedia = (formData.mediaDetails ?? []).map((item, i) => ({
+      ...item,
+      position: i,
+    }));
+
     const strictApiPayload: BlogRequest = {
-        title: apiPayload.title,
-        body: apiPayload.body,
-        summary: apiPayload.summary,
-        mediaDetails: apiPayload.mediaDetails,
+        title: formData.title,
+        body: formData.body,
+        summary: formData.summary || undefined,
+        mediaDetails: reindexedMedia.length > 0 ? reindexedMedia : undefined,
         locationId: selectedLocation?.locationId,
-        categoryIds: apiPayload.categoryIds,
-        blogTagIds: apiPayload.blogTagIds, 
+        categoryIds: formData.categoryIds,
+        blogTagIds: formData.blogTagIds?.length ? formData.blogTagIds : undefined,
     };
-    
+
     try {
       if (isEditMode && editBlogId) {
         const result = await updateBlogController(accessToken, editBlogId, strictApiPayload);
@@ -138,7 +146,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
         const result = await createBlogController(strictApiPayload, accessToken);
 
         if (result.success) {
-          setMessage(result.message);
+          setMessage(typeof result.message === "string" ? result.message : "Article created successfully!");
           setSubmittedData(result.data ?? null);
           setFormData(initialState);
           setSelectedLocation(null);
@@ -148,7 +156,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
           }, 1500);
 
         } else {
-          setError(result.message);
+          setError(typeof result.message === "string" ? result.message : "Failed to create article.");
           setSubmittedData(result.data ?? null);
         }
       }
@@ -180,13 +188,13 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
         maxLength={50000}
       />
 
-      {/* --- SUMMARY --- */}
+      {/* --- SUMMARY (Optional) --- */}
       <EnhancedBodyInput
         inputType="summary"
-        value={formData.summary}
+        value={formData.summary ?? ""}
         onChange={(value) => handleEnhancedInputChange('summary', value)}
         accessToken={accessToken}
-        placeholder="A short summary for previews (max 500 characters)"
+        placeholder="A short summary for previews (optional, max 500 characters)"
         minRows={4}
         maxLength={500}
       />
@@ -198,11 +206,11 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
         </label>
         <LinkedBlogSearch
             onBlogSelect={handleLinkedBlogSelect}
-            selectedBlogIds={formData.blogTagIds}
+            selectedBlogIds={formData.blogTagIds ?? []}
         />
         <p className="text-xs text-faint mt-3">
             Search for and link related published articles.
-            Total linked: <span className="font-medium text-heading">{formData.blogTagIds.length}</span>
+            Total linked: <span className="font-medium text-heading">{formData.blogTagIds?.length ?? 0}</span>
         </p>
       </div>
 
@@ -235,6 +243,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
           accessToken={accessToken}
           formData={formData}
           setFormData={setFormData}
+          onUploadErrorChange={setHasUploadErrors}
         />
       </div>
 
@@ -261,7 +270,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || hasUploadErrors}
           className="flex-[2] h-12 rounded-full text-[15px] font-bold text-on-primary bg-btn-primary hover:bg-btn-primary-hover active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
         >
           {loading ? (

@@ -14,15 +14,15 @@ export type MediaType = "IMAGE" ; // Enum-like type from existing post.ts
 // --------------------------------------------------------
 
 export interface MediaDetailsRequest {
-  mediaId: number;
+  mediaId?: number | null; // null/undefined for newly uploaded media; backend uses presence to detect existing
   url: string;
   mediaType: MediaType;
   position: number;
-  width: number;
-  height: number;
-  fileSizeKb: number;
+  width?: number;
+  height?: number;
+  fileSizeKb?: number;
   durationSeconds?: number | null;
-  extraMetadata: Record<string, string>;
+  extraMetadata?: Record<string, unknown>;
 }
 
 export interface CategorySummary {
@@ -76,11 +76,11 @@ export interface LocationResponse {
 export interface BlogRequest {
   title: string;
   body: string;
-  summary: string;
+  summary?: string;
   mediaDetails?: MediaDetailsRequest[];
   locationId?: number;
   categoryIds: number[];
-  blogTagIds: number[];
+  blogTagIds?: number[];
 }
 
 // --------------------------------------------------------
@@ -108,18 +108,18 @@ export interface BlogDataResponse {
 // 3. Final Response Types
 // --------------------------------------------------------
 
-// 201 Success Response: data is a simple string message
-export type CreateBlogSuccessResponse = StandardApiResponse<string>;
+// 201 Success Response: data is the created blog object
+export type CreateBlogSuccessResponse = StandardApiResponse<BlogDataResponse>;
 
 // Error Response: data contains the detailed BlogDataResponse
 export type CreateBlogApiErrorResponse = StandardApiResponse<BlogDataResponse>;
 
-// Combined type for the raw API service response
-export type CreateBlogServiceResponse = CreateBlogSuccessResponse | CreateBlogApiErrorResponse;
+// Combined type for the raw API service response (both success and error carry BlogDataResponse)
+export type CreateBlogServiceResponse = StandardApiResponse<BlogDataResponse>;
 
 // Controller's normalized result structure
 export interface CreateBlogControllerResult {
   success: boolean;
   message: string;
-  data?: BlogDataResponse | string;
+  data?: BlogDataResponse;
 }

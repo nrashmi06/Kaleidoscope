@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type Post } from "@/lib/types/post"; // Correct type import
 import { formatDistanceToNow } from "date-fns";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import { MoreVertical, Trash2 } from "lucide-react";
 
 // ✅ 2. Import DeleteConfirmationModal
@@ -30,7 +31,7 @@ export function PostHeader({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
+  const timeAgo = formatDistanceToNow(parseUTC(post.createdAt), {
     addSuffix: true,
   });
 

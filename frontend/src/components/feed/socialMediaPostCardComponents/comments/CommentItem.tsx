@@ -8,6 +8,7 @@ import { CommentItem as CommentType } from "@/lib/types/comment";
 import { deleteCommentController } from "@/controllers/postInteractionController/deleteCommentController";
 import { useAccessToken } from "@/hooks/useAccessToken";
 import CommentActions from "./CommentActions";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import CommentBody from "@/components/feed/socialMediaPostCardComponents/comments/CommentBody";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import CommentTagManager from "./CommentTagManager";
@@ -107,7 +108,7 @@ export default function CommentItem({
                 className="text-xs text-steel/50 dark:text-sky/30"
                 dateTime={comment.createdAt}
               >
-                {new Date(comment.createdAt).toLocaleString()}
+                {parseUTC(comment.createdAt).toLocaleString()}
               </time>
             </div>
 

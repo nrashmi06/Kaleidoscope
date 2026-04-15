@@ -8,6 +8,7 @@ import { getBlogSuggestionsController } from "@/controllers/blog/blogSuggestions
 import { ArticleCard } from "@/components/articles/ArticleCard";
 import { Sparkles, Heart, MessageCircle, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import type { BlogItem } from "@/lib/types/blogFilter.types";
 
 interface ContentSuggestionsProps {
@@ -139,7 +140,7 @@ export default function ContentSuggestions({
         const thumbnail =
           post.thumbnailUrl ||
           post.mediaDetails?.find((m) => m.mediaType === "IMAGE")?.url;
-        const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
+        const timeAgo = formatDistanceToNow(parseUTC(post.createdAt), {
           addSuffix: true,
         });
 

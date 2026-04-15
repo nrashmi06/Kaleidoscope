@@ -12,6 +12,7 @@ import {
   type PostAuthor,
 } from "@/lib/types/postFeed";
 import { formatDistanceToNow } from "date-fns";
+import { parseUTC } from "@/lib/utils/parseUTC";
 
 /**
  * Controller to fetch and map a user's profile.
@@ -32,7 +33,7 @@ export const getUserProfileController = async (
 
       const normalizedPosts: NormalizedPostFeedItem[] = dto.posts.content.map(
         (post: UserPost) => {
-          const createdAtDate = new Date(post.createdAt);
+          const createdAtDate = parseUTC(post.createdAt);
 
           // Fix the 'author' object
           const mappedAuthor: PostAuthor = {

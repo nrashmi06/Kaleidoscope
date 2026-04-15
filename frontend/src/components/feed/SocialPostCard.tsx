@@ -13,6 +13,7 @@ import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal
 import { MoreVertical, Trash2, Pencil, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
+import { parseUTC } from "@/lib/utils/parseUTC";
 import { toast } from "react-hot-toast";
 
 interface SocialPostCardProps {
@@ -42,7 +43,7 @@ function SocialPostCardComponent({
   const isPostAuthor =
     !!currentUser && currentUser.userId === post.author.userId;
 
-  const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
+  const timeAgo = formatDistanceToNow(parseUTC(post.createdAt), {
     addSuffix: true,
   });
 
