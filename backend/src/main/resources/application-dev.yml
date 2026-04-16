@@ -9,3 +9,12 @@ spring:
   elasticsearch:
     # Overrides base to remove username/password for dev
     uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}
+
+security:
+  rate-limit:
+    login:
+      limit: ${SECURITY_RATE_LIMIT_LOGIN_LIMIT:2147483647}
+      window: ${SECURITY_RATE_LIMIT_LOGIN_WINDOW:PT1H}
+    register:
+      limit: ${SECURITY_RATE_LIMIT_REGISTER_LIMIT:2147483647}
+      window: ${SECURITY_RATE_LIMIT_REGISTER_WINDOW:PT1H}
