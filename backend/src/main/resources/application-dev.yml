@@ -18,3 +18,9 @@ security:
     register:
       limit: ${SECURITY_RATE_LIMIT_REGISTER_LIMIT:2147483647}
       window: ${SECURITY_RATE_LIMIT_REGISTER_WINDOW:PT1H}
+
+app:
+  elasticsearch:
+    startup:
+      auto-unblock-read-only: ${APP_ES_STARTUP_AUTO_UNBLOCK_READ_ONLY:true}
+      disable-disk-threshold: ${APP_ES_STARTUP_DISABLE_DISK_THRESHOLD:true}

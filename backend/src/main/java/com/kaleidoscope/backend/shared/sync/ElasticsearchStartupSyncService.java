@@ -42,6 +42,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -53,6 +54,12 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.function.Function;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  * Service to synchronize all data from PostgreSQL to Elasticsearch on
@@ -87,6 +94,21 @@ public class ElasticsearchStartupSyncService {
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
     private final ElasticsearchOperations elasticsearchOperations;
 
+    @Value("${app.elasticsearch.startup.auto-unblock-read-only:false}")
+    private boolean autoUnblockReadOnlyOnStartup;
+
+    @Value("${app.elasticsearch.startup.disable-disk-threshold:false}")
+    private boolean disableDiskThresholdOnStartup;
+
+    @Value("${spring.elasticsearch.uris:http://localhost:9200}")
+    private String elasticsearchUris;
+
+    @Value("${spring.elasticsearch.username:}")
+    private String elasticsearchUsername;
+
+    @Value("${spring.elasticsearch.password:}")
+    private String elasticsearchPassword;
+
     // Optimized batch size: increased from 100 to 500 to reduce DB round-trips
     // during startup sync
     private static final int BATCH_SIZE = 500;
@@ -107,6 +129,9 @@ public class ElasticsearchStartupSyncService {
         log.info("Thread: {}", Thread.currentThread().getName());
 
         try {
+            // 0.0 Optional dev/testing unblock for flood-stage read-only indices
+            unblockElasticsearchReadOnlyIndicesIfEnabled();
+
             // 0. Clean orphaned data
             cleanOrphanedData();
 
@@ -137,6 +162,60 @@ public class ElasticsearchStartupSyncService {
         } catch (Exception e) {
             log.error("==================== ELASTICSEARCH STARTUP SYNC FAILED ====================", e);
             // Don't throw - allow application to start even if ES sync fails
+        }
+    }
+
+    private void unblockElasticsearchReadOnlyIndicesIfEnabled() {
+        if (!autoUnblockReadOnlyOnStartup && !disableDiskThresholdOnStartup) {
+            return;
+        }
+
+        String[] uriCandidates = elasticsearchUris.split(",");
+        if (uriCandidates.length == 0 || uriCandidates[0].isBlank()) {
+            log.warn("Skipping ES startup unblock: no spring.elasticsearch.uris configured");
+            return;
+        }
+
+        String baseUri = uriCandidates[0].trim();
+        if (baseUri.endsWith("/")) {
+            baseUri = baseUri.substring(0, baseUri.length() - 1);
+        }
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+
+            if (disableDiskThresholdOnStartup) {
+                String disableThresholdBody = "{\"transient\":{\"cluster.routing.allocation.disk.threshold_enabled\":false}}";
+                sendEsPut(client, baseUri + "/_cluster/settings", disableThresholdBody);
+                log.warn("⚠️ Disabled Elasticsearch disk threshold checks for startup (testing mode)");
+            }
+
+            if (autoUnblockReadOnlyOnStartup) {
+                String clearReadOnlyBody = "{\"index.blocks.read_only_allow_delete\":null}";
+                sendEsPut(client, baseUri + "/_all/_settings", clearReadOnlyBody);
+                log.info("✅ Cleared Elasticsearch read_only_allow_delete blocks before startup sync");
+            }
+        } catch (Exception e) {
+            log.warn("Could not auto-unblock Elasticsearch read-only indices before startup sync", e);
+        }
+    }
+
+    private void sendEsPut(HttpClient client, String url, String jsonBody) throws Exception {
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody));
+
+        if (elasticsearchUsername != null && !elasticsearchUsername.isBlank()) {
+            String credentials = elasticsearchUsername + ":" + (elasticsearchPassword == null ? "" : elasticsearchPassword);
+            String basicAuth = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+            requestBuilder.header("Authorization", "Basic " + basicAuth);
+        }
+
+        HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        int status = response.statusCode();
+        if (status < 200 || status >= 300) {
+            throw new IllegalStateException("Elasticsearch request failed with status " + status + ": " + response.body());
         }
     }
 
