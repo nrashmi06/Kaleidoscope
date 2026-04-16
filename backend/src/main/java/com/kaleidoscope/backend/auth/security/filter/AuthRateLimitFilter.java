@@ -25,11 +25,17 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
-    private static final int LOGIN_LIMIT = 30;
-    private static final Duration LOGIN_WINDOW = Duration.ofHours(1);
+    @Value("${security.rate-limit.login.limit:30}")
+    private int loginLimit;
 
-    private static final int REGISTER_LIMIT = 15;
-    private static final Duration REGISTER_WINDOW = Duration.ofHours(1);
+    @Value("${security.rate-limit.login.window:PT1H}")
+    private Duration loginWindow;
+
+    @Value("${security.rate-limit.register.limit:15}")
+    private int registerLimit;
+
+    @Value("${security.rate-limit.register.window:PT1H}")
+    private Duration registerWindow;
 
     private final StringRedisTemplate stringRedisTemplate;
     private Set<String> trustedProxyIps = Set.of("127.0.0.1", "::1");
@@ -56,12 +62,12 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         String clientIp = resolveClientIp(request);
 
         if (AuthRoutes.LOGIN.equals(path)) {
-            if (isRateLimited("login", clientIp, LOGIN_LIMIT, LOGIN_WINDOW)) {
+            if (isRateLimited("login", clientIp, loginLimit, loginWindow)) {
                 writeRateLimitedResponse(response, "Too many login attempts. Please try again later.");
                 return;
             }
         } else if (AuthRoutes.REGISTER.equals(path)) {
-            if (isRateLimited("register", clientIp, REGISTER_LIMIT, REGISTER_WINDOW)) {
+            if (isRateLimited("register", clientIp, registerLimit, registerWindow)) {
                 writeRateLimitedResponse(response, "Too many registration attempts. Please try again later.");
                 return;
             }
