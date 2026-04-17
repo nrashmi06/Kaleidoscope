@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAccessToken } from "@/hooks/useAccessToken";
@@ -18,11 +19,10 @@ import {
   Pencil,
   ShieldAlert,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
+  Share2,
 } from "lucide-react";
 import Image from "next/image";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BlogActions } from "@/components/articles/BlogActions";
@@ -43,6 +43,30 @@ const STATUS_OPTIONS: { value: BlogDetailResponse["blogStatus"]; label: string; 
   { value: "ARCHIVED",         label: "Archived",   color: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20" },
 ];
 
+function ReadingProgressBar() {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    function onScroll() {
+      const el = document.documentElement;
+      const scrollTop = el.scrollTop;
+      const scrollHeight = el.scrollHeight - el.clientHeight;
+      setProgress(scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 h-[3px]">
+      <div
+        className="h-full bg-gradient-to-r from-steel via-sky to-steel dark:from-sky dark:via-steel dark:to-sky transition-[width] duration-150 ease-out"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+}
+
 export default function BlogDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -59,7 +83,6 @@ export default function BlogDetailPage() {
   const [isHardDeleting, setIsHardDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const statusRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = currentUser?.role === "ADMIN";
@@ -134,7 +157,7 @@ export default function BlogDetailPage() {
   };
 
   const handleStatusUpdate = async (status: BlogDetailResponse["blogStatus"]) => {
-    if (!accessToken || !blog || blog.blogStatus === status) return;
+    if (!accessToken || !blog || blog.blogStatus === status) return; // uses original blog state
     setStatusDropdownOpen(false);
     setIsUpdatingStatus(true);
     try {
@@ -149,6 +172,18 @@ export default function BlogDetailPage() {
       toast.error("Failed to update status.");
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: blog?.title ?? "", url });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard");
     }
   };
 
@@ -192,283 +227,431 @@ export default function BlogDetailPage() {
     );
   }
 
-  const isAuthor = currentUser?.userId === blog.author.userId;
+  // Non-null after the guards above
+  const b = blog;
+  const isAuthor = currentUser?.userId === b.author.userId;
   const canDelete = isAuthor || isAdmin;
-  const hasMedia = blog.media.length > 0;
-  const currentStatus = STATUS_OPTIONS.find((s) => s.value === blog.blogStatus) ?? STATUS_OPTIONS[0];
+  const currentStatus = STATUS_OPTIONS.find((s) => s.value === b.blogStatus) ?? STATUS_OPTIONS[0];
+
+  const sortedMedia = [...b.media].sort((x, y) => x.position - y.position);
+  const hasMarkers = /\{\{img:\d+\}\}/.test(b.body);
+  const heroImage = sortedMedia[0];
+
+  const createdDate = parseUTC(b.createdAt);
+  const formattedDate = format(createdDate, "MMM d, yyyy");
+
+  function renderArticleContent() {
+    if (sortedMedia.length === 0 && !hasMarkers) {
+      return <ReactMarkdown remarkPlugins={[remarkGfm]}>{b.body}</ReactMarkdown>;
+    }
+
+    if (hasMarkers) {
+      const parts = b.body.split(/(\{\{img:\d+\}\})/);
+      return (
+        <>
+          {parts.map((part, idx) => {
+            const markerMatch = part.match(/^\{\{img:(\d+)\}\}$/);
+            if (markerMatch) {
+              const imgIdx = parseInt(markerMatch[1], 10);
+              const media = sortedMedia[imgIdx];
+              if (!media) return null;
+              return (
+                <figure key={idx} className="my-10 sm:my-14">
+                  <div className="relative w-full max-h-[500px] overflow-hidden rounded-xl sm:rounded-2xl bg-navy/[0.03] dark:bg-cream/[0.03] flex items-center justify-center">
+                    <Image
+                      src={media.mediaUrl}
+                      alt={`${b.title} — image ${imgIdx + 1}`}
+                      width={media.width || 1200}
+                      height={media.height || 700}
+                      className="w-full h-auto max-h-[500px] object-contain"
+                      sizes="(max-width: 768px) 100vw, 680px"
+                      priority={imgIdx === 0}
+                    />
+                  </div>
+                  {sortedMedia.length > 1 && (
+                    <figcaption className="mt-3 text-center text-[13px] text-muted italic px-4">
+                      {imgIdx + 1} / {sortedMedia.length}
+                    </figcaption>
+                  )}
+                </figure>
+              );
+            }
+            const text = part.trim();
+            if (!text) return null;
+            return (
+              <React.Fragment key={idx}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+              </React.Fragment>
+            );
+          })}
+        </>
+      );
+    }
+
+    // Legacy format: distribute images evenly
+    const paragraphs = b.body.split(/\n\n+/).filter((p) => p.trim());
+    const imageCount = sortedMedia.length;
+    const totalSections = imageCount + 1;
+    const parasPerSection = Math.max(1, Math.floor(paragraphs.length / totalSections));
+
+    const sections: string[] = [];
+    for (let i = 0; i < totalSections; i++) {
+      const start = i * parasPerSection;
+      const end = i === totalSections - 1 ? paragraphs.length : start + parasPerSection;
+      const chunk = paragraphs.slice(start, end).join("\n\n");
+      if (chunk.trim()) sections.push(chunk);
+    }
+
+    if (sections.length === 0) sections.push(b.body);
+
+    return (
+      <>
+        {sections.map((section, idx) => (
+          <React.Fragment key={idx}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{section}</ReactMarkdown>
+            {idx < sortedMedia.length && (
+              <figure className="my-10 sm:my-14">
+                <div className="relative w-full max-h-[500px] overflow-hidden rounded-xl sm:rounded-2xl bg-navy/[0.03] dark:bg-cream/[0.03] flex items-center justify-center">
+                  <Image
+                    src={sortedMedia[idx].mediaUrl}
+                    alt={`${b.title} — image ${idx + 1}`}
+                    width={sortedMedia[idx].width || 1200}
+                    height={sortedMedia[idx].height || 700}
+                    className="w-full h-auto max-h-[500px] object-contain"
+                    sizes="(max-width: 768px) 100vw, 680px"
+                    priority={idx === 0}
+                  />
+                </div>
+                {sortedMedia.length > 1 && (
+                  <figcaption className="mt-3 text-center text-[13px] text-muted italic px-4">
+                    {idx + 1} / {sortedMedia.length}
+                  </figcaption>
+                )}
+              </figure>
+            )}
+          </React.Fragment>
+        ))}
+        {sections.length <= sortedMedia.length &&
+          sortedMedia.slice(sections.length).map((media, idx) => (
+            <figure key={`extra-${idx}`} className="my-10 sm:my-14">
+              <div className="relative w-full max-h-[500px] overflow-hidden rounded-xl sm:rounded-2xl bg-navy/[0.03] dark:bg-cream/[0.03] flex items-center justify-center">
+                <Image
+                  src={media.mediaUrl}
+                  alt={`${b.title} — image ${sections.length + idx + 1}`}
+                  width={media.width || 1200}
+                  height={media.height || 700}
+                  className="w-full h-auto max-h-[500px] object-contain"
+                  sizes="(max-width: 768px) 100vw, 680px"
+                />
+              </div>
+              {sortedMedia.length > 1 && (
+                <figcaption className="mt-3 text-center text-[13px] text-muted italic px-4">
+                  {sections.length + idx + 1} / {sortedMedia.length}
+                </figcaption>
+              )}
+            </figure>
+          ))}
+      </>
+    );
+  }
 
   return (
     <>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* ── Top bar ── */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm font-medium text-sub hover:text-heading transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <div className="flex items-center gap-2">
-            <BlogSaveButton blogId={blogId} />
-            {isAuthor && (
+      <ReadingProgressBar />
+
+      <article className="animate-in fade-in duration-500">
+        {/* ── Sticky top bar ── */}
+        <div className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border-subtle">
+          <div className="max-w-[900px] mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
+            <button
+              onClick={() => router.back()}
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-heading transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+
+            <div className="flex items-center gap-1">
+              <BlogSaveButton blogId={blogId} />
               <button
-                onClick={() => router.push(`/articles/${blogId}/edit`)}
-                className="p-2 rounded-full text-sub hover:text-heading hover:bg-surface-hover transition-colors cursor-pointer"
+                onClick={handleShare}
+                className="p-2 rounded-full text-muted hover:text-heading hover:bg-surface-hover transition-colors cursor-pointer"
               >
-                <Pencil className="w-[18px] h-[18px]" />
+                <Share2 className="w-[18px] h-[18px]" />
               </button>
-            )}
-            {canDelete && (
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="p-2 rounded-full text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-[18px] h-[18px]" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* ── Pinterest-style split card ── */}
-        <div className="bg-surface-alt rounded-3xl border border-border-default overflow-hidden shadow-sm">
-          <div className={`flex flex-col ${hasMedia ? "lg:flex-row" : ""}`}>
-            {/* Left: Media */}
-            {hasMedia && (
-              <div className="relative lg:w-[55%] bg-navy-700/5 dark:bg-navy-700/30 flex-shrink-0">
-                <div className="relative aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px] lg:min-h-[500px]">
-                  <Image
-                    src={blog.media[activeMediaIndex].mediaUrl}
-                    alt={`${blog.title} — image ${activeMediaIndex + 1}`}
-                    fill
-                    className="object-contain"
-                    priority={activeMediaIndex === 0}
-                  />
-                </div>
-
-                {/* Gallery navigation */}
-                {blog.media.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setActiveMediaIndex((p) => Math.max(0, p - 1))}
-                      disabled={activeMediaIndex === 0}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 disabled:opacity-30 transition-all cursor-pointer"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setActiveMediaIndex((p) => Math.min(blog.media.length - 1, p + 1))}
-                      disabled={activeMediaIndex === blog.media.length - 1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 disabled:opacity-30 transition-all cursor-pointer"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                    {/* Dot indicators */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-                      {blog.media.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setActiveMediaIndex(i)}
-                          className={`rounded-full transition-all cursor-pointer ${
-                            i === activeMediaIndex
-                              ? "w-6 h-2 bg-white"
-                              : "w-2 h-2 bg-white/40 hover:bg-white/70"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    {/* Image counter */}
-                    <span className="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full bg-black/50 text-white backdrop-blur-sm">
-                      {activeMediaIndex + 1} / {blog.media.length}
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Right: Content */}
-            <div className={`flex-1 flex flex-col ${hasMedia ? "lg:max-h-[700px]" : ""}`}>
-              {/* Scrollable content area */}
-              <div className={`flex-1 p-6 sm:p-8 space-y-5 ${hasMedia ? "lg:overflow-y-auto" : ""}`}>
-                {/* Status + Categories */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-full border ${currentStatus.color}`}>
-                    {currentStatus.label.toUpperCase()}
-                  </span>
-                  {blog.categories.map((cat) => (
-                    <span
-                      key={cat.categoryId}
-                      className="text-[11px] font-semibold tracking-wider px-2.5 py-1 rounded-full bg-steel/[0.06] dark:bg-sky/[0.06] text-steel dark:text-sky/70 border border-steel/10 dark:border-sky/10"
-                    >
-                      {cat.name}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Title */}
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-heading leading-tight">
-                  {blog.title}
-                </h1>
-
-                {/* Author row */}
-                <div className="flex items-center gap-3">
-                  <div
-                    onClick={() => router.push(`/profile/${blog.author.userId}`)}
-                    className="relative w-10 h-10 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0 ring-2 ring-border-default cursor-pointer hover:ring-steel/40 dark:hover:ring-sky/40 transition-all"
-                  >
-                    <Image src={blog.author.profilePictureUrl} alt={blog.author.username} fill className="object-cover" />
-                  </div>
-                  <div className="min-w-0">
-                    <p
-                      onClick={() => router.push(`/profile/${blog.author.userId}`)}
-                      className="text-sm font-bold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
-                    >
-                      {blog.author.username}
-                    </p>
-                    <div className="flex items-center gap-3 text-[11px] text-muted flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatDistanceToNow(parseUTC(blog.createdAt), { addSuffix: true })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="w-3 h-3" />
-                        {blog.readTimeMinutes} min read
-                      </span>
-                      <span>{blog.wordCount} words</span>
-                      {blog.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-red-500" />
-                          {blog.location.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Summary */}
-                {blog.summary && (
-                  <blockquote className="relative pl-5 border-l-[3px] border-steel dark:border-sky bg-steel/[0.03] dark:bg-sky/[0.03] rounded-r-xl py-4 pr-5 italic text-sub text-[15px] leading-relaxed">
-                    {blog.summary}
-                  </blockquote>
-                )}
-
-                {/* Tags */}
-                {blog.tags && blog.tags.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {blog.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="text-xs font-medium px-2.5 py-1 rounded-full bg-steel/[0.06] dark:bg-sky/[0.06] text-steel dark:text-sky/70 border border-steel/10 dark:border-sky/10"
-                      >
-                        #{typeof tag === "string" ? tag : tag.title}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Divider */}
-                <div className="h-px bg-border-subtle" />
-
-                {/* Article body */}
-                <div className="prose dark:prose-invert max-w-none text-navy/80 dark:text-cream/80 leading-relaxed text-[16.5px]">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{blog.body}</ReactMarkdown>
-                </div>
-
-                {/* Meta: reviewer + updated */}
-                {(blog.reviewer || blog.updatedAt !== blog.createdAt) && (
-                  <div className="flex items-center gap-4 flex-wrap text-[11px] text-faint pt-2">
-                    {blog.updatedAt && blog.updatedAt !== blog.createdAt && (
-                      <span>Updated {formatDistanceToNow(parseUTC(blog.updatedAt), { addSuffix: true })}</span>
-                    )}
-                    {blog.reviewer && (
-                      <span>
-                        Reviewed by{" "}
-                        <span className="font-semibold text-muted">{blog.reviewer.username}</span>
-                        {blog.reviewedAt && (
-                          <> {formatDistanceToNow(parseUTC(blog.reviewedAt), { addSuffix: true })}</>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Admin Controls Card ── */}
-        {isAdmin && (
-          <div className="bg-surface-alt rounded-2xl border border-amber-500/20 p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-[11px] font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
-                Admin Controls
-              </span>
-            </div>
-
-            <div className="flex items-center gap-4 flex-wrap">
-              {/* Status dropdown */}
-              <div ref={statusRef} className="relative">
+              {isAuthor && (
                 <button
-                  onClick={() => setStatusDropdownOpen((v) => !v)}
-                  disabled={isUpdatingStatus}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-full border transition-colors cursor-pointer disabled:opacity-60 ${currentStatus.color}`}
+                  onClick={() => router.push(`/articles/${blogId}/edit`)}
+                  className="p-2 rounded-full text-muted hover:text-heading hover:bg-surface-hover transition-colors cursor-pointer"
                 >
-                  {isUpdatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
-                  {currentStatus.label}
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${statusDropdownOpen ? "rotate-180" : ""}`} />
+                  <Pencil className="w-[18px] h-[18px]" />
                 </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="p-2 rounded-full text-red-500/50 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-[18px] h-[18px]" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
-                {statusDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-cream-50 dark:bg-navy-700 border border-border-default rounded-xl shadow-xl shadow-black/[0.08] dark:shadow-black/30 z-50 py-1 overflow-hidden">
-                    {STATUS_OPTIONS.map((opt) => {
-                      const isActive = blog.blogStatus === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          onClick={() => handleStatusUpdate(opt.value)}
-                          disabled={isActive}
-                          className={`w-full px-4 py-2.5 text-left text-xs font-medium transition-colors cursor-pointer disabled:cursor-default flex items-center justify-between ${
-                            isActive
-                              ? "bg-steel/5 dark:bg-sky/5 text-heading font-bold"
-                              : "text-sub hover:bg-surface-hover"
-                          }`}
-                        >
-                          {opt.label}
-                          {isActive && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky">
-                              Current
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Hard delete */}
-              <button
-                onClick={() => setShowHardDeleteModal(true)}
-                disabled={isHardDeleting}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-full bg-red-600/10 border border-red-600/20 text-red-600 dark:text-red-400 hover:bg-red-600/20 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <ShieldAlert className="w-3.5 h-3.5" />
-                Hard Delete
-              </button>
+        {/* ── Hero image (first image, full-width breakout) ── */}
+        {heroImage && !hasMarkers && (
+          <div className="max-w-[680px] mx-auto mt-8 px-4 sm:px-6">
+            <div className="relative w-full max-h-[500px] overflow-hidden rounded-xl sm:rounded-2xl bg-navy/[0.03] dark:bg-cream/[0.03] flex items-center justify-center">
+              <Image
+                src={heroImage.mediaUrl}
+                alt={b.title}
+                width={heroImage.width || 1200}
+                height={heroImage.height || 700}
+                className="w-full h-auto max-h-[500px] object-contain"
+                sizes="(max-width: 768px) 100vw, 680px"
+                priority
+              />
             </div>
           </div>
         )}
 
-        {/* ── Reactions ── */}
-        <BlogActions blogId={blogId} />
+        {/* ── Article header ── */}
+        <header className="max-w-[680px] mx-auto px-4 sm:px-6 pt-10 sm:pt-14">
+          {/* Categories */}
+          <div className="flex items-center gap-2 flex-wrap mb-6">
+            <span className={`text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-full border ${currentStatus.color}`}>
+              {currentStatus.label.toUpperCase()}
+            </span>
+            {b.categories.map((cat) => (
+              <span
+                key={cat.categoryId}
+                className="text-[11px] font-semibold tracking-widest uppercase px-3 py-1 rounded-full text-steel dark:text-sky border border-steel/15 dark:border-sky/15"
+              >
+                {cat.name}
+              </span>
+            ))}
+          </div>
 
-        {/* ── Divider ── */}
-        <div className="h-px bg-gradient-to-r from-transparent via-border-default to-transparent" />
+          {/* Title */}
+          <h1 className="font-display text-3xl sm:text-[2.75rem] lg:text-5xl font-bold text-heading leading-[1.15] tracking-tight mb-6">
+            {b.title}
+          </h1>
 
-        {/* ── Comments ── */}
-        <BlogCommentSection blogId={blogId} />
-      </div>
+          {/* Summary as subtitle */}
+          {b.summary && (
+            <p className="text-lg sm:text-xl text-sub leading-relaxed mb-8 font-light">
+              {b.summary}
+            </p>
+          )}
+
+          {/* Author + meta row */}
+          <div className="flex items-center gap-4 pb-8 border-b border-border-subtle">
+            <div
+              onClick={() => router.push(`/profile/${b.author.userId}`)}
+              className="relative w-12 h-12 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0 ring-2 ring-border-default cursor-pointer hover:ring-steel/40 dark:hover:ring-sky/40 transition-all"
+            >
+              <Image src={b.author.profilePictureUrl} alt={b.author.username} fill className="object-cover" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p
+                onClick={() => router.push(`/profile/${b.author.userId}`)}
+                className="text-[15px] font-semibold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
+              >
+                {b.author.username}
+              </p>
+              <div className="flex items-center gap-2 text-[13px] text-muted flex-wrap">
+                <span>{formattedDate}</span>
+                <span className="text-faint">·</span>
+                <span className="flex items-center gap-1">
+                  <BookOpen className="w-3 h-3" />
+                  {b.readTimeMinutes} min read
+                </span>
+                {b.location && (
+                  <>
+                    <span className="text-faint">·</span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {b.location.name}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* ── Article body ── */}
+        <div className="max-w-[680px] mx-auto px-4 sm:px-6 pt-10 sm:pt-12">
+          {/* Tags (before content) */}
+          {b.tags && b.tags.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mb-10">
+              {b.tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs font-medium px-3 py-1.5 rounded-full bg-steel/[0.05] dark:bg-sky/[0.05] text-steel dark:text-sky/80 border border-steel/10 dark:border-sky/10 hover:bg-steel/10 dark:hover:bg-sky/10 transition-colors"
+                >
+                  #{typeof tag === "string" ? tag : tag.title}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Prose content */}
+          <div
+            className="
+              prose dark:prose-invert max-w-none
+              text-[18px] sm:text-[20px] leading-[1.8] text-navy/85 dark:text-cream/85
+              prose-headings:font-display prose-headings:text-heading prose-headings:tracking-tight prose-headings:leading-tight
+              prose-h2:text-2xl prose-h2:sm:text-3xl prose-h2:mt-14 prose-h2:mb-5
+              prose-h3:text-xl prose-h3:sm:text-2xl prose-h3:mt-10 prose-h3:mb-4
+              prose-p:mb-7
+              prose-a:text-steel prose-a:dark:text-sky prose-a:underline prose-a:decoration-steel/30 prose-a:dark:decoration-sky/30 prose-a:underline-offset-2 prose-a:hover:decoration-steel prose-a:dark:hover:decoration-sky prose-a:transition-colors
+              prose-blockquote:border-l-[3px] prose-blockquote:border-steel prose-blockquote:dark:border-sky prose-blockquote:bg-steel/[0.03] prose-blockquote:dark:bg-sky/[0.03] prose-blockquote:rounded-r-xl prose-blockquote:py-4 prose-blockquote:pr-6 prose-blockquote:not-italic prose-blockquote:text-sub
+              prose-code:text-[15px] prose-code:font-mono prose-code:bg-navy/[0.05] prose-code:dark:bg-cream/[0.05] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
+              prose-pre:bg-navy/[0.04] prose-pre:dark:bg-cream/[0.04] prose-pre:rounded-xl prose-pre:border prose-pre:border-border-subtle
+              prose-strong:text-heading prose-strong:font-semibold
+              prose-img:rounded-2xl
+              prose-li:mb-2
+              prose-hr:border-border-subtle prose-hr:my-12
+            "
+          >
+            {renderArticleContent()}
+          </div>
+
+          {/* ── End ornament ── */}
+          <div className="flex items-center justify-center gap-3 my-14">
+            <div className="h-px w-16 bg-gradient-to-r from-transparent to-border-default" />
+            <div className="flex gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-steel/40 dark:bg-sky/40" />
+              <span className="w-1.5 h-1.5 rounded-full bg-steel/60 dark:bg-sky/60" />
+              <span className="w-1.5 h-1.5 rounded-full bg-steel/40 dark:bg-sky/40" />
+            </div>
+            <div className="h-px w-16 bg-gradient-to-l from-transparent to-border-default" />
+          </div>
+
+          {/* ── Article footer meta ── */}
+          {(b.reviewer || b.updatedAt !== b.createdAt) && (
+            <div className="flex items-center gap-4 flex-wrap text-[12px] text-faint pb-6">
+              {b.updatedAt && b.updatedAt !== b.createdAt && (
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3 h-3" />
+                  Updated {formatDistanceToNow(parseUTC(b.updatedAt), { addSuffix: true })}
+                </span>
+              )}
+              {b.reviewer && (
+                <span>
+                  Reviewed by{" "}
+                  <span className="font-semibold text-muted">{b.reviewer.username}</span>
+                  {b.reviewedAt && (
+                    <> {formatDistanceToNow(parseUTC(b.reviewedAt), { addSuffix: true })}</>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* ── Author card (bottom) ── */}
+          <div className="py-8 border-t border-border-subtle">
+            <div className="flex items-start gap-4">
+              <div
+                onClick={() => router.push(`/profile/${b.author.userId}`)}
+                className="relative w-14 h-14 rounded-full overflow-hidden bg-cream-300 dark:bg-navy-600 flex-shrink-0 ring-2 ring-border-default cursor-pointer hover:ring-steel/40 dark:hover:ring-sky/40 transition-all"
+              >
+                <Image src={b.author.profilePictureUrl} alt={b.author.username} fill className="object-cover" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted uppercase tracking-widest mb-1">
+                  Written by
+                </p>
+                <p
+                  onClick={() => router.push(`/profile/${b.author.userId}`)}
+                  className="text-lg font-bold text-heading cursor-pointer hover:text-steel dark:hover:text-sky transition-colors"
+                >
+                  {b.author.username}
+                </p>
+                <p className="text-sm text-muted mt-1">
+                  {b.wordCount.toLocaleString()} words · {b.readTimeMinutes} min read
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Engagement section (wider container) ── */}
+        <div className="max-w-[680px] mx-auto px-4 sm:px-6 pb-8 space-y-6">
+          {/* Admin Controls */}
+          {isAdmin && (
+            <div className="bg-surface-alt rounded-2xl border border-amber-500/20 p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-[11px] font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase">
+                  Admin Controls
+                </span>
+              </div>
+
+              <div className="flex items-center gap-4 flex-wrap">
+                <div ref={statusRef} className="relative">
+                  <button
+                    onClick={() => setStatusDropdownOpen((v) => !v)}
+                    disabled={isUpdatingStatus}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-full border transition-colors cursor-pointer disabled:opacity-60 ${currentStatus.color}`}
+                  >
+                    {isUpdatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {currentStatus.label}
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${statusDropdownOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {statusDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-cream-50 dark:bg-navy-700 border border-border-default rounded-xl shadow-xl shadow-black/[0.08] dark:shadow-black/30 z-50 py-1 overflow-hidden">
+                      {STATUS_OPTIONS.map((opt) => {
+                        const isActive = b.blogStatus === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => handleStatusUpdate(opt.value)}
+                            disabled={isActive}
+                            className={`w-full px-4 py-2.5 text-left text-xs font-medium transition-colors cursor-pointer disabled:cursor-default flex items-center justify-between ${
+                              isActive
+                                ? "bg-steel/5 dark:bg-sky/5 text-heading font-bold"
+                                : "text-sub hover:bg-surface-hover"
+                            }`}
+                          >
+                            {opt.label}
+                            {isActive && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-steel/10 dark:bg-sky/10 text-steel dark:text-sky">
+                                Current
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowHardDeleteModal(true)}
+                  disabled={isHardDeleting}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-full bg-red-600/10 border border-red-600/20 text-red-600 dark:text-red-400 hover:bg-red-600/20 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  Hard Delete
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Reactions */}
+          <BlogActions blogId={blogId} />
+
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-border-default to-transparent" />
+
+          {/* Comments */}
+          <BlogCommentSection blogId={blogId} />
+        </div>
+      </article>
 
       <DeleteConfirmationModal
         isOpen={showDeleteModal}

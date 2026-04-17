@@ -9,15 +9,13 @@ import { createBlogController } from "@/controllers/blog/createBlogController";
 import { updateBlogController } from "@/controllers/blog/updateBlogController";
 import { BlogRequest, BlogDataResponse } from "@/lib/types/createBlog";
 import { useAccessToken } from "@/hooks/useAccessToken";
-import { Loader2, Link, Image as ImageIcon } from "lucide-react";
-import EnhancedBodyInput from "@/components/post/EnhancedBodyInput";
-import TitleInput from "@/components/post/TitleInput";
+import { Loader2, Link, Settings2 } from "lucide-react";
 import { getParentCategoriesController } from "@/controllers/categoryController/getParentCategories";
 import { LocationOption, CategorySummaryResponseDTO } from "@/lib/types/post";
 import { LocationSearch } from "@/components/post/LocationSearch";
 import CategoriesSelect from "@/components/post/CategoriesSelect";
 import LinkedBlogSearch from "./LinkedBlogSearch";
-import BlogMediaUpload from "./form-components/BlogMediaUpload";
+import ArticleBlockEditor from "./form-components/ArticleBlockEditor";
 
 type BlogFormState = BlogRequest;
 
@@ -45,6 +43,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
   const [error, setError] = useState<string | null>(null);
   const [, setSubmittedData] = useState<BlogDataResponse | null>(null);
   const [hasUploadErrors, setHasUploadErrors] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const accessToken = useAccessToken();
 
@@ -89,13 +88,14 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
         return;
     }
 
-    // Block submit if uploads have errors
     if (hasUploadErrors) {
       setError("Some media files failed to upload. Please retry or remove them before submitting.");
       return;
     }
 
-    if (!formData.title.trim() || !formData.body.trim() || formData.categoryIds.length === 0) {
+    const bodyTextOnly = formData.body.replace(/\{\{img:\d+\}\}/g, "").trim();
+
+    if (!formData.title.trim() || !bodyTextOnly || formData.categoryIds.length === 0) {
       setError("Title, body, and at least one category are required.");
       return;
     }
@@ -114,7 +114,6 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
 
     setLoading(true);
 
-    // Reindex all media positions 0-based before sending
     const reindexedMedia = (formData.mediaDetails ?? []).map((item, i) => ({
       ...item,
       position: i,
@@ -169,117 +168,140 @@ const BlogForm: React.FC<BlogFormProps> = ({ editBlogId, initialData }) => {
     }
   };
 
+  const bodyTextOnly = formData.body.replace(/\{\{img:\d+\}\}/g, "").trim();
+  const isValid = formData.title.trim() && bodyTextOnly && formData.categoryIds.length > 0;
+
   return (
-    <form onSubmit={onSubmit} className="max-w-4xl mx-auto space-y-6">
-      {/* --- TITLE --- */}
-      <TitleInput
-        value={formData.title}
-        onChange={(value) => handleEnhancedInputChange('title', value)}
-      />
-
-      {/* --- BODY CONTENT --- */}
-      <EnhancedBodyInput
-        inputType="body"
-        value={formData.body}
-        onChange={(value) => handleEnhancedInputChange('body', value)}
-        accessToken={accessToken}
-        placeholder="Write your article body content here... Use # to add hashtags, **bold text**, *italic text*"
-        minRows={10}
-        maxLength={50000}
-      />
-
-      {/* --- SUMMARY (Optional) --- */}
-      <EnhancedBodyInput
-        inputType="summary"
-        value={formData.summary ?? ""}
-        onChange={(value) => handleEnhancedInputChange('summary', value)}
-        accessToken={accessToken}
-        placeholder="A short summary for previews (optional, max 500 characters)"
-        minRows={4}
-        maxLength={500}
-      />
-
-      {/* LINKED BLOG SEARCH & SELECT */}
-      <div className="p-6 bg-surface-alt rounded-xl border border-border-default shadow-sm">
-        <label className="block text-sm font-semibold text-heading mb-2 flex items-center gap-2">
-            <Link className="w-4 h-4 text-navy/50 dark:text-cream/50" /> Link Related Article(s) (Optional)
-        </label>
-        <LinkedBlogSearch
-            onBlogSelect={handleLinkedBlogSelect}
-            selectedBlogIds={formData.blogTagIds ?? []}
+    <form onSubmit={onSubmit} className="space-y-0">
+      {/* ── Title — Medium-style large input ── */}
+      <div className="mb-6">
+        <input
+          type="text"
+          value={formData.title}
+          onChange={(e) => handleEnhancedInputChange('title', e.target.value)}
+          maxLength={200}
+          placeholder="Title"
+          className="w-full border-0 bg-transparent text-heading font-display text-3xl sm:text-[2.5rem] font-bold leading-tight placeholder:text-faint focus:ring-0 focus:outline-none py-2 tracking-tight"
+          required
         />
-        <p className="text-xs text-faint mt-3">
-            Search for and link related published articles.
-            Total linked: <span className="font-medium text-heading">{formData.blogTagIds?.length ?? 0}</span>
-        </p>
+        <div className="flex items-center justify-between mt-1">
+          <div className="h-px flex-1 bg-border-subtle" />
+          <span className="text-[10px] text-faint ml-3">{formData.title.length}/200</span>
+        </div>
       </div>
 
-      {/* --- LOCATION SEARCH --- */}
-      <LocationSearch
-        selectedLocation={selectedLocation}
-        onLocationSelect={setSelectedLocation}
+      {/* ── Block Editor — body + inline images ── */}
+      <ArticleBlockEditor
+        accessToken={accessToken}
+        formData={formData}
+        setFormData={setFormData}
+        onUploadErrorChange={setHasUploadErrors}
       />
 
-      {/* --- CATEGORY SELECT --- */}
-      <CategoriesSelect
-        categories={categories}
-        selectedIds={formData.categoryIds}
-        onToggle={(id) =>
-          setFormData(prev => ({
-            ...prev,
-            categoryIds: prev.categoryIds.includes(id)
-              ? prev.categoryIds.filter((c) => c !== id)
-              : [...prev.categoryIds, id],
-          }))
-        }
-      />
+      {/* ── Summary ── */}
+      <div className="mt-6">
+        <textarea
+          value={formData.summary ?? ""}
+          onChange={(e) => handleEnhancedInputChange('summary', e.target.value)}
+          placeholder="Add a summary..."
+          maxLength={500}
+          rows={2}
+          className="w-full resize-none border-0 bg-transparent text-sub placeholder:text-faint focus:ring-0 focus:outline-none font-display text-base sm:text-lg leading-relaxed py-2"
+        />
+        {(formData.summary?.length ?? 0) > 0 && (
+          <span className={`text-[10px] ${(formData.summary?.length ?? 0) > 425 ? "text-amber-500" : "text-faint"}`}>
+            {formData.summary?.length ?? 0}/500
+          </span>
+        )}
+      </div>
 
-      {/* --- MEDIA UPLOAD --- */}
-      <div className="p-6 rounded-xl border border-border-default bg-surface-alt shadow-sm">
-        <p className="font-bold mb-4 text-heading flex items-center gap-2">
-          <ImageIcon className="w-4 h-4" /> Media Details
+      {/* ── Thin separator ── */}
+      <div className="h-px bg-border-subtle my-8" />
+
+      {/* ── Categories ── */}
+      <div className="mb-6">
+        <p className="text-sm text-muted mb-3 font-display">
+          Pick a category{formData.categoryIds.length === 0 && <span className="text-red-400 ml-1">*</span>}
         </p>
-        <BlogMediaUpload
-          accessToken={accessToken}
-          formData={formData}
-          setFormData={setFormData}
-          onUploadErrorChange={setHasUploadErrors}
+        <CategoriesSelect
+          categories={categories}
+          selectedIds={formData.categoryIds}
+          onToggle={(id) =>
+            setFormData(prev => ({
+              ...prev,
+              categoryIds: prev.categoryIds.includes(id)
+                ? prev.categoryIds.filter((c) => c !== id)
+                : [...prev.categoryIds, id],
+            }))
+          }
         />
       </div>
+
+      {/* ── More Settings ── */}
+      <button
+        type="button"
+        onClick={() => setSettingsOpen(v => !v)}
+        className="inline-flex items-center gap-2 text-sm text-muted hover:text-heading transition-colors cursor-pointer font-display mb-6"
+      >
+        <Settings2 className="w-3.5 h-3.5" />
+        <span>{settingsOpen ? "Less" : "More"} options</span>
+      </button>
+
+      {settingsOpen && (
+        <div className="space-y-6 mb-6">
+          <div>
+            <p className="text-sm text-muted mb-2 font-display flex items-center gap-1.5">
+              <Link className="w-3.5 h-3.5" /> Link related articles
+            </p>
+            <LinkedBlogSearch
+                onBlogSelect={handleLinkedBlogSelect}
+                selectedBlogIds={formData.blogTagIds ?? []}
+            />
+          </div>
+
+          <div>
+            <p className="text-sm text-muted mb-2 font-display">Location</p>
+            <LocationSearch
+              selectedLocation={selectedLocation}
+              onLocationSelect={setSelectedLocation}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Feedback Messages */}
       {error && (
-        <div className="p-4 rounded-2xl border border-red-200/60 dark:border-red-900/30 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 flex items-center gap-2">
-            <p className="font-medium text-sm">{error}</p>
+        <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 mb-4">
+            <p className="font-medium text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
       )}
       {message && (
-        <div className="p-4 rounded-2xl border border-green-200/60 dark:border-green-900/30 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 flex items-center gap-2">
-            <p className="font-medium text-sm">{message}</p>
+        <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/10 mb-4">
+            <p className="font-medium text-sm text-green-600 dark:text-green-400">{message}</p>
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex-1 h-12 rounded-full text-[15px] font-bold text-sub bg-surface-hover hover:bg-surface-hover active:scale-[0.98] transition-all cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading || hasUploadErrors}
-          className="flex-[2] h-12 rounded-full text-[15px] font-bold text-on-primary bg-btn-primary hover:bg-btn-primary-hover active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
-        >
-          {loading ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="animate-spin w-5 h-5 mr-2" />
-              <span>{isEditMode ? "Updating..." : "Creating..."}</span>
-            </div>
-          ) : isEditMode ? 'Update Article' : 'Create Article'}
-        </button>
+      {/* ── Publish bar ── */}
+      <div className="flex gap-3 pt-6 pb-8">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="h-11 px-6 rounded-full text-sm font-semibold text-sub border border-border-default hover:bg-surface-hover active:scale-[0.98] transition-all cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading || hasUploadErrors || !isValid}
+            className="flex-1 h-11 rounded-full text-sm font-bold text-on-primary bg-btn-primary hover:bg-btn-primary-hover active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-40 transition-all cursor-pointer"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                <span>{isEditMode ? "Updating..." : "Publishing..."}</span>
+              </div>
+            ) : isEditMode ? 'Update Article' : 'Publish'}
+          </button>
       </div>
     </form>
   );
