@@ -11,25 +11,22 @@ export default function Page(): React.ReactElement {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border-subtle">
+        <div className="max-w-[680px] mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-surface-alt border border-border-default hover:bg-cream-300/30 dark:hover:bg-navy-600/40 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-heading transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-5 h-5 text-navy/60 dark:text-cream/50" />
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back</span>
           </button>
-          <div>
-            <h1 className="text-3xl font-bold text-heading">
-              Create Article
-            </h1>
-            <p className="text-muted text-sm">
-              Write and publish a new article
-            </p>
-          </div>
+          <span className="text-xs font-semibold text-muted uppercase tracking-widest">New Article</span>
+          <div className="w-16" />
         </div>
+      </div>
 
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <BlogForm />
       </div>
     </div>

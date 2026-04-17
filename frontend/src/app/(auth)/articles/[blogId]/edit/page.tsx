@@ -29,13 +29,13 @@ export default function EditBlogPage() {
         if (res.success && res.data) {
           const blog = res.data;
           setInitialData({
-            title: blog.title,
-            body: blog.body,
-            summary: blog.summary,
-            categoryIds: blog.categories.map((c) => c.categoryId),
-            blogTagIds: blog.blogTags.map((t) => t.blogId),
+            title: blog.title ?? "",
+            body: blog.body ?? "",
+            summary: blog.summary ?? "",
+            categoryIds: (blog.categories ?? []).map((c) => c.categoryId),
+            blogTagIds: (blog.blogTags ?? []).map((t) => t.blogId),
             locationId: blog.location?.locationId,
-            mediaDetails: blog.media.map((m) => ({
+            mediaDetails: (blog.media ?? []).map((m) => ({
               mediaId: m.mediaId,
               url: m.mediaUrl,
               mediaType: m.mediaType,
@@ -50,7 +50,8 @@ export default function EditBlogPage() {
         } else {
           setError(res.message || "Failed to load article.");
         }
-      } catch {
+      } catch (err) {
+        console.error("Edit page fetch error:", err);
         setError("An unexpected error occurred.");
       } finally {
         setLoading(false);
@@ -69,7 +70,7 @@ export default function EditBlogPage() {
           </h1>
           <button
             onClick={() => router.push("/articles")}
-            className="px-5 py-2 bg-navy text-cream-50 dark:bg-cream dark:text-navy rounded-full font-medium hover:bg-btn-primary-hover transition-colors cursor-pointer"
+            className="px-5 py-2 bg-btn-primary text-on-primary rounded-full font-medium cursor-pointer"
           >
             Back to Articles
           </button>
@@ -82,10 +83,8 @@ export default function EditBlogPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-icon-muted" />
-          <p className="text-sm text-muted">
-            Loading article...
-          </p>
+          <Loader2 className="w-8 h-8 animate-spin text-steel dark:text-sky" />
+          <p className="text-sm text-muted">Loading article...</p>
         </div>
       </div>
     );
@@ -94,14 +93,14 @@ export default function EditBlogPage() {
   if (error || !initialData) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center px-4">
-        <div className="text-center p-8 bg-cream-50 dark:bg-navy-700/30 rounded-2xl border border-border-default max-w-lg">
+        <div className="text-center p-8 bg-surface-alt rounded-2xl border border-border-default max-w-lg">
           <h3 className="text-lg font-bold mb-2 text-heading">
             Error Loading Article
           </h3>
           <p className="text-sm text-muted mb-6">{error}</p>
           <button
             onClick={() => router.push("/articles")}
-            className="px-6 py-2 bg-navy text-cream-50 dark:bg-cream dark:text-navy rounded-full font-semibold hover:bg-btn-primary-hover transition-colors cursor-pointer"
+            className="px-6 py-2 bg-btn-primary text-on-primary rounded-full font-semibold cursor-pointer"
           >
             Back to Articles
           </button>
@@ -112,25 +111,22 @@ export default function EditBlogPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border-subtle">
+        <div className="max-w-[680px] mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-surface-alt border border-border-default hover:bg-cream-300/30 dark:hover:bg-navy-600/40 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-heading transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-5 h-5 text-navy/60 dark:text-cream/50" />
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back</span>
           </button>
-          <div>
-            <h1 className="text-3xl font-bold text-heading">
-              Edit Article
-            </h1>
-            <p className="text-muted text-sm">
-              Update your article details
-            </p>
-          </div>
+          <span className="text-xs font-semibold text-muted uppercase tracking-widest">Editing Article</span>
+          <div className="w-16" />
         </div>
+      </div>
 
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <BlogForm editBlogId={blogId} initialData={initialData} />
       </div>
     </div>
