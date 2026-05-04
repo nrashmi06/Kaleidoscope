@@ -30,6 +30,7 @@ import org.slf4j.MDC;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
@@ -63,132 +64,119 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
     private final MediaSearchRepository mediaSearchRepository;
 
+    private final TransactionTemplate transactionTemplate;
+
+    private static final int MAX_RETRY_ATTEMPTS = 5;
+    private static final long INITIAL_RETRY_DELAY_MS = 100;
+
     @Override
-    @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
-        // Retrieve the message ID for logging/XACK reference
         String messageId = record.getId().getValue();
         Map<String, String> value = record.getValue();
         String correlationId = value.get("correlationId");
-        String service = value.get("service"); // Extract service name
+        String service = value.get("service");
 
-        // Set correlationId in MDC for this thread
         try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
+            log.info("Received ML insights message from Redis Stream: messageId={}, service={}", messageId, service);
 
-            log.info("Received ML insights message from Redis Stream: streamKey={}, messageId={}, service={}",
-                    record.getStream(), messageId, service);
-
-            // Deserialization: Convert the incoming MapRecord message into
-            // MediaAiInsightsResultDTO
             MediaAiInsightsResultDTO resultDTO = convertMapRecordToDTO(record);
-            log.info("Successfully deserialized ML insights for mediaId: {}, service: {}",
-                    resultDTO.getMediaId(), service);
-
-            // Data Retrieval: Find the corresponding PostMedia entity
-            // Handle case where PostMedia was deleted after ML processing started
-            PostMedia postMedia = postMediaRepository.findById(resultDTO.getMediaId())
-                    .orElse(null);
-
+            
+            // 1. Core Data Retrieval: Find the corresponding PostMedia entity
+            PostMedia postMedia = postMediaRepository.findById(resultDTO.getMediaId()).orElse(null);
             if (postMedia == null) {
-                log.warn(
-                        "PostMedia not found for mediaId: {}. The post/media may have been deleted after ML processing started. Acknowledging message to remove from PEL.",
-                        resultDTO.getMediaId());
-                // Return early - message will be acknowledged and removed from stream
-                // This is expected behavior when posts are deleted during processing
+                log.warn("PostMedia not found for mediaId: {}. Skipping.", resultDTO.getMediaId());
                 return;
             }
 
-            log.info("Retrieved PostMedia for mediaId: {}, postId: {}",
-                    postMedia.getMediaId(), postMedia.getPost().getPostId());
+            // 2. PostgreSQL Update ("Write" Model): Load, merge, and save with retries on optimistic lock
+            MediaAiInsights savedInsights = mergeMediaAiInsightsWithRetry(resultDTO, postMedia, service);
+            if (savedInsights == null) return;
 
-            // PostgreSQL Update ("Write" Model): Load existing or create new, then merge
-            // fields
-            MediaAiInsights existingInsights = mediaAiInsightsRepository
-                    .findByMediaId(resultDTO.getMediaId())
-                    .orElse(null);
+            // 3. Update Read Models (each in its own transactional context via ReadModelUpdateService)
+            transactionTemplate.executeWithoutResult(status -> {
+                // Elasticsearch Update ("Read" Model): Legacy search asset
+                SearchAssetDocument searchDocument = createSearchAssetDocument(postMedia, savedInsights);
+                searchAssetSearchRepository.save(searchDocument);
 
-            MediaAiInsights mediaAiInsights;
-            if (existingInsights != null) {
-                // Merge new fields into existing entity based on service
-                log.debug("Merging ML insights for existing mediaId: {}, service: {}",
-                        resultDTO.getMediaId(), service);
-                mediaAiInsights = mergeMediaAiInsights(existingInsights, resultDTO, service);
-            } else {
-                // Create new entity
-                log.debug("Creating new MediaAiInsights for mediaId: {}, service: {}",
-                        resultDTO.getMediaId(), service);
-                mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia, service);
-            }
+                // Update the new 'read_model_media_search' and ES doc
+                readModelUpdateService.updateMediaSearchReadModel(savedInsights, postMedia);
+                mediaSearchRepository.save(toMediaSearchDocument(postMedia, savedInsights));
 
-            MediaAiInsights savedInsights = mediaAiInsightsRepository.save(mediaAiInsights);
-            log.info("Saved MediaAiInsights for mediaId: {}, status: {}, isSafe: {}, service: {}",
-                    savedInsights.getMediaId(), savedInsights.getStatus(), savedInsights.getIsSafe(), service);
+                // Update KNN and Personalized read models
+                readModelUpdateService.updateRecommendationsKnnReadModel(savedInsights, postMedia);
+                readModelUpdateService.updateFeedPersonalizedReadModel(savedInsights, postMedia);
 
-            // Elasticsearch Update ("Read" Model): Create and save SearchAssetDocument
-            SearchAssetDocument searchDocument = createSearchAssetDocument(postMedia, savedInsights);
-            SearchAssetDocument savedDocument = searchAssetSearchRepository.save(searchDocument);
-            log.info("Saved SearchAssetDocument to Elasticsearch for mediaId: {}, documentId: {}",
-                    postMedia.getMediaId(), savedDocument.getId());
+                // Trigger ES Sync for read models still owned by Python sync
+                elasticsearchSyncTriggerService.triggerSync("read_model_recommendations_knn", postMedia.getMediaId());
+                elasticsearchSyncTriggerService.triggerSync("read_model_feed_personalized", postMedia.getMediaId());
 
-            // 1. Update the new 'read_model_media_search' table
-            // This runs in a new transaction
-            readModelUpdateService.updateMediaSearchReadModel(savedInsights, postMedia);
+                // Keep `posts` index fresh for ML text search
+                syncPostDocumentMlFields(postMedia.getPost().getPostId());
+            });
 
-            // Java owns media_search indexing; persist document directly after ML completion.
-            mediaSearchRepository.save(toMediaSearchDocument(postMedia, savedInsights));
-            log.info("Indexed media_search document for mediaId: {}", postMedia.getMediaId());
-
-            // 1b. Update the 'read_model_recommendations_knn' backup table
-            readModelUpdateService.updateRecommendationsKnnReadModel(savedInsights, postMedia);
-
-            // 1c. Update the 'read_model_feed_personalized' table
-            readModelUpdateService.updateFeedPersonalizedReadModel(savedInsights, postMedia);
-
-            // 2. Trigger ES Sync for read models still owned by Python sync
-            elasticsearchSyncTriggerService.triggerSync("read_model_recommendations_knn", postMedia.getMediaId());
-            elasticsearchSyncTriggerService.triggerSync("read_model_feed_personalized", postMedia.getMediaId());
-
-            // Keep `posts` index fresh for /posts/filter?q=... ML text search
-            syncPostDocumentMlFields(postMedia.getPost().getPostId());
-
-            // 3. Check if all media for this post are processed
-            Long postId = postMedia.getPost().getPostId();
-            if (postProcessingStatusService.allMediaProcessedForPost(postId)) {
-                log.info("All media for postId: {} have been processed. Triggering aggregation.", postId);
-
-                // Get all media IDs for this post to send to the aggregator
-                Post post = postRepository.findById(postId)
-                        .orElseThrow(() -> new IllegalStateException("Post not found for postId: " + postId) // Should
-                                                                                                             // not
-                                                                                                             // happen
-                        );
-                List<Long> allMediaIds = post.getMedia().stream()
-                        .map(PostMedia::getMediaId)
-                        .collect(Collectors.toList());
-
-                // 4. Trigger the Post Aggregation Service
-                postAggregationTriggerService.triggerAggregation(postId, allMediaIds);
-            } else {
-                log.info("PostId: {} is still processing other media. Aggregation not triggered.", postId);
-            }
-            // --- END AI INTEGRATION ---
+            // 4. Check if all media for this post are processed and trigger aggregation if needed
+            checkAndTriggerAggregation(postMedia.getPost().getPostId());
 
             log.info("Successfully processed ML insights for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
 
         } catch (StreamDeserializationException e) {
-            log.error(
-                    "Error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
-                    messageId, e.getMessage(), e);
-            throw e; // Re-throw the exception to ensure transaction rollback and NO XACK
+            log.error("Error deserializing ML insights message: messageId={}, error={}", messageId, e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
-            log.error(
-                    "Unexpected error processing ML insights message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
-                    messageId, e.getMessage(), e);
+            log.error("Unexpected error processing ML insights message: messageId={}, error={}", messageId, e.getMessage(), e);
             throw new StreamMessageProcessingException(record.getStream(), messageId,
-                    "Unexpected error during ML insights processing", e); // Re-throw fatal exception
+                    "Unexpected error during ML insights processing", e);
         }
-        // MDC.clear() is handled automatically by the try-with-resources block
+    }
+
+    private MediaAiInsights mergeMediaAiInsightsWithRetry(MediaAiInsightsResultDTO resultDTO, PostMedia postMedia, String service) {
+        long currentDelay = INITIAL_RETRY_DELAY_MS;
+        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+            try {
+                return transactionTemplate.execute(status -> {
+                    MediaAiInsights existing = mediaAiInsightsRepository.findByMediaId(resultDTO.getMediaId()).orElse(null);
+                    MediaAiInsights mediaAiInsights;
+                    
+                    if (existing != null) {
+                        mediaAiInsights = mergeMediaAiInsights(existing, resultDTO, service);
+                    } else {
+                        mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia, service);
+                    }
+                    
+                    return mediaAiInsightsRepository.save(mediaAiInsights);
+                });
+            } catch (Exception e) {
+                if (attempt == MAX_RETRY_ATTEMPTS) {
+                    log.error("Failed to merge MediaAiInsights for mediaId: {} after {} attempts", resultDTO.getMediaId(), MAX_RETRY_ATTEMPTS, e);
+                    throw e;
+                }
+                log.warn("Optimistic lock or concurrent update for mediaId: {}. Retrying in {}ms (Attempt {}/{})",
+                        resultDTO.getMediaId(), currentDelay, attempt, MAX_RETRY_ATTEMPTS);
+                try {
+                    Thread.sleep(currentDelay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Retry interrupted", ie);
+                }
+                currentDelay *= 2;
+            }
+        }
+        return null;
+    }
+
+    private void checkAndTriggerAggregation(Long postId) {
+        if (postProcessingStatusService.allMediaProcessedForPost(postId)) {
+            log.info("All media for postId: {} have been processed. Triggering aggregation.", postId);
+            postRepository.findById(postId).ifPresent(post -> {
+                List<Long> allMediaIds = post.getMedia().stream()
+                        .map(PostMedia::getMediaId)
+                        .collect(Collectors.toList());
+                postAggregationTriggerService.triggerAggregation(postId, allMediaIds);
+            });
+        } else {
+            log.info("PostId: {} is still processing other media. Aggregation not triggered.", postId);
+        }
     }
 
     private MediaAiInsightsResultDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {

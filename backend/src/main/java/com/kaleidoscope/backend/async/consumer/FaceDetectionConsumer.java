@@ -14,6 +14,15 @@ import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
 import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostMediaRepository;
+import com.kaleidoscope.backend.posts.repository.PostRepository;
+import com.kaleidoscope.backend.async.service.PostProcessingStatusService;
+import com.kaleidoscope.backend.async.service.PostAggregationTriggerService;
+import com.kaleidoscope.backend.posts.repository.search.MediaSearchRepository;
+import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
+import com.kaleidoscope.backend.posts.model.Post;
+import com.kaleidoscope.backend.posts.model.PostMedia;
+import com.kaleidoscope.backend.users.model.User;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -41,6 +50,10 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     private final JdbcTemplate jdbcTemplate;
     private final PostMediaRepository postMediaRepository;
     private final TransactionTemplate transactionTemplate;
+    private final PostProcessingStatusService postProcessingStatusService;
+    private final PostAggregationTriggerService postAggregationTriggerService;
+    private final PostRepository postRepository;
+    private final MediaSearchRepository mediaSearchRepository;
 
     // --- ADDED FOR RETRY LOGIC ---
     private static final int MAX_RETRY_ATTEMPTS = 5;
@@ -94,8 +107,15 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
             });
 
             // 2. Mark service completion in a separate transaction with retries on optimistic lock conflicts.
-            // This prevents face detection results from rolling back if concurrent MediaAiInsights updates occur.
             appendServiceCompletedWithRetry(resultDTO.getMediaId(), "face_detection");
+
+            // 3. Refresh the media_search document so detectedFaceCount is accurate
+            refreshMediaSearchDocument(resultDTO.getMediaId());
+
+            // 4. Check if all media for this post are processed (including faces) and trigger aggregation
+            if (mediaAiInsights != null && mediaAiInsights.getPost() != null) {
+                checkAndTriggerAggregation(mediaAiInsights.getPost().getPostId());
+            }
 
             log.info("Successfully processed face detection for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
@@ -348,5 +368,74 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
         return sb.toString();
     }
 
+    private void checkAndTriggerAggregation(Long postId) {
+        if (postProcessingStatusService.allMediaProcessedForPost(postId)) {
+            log.info("All media for postId: {} have been processed. Triggering aggregation.", postId);
+            postRepository.findById(postId).ifPresent(post -> {
+                List<Long> allMediaIds = post.getMedia().stream()
+                        .map(PostMedia::getMediaId)
+                        .collect(Collectors.toList());
+                postAggregationTriggerService.triggerAggregation(postId, allMediaIds);
+            });
+        } else {
+            log.info("PostId: {} is still processing other media. Aggregation not triggered.", postId);
+        }
+    }
+
+    private void refreshMediaSearchDocument(Long mediaId) {
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                Optional<MediaAiInsights> insightsOpt = mediaAiInsightsRepository.findByMediaId(mediaId);
+                if (insightsOpt.isPresent()) {
+                    MediaAiInsights insights = insightsOpt.get();
+                    MediaSearchDocument doc = toMediaSearchDocument(insights.getPostMedia(), insights);
+                    mediaSearchRepository.save(doc);
+                    log.debug("Refreshed media_search document for mediaId: {}", mediaId);
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Failed to refresh media_search document for mediaId: {}: {}", mediaId, e.getMessage());
+        }
+    }
+
+    private MediaSearchDocument toMediaSearchDocument(PostMedia postMedia, MediaAiInsights insights) {
+        Post post = postMedia.getPost();
+        User uploader = post.getUser();
+
+        MediaSearchDocument.PostInfo postInfo = MediaSearchDocument.PostInfo.builder()
+                .title(post.getTitle())
+                .visibility(post.getVisibility() != null ? post.getVisibility().name() : null)
+                .categories(post.getCategories() != null
+                        ? post.getCategories().stream()
+                                .filter(pc -> pc != null && pc.getCategory() != null && pc.getCategory().getName() != null)
+                                .map(pc -> pc.getCategory().getName())
+                                .collect(Collectors.toList())
+                        : List.of())
+                .build();
+
+        MediaSearchDocument.UploaderInfo uploaderInfo = MediaSearchDocument.UploaderInfo.builder()
+                .userId(uploader.getUserId())
+                .username(uploader.getUsername())
+                .build();
+
+        return MediaSearchDocument.builder()
+                .id(String.valueOf(postMedia.getMediaId()))
+                .mediaId(postMedia.getMediaId())
+                .postId(post.getPostId())
+                .mediaUrl(postMedia.getMediaUrl())
+                .mediaType(postMedia.getMediaType() != null ? postMedia.getMediaType().name() : null)
+                .aiStatus(insights.getStatus() != null ? insights.getStatus().name() : null)
+                .isSafe(insights.getIsSafe())
+                .aiCaption(insights.getCaption())
+                .aiTags(insights.getTags() != null ? Arrays.asList(insights.getTags()) : List.of())
+                .scenes(insights.getScenes() != null ? Arrays.asList(insights.getScenes()) : List.of())
+                .detectedFaceCount(mediaDetectedFaceRepository.findByMediaAiInsights_MediaId(postMedia.getMediaId()).size())
+                .postInfo(postInfo)
+                .uploaderInfo(uploaderInfo)
+                .reactionCount(0L)
+                .commentCount(0L)
+                .createdAt(post.getCreatedAt())
+                .build();
+    }
 }
 

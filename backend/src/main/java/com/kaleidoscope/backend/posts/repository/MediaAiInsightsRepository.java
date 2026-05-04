@@ -30,7 +30,7 @@ public interface MediaAiInsightsRepository extends JpaRepository<MediaAiInsights
     @Query(value = """
             SELECT COUNT(*) FROM media_ai_insights
             WHERE post_id = :postId
-              AND services_completed @> ARRAY['moderation','tagging','scene_recognition','image_captioning']
+              AND services_completed @> ARRAY['moderation','tagging','scene_recognition','image_captioning','face_detection']
             """, nativeQuery = true)
     long countFullyProcessedByPostId(@Param("postId") Long postId);
 }
