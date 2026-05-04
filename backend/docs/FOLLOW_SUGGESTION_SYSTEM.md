@@ -112,7 +112,7 @@ public class UserDocument {
     private LocalDateTime lastSeen;        // Recent activity indicator
     
     // Future ML Features
-    private float[] faceEmbedding;         // Face recognition vector (1024 dims)
+    private float[] faceEmbedding;         // Face recognition vector (1408 dims)
 }
 ```
 
@@ -512,7 +512,7 @@ log.info("Returned {} suggestions for user {}", userDocuments.size(), targetUser
 **Face Embedding Similarity:**
 ```java
 // Already indexed in UserDocument
-private float[] faceEmbedding;  // 1024-dimensional vector
+private float[] faceEmbedding;  // 1408-dimensional vector
 ```
 
 Future function could use vector similarity:

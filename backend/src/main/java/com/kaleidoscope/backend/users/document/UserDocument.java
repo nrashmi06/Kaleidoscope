@@ -82,7 +82,7 @@ public class UserDocument {
     private Boolean searchDiscoverable;
 
     // --- Face Embedding for ML Similarity Search ---
-    @Field(type = FieldType.Dense_Vector, dims = 1024) // Crucial for vector search
+    @Field(type = FieldType.Dense_Vector, dims = 1408) // Crucial for vector search
     private float[] faceEmbedding;
 
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")

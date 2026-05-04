@@ -209,7 +209,7 @@ public class UserDocument {
     @Field(type = FieldType.Keyword)
     private String profileVisibility;       // Visibility setting
     
-    @Field(type = FieldType.Dense_Vector, dims = 1024)
+    @Field(type = FieldType.Dense_Vector, dims = 1408)
     private float[] faceEmbedding;          // ML face embedding for similarity
     
     @Field(type = FieldType.Date)
@@ -223,7 +223,7 @@ public class UserDocument {
 **Key Features**:
 - **Keyword Fields**: Exact matching (username, email, status)
 - **Text Fields**: Full-text search (designation, summary)
-- **Dense Vector**: ML-powered face similarity search (1024 dimensions)
+- **Dense Vector**: ML-powered face similarity search (1408 dimensions)
 - **Social Graph**: Embedded follower/following counts and interest lists
 - **Privacy**: Blocked user IDs for filtering results
 

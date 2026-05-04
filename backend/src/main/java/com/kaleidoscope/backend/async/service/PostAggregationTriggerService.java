@@ -1,5 +1,7 @@
 package com.kaleidoscope.backend.async.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.async.streaming.ProducerStreamConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 public class PostAggregationTriggerService {
 
     private final RedisStreamPublisher redisStreamPublisher;
+    private final MediaAiInsightsRepository mediaAiInsightsRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * Publishes a message to the post-aggregation-trigger stream.
@@ -31,6 +35,11 @@ public class PostAggregationTriggerService {
     public void triggerAggregation(Long postId, List<Long> allMediaIds) {
         log.info("Triggering post aggregation for postId: {} with {} media items", postId, allMediaIds.size());
         try {
+            // Fetch all media insights for this post to include in the payload
+            // This avoids the Python post_aggregator having to re-read ACKed ml-insights-results
+            var insights = mediaAiInsightsRepository.findByPost_PostId(postId);
+            String insightsJson = objectMapper.writeValueAsString(insights);
+
             // Convert list of longs to a comma-separated string for the stream
             String mediaIdsString = allMediaIds.stream()
                                                .map(String::valueOf)
@@ -40,6 +49,7 @@ public class PostAggregationTriggerService {
             message.put("postId", String.valueOf(postId));
             message.put("totalMedia", String.valueOf(allMediaIds.size()));
             message.put("allMediaIds", mediaIdsString);
+            message.put("mediaInsights", insightsJson);
             message.put("timestamp", Instant.now().toString());
             message.put("correlationId", MDC.get("correlationId")); // Pass on the correlation ID
 

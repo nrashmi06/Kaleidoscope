@@ -24,7 +24,7 @@ public class UserFaceEmbeddingDocument {
     private Long userId;
 
     @Field(type = FieldType.Keyword)
-    private String embedding; // Vector(1024) stored as string for face matching
+    private String embedding; // Vector(1408) stored as string for face matching
 
     @Field(type = FieldType.Boolean)
     private Boolean isActive;

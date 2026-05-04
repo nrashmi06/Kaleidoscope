@@ -417,6 +417,18 @@ public class PostCommandServiceImpl implements PostCommandService {
             imageStorageService.deleteImageByPublicId(imageStorageService.extractPublicIdFromUrl(media.getMediaUrl()));
         }
 
+        try {
+            int deletedDetectedFaces = jdbcTemplate.update(
+                "DELETE FROM media_detected_faces WHERE media_id IN (SELECT media_id FROM media_ai_insights WHERE post_id = ?)",
+                postId);
+            int deletedAiInsights = jdbcTemplate.update("DELETE FROM media_ai_insights WHERE post_id = ?", postId);
+            log.info("Removed {} detected faces and {} AI insight rows for hard-deleted post {}",
+                deletedDetectedFaces, deletedAiInsights, postId);
+        } catch (Exception e) {
+            log.error("Failed to clean up AI insight dependencies for post {} during hard delete: {}", postId,
+                e.getMessage());
+        }
+
         post.getMedia().clear();
         post.getCategories().clear();
         postRepository.hardDeleteById(post.getPostId());

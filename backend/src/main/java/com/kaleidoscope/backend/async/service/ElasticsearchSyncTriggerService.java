@@ -59,6 +59,14 @@ public class ElasticsearchSyncTriggerService {
             return;
         }
 
+        if ("recommendations_knn".equals(indexType)) {
+            log.info("Triggering ES Sync for recommendations_knn: documentId={}, operation={}", documentId, operation);
+            if (documentId == null) {
+                log.warn("recommendations_knn sync triggered with null documentId. Skipping.");
+                return;
+            }
+        }
+
         log.debug("Triggering ES Sync for indexType: {}, operation: {}, documentId: {}",
                 indexType, operation, documentId);
         try {

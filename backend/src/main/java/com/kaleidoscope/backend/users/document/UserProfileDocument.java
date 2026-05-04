@@ -32,7 +32,7 @@ public class UserProfileDocument {
     private List<String> interests;
 
     @Field(type = FieldType.Keyword)
-    private String faceEmbedding; // Vector(1024) for face recognition
+    private String faceEmbedding; // Vector(1408) for face recognition
 
     @Field(type = FieldType.Date)
     private OffsetDateTime lastUpdated;

@@ -27,7 +27,7 @@ public class MediaDetectedFaceDocument {
     private List<Integer> bbox; // Bounding box coordinates
 
     @Field(type = FieldType.Keyword)
-    private String embedding; // Vector(1024) for face recognition
+    private String embedding; // Vector(1408) for face recognition
 
     @Field(type = FieldType.Long)
     private Long identifiedUserId;

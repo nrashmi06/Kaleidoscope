@@ -28,7 +28,7 @@ public class MediaDetectedFace {
     @Column(name = "bbox", nullable = false, columnDefinition = "integer[]")
     private Integer[] bbox;
 
-    @Column(nullable = true, columnDefinition = "vector(1024)")
+    @Column(nullable = true, columnDefinition = "vector(1408)")
     private String embedding;
 
     @ManyToOne(fetch = FetchType.LAZY)

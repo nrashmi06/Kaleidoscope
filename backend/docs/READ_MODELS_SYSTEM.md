@@ -153,7 +153,7 @@ Stores per-media AI analysis results for full-text and semantic search.
 | `ai_caption`        | TEXT    | AI-generated image caption                     |
 | `ai_tags`           | TEXT    | Comma-separated AI tags                        |
 | `ai_scenes`         | TEXT    | Comma-separated scene classifications          |
-| `image_embedding`   | TEXT    | 512-dim vector as JSON string                  |
+| `image_embedding`   | TEXT    | 1408-dim vector as JSON string                  |
 | `is_safe`           | Boolean | Content safety flag                            |
 | `detected_user_ids` | TEXT    | Comma-separated recognized user IDs            |
 | `detected_usernames`| TEXT    | Comma-separated recognized usernames           |
@@ -192,7 +192,7 @@ Stores individual detected faces with vector embeddings for face search.
 | `face_id`             | String  | Unique face identifier                         |
 | `media_id`            | Long    | Source media ID                                |
 | `post_id`             | Long    | Source post ID                                 |
-| `face_embedding`      | TEXT    | 1024-dim face vector as JSON string            |
+| `face_embedding`      | TEXT    | 1408-dim face vector as JSON string            |
 | `bbox`                | TEXT    | Bounding box `[x,y,w,h]` as JSON              |
 | `identified_user_id`  | Long    | Recognized user ID (null if unknown)           |
 | `identified_username` | String  | Recognized username (null if unknown)          |
@@ -209,7 +209,7 @@ Enrolled user face profiles for face recognition matching.
 | `username`           | String  | Username (unique)                              |
 | `department`         | String  | User's department                              |
 | `profile_pic_url`    | String  | Profile picture URL                            |
-| `face_embedding`     | TEXT    | 1024-dim face vector as JSON string            |
+| `face_embedding`     | TEXT    | 1408-dim face vector as JSON string            |
 | `enrolled_at`        | Instant | Face enrollment timestamp                      |
 | `is_active`          | Boolean | Whether enrollment is active                   |
 
@@ -255,7 +255,7 @@ Image embedding vectors for K-Nearest Neighbors content recommendations.
 | Column              | Type    | Description                                    |
 |---------------------|---------|------------------------------------------------|
 | `media_id`          | Long    | **PK** - Media ID                              |
-| `image_embedding`    | TEXT    | 512-dim image vector as JSON string            |
+| `image_embedding`    | TEXT    | 1408-dim image vector as JSON string            |
 | `media_url`          | String  | Media URL                                      |
 | `caption`            | TEXT    | Media caption                                  |
 | `is_safe`            | Boolean | Content safety flag                            |
@@ -268,6 +268,6 @@ Image embedding vectors for K-Nearest Neighbors content recommendations.
 3. **Independent transactions** - Use `@Transactional(propagation = Propagation.REQUIRES_NEW)` to avoid cascading failures
 4. **Always trigger ES sync** - After any read model update, call `ElasticsearchSyncTriggerService.triggerSync()`
 5. **Comma-separated strings** - Multi-value fields (tags, scenes, user IDs) use comma-separated TEXT columns for simplicity
-6. **Vector embeddings as JSON** - Face (1024-dim) and image (512-dim) embeddings are stored as JSON strings
+6. **Vector embeddings as JSON** - Face (1408-dim) and image (1408-dim) embeddings are stored as JSON strings
 7. **External updates** - Some read models (`known_faces`, `user_search`, `feed_personalized`, `recommendations_knn`) are primarily updated by the external AI service
 

@@ -80,20 +80,22 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                         "MediaAiInsights not ready yet for mediaId=" + resultDTO.getMediaId(), null);
             }
 
+            // 1. Persist detected faces in one transaction
             transactionTemplate.executeWithoutResult(status -> {
-                log.info("Processing {} faces for mediaId: {}", faces.size(), mediaAiInsights.getMediaId());
+                log.info("Processing {} faces for mediaId: {}", faces.size(), resultDTO.getMediaId());
 
                 for (FaceDetectionResultDTO.FaceDetails face : faces) {
                     MediaDetectedFace savedFace = saveFaceWithVectorEmbedding(face, mediaAiInsights);
                     readModelUpdateService.createFaceSearchReadModel(savedFace);
                     elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
                     log.info("Saved MediaDetectedFace for mediaId: {}, faceId: {}, status: {}",
-                            mediaAiInsights.getMediaId(), savedFace.getId(), savedFace.getStatus());
+                            resultDTO.getMediaId(), savedFace.getId(), savedFace.getStatus());
                 }
-
-                // Mark service completion for downstream observability/idempotency.
-                appendServiceCompleted(mediaAiInsights, "face_detection");
             });
+
+            // 2. Mark service completion in a separate transaction with retries on optimistic lock conflicts.
+            // This prevents face detection results from rolling back if concurrent MediaAiInsights updates occur.
+            appendServiceCompletedWithRetry(resultDTO.getMediaId(), "face_detection");
 
             log.info("Successfully processed face detection for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
@@ -107,6 +109,52 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                     messageId, e.getMessage(), e);
             throw new StreamMessageProcessingException(record.getStream(), messageId,
                     "Unexpected error during face detection processing", e);
+        }
+    }
+
+    /**
+     * Appends a service name to the services_completed array with retry logic for optimistic lock conflicts.
+     * Uses a separate transaction to ensure completion status doesn't block main face persistence.
+     */
+    private void appendServiceCompletedWithRetry(Long mediaId, String serviceName) {
+        long currentDelay = INITIAL_RETRY_DELAY_MS;
+        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> {
+                    MediaAiInsights insights = mediaAiInsightsRepository.findByMediaId(mediaId)
+                            .orElseThrow(() -> new RuntimeException("MediaAiInsights disappeared during retry"));
+                    
+                    String[] current = insights.getServicesCompleted();
+                    if (current == null) {
+                        insights.setServicesCompleted(new String[] { serviceName });
+                    } else if (Arrays.stream(current).noneMatch(serviceName::equals)) {
+                        String[] updated = Arrays.copyOf(current, current.length + 1);
+                        updated[current.length] = serviceName;
+                        insights.setServicesCompleted(updated);
+                    } else {
+                        return; // Already completed, nothing to do
+                    }
+                    mediaAiInsightsRepository.save(insights);
+                });
+                return; // Success, exit retry loop
+            } catch (Exception e) {
+                if (attempt == MAX_RETRY_ATTEMPTS) {
+                    log.error("Failed to append service completed '{}' for mediaId: {} after {} attempts", 
+                            serviceName, mediaId, MAX_RETRY_ATTEMPTS, e);
+                    throw e;
+                }
+                
+                log.warn("Optimistic lock conflict or error appending service completed for mediaId: {}. Retrying in {}ms (Attempt {}/{})",
+                        mediaId, currentDelay, attempt, MAX_RETRY_ATTEMPTS);
+                
+                try {
+                    Thread.sleep(currentDelay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Retry interrupted", ie);
+                }
+                currentDelay *= 2; // Exponential backoff
+            }
         }
     }
 
@@ -300,19 +348,5 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
         return sb.toString();
     }
 
-    private void appendServiceCompleted(MediaAiInsights mediaAiInsights, String serviceName) {
-        String[] current = mediaAiInsights.getServicesCompleted();
-        if (current == null) {
-            mediaAiInsights.setServicesCompleted(new String[] { serviceName });
-            mediaAiInsightsRepository.save(mediaAiInsights);
-            return;
-        }
-
-        if (Arrays.stream(current).noneMatch(serviceName::equals)) {
-            String[] updated = Arrays.copyOf(current, current.length + 1);
-            updated[current.length] = serviceName;
-            mediaAiInsights.setServicesCompleted(updated);
-            mediaAiInsightsRepository.save(mediaAiInsights);
-        }
-    }
 }
+

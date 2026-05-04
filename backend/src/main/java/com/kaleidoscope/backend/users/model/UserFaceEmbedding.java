@@ -25,7 +25,7 @@ public class UserFaceEmbedding {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(nullable = false, columnDefinition = "vector(1024)")
+    @Column(nullable = false, columnDefinition = "vector(1408)")
     private String embedding;
 
     @Column(name = "is_active", nullable = false)
