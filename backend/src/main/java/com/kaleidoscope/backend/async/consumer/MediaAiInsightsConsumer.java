@@ -89,33 +89,37 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             }
 
             // 2. PostgreSQL Update ("Write" Model): Load, merge, and save with retries on optimistic lock
-            MediaAiInsights savedInsights = mergeMediaAiInsightsWithRetry(resultDTO, postMedia, service);
+            MediaAiInsights savedInsights = mergeMediaAiInsightsWithRetry(resultDTO, service);
             if (savedInsights == null) return;
 
             // 3. Update Read Models (each in its own transactional context via ReadModelUpdateService)
             transactionTemplate.executeWithoutResult(status -> {
+                // RE-FETCH PostMedia inside this transaction to ensure it is MANAGED for lazy loading
+                PostMedia managedMedia = postMediaRepository.findById(resultDTO.getMediaId())
+                        .orElseThrow(() -> new IllegalStateException("PostMedia no longer exists"));
+
                 // Elasticsearch Update ("Read" Model): Legacy search asset
-                SearchAssetDocument searchDocument = createSearchAssetDocument(postMedia, savedInsights);
+                SearchAssetDocument searchDocument = createSearchAssetDocument(managedMedia, savedInsights);
                 searchAssetSearchRepository.save(searchDocument);
 
                 // Update the new 'read_model_media_search' and ES doc
-                readModelUpdateService.updateMediaSearchReadModel(savedInsights, postMedia);
-                mediaSearchRepository.save(toMediaSearchDocument(postMedia, savedInsights));
+                readModelUpdateService.updateMediaSearchReadModel(savedInsights, managedMedia);
+                mediaSearchRepository.save(toMediaSearchDocument(managedMedia, savedInsights));
 
                 // Update KNN and Personalized read models
-                readModelUpdateService.updateRecommendationsKnnReadModel(savedInsights, postMedia);
-                readModelUpdateService.updateFeedPersonalizedReadModel(savedInsights, postMedia);
+                readModelUpdateService.updateRecommendationsKnnReadModel(savedInsights, managedMedia);
+                readModelUpdateService.updateFeedPersonalizedReadModel(savedInsights, managedMedia);
 
                 // Trigger ES Sync for read models still owned by Python sync
-                elasticsearchSyncTriggerService.triggerSync("read_model_recommendations_knn", postMedia.getMediaId());
-                elasticsearchSyncTriggerService.triggerSync("read_model_feed_personalized", postMedia.getMediaId());
+                elasticsearchSyncTriggerService.triggerSync("read_model_recommendations_knn", managedMedia.getMediaId());
+                elasticsearchSyncTriggerService.triggerSync("read_model_feed_personalized", managedMedia.getMediaId());
 
                 // Keep `posts` index fresh for ML text search
-                syncPostDocumentMlFields(postMedia.getPost().getPostId());
+                syncPostDocumentMlFields(managedMedia.getPost().getPostId());
             });
 
             // 4. Check if all media for this post are processed and trigger aggregation if needed
-            checkAndTriggerAggregation(postMedia.getPost().getPostId());
+            checkAndTriggerAggregation(savedInsights.getPost().getPostId());
 
             log.info("Successfully processed ML insights for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
@@ -130,7 +134,7 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         }
     }
 
-    private MediaAiInsights mergeMediaAiInsightsWithRetry(MediaAiInsightsResultDTO resultDTO, PostMedia postMedia, String service) {
+    private MediaAiInsights mergeMediaAiInsightsWithRetry(MediaAiInsightsResultDTO resultDTO, String service) {
         long currentDelay = INITIAL_RETRY_DELAY_MS;
         for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
             try {
@@ -141,7 +145,10 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
                     if (existing != null) {
                         mediaAiInsights = mergeMediaAiInsights(existing, resultDTO, service);
                     } else {
-                        mediaAiInsights = createMediaAiInsightsEntity(resultDTO, postMedia, service);
+                        // RE-FETCH PostMedia inside the transaction to ensure it is MANAGED
+                        PostMedia managedMedia = postMediaRepository.findById(resultDTO.getMediaId())
+                                .orElseThrow(() -> new IllegalStateException("PostMedia no longer exists"));
+                        mediaAiInsights = createMediaAiInsightsEntity(resultDTO, managedMedia, service);
                     }
                     
                     return mediaAiInsightsRepository.save(mediaAiInsights);

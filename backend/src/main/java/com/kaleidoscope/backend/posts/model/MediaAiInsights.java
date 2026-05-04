@@ -1,5 +1,6 @@
 package com.kaleidoscope.backend.posts.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,10 +32,12 @@ public class MediaAiInsights {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "media_id", nullable = false)
     @MapsId
+    @JsonIgnore
     private PostMedia postMedia;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
+    @JsonIgnore
     private Post post;
 
     @Enumerated(EnumType.STRING)
