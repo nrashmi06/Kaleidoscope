@@ -175,12 +175,13 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     private void checkAndTriggerAggregation(Long postId) {
         if (postProcessingStatusService.allMediaProcessedForPost(postId)) {
             log.info("All media for postId: {} have been processed. Triggering aggregation.", postId);
-            postRepository.findById(postId).ifPresent(post -> {
-                List<Long> allMediaIds = post.getMedia().stream()
-                        .map(PostMedia::getMediaId)
-                        .collect(Collectors.toList());
+            // Use the direct repository query to avoid LazyInitializationException on Post.media
+            List<Long> allMediaIds = postMediaRepository.findMediaIdsByPostId(postId);
+            if (!allMediaIds.isEmpty()) {
                 postAggregationTriggerService.triggerAggregation(postId, allMediaIds);
-            });
+            } else {
+                log.warn("Aggregation triggered for postId: {} but no media IDs found!", postId);
+            }
         } else {
             log.info("PostId: {} is still processing other media. Aggregation not triggered.", postId);
         }

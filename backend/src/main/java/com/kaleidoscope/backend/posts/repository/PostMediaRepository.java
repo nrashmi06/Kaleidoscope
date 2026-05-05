@@ -28,6 +28,9 @@ public interface PostMediaRepository extends JpaRepository<PostMedia, Long> {
     @Query("SELECT COUNT(pm) FROM PostMedia pm WHERE pm.post = :post AND pm.mediaType = :mediaType")
     long countByPostAndMediaType(@Param("post") Post post, @Param("mediaType") MediaType mediaType);
     
+    @Query("SELECT pm.mediaId FROM PostMedia pm WHERE pm.post.postId = :postId ORDER BY pm.position ASC")
+    List<Long> findMediaIdsByPostId(@Param("postId") Long postId);
+
     void deleteByPost(Post post);
     
     boolean existsByPost(Post post);
