@@ -7,22 +7,22 @@ import com.kaleidoscope.backend.async.exception.async.BboxParsingException;
 import com.kaleidoscope.backend.async.exception.async.StreamDeserializationException;
 import com.kaleidoscope.backend.async.exception.async.StreamMessageProcessingException;
 import com.kaleidoscope.backend.async.service.ElasticsearchSyncTriggerService;
+import com.kaleidoscope.backend.async.service.PostAggregationTriggerService;
+import com.kaleidoscope.backend.async.service.PostProcessingStatusService;
 import com.kaleidoscope.backend.async.service.ReadModelUpdateService;
+import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
 import com.kaleidoscope.backend.posts.enums.FaceDetectionStatus;
+import com.kaleidoscope.backend.posts.enums.MediaAiStatus;
 import com.kaleidoscope.backend.posts.model.MediaAiInsights;
 import com.kaleidoscope.backend.posts.model.MediaDetectedFace;
+import com.kaleidoscope.backend.posts.model.Post;
+import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.posts.repository.MediaAiInsightsRepository;
 import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostMediaRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
-import com.kaleidoscope.backend.async.service.PostProcessingStatusService;
-import com.kaleidoscope.backend.async.service.PostAggregationTriggerService;
 import com.kaleidoscope.backend.posts.repository.search.MediaSearchRepository;
-import com.kaleidoscope.backend.posts.document.MediaSearchDocument;
-import com.kaleidoscope.backend.posts.model.Post;
-import com.kaleidoscope.backend.posts.model.PostMedia;
 import com.kaleidoscope.backend.users.model.User;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -32,10 +32,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Component // Changed from @Service for injection into RedisStreamConfig
 @RequiredArgsConstructor
@@ -80,24 +81,37 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
                 return;
             }
 
-            MediaAiInsights mediaAiInsights = findMediaAiInsightsWithRetry(resultDTO.getMediaId());
+            MediaAiInsights mediaAiInsights = findOrCreateMediaAiInsights(resultDTO.getMediaId());
             if (mediaAiInsights == null) {
-                if (!postMediaRepository.existsById(resultDTO.getMediaId())) {
-                    log.warn("PostMedia no longer exists for mediaId: {}. Acknowledging face detection message.",
-                            resultDTO.getMediaId());
-                    return;
-                }
-
-                // Keep message in PEL for retry when the upstream AI-insights row eventually lands.
-                throw new StreamMessageProcessingException(record.getStream(), messageId,
-                        "MediaAiInsights not ready yet for mediaId=" + resultDTO.getMediaId(), null);
+                // If it still returns null, the post media itself likely doesn't exist anymore.
+                log.warn("Could not find or create MediaAiInsights for mediaId: {}. Acknowledging face detection message.",
+                        resultDTO.getMediaId());
+                return;
             }
 
             // 1. Persist detected faces in one transaction
             transactionTemplate.executeWithoutResult(status -> {
                 log.info("Processing {} faces for mediaId: {}", faces.size(), resultDTO.getMediaId());
 
+                List<MediaDetectedFace> existingFaces = mediaDetectedFaceRepository.findByMediaAiInsights_MediaId(resultDTO.getMediaId());
+
                 for (FaceDetectionResultDTO.FaceDetails face : faces) {
+                    // Deduplicate based on bbox
+                    Integer[] bboxArray = face.getBbox() != null
+                            ? face.getBbox().stream()
+                                    .map(v -> v != null ? v.intValue() : null)
+                                    .toArray(Integer[]::new)
+                            : new Integer[0];
+                    String bboxArrayStr = arrayToString(bboxArray);
+                    
+                    boolean alreadyExists = existingFaces.stream()
+                        .anyMatch(existing -> arrayToString(existing.getBbox()).equals(bboxArrayStr));
+                        
+                    if (alreadyExists) {
+                        log.debug("Face already exists for mediaId={}, bbox={}, skipping due to idempotency", resultDTO.getMediaId(), bboxArrayStr);
+                        continue;
+                    }
+
                     MediaDetectedFace savedFace = saveFaceWithVectorEmbedding(face, mediaAiInsights);
                     readModelUpdateService.createFaceSearchReadModel(savedFace);
                     elasticsearchSyncTriggerService.triggerSync("read_model_face_search", savedFace.getId());
@@ -179,41 +193,51 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     }
 
     /**
-     * --- UPDATED METHOD ---
-     * Tries to find the MediaAiInsights record with exponential backoff.
-     * Uses findByMediaId instead of findById to be explicit about the lookup.
-     * This handles the race condition where this consumer runs before MediaAiInsightsConsumer.
-     * Returns null if the MediaAiInsights is not found after all retries (post was deleted).
+     * Tries to find the MediaAiInsights record or creates a placeholder if it doesn't exist.
+     * Uses exponential backoff for optimistic lock retries.
      */
-    private MediaAiInsights findMediaAiInsightsWithRetry(Long mediaId) {
+    private MediaAiInsights findOrCreateMediaAiInsights(Long mediaId) {
         long currentDelay = INITIAL_RETRY_DELAY_MS;
         for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
-            Optional<MediaAiInsights> insights = mediaAiInsightsRepository.findByMediaId(mediaId);
-            if (insights.isPresent()) {
-                if (attempt > 1) {
-                    log.info("Found MediaAiInsights for mediaId: {} on attempt {}", mediaId, attempt);
-                }
-                return insights.get();
-            }
+            try {
+                return transactionTemplate.execute(status -> {
+                    Optional<MediaAiInsights> insights = mediaAiInsightsRepository.findByMediaId(mediaId);
+                    if (insights.isPresent()) {
+                        return insights.get();
+                    }
 
-            if (attempt < MAX_RETRY_ATTEMPTS) {
-                log.warn("MediaAiInsights not found for mediaId: {}. Retrying in {}ms (Attempt {}/{})",
+                    PostMedia managedMedia = postMediaRepository.findById(mediaId).orElse(null);
+                    if (managedMedia == null) {
+                        return null;
+                    }
+
+                    MediaAiInsights newInsights = MediaAiInsights.builder()
+                            .postMedia(managedMedia)
+                            .post(managedMedia.getPost())
+                            .status(MediaAiStatus.PROCESSING)
+                            .servicesCompleted(new String[0])
+                            .build();
+
+                    return mediaAiInsightsRepository.save(newInsights);
+                });
+            } catch (Exception e) {
+                if (attempt == MAX_RETRY_ATTEMPTS) {
+                    log.error("Failed to find or create MediaAiInsights for mediaId: {} after {} attempts", mediaId, MAX_RETRY_ATTEMPTS, e);
+                    throw e;
+                }
+                log.warn("Optimistic lock conflict or error creating insights for mediaId: {}. Retrying in {}ms (Attempt {}/{})",
                         mediaId, currentDelay, attempt, MAX_RETRY_ATTEMPTS);
                 try {
                     Thread.sleep(currentDelay);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Restore interrupted status
-                    log.error("Retry interrupted for mediaId: {}", mediaId, e);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
                     throw new StreamMessageProcessingException("face-detection",
                             String.valueOf(mediaId), "Retry interrupted", e);
                 }
-                currentDelay *= 2; // Exponential backoff
+                currentDelay *= 2;
             }
         }
-
-        log.warn("MediaAiInsights not found for mediaId: {} after {} attempts. The post/media may have been deleted. Returning null to acknowledge message.",
-                mediaId, MAX_RETRY_ATTEMPTS);
-        return null; // Return null instead of throwing exception
+        return null; // Should not reach here
     }
 
     private FaceDetectionResultDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {
