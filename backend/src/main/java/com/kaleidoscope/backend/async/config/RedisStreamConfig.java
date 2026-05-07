@@ -25,7 +25,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
+
+
 import org.springframework.util.ErrorHandler;
+
 
 import java.time.Duration;
 import java.util.UUID;
@@ -96,6 +99,8 @@ public class RedisStreamConfig {
                         .errorHandler(createErrorHandler())
                         .build();
 
+
+
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(redisConnectionFactory, options);
 
@@ -119,7 +124,6 @@ public class RedisStreamConfig {
         return container;
     }
 
-    // Helper method to register consumers cleanly
     private void registerConsumer(
             StreamMessageListenerContainer<String, MapRecord<String, String, String>> container,
             String consumerName,
@@ -128,17 +132,34 @@ public class RedisStreamConfig {
 
         String fullConsumerName = consumerName + "-" + listener.getClass().getSimpleName();
 
+        StreamListener<String, MapRecord<String, String, String>> ackingListener = message -> {
+            String messageId = message.getId().getValue();
+            try {
+                listener.onMessage(message); // execute business logic
+
+                Long acked = redisTemplate().opsForStream().acknowledge(
+                        StreamingConfigConstants.BACKEND_CONSUMER_GROUP,
+                        message
+                );
+                log.debug("XACK stream={} messageId={} acked={}", streamName, messageId, acked);
+            } catch (Exception e) {
+                // Keep message in PEL for retry/recovery
+                log.error("Consumer processing failed; leaving message in PEL. stream={}, messageId={}, consumer={}",
+                        streamName, messageId, fullConsumerName, e);
+                throw e;
+            }
+        };
+
         container.receive(
-                // Use a dynamic consumer name composed of the application name and a unique ID
                 Consumer.from(StreamingConfigConstants.BACKEND_CONSUMER_GROUP, fullConsumerName),
-                // Use ">" to read new messages that were never delivered to any consumer in this group
-                // This ensures we process both unacknowledged messages (in PEL) and brand new messages
                 StreamOffset.create(streamName, ReadOffset.from(">")),
-                listener
+                ackingListener
         );
+
         log.info("✅ Registered Consumer '{}' for stream '{}' with consumer group '{}' (offset: >)",
                 fullConsumerName, streamName, StreamingConfigConstants.BACKEND_CONSUMER_GROUP);
     }
+
 
     // Existing ensureConsumerGroupExists method (now private and cleaner)
     private void ensureConsumerGroupExists(RedisTemplate<String, String> redisTemplate, String streamName, String groupName) {

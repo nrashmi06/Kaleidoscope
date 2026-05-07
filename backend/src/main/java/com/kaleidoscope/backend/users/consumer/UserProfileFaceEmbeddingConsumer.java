@@ -1,7 +1,8 @@
 package com.kaleidoscope.backend.users.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaleidoscope.backend.users.service.UserDocumentSyncService;
+
+import com.kaleidoscope.backend.users.service.UserFaceEnrollmentSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -13,28 +14,26 @@ import java.util.Map;
 
 /**
  * Consumer that listens to face embedding results from ML service for profile pictures
- * and syncs the face embedding to UserDocument in Elasticsearch
+ * and syncs the face embedding to UserDocument in Elasticsearch and updates face enrollment tables.
  */
-@Component // Changed from @Service for injection into RedisStreamConfig
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class UserProfileFaceEmbeddingConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
     private final UserDocumentSyncService userDocumentSyncService;
-    private final ObjectMapper objectMapper;
+    private final UserFaceEnrollmentSyncService userFaceEnrollmentSyncService;
 
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
-        // Retrieve the message ID for logging/XACK reference
+
         String messageId = record.getId().getValue();
         try {
             log.info("Received user profile face embedding message from Redis Stream: streamKey={}, messageId={}",
                     record.getStream(), messageId);
 
             Map<String, String> recordValue = record.getValue();
-
-            // Extract data from the stream message
             Long userId = Long.parseLong(recordValue.get("userId"));
             String embeddingStr = recordValue.get("faceEmbedding");
 
@@ -44,58 +43,49 @@ public class UserProfileFaceEmbeddingConsumer implements StreamListener<String, 
                 return;
             }
 
-            // Parse face embedding array
             float[] faceEmbedding = parseFaceEmbedding(embeddingStr);
-
             log.info("Processing face embedding for user ID: {} with vector size: {}, messageId: {}",
                     userId, faceEmbedding.length, messageId);
 
-            // Sync to UserDocument in Elasticsearch
+            // Existing behavior (users index)
             userDocumentSyncService.syncOnFaceEmbeddingGeneration(userId, faceEmbedding);
 
-            log.info("Successfully synced face embedding to UserDocument for user ID: {}, messageId: {}", userId, messageId);
+            // New behavior (PG tables + known_faces_index trigger)
+            userFaceEnrollmentSyncService.upsertKnownFace(userId, faceEmbedding);
 
+            log.info("Successfully completed profile face enrollment sync for user ID: {}, messageId: {}",
+                    userId, messageId);
         } catch (NumberFormatException e) {
             log.error("Invalid userId format in face embedding message: streamKey={}, messageId={}, error={}. Message will remain in PEL.",
                     record.getStream(), messageId, e.getMessage(), e);
-            throw e; // Re-throw to prevent XACK on invalid data
+            throw e;
         } catch (IllegalArgumentException e) {
             log.error("Invalid face embedding format in message: streamKey={}, messageId={}, error={}. Message will remain in PEL.",
                     record.getStream(), messageId, e.getMessage(), e);
-            throw e; // Re-throw to prevent XACK on invalid embedding format
+            throw e;
         } catch (Exception e) {
             log.error("Error processing user profile face embedding message from Redis Stream: streamKey={}, messageId={}, error={}. Message will remain in PEL.",
                     record.getStream(), messageId, e.getMessage(), e);
-            throw e; // Re-throw to prevent XACK on failure
+            throw e;
         }
     }
 
-    /**
-     * Parse face embedding from string representation
-     * Expected format: "[0.1, 0.2, 0.3, ...]" or "0.1,0.2,0.3,..."
-     */
     private float[] parseFaceEmbedding(String embeddingStr) {
         try {
             if (embeddingStr == null || embeddingStr.isBlank()) {
                 throw new IllegalArgumentException("Face embedding payload is blank");
             }
 
-            // Remove brackets and whitespace
             String cleaned = embeddingStr.trim().replaceAll("[\\[\\]\\s]", "");
-
             if (cleaned.isBlank()) {
                 throw new IllegalArgumentException("Face embedding payload is empty");
             }
-            
-            // Split by comma
+
             String[] parts = cleaned.split(",");
-            
-            // Convert to float array
             float[] embedding = new float[parts.length];
             for (int i = 0; i < parts.length; i++) {
                 embedding[i] = Float.parseFloat(parts[i].trim());
             }
-            
             return embedding;
         } catch (Exception e) {
             log.error("Failed to parse face embedding: {}", embeddingStr, e);
@@ -104,15 +94,9 @@ public class UserProfileFaceEmbeddingConsumer implements StreamListener<String, 
     }
 
     private boolean isEmptyEmbeddingPayload(String embeddingStr) {
-        if (embeddingStr == null) {
-            return true;
-        }
-
+        if (embeddingStr == null) return true;
         String trimmed = embeddingStr.trim();
-        if (trimmed.isEmpty()) {
-            return true;
-        }
-
-        return "[]".equals(trimmed) || "[ ]".equals(trimmed);
+        return trimmed.isEmpty() || "[]".equals(trimmed) || "[ ]".equals(trimmed);
     }
 }
+
