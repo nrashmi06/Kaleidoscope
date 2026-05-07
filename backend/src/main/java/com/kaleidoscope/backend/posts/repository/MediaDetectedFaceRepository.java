@@ -30,4 +30,13 @@ public interface MediaDetectedFaceRepository extends JpaRepository<MediaDetected
     @Query("SELECT f FROM MediaDetectedFace f WHERE f.confidenceScore >= :minConfidence AND f.status = :status")
     List<MediaDetectedFace> findByMinConfidenceAndStatus(@Param("minConfidence") Float minConfidence, 
                                                          @Param("status") FaceDetectionStatus status);
+
+    @Query(value = "SELECT m.post_id FROM media_detected_faces f " +
+                   "JOIN media_ai_insights m ON f.media_id = m.media_id " +
+                   "WHERE f.embedding <-> cast(:embedding as vector) < :maxDistance " +
+                   "ORDER BY f.embedding <-> cast(:embedding as vector) ASC " +
+                   "LIMIT :limit", nativeQuery = true)
+    List<Long> findPostIdsByFaceEmbeddingNative(@Param("embedding") String embedding, 
+                                                @Param("maxDistance") double maxDistance, 
+                                                @Param("limit") int limit);
 }

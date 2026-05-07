@@ -48,17 +48,18 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
                         Double latitude,
                         Double longitude,
                         Double radiusKm,
+                        Set<Long> faceMatchPostIds,
                         Pageable pageable) {
 
-                log.info("Executing Elasticsearch query for posts with filters: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, lat={}, lon={}, radiusKm={}",
+                log.info("Executing Elasticsearch query for posts with filters: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, lat={}, lon={}, radiusKm={}, faceMatchPostIdsCount={}",
                                 userId, categoryId, status, visibility, query, hashtag, locationId, latitude, longitude,
-                                radiusKm);
+                                radiusKm, faceMatchPostIds != null ? faceMatchPostIds.size() : 0);
 
                 // Build the main query combining filters and security rules
                 BoolQuery.Builder mainQueryBuilder = new BoolQuery.Builder();
 
                 // Add filtering clauses (MUST conditions)
-                addFilterClauses(mainQueryBuilder, userId, categoryId, status, visibility, query, hashtag);
+                addFilterClauses(mainQueryBuilder, userId, categoryId, status, visibility, query, hashtag, faceMatchPostIds);
 
                 // Add location filtering clauses
                 addLocationFilterClauses(mainQueryBuilder, locationId, latitude, longitude, radiusKm);
@@ -308,7 +309,7 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
          * Add filtering clauses to the main query (MUST conditions)
          */
         private void addFilterClauses(BoolQuery.Builder queryBuilder, Long userId, Long categoryId,
-                        PostStatus status, PostVisibility visibility, String searchQuery, String hashtag) {
+                        PostStatus status, PostVisibility visibility, String searchQuery, String hashtag, Set<Long> faceMatchPostIds) {
 
                 // Filter by author ID
                 if (userId != null) {
@@ -345,64 +346,81 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
                                         .value(visibility.toString()))._toQuery());
                 }
 
-                // Add text search query across title, summary, body, and ML fields
-                if (searchQuery != null && !searchQuery.trim().isEmpty()) {
-                        log.debug("Adding text search query: query={}", searchQuery);
+                boolean hasTextSearch = searchQuery != null && !searchQuery.trim().isEmpty();
+                boolean hasFaceSearch = faceMatchPostIds != null && !faceMatchPostIds.isEmpty();
 
-                        BoolQuery.Builder textQueryBuilder = new BoolQuery.Builder();
-                        String trimmedQuery = searchQuery.trim().toLowerCase();
+                // Add text search query across title, summary, body, and ML fields OR face matching posts
+                if (hasTextSearch || hasFaceSearch) {
+                        log.debug("Adding text or face matching search query: query={}, faceMatches={}", searchQuery, hasFaceSearch);
 
-                        // Search in title (boosted)
-                        textQueryBuilder.should(MatchQuery.of(m -> m
-                                        .field("title")
-                                        .query(trimmedQuery)
-                                        .boost(2.0f))._toQuery());
+                        BoolQuery.Builder textOrFaceQuery = new BoolQuery.Builder();
 
-                        // Search in summary (boosted)
-                        textQueryBuilder.should(MatchQuery.of(m -> m
-                                        .field("summary")
-                                        .query(trimmedQuery)
-                                        .boost(1.5f))._toQuery());
+                        if (hasTextSearch) {
+                                String trimmedQuery = searchQuery.trim().toLowerCase();
 
-                        // Search in body
-                        textQueryBuilder.should(MatchQuery.of(m -> m
-                                        .field("body")
-                                        .query(trimmedQuery))._toQuery());
+                                // Search in title (boosted)
+                                textOrFaceQuery.should(MatchQuery.of(m -> m
+                                                .field("title")
+                                                .query(trimmedQuery)
+                                                .boost(2.0f))._toQuery());
 
-                        // Search in AI captions (full-text analyzed, boosted)
-                        textQueryBuilder.should(MatchQuery.of(m -> m
-                                        .field("mlCaptions")
-                                        .query(trimmedQuery)
-                                        .boost(1.5f))._toQuery());
+                                // Search in summary (boosted)
+                                textOrFaceQuery.should(MatchQuery.of(m -> m
+                                                .field("summary")
+                                                .query(trimmedQuery)
+                                                .boost(1.5f))._toQuery());
 
-                        // Search in AI image tags (keyword match, highest boost)
-                        textQueryBuilder.should(TermQuery.of(t -> t
-                                        .field("mlImageTags")
-                                        .value(trimmedQuery)
-                                        .boost(2.0f))._toQuery());
+                                // Search in body
+                                textOrFaceQuery.should(MatchQuery.of(m -> m
+                                                .field("body")
+                                                .query(trimmedQuery))._toQuery());
 
-                        // Partial match for AI image tags (POC-friendly fallback)
-                        textQueryBuilder.should(WildcardQuery.of(w -> w
-                                        .field("mlImageTags")
-                                        .value("*" + trimmedQuery + "*")
-                                        .caseInsensitive(true)
-                                        .boost(1.5f))._toQuery());
+                                // Search in AI captions (full-text analyzed, boosted)
+                                textOrFaceQuery.should(MatchQuery.of(m -> m
+                                                .field("mlCaptions")
+                                                .query(trimmedQuery)
+                                                .boost(1.5f))._toQuery());
 
-                        // Search in AI scenes (keyword match)
-                        textQueryBuilder.should(TermQuery.of(t -> t
-                                        .field("mlScenes")
-                                        .value(trimmedQuery)
-                                        .boost(1.0f))._toQuery());
+                                // Search in AI image tags (keyword match, highest boost)
+                                textOrFaceQuery.should(TermQuery.of(t -> t
+                                                .field("mlImageTags")
+                                                .value(trimmedQuery)
+                                                .boost(2.0f))._toQuery());
 
-                        // Partial match for AI scenes (POC-friendly fallback)
-                        textQueryBuilder.should(WildcardQuery.of(w -> w
-                                        .field("mlScenes")
-                                        .value("*" + trimmedQuery + "*")
-                                        .caseInsensitive(true)
-                                        .boost(0.8f))._toQuery());
+                                // Partial match for AI image tags (POC-friendly fallback)
+                                textOrFaceQuery.should(WildcardQuery.of(w -> w
+                                                .field("mlImageTags")
+                                                .value("*" + trimmedQuery + "*")
+                                                .caseInsensitive(true)
+                                                .boost(1.5f))._toQuery());
 
-                        textQueryBuilder.minimumShouldMatch("1");
-                        queryBuilder.must(textQueryBuilder.build()._toQuery());
+                                // Search in AI scenes (keyword match)
+                                textOrFaceQuery.should(TermQuery.of(t -> t
+                                                .field("mlScenes")
+                                                .value(trimmedQuery)
+                                                .boost(1.0f))._toQuery());
+
+                                // Partial match for AI scenes (POC-friendly fallback)
+                                textOrFaceQuery.should(WildcardQuery.of(w -> w
+                                                .field("mlScenes")
+                                                .value("*" + trimmedQuery + "*")
+                                                .caseInsensitive(true)
+                                                .boost(0.8f))._toQuery());
+                        }
+
+                        if (hasFaceSearch) {
+                                List<FieldValue> faceIdsAsFieldValue = faceMatchPostIds.stream()
+                                                .map(FieldValue::of)
+                                                .toList();
+                                // Boost face match posts significantly since it's an explicit semantic match
+                                textOrFaceQuery.should(TermsQuery.of(ts -> ts
+                                                .field("postId")
+                                                .terms(t -> t.value(faceIdsAsFieldValue))
+                                                .boost(3.0f))._toQuery());
+                        }
+
+                        textOrFaceQuery.minimumShouldMatch("1");
+                        queryBuilder.must(textOrFaceQuery.build()._toQuery());
                 }
 
                 // Add hashtag filtering (MUST condition) - NEW

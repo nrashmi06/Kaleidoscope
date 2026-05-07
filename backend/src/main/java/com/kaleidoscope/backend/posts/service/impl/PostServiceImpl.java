@@ -13,10 +13,11 @@ import com.kaleidoscope.backend.posts.exception.Posts.PostNotFoundException;
 import com.kaleidoscope.backend.posts.exception.Posts.UnauthorizedActionException;
 import com.kaleidoscope.backend.posts.mapper.PostMapper;
 import com.kaleidoscope.backend.posts.model.Post;
+import com.kaleidoscope.backend.posts.repository.MediaDetectedFaceRepository;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
-import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.posts.service.PostCommandService;
+import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.posts.service.PostViewService;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
@@ -24,7 +25,9 @@ import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.repository.LocationRepository;
 import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
+import com.kaleidoscope.backend.users.document.UserFaceEmbeddingDocument;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
+import com.kaleidoscope.backend.users.repository.search.UserFaceEmbeddingSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,9 +36,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +56,8 @@ public class PostServiceImpl implements PostService {
     private final PostViewService postViewService;
     private final PostSearchRepository postSearchRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    private final UserFaceEmbeddingSearchRepository userFaceEmbeddingSearchRepository;
+    private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
 
     @Override
     public PostCreationResponseDTO createPost(PostCreateRequestDTO postCreateRequestDTO) {
@@ -147,15 +153,15 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public PaginatedResponse<PostSummaryResponseDTO> filterPosts(Pageable pageable,
-            Long userId,
-            Long categoryId,
-            PostStatus status,
-            PostVisibility visibility,
-            String query,
-            String hashtag,
-            Long locationId,
-            Long nearbyLocationId,
-            Double radiusKm) {
+                                                                 Long userId,
+                                                                 Long categoryId,
+                                                                 PostStatus status,
+                                                                 PostVisibility visibility,
+                                                                 String query,
+                                                                 String hashtag,
+                                                                 Long locationId,
+                                                                 Long nearbyLocationId,
+                                                                 Double radiusKm) {
         log.info(
                 "Filtering posts with Elasticsearch: userId={}, categoryId={}, status={}, visibility={}, query={}, hashtag={}, locationId={}, nearbyLocationId={}, radiusKm={}",
                 userId, categoryId, status, visibility, query, hashtag, locationId, nearbyLocationId, radiusKm);
@@ -189,6 +195,30 @@ public class PostServiceImpl implements PostService {
             }
         }
 
+        // Face Search Integration
+        Set<Long> faceMatchPostIds = null;
+        if (query != null && !query.trim().isEmpty()) {
+            try {
+                // Find users matching the query
+                List<UserFaceEmbeddingDocument> matchedUsers = userFaceEmbeddingSearchRepository
+                        .findByUserContext_UsernameContaining(query.trim());
+                
+                if (!matchedUsers.isEmpty() && matchedUsers.get(0).getEmbedding() != null) {
+                    // Just take the first closest user's embedding for now
+                    String faceEmbedding = matchedUsers.get(0).getEmbedding();
+                    
+                    // Natively query PostgreSQL for posts containing similar faces
+                    List<Long> postIds = mediaDetectedFaceRepository.findPostIdsByFaceEmbeddingNative(faceEmbedding, 0.4, 20);
+                    if (postIds != null && !postIds.isEmpty()) {
+                        faceMatchPostIds = new HashSet<>(postIds);
+                        log.info("Found {} posts matching user '{}' via face embeddings", postIds.size(), query);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to integrate face search in global query: {}", e.getMessage(), e);
+            }
+        }
+
         // Use the custom Elasticsearch repository method
         Page<PostDocument> documentPage = postSearchRepository.findVisibleAndFilteredPosts(
                 currentUserId,
@@ -203,6 +233,7 @@ public class PostServiceImpl implements PostService {
                 latitude,
                 longitude,
                 radiusKm,
+                faceMatchPostIds,
                 pageable);
 
         // Map PostDocument to PostSummaryResponseDTO using the new overloaded mapper

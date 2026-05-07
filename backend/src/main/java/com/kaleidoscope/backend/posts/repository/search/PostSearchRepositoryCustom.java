@@ -31,6 +31,7 @@ public interface PostSearchRepositoryCustom {
      * @param latitude Latitude for geo-distance query (optional)
      * @param longitude Longitude for geo-distance query (optional)
      * @param radiusKm Radius in kilometers for geo-distance query (optional)
+     * @param faceMatchPostIds Set of post IDs that match the search query via face embedding KNN (optional)
      * @param pageable Pagination and sorting parameters
      * @return Page of PostDocument matching the criteria and visible to the user
      */
@@ -47,6 +48,7 @@ public interface PostSearchRepositoryCustom {
             Double latitude,
             Double longitude,
             Double radiusKm,
+            Set<Long> faceMatchPostIds,
             Pageable pageable
     );
 
