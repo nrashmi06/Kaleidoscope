@@ -30,8 +30,9 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer.Stre
 import org.springframework.util.ErrorHandler;
 
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.UUID;
 
 @Configuration
 @RequiredArgsConstructor
@@ -51,11 +52,20 @@ public class RedisStreamConfig {
     private final HashtagUsageSyncConsumer hashtagUsageSyncConsumer;
     private final PostInsightsEnrichedConsumer postInsightsEnrichedConsumer;
 
-    @Value("${spring.application.name:kaleidoscope}")
+    @Value("${spring.application.name:kaleidoscope-backend}")
     private String applicationName;
 
-    // Use a short UUID fragment for better logging readability
-    private final String instanceId = UUID.randomUUID().toString().substring(0, 8);
+    // Prefer hostname/container-id style identity (stable within runtime identity)
+    private final String instanceId = resolveStableInstanceId();
+
+    private String resolveStableInstanceId() {
+        try {
+            return InetAddress.getLocalHost().getHostName().replaceAll("[^a-zA-Z0-9_-]", "");
+        } catch (UnknownHostException e) {
+            log.warn("Unable to resolve hostname for stream consumer id, using fallback", e);
+            return "default";
+        }
+    }
 
     @Bean
     public RedisTemplate<String, String> redisTemplate() {
