@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,13 +55,12 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             log.info("Successfully deserialized face recognition for faceId: {}, suggestedUserId: {}, confidence: {}",
                     resultDTO.getFaceId(), resultDTO.getSuggestedUserId(), resultDTO.getConfidenceScore());
 
-            // Data Retrieval: Find the MediaDetectedFace entity using the faceId
-            MediaDetectedFace detectedFace = mediaDetectedFaceRepository.findById(resultDTO.getFaceId())
-                    .orElse(null);
+            // Data Retrieval: Resolve the target detected-face DB row safely
+            MediaDetectedFace detectedFace = resolveDetectedFace(resultDTO);
 
             if (detectedFace == null) {
-                log.warn("MediaDetectedFace not found for faceId: {}. The post/media was likely deleted. Acknowledging message to remove from PEL.",
-                         resultDTO.getFaceId());
+                log.warn("No detected-face row resolved for match event. mediaId={} faceId={} correlationId={}",
+                        resultDTO.getMediaId(), resultDTO.getFaceId(), resultDTO.getCorrelationId());
                 // Return early - message will be acknowledged and removed from stream
                 return;
             }
@@ -202,19 +202,85 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
 
     private FaceRecognitionResultDTO convertMapRecordToDTO(MapRecord<String, String, String> record) {
         try {
-            Map<String, String> recordValue = record.getValue();
-            log.debug("Converting MapRecord to FaceRecognitionResultDTO with {} fields", recordValue.size());
+            Map<String, String> values = record.getValue();
+            log.debug("Converting MapRecord to FaceRecognitionResultDTO with {} fields", values.size());
 
             return FaceRecognitionResultDTO.builder()
-                    .faceId(Long.parseLong(recordValue.get("faceId")))
-                    .suggestedUserId(Long.parseLong(recordValue.get("suggestedUserId")))
-                    .confidenceScore(Double.parseDouble(recordValue.get("confidenceScore")))
-                    // correlationId is handled in onMessage
+                    .mediaId(parseLong(values.get("mediaId"), "mediaId"))
+                    .postId(parseLong(values.get("postId"), "postId"))
+                    .faceId(parseString(values.get("faceId")))
+                    .suggestedUserId(parseLong(values.get("suggestedUserId"), "suggestedUserId"))
+                    .matchedUsername(parseString(values.get("matchedUsername")))
+                    .confidenceScore(parseDouble(values.get("confidenceScore"), "confidenceScore"))
+                    .correlationId(parseString(values.get("correlationId")))
                     .build();
         } catch (Exception e) {
             log.error("Failed to convert MapRecord to FaceRecognitionResultDTO: {}", e.getMessage(), e);
             throw new StreamDeserializationException(record.getStream(), record.getId().getValue(),
                     "Failed to deserialize face recognition message", e);
+        }
+    }
+
+    private Long parseLong(Object value, String field) {
+        if (value == null) return null;
+        String s = value.toString().trim();
+        if (s.isEmpty()) return null;
+        try {
+            return Long.parseLong(s);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid numeric value for " + field + ": " + s, ex);
+        }
+    }
+
+    private Double parseDouble(Object value, String field) {
+        if (value == null) return null;
+        String s = value.toString().trim();
+        if (s.isEmpty()) return null;
+        try {
+            return Double.parseDouble(s);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid decimal value for " + field + ": " + s, ex);
+        }
+    }
+
+    private String parseString(Object value) {
+        return value == null ? null : value.toString();
+    }
+
+    private MediaDetectedFace resolveDetectedFace(FaceRecognitionResultDTO dto) {
+        if (dto.getMediaId() == null || dto.getFaceId() == null || dto.getFaceId().isBlank()) {
+            return null;
+        }
+
+        // 1) Numeric faceId path (legacy)
+        Long numericFaceId = tryParseLong(dto.getFaceId());
+        if (numericFaceId != null) {
+            Optional<MediaDetectedFace> byId = mediaDetectedFaceRepository.findByIdAndMediaAiInsights_MediaId(
+                    numericFaceId, dto.getMediaId()
+            );
+            if (byId.isPresent()) return byId.get();
+        }
+
+        // 2) UUID/non-numeric fallback path:
+        //    Without bbox in current payload, pick best confidence candidate for that media.
+        //    (Can be upgraded later when payload includes bbox to resolve deterministically.)
+        List<MediaDetectedFace> candidates = mediaDetectedFaceRepository.findByMediaIdOrderByConfidenceDesc(dto.getMediaId());
+        if (candidates.isEmpty()) return null;
+
+        // Prefer currently UNIDENTIFIED candidate first.
+        for (MediaDetectedFace c : candidates) {
+            if (FaceDetectionStatus.UNIDENTIFIED == (c.getStatus())) {
+                return c;
+            }
+        }
+        return candidates.get(0);
+    }
+
+    private Long tryParseLong(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (Exception ignored) {
+            return null;
         }
     }
 

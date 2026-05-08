@@ -9,11 +9,22 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MediaDetectedFaceRepository extends JpaRepository<MediaDetectedFace, Long> {
     
     List<MediaDetectedFace> findByMediaAiInsights_MediaId(Long mediaId);
+
+    Optional<MediaDetectedFace> findByIdAndMediaAiInsights_MediaId(Long id, Long mediaId);
+
+    @Query("""
+        SELECT mdf
+        FROM MediaDetectedFace mdf
+        WHERE mdf.mediaAiInsights.mediaId = :mediaId
+        ORDER BY mdf.confidenceScore DESC, mdf.id ASC
+    """)
+    List<MediaDetectedFace> findByMediaIdOrderByConfidenceDesc(@Param("mediaId") Long mediaId);
 
     List<MediaDetectedFace> findByMediaAiInsights_MediaIdIn(List<Long> mediaIds);
 
