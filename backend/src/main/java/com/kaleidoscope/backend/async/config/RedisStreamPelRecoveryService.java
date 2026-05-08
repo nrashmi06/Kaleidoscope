@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.stream.StreamListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +25,6 @@ public class RedisStreamPelRecoveryService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    // Reuse existing consumers so business logic remains centralized
     private final MediaAiInsightsConsumer mediaAiInsightsConsumer;
     private final FaceDetectionConsumer faceDetectionConsumer;
     private final FaceRecognitionConsumer faceRecognitionConsumer;
@@ -32,86 +33,178 @@ public class RedisStreamPelRecoveryService {
     @Value("${spring.application.name:kaleidoscope-backend}")
     private String appName;
 
-    // Claim entries idle for at least 60s
-    private static final Duration MIN_IDLE = Duration.ofSeconds(60);
-    private static final int CLAIM_BATCH_SIZE = 50;
+    private static final Duration MIN_IDLE      = Duration.ofSeconds(60);
+    private static final int     CLAIM_BATCH    = 50;
+    private static final long    METRICS_BATCH  = 1_000L;
 
-    @PostConstruct
-    public void recoverPendingAtStartup() {
-        log.info("Starting Redis PEL recovery at startup");
-        recoverStream(ConsumerStreamConstants.ML_INSIGHTS_STREAM, mediaAiInsightsConsumer);
-        recoverStream(ConsumerStreamConstants.FACE_DETECTION_STREAM, faceDetectionConsumer);
-        recoverStream(ConsumerStreamConstants.FACE_RECOGNITION_STREAM, faceRecognitionConsumer);
-        recoverStream(ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM, postInsightsEnrichedConsumer);
-        log.info("Completed Redis PEL recovery at startup");
+    /** Single source of truth for all managed streams. */
+    private List<Map.Entry<String, StreamListener<String, MapRecord<String, String, String>>>> streamListeners() {
+        return List.of(
+                Map.entry(ConsumerStreamConstants.ML_INSIGHTS_STREAM,         mediaAiInsightsConsumer),
+                Map.entry(ConsumerStreamConstants.FACE_DETECTION_STREAM,      faceDetectionConsumer),
+                Map.entry(ConsumerStreamConstants.FACE_RECOGNITION_STREAM,    faceRecognitionConsumer),
+                Map.entry(ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM, postInsightsEnrichedConsumer)
+        );
     }
 
+    // -----------------------------------------------------------------------
+    // Recovery
+    // -----------------------------------------------------------------------
+
+    /**
+     * Runs once at startup (async so it does not delay Spring context refresh).
+     * Requires @EnableAsync on a @Configuration class.
+     */
+    @PostConstruct
+    @Async
+    public void recoverAtStartup() {
+        log.info("PEL recovery – startup pass begin");
+        recoverAllStreams();
+        log.info("PEL recovery – startup pass complete");
+    }
+
+    /**
+     * Periodic safety-net: picks up messages that get stuck after startup.
+     * Interval configurable via async.stream.pel-recovery-ms (default 2 min).
+     */
+    @Scheduled(fixedDelayString = "${async.stream.pel-recovery-ms:120000}")
+    public void recoverOnSchedule() {
+        log.debug("PEL recovery – scheduled pass begin");
+        recoverAllStreams();
+    }
+
+    private void recoverAllStreams() {
+        for (Map.Entry<String, StreamListener<String, MapRecord<String, String, String>>> entry : streamListeners()) {
+            recoverStream(entry.getKey(), entry.getValue());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     private void recoverStream(
             String stream,
-            org.springframework.data.redis.stream.StreamListener<String, MapRecord<String, String, String>> listener
+            StreamListener<String, MapRecord<String, String, String>> listener
     ) {
-        String group = StreamingConfigConstants.BACKEND_CONSUMER_GROUP;
+        String group            = StreamingConfigConstants.BACKEND_CONSUMER_GROUP;
         String recoveryConsumer = appName + "-pel-recovery";
-        String nextStartId = "0-0";
-        long recovered = 0L;
+        long   recovered        = 0L;
 
-        while (true) {
-            AutoClaimedRecords<String, String> claimed = redisTemplate.opsForStream().autoClaim(
+        try {
+            // 1. Fetch pending summary for this stream / group
+            PendingMessages pending = redisTemplate.opsForStream().pending(
                     stream,
-                    Consumer.from(group, recoveryConsumer),
-                    MIN_IDLE,
-                    ReadOffset.from(nextStartId),
-                    CLAIM_BATCH_SIZE
+                    group,
+                    org.springframework.data.domain.Range.unbounded(),
+                    CLAIM_BATCH
             );
 
-            if (claimed == null || claimed.getRecords().isEmpty()) {
-                break;
+            if (pending == null || pending.isEmpty()) {
+                log.debug("PEL recovery – nothing pending stream={}", stream);
+                return;
             }
 
-            List<MapRecord<String, String, String>> records = claimed.getRecords();
+            // 2. Keep only messages idle longer than MIN_IDLE
+            List<RecordId> idsToClaim = pending.stream()
+                    .filter(m -> m.getElapsedTimeSinceLastDelivery().compareTo(MIN_IDLE) > 0)
+                    .map(PendingMessage::getId)
+                    .toList();
+
+            if (idsToClaim.isEmpty()) {
+                log.debug("PEL recovery – no stale messages stream={}", stream);
+                return;
+            }
+
+            log.info("PEL recovery – claiming {} stale message(s) stream={}", idsToClaim.size(), stream);
+
+            // 3. Claim ownership – claim() returns List<MapRecord<String,Object,Object>>
+            //    at the bytecode level regardless of the template's generic type,
+            //    so an unchecked cast is required here.
+            List<MapRecord<String, String, String>> records =
+                    (List<MapRecord<String, String, String>>) (List<?>)
+                    redisTemplate.opsForStream().claim(
+                            stream,
+                            group,
+                            recoveryConsumer,
+                            MIN_IDLE,
+                            idsToClaim.toArray(new RecordId[0])
+                    );
+
+            if (records == null || records.isEmpty()) {
+                log.debug("PEL recovery – claim returned empty stream={}", stream);
+                return;
+            }
+
+            // 4. Re-run business logic then acknowledge
             for (MapRecord<String, String, String> record : records) {
                 try {
-                    listener.onMessage(record); // run existing business logic
-                    Long acked = redisTemplate.opsForStream().acknowledge(group, record);
-                    log.info("Recovered+acked pending message stream={} id={} acked={}", stream, record.getId().getValue(), acked);
+                    listener.onMessage(record);
+
+                    // acknowledge(stream, group, recordId...) – stream param is required
+                    Long acked = redisTemplate.opsForStream()
+                            .acknowledge(stream, group, record.getId());
+
+                    log.info("PEL recovery – acked stream={} id={} acked={}",
+                            stream, record.getId().getValue(), acked);
                     recovered++;
                 } catch (Exception ex) {
-                    // Keep message in PEL for another retry pass
-                    log.error("Failed while recovering pending message stream={} id={} (left in PEL)",
+                    log.error("PEL recovery – processing failed, left in PEL stream={} id={}",
                             stream, record.getId().getValue(), ex);
                 }
             }
 
-            nextStartId = claimed.getNextIdAsString();
-            if (nextStartId == null || "0-0".equals(nextStartId)) {
-                break;
-            }
+        } catch (Exception ex) {
+            log.error("PEL recovery – unexpected error stream={}", stream, ex);
         }
 
-        log.info("PEL recovery summary stream={} recovered={}", stream, recovered);
+        if (recovered > 0) {
+            log.info("PEL recovery – summary stream={} recovered={}", stream, recovered);
+        }
     }
 
+    // -----------------------------------------------------------------------
+    // Metrics
+    // -----------------------------------------------------------------------
+
+    /**
+     * Logs PEL size for every stream periodically.
+     * Interval configurable via async.stream.pending-metrics-ms (default 1 min).
+     */
     @Scheduled(fixedDelayString = "${async.stream.pending-metrics-ms:60000}")
     public void logPendingMetrics() {
-        List<String> streams = List.of(
-                ConsumerStreamConstants.ML_INSIGHTS_STREAM,
-                ConsumerStreamConstants.FACE_DETECTION_STREAM,
-                ConsumerStreamConstants.FACE_RECOGNITION_STREAM,
-                ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM
-        );
         String group = StreamingConfigConstants.BACKEND_CONSUMER_GROUP;
 
-        for (String stream : streams) {
+        for (Map.Entry<String, StreamListener<String, MapRecord<String, String, String>>> entry : streamListeners()) {
+            String stream = entry.getKey();
             try {
-                PendingMessagesSummary summary = redisTemplate.opsForStream().pending(stream, group);
-                if (summary == null) {
+                // Use the detailed form so we can derive min/max IDs ourselves.
+                // PendingMessagesSummary only exposes getTotalPendingMessages() + getGroupName();
+                // min/max IDs are not available on it.
+                PendingMessages detail = redisTemplate.opsForStream().pending(
+                        stream,
+                        group,
+                        org.springframework.data.domain.Range.unbounded(),
+                        METRICS_BATCH
+                );
+
+                if (detail == null || detail.isEmpty()) {
+                    log.debug("Pending metrics – nothing pending stream={} group={}", stream, group);
                     continue;
                 }
-                log.info("Stream pending metrics stream={} group={} total={} minId={} maxId={}",
-                        stream, group, summary.getTotalPendingMessages(),
-                        summary.getMinMessageId(), summary.getMaxMessageId());
+
+                String minId = detail.stream()
+                        .map(m -> m.getId().getValue())
+                        .min(String::compareTo)
+                        .orElse("-");
+
+                String maxId = detail.stream()
+                        .map(m -> m.getId().getValue())
+                        .max(String::compareTo)
+                        .orElse("-");
+
+                log.info("Pending metrics stream={} group={} total={} minId={} maxId={}",
+                        stream, group, detail.size(), minId, maxId);
+
             } catch (Exception ex) {
-                log.warn("Failed to read pending metrics for stream={}", stream, ex);
+                log.warn("Pending metrics – failed to read stream={}", stream, ex);
             }
         }
     }
