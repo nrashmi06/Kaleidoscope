@@ -418,14 +418,18 @@ public class PostCommandServiceImpl implements PostCommandService {
         }
 
         try {
+            int deletedPostCategories = jdbcTemplate.update("DELETE FROM post_categories WHERE post_id = ?", postId);
+            int deletedPostHashtags = jdbcTemplate.update("DELETE FROM post_hashtags WHERE post_id = ?", postId);
+            int deletedPostSaves = jdbcTemplate.update("DELETE FROM post_saves WHERE post_id = ?", postId);
+            int deletedPostMedia = jdbcTemplate.update("DELETE FROM post_media WHERE post_id = ?", postId);
             int deletedDetectedFaces = jdbcTemplate.update(
                 "DELETE FROM media_detected_faces WHERE media_id IN (SELECT media_id FROM media_ai_insights WHERE post_id = ?)",
                 postId);
             int deletedAiInsights = jdbcTemplate.update("DELETE FROM media_ai_insights WHERE post_id = ?", postId);
-            log.info("Removed {} detected faces and {} AI insight rows for hard-deleted post {}",
-                deletedDetectedFaces, deletedAiInsights, postId);
+            log.info("Removed dependencies for hard-deleted post {}: {} categories, {} hashtags, {} saves, {} media, {} faces, {} insights",
+                postId, deletedPostCategories, deletedPostHashtags, deletedPostSaves, deletedPostMedia, deletedDetectedFaces, deletedAiInsights);
         } catch (Exception e) {
-            log.error("Failed to clean up AI insight dependencies for post {} during hard delete: {}", postId,
+            log.error("Failed to clean up post dependencies for post {} during hard delete: {}", postId,
                 e.getMessage());
         }
 
