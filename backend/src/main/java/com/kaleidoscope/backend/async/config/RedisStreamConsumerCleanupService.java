@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.PendingMessagesSummary;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -32,19 +33,38 @@ public class RedisStreamConsumerCleanupService {
                 ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM
         );
 
+        StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
+
         for (String stream : streams) {
             try {
-                List<org.springframework.data.redis.connection.stream.Consumer> consumers =
-                        redisTemplate.opsForStream().consumers(stream, group);
-                if (consumers == null) continue;
+                // consumers() returns StreamInfo.XInfoConsumers, not List<Consumer>
+                // Iterate it directly — each entry is a StreamInfo.XInfoConsumer
+                var xInfoConsumers = streamOps.consumers(stream, group);
+                if (xInfoConsumers == null) continue;
 
-                for (Consumer consumer : consumers) {
-                    // Spring abstraction does not expose full idle+pending detail per consumer directly.
-                    // Use conservative cleanup only if PEL is zero for this stream/group and consumer is not current active hostname.
-                    PendingMessagesSummary summary = redisTemplate.opsForStream().pending(stream, group);
-                    if (summary != null && summary.getTotalPendingMessages() == 0) {
-                        // optional: delete old consumer names matching prior host suffix patterns
-                        // redisTemplate.opsForStream().deleteConsumer(stream, Consumer.from(group, consumer.getName()));
+                PendingMessagesSummary summary = streamOps.pending(stream, group);
+                boolean groupHasNoPending = summary != null && summary.getTotalPendingMessages() == 0;
+
+                for (var xInfoConsumer : xInfoConsumers) {
+                    String consumerName = xInfoConsumer.consumerName();
+                    long idleMs = xInfoConsumer.idleTimeMs();
+
+                    boolean isStale = idleMs >= MIN_IDLE_FOR_CLEANUP.toMillis();
+
+                    log.debug(
+                            "Consumer check stream={} group={} consumer={} idleMs={} stale={} groupHasNoPending={}",
+                            stream, group, consumerName, idleMs, isStale, groupHasNoPending
+                    );
+
+                    if (isStale && groupHasNoPending) {
+                        try {
+                            streamOps.deleteConsumer(stream, Consumer.from(group, consumerName));
+                            log.info("Deleted stale consumer stream={} group={} consumer={} idleMs={}",
+                                    stream, group, consumerName, idleMs);
+                        } catch (Exception deleteEx) {
+                            log.warn("Failed to delete stale consumer stream={} group={} consumer={}",
+                                    stream, group, consumerName, deleteEx);
+                        }
                     }
                 }
             } catch (Exception e) {
