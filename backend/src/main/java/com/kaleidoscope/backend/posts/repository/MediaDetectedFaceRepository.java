@@ -26,6 +26,15 @@ public interface MediaDetectedFaceRepository extends JpaRepository<MediaDetected
     """)
     List<MediaDetectedFace> findByMediaIdOrderByConfidenceDesc(@Param("mediaId") Long mediaId);
 
+    @Query("""
+        SELECT mdf
+        FROM MediaDetectedFace mdf
+        WHERE mdf.mediaAiInsights.mediaId = :mediaId
+          AND mdf.status = com.kaleidoscope.backend.posts.enums.FaceDetectionStatus.UNIDENTIFIED
+        ORDER BY mdf.confidenceScore DESC, mdf.id ASC
+    """)
+    List<MediaDetectedFace> findUnidentifiedByMediaIdOrderByConfidenceDesc(@Param("mediaId") Long mediaId);
+
     List<MediaDetectedFace> findByMediaAiInsights_MediaIdIn(List<Long> mediaIds);
 
     List<MediaDetectedFace> findByIdentifiedUser(User user);

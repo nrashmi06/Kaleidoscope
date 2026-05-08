@@ -31,6 +31,9 @@ import java.util.Optional;
 @Slf4j
 public class FaceRecognitionConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
+    private static final int FACE_RESOLVE_MAX_ATTEMPTS = 20;   // ~3 seconds total
+    private static final long FACE_RESOLVE_DELAY_MS = 150L;
+
     private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
     private final UserRepository userRepository;
     private final FaceSearchReadModelRepository faceSearchReadModelRepository;
@@ -40,39 +43,36 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
     @Override
     @Transactional
     public void onMessage(MapRecord<String, String, String> record) {
-        // Retrieve the message ID for logging/XACK reference
         String messageId = record.getId().getValue();
         Map<String, String> value = record.getValue();
         String correlationId = value.get("correlationId");
 
         try (var ignored = MDC.putCloseable("correlationId", correlationId)) {
-
             log.info("Received face recognition message from Redis Stream: streamKey={}, messageId={}",
                     record.getStream(), messageId);
 
-            // Deserialization: Convert the incoming MapRecord message into FaceRecognitionResultDTO
             FaceRecognitionResultDTO resultDTO = convertMapRecordToDTO(record);
             log.info("Successfully deserialized face recognition for faceId: {}, suggestedUserId: {}, confidence: {}",
                     resultDTO.getFaceId(), resultDTO.getSuggestedUserId(), resultDTO.getConfidenceScore());
 
-            // Data Retrieval: Resolve the target detected-face DB row safely
-            MediaDetectedFace detectedFace = resolveDetectedFace(resultDTO);
-
+            MediaDetectedFace detectedFace = resolveDetectedFaceWithRetry(resultDTO);
             if (detectedFace == null) {
-                log.warn("No detected-face row resolved for match event. mediaId={} faceId={} correlationId={}",
+                log.warn("Could not resolve detected-face row after retry window. Leaving in PEL for retry. mediaId={} faceId={} correlationId={}",
                         resultDTO.getMediaId(), resultDTO.getFaceId(), resultDTO.getCorrelationId());
-                // Return early - message will be acknowledged and removed from stream
-                return;
+                throw new StreamMessageProcessingException(
+                        record.getStream(),
+                        messageId,
+                        "Detected face row not yet available for mediaId=" + resultDTO.getMediaId() + ", faceId=" + resultDTO.getFaceId()
+                );
             }
 
-            log.info("Retrieved MediaDetectedFace for faceId: {}, mediaId: {}",
+            log.info("Resolved MediaDetectedFace row: detectedFaceId={}, mediaId={}",
                     detectedFace.getId(), detectedFace.getMediaAiInsights().getMediaId());
 
-                // Find the User entity for the suggestedUserId
-                Optional<User> suggestedUserOpt = userRepository.findById(resultDTO.getSuggestedUserId());
-                if (suggestedUserOpt.isEmpty()) {
+            Optional<User> suggestedUserOpt = userRepository.findById(resultDTO.getSuggestedUserId());
+            if (suggestedUserOpt.isEmpty()) {
                 log.warn("Suggested user not found for suggestedUserId: {}. Marking faceId={} as UNIDENTIFIED and acknowledging message.",
-                    resultDTO.getSuggestedUserId(), detectedFace.getId());
+                        resultDTO.getSuggestedUserId(), detectedFace.getId());
 
                 detectedFace.setSuggestedUser(null);
                 detectedFace.setConfidenceScore(null);
@@ -81,36 +81,30 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
 
                 String faceIdString = String.valueOf(updatedFace.getId());
                 faceSearchReadModelRepository.findByFaceId(faceIdString)
-                    .ifPresent(faceSearch -> {
-                        faceSearch.setIdentifiedUserId(null);
-                        faceSearch.setIdentifiedUsername(null);
-                        faceSearch.setMatchConfidence(null);
-                        faceSearchReadModelRepository.save(faceSearch);
-                        log.info("Updated read_model_face_search to UNIDENTIFIED for faceId: {}", faceIdString);
-                    });
+                        .ifPresent(faceSearch -> {
+                            faceSearch.setIdentifiedUserId(null);
+                            faceSearch.setIdentifiedUsername(null);
+                            faceSearch.setMatchConfidence(null);
+                            faceSearchReadModelRepository.save(faceSearch);
+                            log.info("Updated read_model_face_search to UNIDENTIFIED for faceId: {}", faceIdString);
+                        });
 
-                log.info("Successfully processed face recognition for faceId: {} and messageId: {} - user missing, face marked UNIDENTIFIED",
-                    resultDTO.getFaceId(), messageId);
+                log.info("Processed face recognition for faceId={} messageId={} - user missing, marked UNIDENTIFIED",
+                        resultDTO.getFaceId(), messageId);
                 return;
-                }
+            }
 
-                User suggestedUser = suggestedUserOpt.get();
+            User suggestedUser = suggestedUserOpt.get();
             log.info("Retrieved suggested User: userId={}, username={}",
                     suggestedUser.getUserId(), suggestedUser.getUsername());
 
-            // Update the MediaDetectedFace entity with recognition results
             updateDetectedFaceWithRecognition(detectedFace, suggestedUser, resultDTO.getConfidenceScore());
             MediaDetectedFace updatedFace = mediaDetectedFaceRepository.save(detectedFace);
             log.info("Updated MediaDetectedFace for faceId: {}, status: {}, suggestedUser: {}, confidence: {}",
                     updatedFace.getId(), updatedFace.getStatus(), updatedFace.getSuggestedUser().getUsername(),
                     updatedFace.getConfidenceScore());
 
-
-            // 1. Update 'read_model_face_search'
-            // We use the faceId (which is the primary key of MediaDetectedFace) as the 'face_id'
             String faceIdString = String.valueOf(updatedFace.getId());
-
-            // Use the new, efficient findByFaceId method
             faceSearchReadModelRepository.findByFaceId(faceIdString)
                     .ifPresentOrElse(faceSearch -> {
                         faceSearch.setIdentifiedUserId(suggestedUser.getUserId());
@@ -119,35 +113,89 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                         faceSearchReadModelRepository.save(faceSearch);
                         log.info("Updated read_model_face_search for faceId: {}", faceIdString);
 
-                        // 2. Update 'read_model_media_search'
                         updateMediaSearchWithDetectedUser(updatedFace.getMediaAiInsights().getMediaId(), suggestedUser);
+                    }, () -> log.warn("Could not find matching FaceSearchReadModel for faceId: {}", faceIdString));
 
-                    }, () -> {
-                        log.warn("Could not find matching FaceSearchReadModel for faceId: {}", faceIdString);
-                    });
-
-            log.info("Successfully processed face recognition for faceId: {} and messageId: {} - updated with suggested user: {}",
-                    resultDTO.getFaceId(), messageId, suggestedUser.getUsername());
+            log.info("Successfully processed face recognition for incoming faceId={} messageId={} -> detectedFaceId={} suggestedUser={}",
+                    resultDTO.getFaceId(), messageId, updatedFace.getId(), suggestedUser.getUsername());
 
         } catch (StreamDeserializationException e) {
             log.error("Error processing face recognition message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
-            throw e; // Re-throw specific exceptions to prevent XACK
+            throw e;
         } catch (Exception e) {
             log.error("Unexpected error processing face recognition message from Redis Stream: messageId={}, error={}. Message will remain in PEL.",
                     messageId, e.getMessage(), e);
             throw new StreamMessageProcessingException(record.getStream(), messageId,
                     "Unexpected error during face recognition processing", e);
         }
-        // MDC.clear() is handled automatically by the try-with-resources block
+    }
+
+    private MediaDetectedFace resolveDetectedFaceWithRetry(FaceRecognitionResultDTO dto) {
+        for (int attempt = 1; attempt <= FACE_RESOLVE_MAX_ATTEMPTS; attempt++) {
+            MediaDetectedFace resolved = resolveDetectedFaceOnce(dto);
+            if (resolved != null) {
+                if (attempt > 1) {
+                    log.info("Resolved detected-face on retry attempt {}/{} for mediaId={} faceId={}",
+                            attempt, FACE_RESOLVE_MAX_ATTEMPTS, dto.getMediaId(), dto.getFaceId());
+                }
+                return resolved;
+            }
+
+            if (attempt < FACE_RESOLVE_MAX_ATTEMPTS) {
+                safeSleep(FACE_RESOLVE_DELAY_MS);
+            }
+        }
+        return null;
+    }
+
+    private MediaDetectedFace resolveDetectedFaceOnce(FaceRecognitionResultDTO dto) {
+        if (dto.getMediaId() == null || dto.getFaceId() == null || dto.getFaceId().isBlank()) {
+            return null;
+        }
+
+        // 1) Numeric faceId path (legacy)
+        Long numericFaceId = tryParseLong(dto.getFaceId());
+        if (numericFaceId != null) {
+            Optional<MediaDetectedFace> byId =
+                    mediaDetectedFaceRepository.findByIdAndMediaAiInsights_MediaId(numericFaceId, dto.getMediaId());
+            if (byId.isPresent()) {
+                return byId.get();
+            }
+        }
+
+        // 2) UUID/non-numeric fallback path:
+        //    choose highest-confidence UNIDENTIFIED face for this media.
+        List<MediaDetectedFace> unresolvedCandidates =
+                mediaDetectedFaceRepository.findUnidentifiedByMediaIdOrderByConfidenceDesc(dto.getMediaId());
+        if (!unresolvedCandidates.isEmpty()) {
+            return unresolvedCandidates.get(0);
+        }
+
+        return null;
+    }
+
+    private void safeSleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private Long tryParseLong(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private void updateMediaSearchWithDetectedUser(Long mediaId, User detectedUser) {
-            mediaSearchReadModelRepository.findById(mediaId).ifPresentOrElse(mediaSearch -> {
+        mediaSearchReadModelRepository.findById(mediaId).ifPresentOrElse(mediaSearch -> {
             String userIdStr = String.valueOf(detectedUser.getUserId());
             String username = detectedUser.getUsername();
 
-            // Update detected_user_ids (handle comma-separated list)
             String currentIds = mediaSearch.getDetectedUserIds();
             if (currentIds == null || currentIds.isEmpty()) {
                 mediaSearch.setDetectedUserIds(userIdStr);
@@ -155,7 +203,6 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                 mediaSearch.setDetectedUserIds(currentIds + "," + userIdStr);
             }
 
-            // Update detected_usernames (handle comma-separated list)
             String currentUsernames = mediaSearch.getDetectedUsernames();
             if (currentUsernames == null || currentUsernames.isEmpty()) {
                 mediaSearch.setDetectedUsernames(username);
@@ -166,12 +213,9 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             mediaSearchReadModelRepository.save(mediaSearch);
             log.info("Updated read_model_media_search for mediaId: {} with detected userId: {}", mediaId, userIdStr);
 
-                mediaSearchRepository.save(toMediaSearchDocument(mediaSearch));
-                log.info("Indexed media_search document for mediaId: {} after face recognition", mediaId);
-
-        }, () -> {
-            log.warn("Could not find MediaSearchReadModel for mediaId: {} to add detected user", mediaId);
-        });
+            mediaSearchRepository.save(toMediaSearchDocument(mediaSearch));
+            log.info("Indexed media_search document for mediaId: {} after face recognition", mediaId);
+        }, () -> log.warn("Could not find MediaSearchReadModel for mediaId: {} to add detected user", mediaId));
     }
 
     private MediaSearchDocument toMediaSearchDocument(com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel media) {
@@ -190,7 +234,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                 .build();
     }
 
-    private java.util.List<String> splitCsv(String value) {
+    private List<String> splitCsv(String value) {
         if (value == null || value.isBlank()) {
             return Collections.emptyList();
         }
@@ -247,48 +291,10 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
         return value == null ? null : value.toString();
     }
 
-    private MediaDetectedFace resolveDetectedFace(FaceRecognitionResultDTO dto) {
-        if (dto.getMediaId() == null || dto.getFaceId() == null || dto.getFaceId().isBlank()) {
-            return null;
-        }
-
-        // 1) Numeric faceId path (legacy)
-        Long numericFaceId = tryParseLong(dto.getFaceId());
-        if (numericFaceId != null) {
-            Optional<MediaDetectedFace> byId = mediaDetectedFaceRepository.findByIdAndMediaAiInsights_MediaId(
-                    numericFaceId, dto.getMediaId()
-            );
-            if (byId.isPresent()) return byId.get();
-        }
-
-        // 2) UUID/non-numeric fallback path:
-        //    Without bbox in current payload, pick best confidence candidate for that media.
-        //    (Can be upgraded later when payload includes bbox to resolve deterministically.)
-        List<MediaDetectedFace> candidates = mediaDetectedFaceRepository.findByMediaIdOrderByConfidenceDesc(dto.getMediaId());
-        if (candidates.isEmpty()) return null;
-
-        // Prefer currently UNIDENTIFIED candidate first.
-        for (MediaDetectedFace c : candidates) {
-            if (FaceDetectionStatus.UNIDENTIFIED == (c.getStatus())) {
-                return c;
-            }
-        }
-        return candidates.get(0);
-    }
-
-    private Long tryParseLong(String value) {
-        try {
-            return Long.parseLong(value);
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
     private void updateDetectedFaceWithRecognition(MediaDetectedFace detectedFace, User suggestedUser, Double confidenceScore) {
         log.debug("Updating MediaDetectedFace with recognition results: faceId={}, suggestedUserId={}, confidence={}",
                 detectedFace.getId(), suggestedUser.getUserId(), confidenceScore);
 
-        // Update the detected face with suggestion details
         detectedFace.setSuggestedUser(suggestedUser);
         detectedFace.setConfidenceScore(confidenceScore.floatValue());
         detectedFace.setStatus(FaceDetectionStatus.SUGGESTED);
