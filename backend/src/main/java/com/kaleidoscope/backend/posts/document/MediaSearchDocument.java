@@ -16,7 +16,7 @@ import java.util.List;
 public class MediaSearchDocument {
 
     @Id
-    private String id; // Elasticsearch ID
+    private String id;
 
     @Field(type = FieldType.Long)
     private Long mediaId;
@@ -28,35 +28,38 @@ public class MediaSearchDocument {
     private String mediaUrl;
 
     @Field(type = FieldType.Keyword)
-    private String mediaType; // IMAGE, VIDEO
+    private String mediaType;
 
     @Field(type = FieldType.Keyword)
-    private String aiStatus; // COMPLETED, PROCESSING, etc.
+    private String aiStatus;
 
     @Field(type = FieldType.Boolean)
     private Boolean isSafe;
 
     @Field(type = FieldType.Text)
-    private String aiCaption; // AI-generated caption for search
+    private String aiCaption;
 
-    // --- ML Search Fields ---
     @Field(type = FieldType.Keyword)
-    private List<String> aiTags; // ML-generated tags
+    private List<String> aiTags;
 
-    @Field(type = FieldType.Keyword) 
-    private List<String> scenes; // Detected scenes
+    @Field(type = FieldType.Keyword)
+    private List<String> scenes;
 
     @Field(type = FieldType.Integer)
     private Integer detectedFaceCount;
 
-    // --- Post Context for Search Results ---
+    @Field(type = FieldType.Keyword)
+    private List<String> detectedUserIds;
+
+    @Field(type = FieldType.Keyword)
+    private List<String> detectedUsernames;
+
     @Field(type = FieldType.Object)
     private PostInfo postInfo;
 
     @Field(type = FieldType.Object)
     private UploaderInfo uploaderInfo;
 
-    // --- Engagement Metrics for Ranking ---
     @Field(type = FieldType.Long)
     private Long reactionCount;
 
@@ -66,7 +69,6 @@ public class MediaSearchDocument {
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime createdAt;
 
-    // --- Nested Classes ---
     @Data
     @Builder
     public static class PostInfo {
