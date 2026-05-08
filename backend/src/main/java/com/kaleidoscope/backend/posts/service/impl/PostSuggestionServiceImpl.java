@@ -95,16 +95,23 @@ public class PostSuggestionServiceImpl implements PostSuggestionService {
         }
 
         // 7. Call repository method to find post suggestions with viewed posts filter and trending hashtags
-        Page<PostDocument> postDocuments = postSearchRepository.findPostSuggestions(
-                currentUserId,
-                followingIds,
-                interestIds,
-                blockedUserIds,
-                blockedByUserIds,
-                viewedPostIds,
-                trendingHashtagNames,
-                pageable
-        );
+        Page<PostDocument> postDocuments;
+        try {
+            postDocuments = postSearchRepository.findPostSuggestions(
+                    currentUserId,
+                    followingIds,
+                    interestIds,
+                    blockedUserIds,
+                    blockedByUserIds,
+                    viewedPostIds,
+                    trendingHashtagNames,
+                    pageable
+            );
+        } catch (org.springframework.dao.DataAccessException ex) {
+            log.warn("Post suggestions query failed, returning empty page. userId={}, reason={}",
+                    currentUserId, ex.getMessage());
+            postDocuments = Page.empty(pageable);
+        }
 
         log.info("Found {} post suggestions for user {}", postDocuments.getTotalElements(), currentUserId);
 

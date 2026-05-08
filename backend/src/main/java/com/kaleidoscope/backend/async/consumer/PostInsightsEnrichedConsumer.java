@@ -128,7 +128,12 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             log.info("Updated read_model_post_search for postId: {}", postId);
 
             // Java owns post_search indexing; do a direct ES upsert after DB upsert.
-            indexPostSearchDocument(postSearch, enriched, normalizedTags, normalizedScenes);
+            String visibility = "PRIVATE"; // Default fallback
+            Optional<Post> postOptForVisibility = postRepository.findById(postId);
+            if (postOptForVisibility.isPresent()) {
+                visibility = postOptForVisibility.get().getVisibility().name();
+            }
+            indexPostSearchDocument(postSearch, enriched, normalizedTags, normalizedScenes, visibility);
             log.info("Indexed post_search document for postId: {}", postId);
 
             // 2. Back-fill 'post_all_tags' in all related Media Search Read Models
@@ -257,7 +262,8 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
             PostSearchReadModel model,
             PostInsightsEnrichedDTO enriched,
             List<String> normalizedTags,
-            List<String> normalizedScenes) {
+            List<String> normalizedScenes,
+            String visibility) {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("postId", model.getPostId());
@@ -275,6 +281,7 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
         payload.put("mediaCount", enriched.getMediaCount());
         payload.put("createdAt", model.getCreatedAt());
         payload.put("updatedAt", model.getUpdatedAt());
+        payload.put("visibility", visibility);
 
         try {
             String json = objectMapper.writeValueAsString(payload);

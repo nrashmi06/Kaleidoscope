@@ -15,8 +15,8 @@ import com.kaleidoscope.backend.posts.mapper.PostMapper;
 import com.kaleidoscope.backend.posts.model.Post;
 import com.kaleidoscope.backend.posts.repository.PostRepository;
 import com.kaleidoscope.backend.posts.repository.search.PostSearchRepository;
-import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.posts.service.PostCommandService;
+import com.kaleidoscope.backend.posts.service.PostService;
 import com.kaleidoscope.backend.posts.service.PostViewService;
 import com.kaleidoscope.backend.shared.enums.ContentType;
 import com.kaleidoscope.backend.shared.exception.locationException.LocationNotFoundException;
@@ -33,9 +33,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -190,20 +189,27 @@ public class PostServiceImpl implements PostService {
         }
 
         // Use the custom Elasticsearch repository method
-        Page<PostDocument> documentPage = postSearchRepository.findVisibleAndFilteredPosts(
-                currentUserId,
-                followingIds,
-                userId,
-                categoryId,
-                status,
-                visibility,
-                query,
-                hashtag,
-                locationId,
-                latitude,
-                longitude,
-                radiusKm,
-                pageable);
+        Page<PostDocument> documentPage;
+        try {
+            documentPage = postSearchRepository.findVisibleAndFilteredPosts(
+                    currentUserId,
+                    followingIds,
+                    userId,
+                    categoryId,
+                    status,
+                    visibility,
+                    query,
+                    hashtag,
+                    locationId,
+                    latitude,
+                    longitude,
+                    radiusKm,
+                    pageable);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            log.warn("Post filter ES query failed, returning empty page. reason={}", ex.getMessage());
+            documentPage = org.springframework.data.domain.Page.empty(pageable);
+        }
+
 
         // Map PostDocument to PostSummaryResponseDTO using the new overloaded mapper
         // method

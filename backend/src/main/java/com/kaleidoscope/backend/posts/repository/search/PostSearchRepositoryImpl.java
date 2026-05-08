@@ -115,15 +115,21 @@ public class PostSearchRepositoryImpl implements PostSearchRepositoryCustom {
                                 followingIds, interestIds, trendingHashtagNames);
 
                 // Build the function_score query
-                FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
-                                .query(filterQuery._toQuery())
-                                .functions(scoringFunctions)
-                                .scoreMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode.Sum)
-                                .boostMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode.Multiply));
+                Query finalQuery;
+                if (scoringFunctions == null || scoringFunctions.isEmpty()) {
+                        finalQuery = filterQuery._toQuery();
+                } else {
+                        FunctionScoreQuery functionScoreQuery = FunctionScoreQuery.of(fs -> fs
+                                        .query(filterQuery._toQuery())
+                                        .functions(scoringFunctions)
+                                        .scoreMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode.Sum)
+                                        .boostMode(co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode.Multiply));
+                        finalQuery = functionScoreQuery._toQuery();
+                }
 
                 // Build native query with pagination
                 NativeQuery nativeQuery = NativeQuery.builder()
-                                .withQuery(functionScoreQuery._toQuery())
+                                .withQuery(finalQuery)
                                 .withPageable(pageable)
                                 .build();
 

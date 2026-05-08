@@ -111,3 +111,6 @@ cloudinary:
 resend:
   api-key: ${RESEND_API_KEY:your_api_key_here}
   from-email: ${RESEND_FROM_EMAIL:Kaleidoscope <onboarding@resend.dev>}
+async:
+  stream:
+    post-search-visibility-backfill-enabled: true
