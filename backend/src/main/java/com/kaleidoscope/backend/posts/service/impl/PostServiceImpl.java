@@ -25,9 +25,8 @@ import com.kaleidoscope.backend.shared.model.Location;
 import com.kaleidoscope.backend.shared.repository.LocationRepository;
 import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.shared.response.PaginatedResponse;
-import com.kaleidoscope.backend.users.document.UserFaceEmbeddingDocument;
 import com.kaleidoscope.backend.users.repository.FollowRepository;
-import com.kaleidoscope.backend.users.repository.search.UserFaceEmbeddingSearchRepository;
+import com.kaleidoscope.backend.posts.service.PersonInPostSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -56,7 +55,7 @@ public class PostServiceImpl implements PostService {
     private final PostViewService postViewService;
     private final PostSearchRepository postSearchRepository;
     private final StringRedisTemplate stringRedisTemplate;
-    private final UserFaceEmbeddingSearchRepository userFaceEmbeddingSearchRepository;
+    private final PersonInPostSearchService personInPostSearchService;
     private final MediaDetectedFaceRepository mediaDetectedFaceRepository;
 
     @Override
@@ -195,27 +194,18 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        // Face Search Integration
+        // Face Search Integration (Identity-First)
         Set<Long> faceMatchPostIds = null;
         if (query != null && !query.trim().isEmpty()) {
             try {
-                // Find users matching the query
-                List<UserFaceEmbeddingDocument> matchedUsers = userFaceEmbeddingSearchRepository
-                        .findByUserContext_UsernameContaining(query.trim());
-                
-                if (!matchedUsers.isEmpty() && matchedUsers.get(0).getEmbedding() != null) {
-                    // Just take the first closest user's embedding for now
-                    String faceEmbedding = matchedUsers.get(0).getEmbedding();
-                    
-                    // Natively query PostgreSQL for posts containing similar faces
-                    List<Long> postIds = mediaDetectedFaceRepository.findPostIdsByFaceEmbeddingNative(faceEmbedding, 0.4, 20);
-                    if (postIds != null && !postIds.isEmpty()) {
-                        faceMatchPostIds = new HashSet<>(postIds);
-                        log.info("Found {} posts matching user '{}' via face embeddings", postIds.size(), query);
-                    }
+                Set<Long> postIds = personInPostSearchService.findPostIdsForUsername(query);
+                if (!postIds.isEmpty()) {
+                    faceMatchPostIds = postIds;
+                    log.info("Found {} posts via person-in-post identity search for query='{}'",
+                            faceMatchPostIds.size(), query);
                 }
             } catch (Exception e) {
-                log.error("Failed to integrate face search in global query: {}", e.getMessage(), e);
+                log.error("Failed person-in-post search integration: {}", e.getMessage(), e);
             }
         }
 

@@ -58,9 +58,9 @@ public class RedisStreamPelRecoveryService {
     @PostConstruct
     @Async
     public void recoverAtStartup() {
-        log.info("PEL recovery – startup pass begin");
+        log.info("Starting Redis PEL recovery at startup");
         recoverAllStreams();
-        log.info("PEL recovery – startup pass complete");
+        log.info("Completed Redis PEL recovery at startup");
     }
 
     /**
@@ -85,7 +85,7 @@ public class RedisStreamPelRecoveryService {
             StreamListener<String, MapRecord<String, String, String>> listener
     ) {
         String group            = StreamingConfigConstants.BACKEND_CONSUMER_GROUP;
-        String recoveryConsumer = appName + "-pel-recovery";
+        String recoveryConsumer = "backend-pel-recovery";
         long   recovered        = 0L;
 
         try {
