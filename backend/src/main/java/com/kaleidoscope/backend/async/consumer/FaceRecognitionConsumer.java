@@ -159,18 +159,18 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             String userIdStr = String.valueOf(detectedUser.getUserId());
             String username = detectedUser.getUsername();
 
-            String currentIds = mediaSearch.getDetectedUserIds();
-            if (currentIds == null || currentIds.isBlank()) {
-                mediaSearch.setDetectedUserIds(userIdStr);
-            } else if (!Arrays.asList(currentIds.split(",")).contains(userIdStr)) {
-                mediaSearch.setDetectedUserIds(currentIds + "," + userIdStr);
+            List<String> idList = splitCsv(mediaSearch.getDetectedUserIds());
+            if (idList.stream().noneMatch(v -> v.equals(userIdStr))) {
+                idList = new java.util.ArrayList<>(idList);
+                idList.add(userIdStr);
+                mediaSearch.setDetectedUserIds(String.join(",", idList));
             }
 
-            String currentNames = mediaSearch.getDetectedUsernames();
-            if (currentNames == null || currentNames.isBlank()) {
-                mediaSearch.setDetectedUsernames(username);
-            } else if (!Arrays.asList(currentNames.split(",")).contains(username)) {
-                mediaSearch.setDetectedUsernames(currentNames + "," + username);
+            List<String> nameList = splitCsv(mediaSearch.getDetectedUsernames());
+            if (nameList.stream().noneMatch(v -> v.equalsIgnoreCase(username))) {
+                nameList = new java.util.ArrayList<>(nameList);
+                nameList.add(username);
+                mediaSearch.setDetectedUsernames(String.join(",", nameList));
             }
 
             mediaSearchReadModelRepository.save(mediaSearch);
@@ -178,7 +178,8 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
         });
     }
 
-    private MediaSearchDocument toMediaSearchDocument(com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel media) {
+    private MediaSearchDocument toMediaSearchDocument(
+            com.kaleidoscope.backend.readmodels.model.MediaSearchReadModel media) {
         return MediaSearchDocument.builder()
                 .id(String.valueOf(media.getMediaId()))
                 .mediaId(media.getMediaId())
@@ -187,6 +188,8 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                 .aiCaption(media.getAiCaption())
                 .aiTags(splitCsv(media.getAiTags()))
                 .scenes(splitCsv(media.getAiScenes()))
+                .detectedUserIds(splitCsv(media.getDetectedUserIds()))
+                .detectedUsernames(splitCsv(media.getDetectedUsernames()))
                 .isSafe(media.getIsSafe())
                 .reactionCount(media.getReactionCount() != null ? media.getReactionCount().longValue() : 0L)
                 .commentCount(media.getCommentCount() != null ? media.getCommentCount().longValue() : 0L)

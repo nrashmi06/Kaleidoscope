@@ -4,14 +4,13 @@ import com.kaleidoscope.backend.async.streaming.ConsumerStreamConstants;
 import com.kaleidoscope.backend.async.streaming.StreamingConfigConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.stream.PendingMessagesSummary;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Component
@@ -20,8 +19,6 @@ import java.util.List;
 public class RedisStreamConsumerCleanupService {
 
     private final RedisTemplate<String, String> redisTemplate;
-
-    private static final Duration MIN_IDLE_FOR_CLEANUP = Duration.ofHours(6);
 
     @Scheduled(fixedDelayString = "${async.stream.consumer-cleanup-ms:900000}")
     public void cleanupStaleConsumers() {
@@ -33,42 +30,37 @@ public class RedisStreamConsumerCleanupService {
                 ConsumerStreamConstants.POST_INSIGHTS_ENRICHED_STREAM
         );
 
-        StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
-
         for (String stream : streams) {
             try {
-                // consumers() returns StreamInfo.XInfoConsumers, not List<Consumer>
-                // Iterate it directly — each entry is a StreamInfo.XInfoConsumer
-                var xInfoConsumers = streamOps.consumers(stream, group);
-                if (xInfoConsumers == null) continue;
-
-                PendingMessagesSummary summary = streamOps.pending(stream, group);
-                boolean groupHasNoPending = summary != null && summary.getTotalPendingMessages() == 0;
-
-                for (var xInfoConsumer : xInfoConsumers) {
-                    String consumerName = xInfoConsumer.consumerName();
-                    long idleMs = xInfoConsumer.idleTimeMs();
-
-                    boolean isStale = idleMs >= MIN_IDLE_FOR_CLEANUP.toMillis();
-
-                    log.debug(
-                            "Consumer check stream={} group={} consumer={} idleMs={} stale={} groupHasNoPending={}",
-                            stream, group, consumerName, idleMs, isStale, groupHasNoPending
-                    );
-
-                    if (isStale && groupHasNoPending) {
-                        try {
-                            streamOps.deleteConsumer(stream, Consumer.from(group, consumerName));
-                            log.info("Deleted stale consumer stream={} group={} consumer={} idleMs={}",
-                                    stream, group, consumerName, idleMs);
-                        } catch (Exception deleteEx) {
-                            log.warn("Failed to delete stale consumer stream={} group={} consumer={}",
-                                    stream, group, consumerName, deleteEx);
-                        }
-                    }
+                PendingMessagesSummary summary = redisTemplate.opsForStream().pending(stream, group);
+                long pending = summary != null ? summary.getTotalPendingMessages() : 0L;
+                if (pending > 0) {
+                    continue;
                 }
-            } catch (Exception e) {
-                log.warn("Consumer cleanup check failed stream={}", stream, e);
+
+                redisTemplate.execute((RedisConnection connection) -> {
+                    byte[] rawStream = stream.getBytes(StandardCharsets.UTF_8);
+                    byte[] rawGroup = group.getBytes(StandardCharsets.UTF_8);
+                    try {
+                        var consumers = redisTemplate.opsForStream().consumers(stream, group);
+                        if (consumers != null) {
+                            for (var consumer : consumers) {
+                                // Delete consumers that don't match our current stable naming pattern
+                                if (!consumer.consumerName().contains("kaleidoscope-backend")) {
+                                    connection.streamCommands().xGroupDelConsumer(rawStream, rawGroup,
+                                            consumer.consumerName().getBytes(StandardCharsets.UTF_8));
+                                    log.info("Deleted stale consumer stream={} group={} consumer={}",
+                                            stream, group, consumer.consumerName());
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        log.warn("Consumer cleanup failed stream={} group={}", stream, group, ex);
+                    }
+                    return null;
+                });
+            } catch (Exception ex) {
+                log.warn("Consumer cleanup skipped stream={} group={}", stream, group, ex);
             }
         }
     }
