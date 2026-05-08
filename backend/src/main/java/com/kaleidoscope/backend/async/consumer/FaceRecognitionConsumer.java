@@ -40,6 +40,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
     private final FaceSearchReadModelRepository faceSearchReadModelRepository;
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
     private final MediaSearchRepository mediaSearchRepository;
+    private final com.kaleidoscope.backend.async.service.RedisStreamPublisher redisStreamPublisher;
 
     @Override
     @Transactional
@@ -66,7 +67,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                 detectedFace.setConfidenceScore(null);
                 detectedFace.setStatus(FaceDetectionStatus.UNIDENTIFIED);
                 MediaDetectedFace updatedFace = mediaDetectedFaceRepository.save(detectedFace);
-                syncFaceSearchAsUnidentified(updatedFace);
+                syncFaceSearchAsUnidentified(updatedFace, correlationId);
                 return;
             }
 
@@ -76,7 +77,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             detectedFace.setStatus(FaceDetectionStatus.SUGGESTED);
             MediaDetectedFace updatedFace = mediaDetectedFaceRepository.save(detectedFace);
 
-            syncFaceSearchAsSuggested(updatedFace, suggestedUser);
+            syncFaceSearchAsSuggested(updatedFace, suggestedUser, correlationId);
             syncMediaSearchDetectedUser(updatedFace.getMediaAiInsights().getMediaId(), suggestedUser);
         } catch (StreamDeserializationException e) {
             throw e;
@@ -121,24 +122,36 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
         return null;
     }
 
-    private void syncFaceSearchAsUnidentified(MediaDetectedFace updatedFace) {
+    private void syncFaceSearchAsUnidentified(MediaDetectedFace updatedFace, String correlationId) {
         String faceIdString = String.valueOf(updatedFace.getId());
         faceSearchReadModelRepository.findByFaceId(faceIdString).ifPresent(faceSearch -> {
             faceSearch.setIdentifiedUserId(null);
             faceSearch.setIdentifiedUsername(null);
             faceSearch.setMatchConfidence(null);
             faceSearchReadModelRepository.save(faceSearch);
+            publishFaceSearchReindex(updatedFace.getId(), correlationId);
         });
     }
 
-    private void syncFaceSearchAsSuggested(MediaDetectedFace updatedFace, User suggestedUser) {
+    private void syncFaceSearchAsSuggested(MediaDetectedFace updatedFace, User suggestedUser, String correlationId) {
         String faceIdString = String.valueOf(updatedFace.getId());
         faceSearchReadModelRepository.findByFaceId(faceIdString).ifPresent(faceSearch -> {
             faceSearch.setIdentifiedUserId(suggestedUser.getUserId());
             faceSearch.setIdentifiedUsername(suggestedUser.getUsername());
             faceSearch.setMatchConfidence(updatedFace.getConfidenceScore());
             faceSearchReadModelRepository.save(faceSearch);
+            publishFaceSearchReindex(updatedFace.getId(), correlationId);
         });
+    }
+
+    private void publishFaceSearchReindex(Long faceId, String correlationId) {
+        java.util.Map<String, String> payload = new java.util.HashMap<>();
+        payload.put("indexType", "face_search");
+        payload.put("documentId", String.valueOf(faceId));
+        payload.put("operation", "index");
+        payload.put("correlationId", correlationId != null ? correlationId : "");
+        payload.put("timestamp", java.time.Instant.now().toString());
+        redisStreamPublisher.publish("es-sync-queue", payload);
     }
 
     private void syncMediaSearchDetectedUser(Long mediaId, User detectedUser) {

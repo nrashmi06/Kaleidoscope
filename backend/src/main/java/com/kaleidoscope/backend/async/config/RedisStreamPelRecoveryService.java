@@ -86,68 +86,65 @@ public class RedisStreamPelRecoveryService {
         String recoveryConsumer = "backend-pel-recovery";
         long recovered = 0L;
 
-        try {
-            // 1. Fetch pending summary for this stream / group
-            PendingMessages pending = redisTemplate.opsForStream().pending(
-                    stream,
-                    group,
-                    org.springframework.data.domain.Range.unbounded(),
-                    CLAIM_BATCH);
+        while (true) {
+            try {
+                // 1. Fetch pending summary for this stream / group
+                PendingMessages pending = redisTemplate.opsForStream().pending(
+                        stream,
+                        group,
+                        org.springframework.data.domain.Range.unbounded(),
+                        CLAIM_BATCH);
 
-            if (pending == null || pending.isEmpty()) {
-                log.debug("PEL recovery – nothing pending stream={}", stream);
-                return;
-            }
-
-            // 2. Keep only messages idle longer than MIN_IDLE
-            List<RecordId> idsToClaim = pending.stream()
-                    .filter(m -> m.getElapsedTimeSinceLastDelivery().compareTo(MIN_IDLE) > 0)
-                    .map(PendingMessage::getId)
-                    .toList();
-
-            if (idsToClaim.isEmpty()) {
-                log.debug("PEL recovery – no stale messages stream={}", stream);
-                return;
-            }
-
-            log.info("PEL recovery – claiming {} stale message(s) stream={}", idsToClaim.size(), stream);
-
-            // 3. Claim ownership – claim() returns List<MapRecord<String,Object,Object>>
-            // at the bytecode level regardless of the template's generic type,
-            // so an unchecked cast is required here.
-            List<MapRecord<String, String, String>> records = (List<MapRecord<String, String, String>>) (List<?>) redisTemplate
-                    .opsForStream().claim(
-                            stream,
-                            group,
-                            recoveryConsumer,
-                            MIN_IDLE,
-                            idsToClaim.toArray(new RecordId[0]));
-
-            if (records == null || records.isEmpty()) {
-                log.debug("PEL recovery – claim returned empty stream={}", stream);
-                return;
-            }
-
-            // 4. Re-run business logic then acknowledge
-            for (MapRecord<String, String, String> record : records) {
-                try {
-                    listener.onMessage(record);
-
-                    // acknowledge(stream, group, recordId...) – stream param is required
-                    Long acked = redisTemplate.opsForStream()
-                            .acknowledge(stream, group, record.getId());
-
-                    log.info("PEL recovery – acked stream={} id={} acked={}",
-                            stream, record.getId().getValue(), acked);
-                    recovered++;
-                } catch (Exception ex) {
-                    log.error("PEL recovery – processing failed, left in PEL stream={} id={}",
-                            stream, record.getId().getValue(), ex);
+                if (pending == null || pending.isEmpty()) {
+                    break;
                 }
-            }
 
-        } catch (Exception ex) {
-            log.error("PEL recovery – unexpected error stream={}", stream, ex);
+                // 2. Keep only messages idle longer than MIN_IDLE
+                List<RecordId> idsToClaim = pending.stream()
+                        .filter(m -> m.getElapsedTimeSinceLastDelivery().compareTo(MIN_IDLE) > 0)
+                        .map(PendingMessage::getId)
+                        .toList();
+
+                if (idsToClaim.isEmpty()) {
+                    break;
+                }
+
+                log.info("PEL recovery – claiming {} stale message(s) stream={}", idsToClaim.size(), stream);
+
+                // 3. Claim ownership
+                List<MapRecord<String, String, String>> records = (List<MapRecord<String, String, String>>) (List<?>) redisTemplate
+                        .opsForStream().claim(
+                                stream,
+                                group,
+                                recoveryConsumer,
+                                MIN_IDLE,
+                                idsToClaim.toArray(new RecordId[0]));
+
+                if (records == null || records.isEmpty()) {
+                    break;
+                }
+
+                // 4. Re-run business logic then acknowledge
+                for (MapRecord<String, String, String> record : records) {
+                    try {
+                        listener.onMessage(record);
+
+                        // acknowledge(stream, group, recordId...) – stream param is required
+                        Long acked = redisTemplate.opsForStream()
+                                .acknowledge(stream, group, record.getId());
+
+                        log.info("PEL recovery – acked stream={} id={} acked={}",
+                                stream, record.getId().getValue(), acked);
+                        recovered++;
+                    } catch (Exception ex) {
+                        log.error("PEL recovery – processing failed, left in PEL stream={} id={}",
+                                stream, record.getId().getValue(), ex);
+                    }
+                }
+            } catch (Exception ex) {
+                log.error("PEL recovery – unexpected error stream={}", stream, ex);
+                break;
+            }
         }
 
         if (recovered > 0) {
