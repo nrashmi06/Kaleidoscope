@@ -16,12 +16,14 @@ interface Props {
   accessToken: string | null;
   formData: PostCreateRequestDTO;
   setFormData: React.Dispatch<React.SetStateAction<PostCreateRequestDTO>>;
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 export default function MediaUpload({
   accessToken,
   formData,
   setFormData,
+  onUploadingChange,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string[]>([]);
@@ -62,6 +64,7 @@ export default function MediaUpload({
 
     try {
       setUploading(true);
+      onUploadingChange?.(true);
       // Get upload signatures
       const response = await generateUploadSignatureController(accessToken, {
         fileNames: files.map((f) => f.name),
@@ -117,6 +120,7 @@ export default function MediaUpload({
       }
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
     }
   };
 

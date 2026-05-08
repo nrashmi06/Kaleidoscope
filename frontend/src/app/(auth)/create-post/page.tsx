@@ -42,6 +42,7 @@ export default function CreatePostPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [mediaUploading, setMediaUploading] = useState(false);
   const [categories, setCategories] = useState<CategorySummaryResponseDTO[]>(
     []
   );
@@ -51,6 +52,15 @@ export default function CreatePostPage() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] =
     useState<LocationOption | null>(null);
+
+  const hasImage = (formData.mediaDetails?.length ?? 0) > 0;
+  const isFormReady =
+    !!formData.title.trim() &&
+    !!formData.body.trim() &&
+    formData.categoryIds.length > 0 &&
+    hasImage &&
+    !mediaUploading &&
+    !loading;
 
   // Load categories on mount
   useEffect(() => {
@@ -89,6 +99,9 @@ export default function CreatePostPage() {
       formData.categoryIds.length === 0
     ) {
       return toast.error("Title, body and categories are required");
+    }
+    if (!hasImage) {
+      return toast.error("At least one image is required");
     }
     if (formData.title.length > 200) {
       return toast.error("Title must be 200 characters or less");
@@ -176,6 +189,7 @@ export default function CreatePostPage() {
             accessToken={accessToken}
             formData={formData}
             setFormData={setFormData}
+            onUploadingChange={setMediaUploading}
           />
           <TagUsers
             accessToken={accessToken}
@@ -200,13 +214,32 @@ export default function CreatePostPage() {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-[2] h-12 rounded-full text-[15px] font-bold text-on-primary bg-btn-primary hover:bg-btn-primary-hover active:scale-[0.98] shadow-md shadow-navy/15 dark:shadow-cream/10 disabled:opacity-50 transition-all cursor-pointer"
-            >
-              {loading ? "Creating..." : "Create Post"}
-            </button>
+            <div className="flex-[2] flex flex-col items-stretch gap-1.5">
+              <button
+                type="submit"
+                disabled={!isFormReady}
+                className={`w-full h-12 rounded-full text-[15px] font-bold text-on-primary bg-btn-primary shadow-md shadow-navy/15 dark:shadow-cream/10 transition-all duration-300 cursor-pointer
+                  ${isFormReady
+                    ? "hover:bg-btn-primary-hover active:scale-[0.98] opacity-100 blur-none"
+                    : "opacity-40 blur-[1.5px] pointer-events-none select-none"
+                  }`}
+              >
+                {loading ? "Creating..." : mediaUploading ? "Uploading media..." : "Create Post"}
+              </button>
+              {!isFormReady && !loading && (
+                <p className="text-center text-xs text-steel/50 dark:text-sky/35 transition-opacity duration-300">
+                  {mediaUploading
+                    ? "Waiting for upload to finish…"
+                    : !hasImage
+                    ? "Add at least one image to continue"
+                    : !formData.title.trim()
+                    ? "A title is required"
+                    : !formData.body.trim()
+                    ? "Post content is required"
+                    : "Select at least one category"}
+                </p>
+              )}
+            </div>
           </div>
         </form>
       </div>

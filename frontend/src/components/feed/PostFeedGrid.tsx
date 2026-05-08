@@ -1,7 +1,7 @@
 // src/components/feed/PostFeedGrid.tsx
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
@@ -24,6 +24,21 @@ interface PostFeedGridProps {
 
 const SKELETON_HEIGHTS = ["h-52", "h-72", "h-60", "h-80", "h-48", "h-64", "h-56", "h-44", "h-68", "h-76", "h-58", "h-42"];
 
+function useColumnCount(): number {
+  const [cols, setCols] = useState(2);
+  useEffect(() => {
+    const update = () => {
+      if (window.innerWidth >= 1024) setCols(4);
+      else if (window.innerWidth >= 640) setCols(3);
+      else setCols(2);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return cols;
+}
+
 export function PostFeedGrid({
   isLoading,
   error,
@@ -32,6 +47,8 @@ export function PostFeedGrid({
   onPostDeleted,
   onRetry,
 }: PostFeedGridProps) {
+  const colCount = useColumnCount();
+
   if (isLoading) {
     return (
       <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
@@ -80,33 +97,41 @@ export function PostFeedGrid({
     );
   }
 
+  // Distribute posts into columns round-robin so items fill left→right
+  const columns: NormalizedPostFeedItem[][] = Array.from({ length: colCount }, () => []);
+  posts.forEach((post, i) => columns[i % colCount].push(post));
+
+  // Global index for staggered animation delay
+  let globalIndex = 0;
+
   return (
     <AnimatePresence>
-      <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
-        {posts.map((postItem, index) => {
-          const adaptedPost: Post = mapFeedItemToPost(postItem);
-
-          return (
-            <motion.div
-              key={postItem.postId}
-              className="break-inside-avoid mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{
-                duration: 0.4,
-                delay: index * 0.04,
-                ease: [0.25, 0.1, 0.25, 1],
-              }}
-            >
-              <SocialPostCard
-                post={adaptedPost}
-                accessToken={accessToken}
-                onPostDeleted={onPostDeleted}
-              />
-            </motion.div>
-          );
-        })}
+      <div className="flex items-stretch gap-4">
+        {columns.map((col, colIdx) => (
+          <div key={colIdx} className="flex flex-col flex-1 gap-4">
+            {col.map((postItem) => {
+              const adaptedPost: Post = mapFeedItemToPost(postItem);
+              const delay = globalIndex++ * 0.04;
+              return (
+                <motion.div
+                  key={postItem.postId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, delay, ease: [0.25, 0.1, 0.25, 1] }}
+                >
+                  <SocialPostCard
+                    post={adaptedPost}
+                    accessToken={accessToken}
+                    onPostDeleted={onPostDeleted}
+                  />
+                </motion.div>
+              );
+            })}
+            {/* Spacer pushes all column bottoms to the same baseline */}
+            <div className="flex-1" />
+          </div>
+        ))}
       </div>
     </AnimatePresence>
   );

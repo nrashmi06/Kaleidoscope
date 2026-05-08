@@ -1,6 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+function getHighlightedHtml(text: string): string {
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // Zero-width space prevents last-line height collapse in the mirror div
+  const padded = escaped + '​';
+  return padded.replace(
+    /(#\w+)/g,
+    '<span style="color:#40A2D8;font-weight:700">$1</span>'
+  );
+}
 import { Hash, Type, Bold, Italic, Link, MessageSquare } from 'lucide-react';
 import { fetchHashtagSuggestions } from '@/controllers/hashtag/hashtagController'; 
 import { formatUsageCount } from '@/lib/mappers/hashtagMapper';
@@ -54,7 +67,16 @@ export default function EnhancedBodyInput({
   const [characterCount, setCharacterCount] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mirrorRef = useRef<HTMLDivElement>(null);
   const hashtagTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Keep textarea height in sync with the mirror div after every value change
+  useEffect(() => {
+    const ta = textareaRef.current;
+    const mir = mirrorRef.current;
+    if (!ta || !mir) return;
+    ta.style.height = `${mir.offsetHeight}px`;
+  }, [value]);
 
   // Calculate word and character counts
   useEffect(() => {
@@ -321,6 +343,14 @@ export default function EnhancedBodyInput({
 
       {/* Textarea */}
       <div className="p-4 relative">
+        {/* Mirror div — renders hashtag-highlighted content behind the textarea */}
+        <div
+          ref={mirrorRef}
+          aria-hidden="true"
+          className="pointer-events-none text-base leading-relaxed whitespace-pre-wrap break-words text-heading"
+          style={{ minHeight: `${minRows * 24}px` }}
+          dangerouslySetInnerHTML={{ __html: getHighlightedHtml(value) }}
+        />
         <textarea
           ref={textareaRef}
           value={value}
@@ -328,8 +358,13 @@ export default function EnhancedBodyInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full resize-none border-0 bg-transparent text-heading placeholder-steel/40 dark:placeholder-sky/30 focus:ring-0 focus:outline-none text-base leading-relaxed"
-          style={{ minHeight: `${minRows * 24}px` }}
+          className="absolute inset-x-4 top-4 w-[calc(100%-2rem)] resize-none border-0 bg-transparent placeholder-steel/40 dark:placeholder-sky/30 focus:ring-0 focus:outline-none text-base leading-relaxed overflow-hidden"
+          style={{
+            minHeight: `${minRows * 24}px`,
+            color: 'transparent',
+            caretColor: 'var(--color-heading)',
+            WebkitTextFillColor: 'transparent',
+          }}
         />
 
         {/* Hashtag suggestions */}

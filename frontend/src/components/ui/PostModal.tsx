@@ -15,9 +15,13 @@ export function PostModal({ postId, isOpen, onClose, accessToken, currentUserId 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
         className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-cream-50 dark:bg-navy rounded-2xl shadow-2xl shadow-navy/10 dark:shadow-black/30 border border-border-default custom-scrollbar"
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
