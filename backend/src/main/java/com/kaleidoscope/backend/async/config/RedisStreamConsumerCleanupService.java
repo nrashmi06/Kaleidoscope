@@ -40,15 +40,14 @@ public class RedisStreamConsumerCleanupService {
 
                 redisTemplate.execute((RedisConnection connection) -> {
                     byte[] rawStream = stream.getBytes(StandardCharsets.UTF_8);
-                    byte[] rawGroup = group.getBytes(StandardCharsets.UTF_8);
                     try {
                         var consumers = redisTemplate.opsForStream().consumers(stream, group);
                         if (consumers != null) {
                             for (var consumer : consumers) {
                                 // Delete consumers that don't match our current stable naming pattern
                                 if (!consumer.consumerName().contains("kaleidoscope-backend")) {
-                                    connection.streamCommands().xGroupDelConsumer(rawStream, rawGroup,
-                                            consumer.consumerName().getBytes(StandardCharsets.UTF_8));
+                                    connection.streamCommands().xGroupDelConsumer(rawStream, group,
+                                            consumer.consumerName());
                                     log.info("Deleted stale consumer stream={} group={} consumer={}",
                                             stream, group, consumer.consumerName());
                                 }
