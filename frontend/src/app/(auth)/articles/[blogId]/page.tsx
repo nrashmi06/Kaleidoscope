@@ -487,12 +487,14 @@ export default function BlogDetailPage() {
           {b.tags && b.tags.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mb-10">
               {b.tags.map((tag, idx) => (
-                <span
+                <button
                   key={idx}
-                  className="text-xs font-medium px-3 py-1.5 rounded-full bg-steel/[0.05] dark:bg-sky/[0.05] text-steel dark:text-sky/80 border border-steel/10 dark:border-sky/10 hover:bg-steel/10 dark:hover:bg-sky/10 transition-colors"
+                  type="button"
+                  onClick={() => router.push(`/articles/${tag.blogId}`)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-full bg-steel/[0.05] dark:bg-sky/[0.05] text-steel dark:text-sky/80 border border-steel/10 dark:border-sky/10 hover:bg-steel/10 dark:hover:bg-sky/10 transition-colors cursor-pointer"
                 >
                   #{typeof tag === "string" ? tag : tag.title}
-                </span>
+                </button>
               ))}
             </div>
           )}
