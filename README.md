@@ -1,6 +1,9 @@
 # Kaleidoscope
 Kaleidoscope is an enterprise photo-sharing platform designed to foster cultural connection and community building among employees across different geographic locations.
 
+### 📺 Project Walkthrough Video
+[![Watch the Project Explanation Video](backend/docs/images/play-video.svg)](https://drive.google.com/file/d/1eSUK2_U1EQ0_pbXpttIgnQAHPu3x8yzR/view?usp=drive_link)
+
 ## 🏗️ Project Architecture
 
 ### Technology Stack
