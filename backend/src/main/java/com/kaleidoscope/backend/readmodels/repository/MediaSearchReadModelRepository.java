@@ -8,6 +8,5 @@ import java.util.List;
 @Repository
 public interface MediaSearchReadModelRepository extends JpaRepository<MediaSearchReadModel, Long> {
     
-    // --- ADD THIS METHOD (Task 5.2) ---
     List<MediaSearchReadModel> findByPostId(Long postId);
 }

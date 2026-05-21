@@ -8,8 +8,8 @@ import lombok.Data;
 public class PostImageEventDTO {
     private Long postId;
     private Long mediaId;
-    private String mediaUrl; // RENAMED from imageUrl
-    private Long uploaderId; // ADDED
-    private String timestamp; // ADDED
-    private String correlationId; // KEPT for log tracking
+    private String mediaUrl;
+    private Long uploaderId;
+    private String timestamp;
+    private String correlationId;
 }

@@ -68,9 +68,9 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             log.info("Retrieved MediaDetectedFace for faceId: {}, mediaId: {}",
                     detectedFace.getId(), detectedFace.getMediaAiInsights().getMediaId());
 
-                // Find the User entity for the suggestedUserId
-                Optional<User> suggestedUserOpt = userRepository.findById(resultDTO.getSuggestedUserId());
-                if (suggestedUserOpt.isEmpty()) {
+            // Find the User entity for the suggestedUserId
+            Optional<User> suggestedUserOpt = userRepository.findById(resultDTO.getSuggestedUserId());
+            if (suggestedUserOpt.isEmpty()) {
                 log.warn("Suggested user not found for suggestedUserId: {}. Marking faceId={} as UNIDENTIFIED and acknowledging message.",
                     resultDTO.getSuggestedUserId(), detectedFace.getId());
 
@@ -92,9 +92,9 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
                 log.info("Successfully processed face recognition for faceId: {} and messageId: {} - user missing, face marked UNIDENTIFIED",
                     resultDTO.getFaceId(), messageId);
                 return;
-                }
+            }
 
-                User suggestedUser = suggestedUserOpt.get();
+            User suggestedUser = suggestedUserOpt.get();
             log.info("Retrieved suggested User: userId={}, username={}",
                     suggestedUser.getUserId(), suggestedUser.getUsername());
 
@@ -143,7 +143,7 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
     }
 
     private void updateMediaSearchWithDetectedUser(Long mediaId, User detectedUser) {
-            mediaSearchReadModelRepository.findById(mediaId).ifPresentOrElse(mediaSearch -> {
+        mediaSearchReadModelRepository.findById(mediaId).ifPresentOrElse(mediaSearch -> {
             String userIdStr = String.valueOf(detectedUser.getUserId());
             String username = detectedUser.getUsername();
 
@@ -166,8 +166,8 @@ public class FaceRecognitionConsumer implements StreamListener<String, MapRecord
             mediaSearchReadModelRepository.save(mediaSearch);
             log.info("Updated read_model_media_search for mediaId: {} with detected userId: {}", mediaId, userIdStr);
 
-                mediaSearchRepository.save(toMediaSearchDocument(mediaSearch));
-                log.info("Indexed media_search document for mediaId: {} after face recognition", mediaId);
+            mediaSearchRepository.save(toMediaSearchDocument(mediaSearch));
+            log.info("Indexed media_search document for mediaId: {} after face recognition", mediaId);
 
         }, () -> {
             log.warn("Could not find MediaSearchReadModel for mediaId: {} to add detected user", mediaId);

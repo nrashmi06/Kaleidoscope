@@ -17,7 +17,6 @@ import com.kaleidoscope.backend.shared.service.ImageStorageService;
 import com.kaleidoscope.backend.users.model.User;
 import com.kaleidoscope.backend.users.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +35,6 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
 
-    @Autowired
     public ImageStorageServiceImpl(
             Cloudinary cloudinary,
             MediaAssetTrackerRepository mediaAssetTrackerRepository,

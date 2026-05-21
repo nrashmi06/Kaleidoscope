@@ -53,7 +53,6 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
     private final SearchAssetSearchRepository searchAssetSearchRepository;
     private final ObjectMapper objectMapper;
 
-    // --- ADDED FOR AI INTEGRATION (Task 6.1) ---
     private final ReadModelUpdateService readModelUpdateService;
     private final ElasticsearchSyncTriggerService elasticsearchSyncTriggerService;
     private final PostProcessingStatusService postProcessingStatusService;
@@ -171,7 +170,6 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
             } else {
                 log.info("PostId: {} is still processing other media. Aggregation not triggered.", postId);
             }
-            // --- END AI INTEGRATION ---
 
             log.info("Successfully processed ML insights for mediaId: {} and messageId: {}",
                     resultDTO.getMediaId(), messageId);
@@ -243,13 +241,6 @@ public class MediaAiInsightsConsumer implements StreamListener<String, MapRecord
         log.debug("Creating MediaAiInsights entity for mediaId: {}", resultDTO.getMediaId());
 
         return MediaAiInsights.builder()
-                //
-                // --- THIS IS THE FIX ---
-                // We REMOVE the .mediaId() call because the @MapsId annotation
-                // will automatically copy the ID from the 'postMedia' relationship.
-                //
-                // .mediaId(resultDTO.getMediaId()) // <-- THIS LINE IS REMOVED
-                //
                 .postMedia(postMedia) // Set the relationship
                 .post(postMedia.getPost())
                 .status(MediaAiStatus.COMPLETED)

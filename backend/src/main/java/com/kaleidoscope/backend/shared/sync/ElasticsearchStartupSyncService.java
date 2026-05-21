@@ -90,7 +90,6 @@ public class ElasticsearchStartupSyncService {
 
     private final JdbcTemplate jdbcTemplate;
 
-    // --- IMPORT ADDED ---
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
     private final ElasticsearchOperations elasticsearchOperations;
 
@@ -142,11 +141,7 @@ public class ElasticsearchStartupSyncService {
 
             log.info("==================== ELASTICSEARCH STARTUP SYNC COMPLETED SUCCESSFULLY ====================");
 
-            //
-            // --- THIS IS THE KEY CHANGE ---
-            //
             // Start the Redis Stream consumers ONLY AFTER all data has been synced.
-            //
             log.info("Starting Redis Stream Message Listener Container...");
             streamMessageListenerContainer.start();
 

@@ -11,7 +11,6 @@ import com.resend.services.emails.model.CreateEmailOptions;
 import com.resend.services.emails.model.CreateEmailResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,7 +29,6 @@ public class EmailServiceImpl implements EmailService {
     private final TemplateEngine templateEngine;
     private final ApplicationProperties applicationProperties;
 
-    @Autowired
     public EmailServiceImpl(ResendProperties resendProperties,
             TemplateEngine templateEngine,
             ApplicationProperties applicationProperties) {

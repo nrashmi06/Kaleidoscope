@@ -24,7 +24,7 @@ import com.kaleidoscope.backend.shared.repository.ReactionRepository;
 import com.kaleidoscope.backend.shared.repository.UserTagRepository;
 import com.kaleidoscope.backend.users.dto.response.UserDetailsSummaryResponseDTO;
 import com.kaleidoscope.backend.users.model.User;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
@@ -34,17 +34,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class PostMapper {
-        @Autowired
-        private UserTagRepository userTagRepository;
-        @Autowired
-        private UserTagMapper userTagMapper;
-        @Autowired
-        private CommentRepository commentRepository;
-        @Autowired
-        private ReactionRepository reactionRepository;
-        @Autowired
-        private PostViewService postViewService;
+        private final UserTagRepository userTagRepository;
+        private final UserTagMapper userTagMapper;
+        private final CommentRepository commentRepository;
+        private final ReactionRepository reactionRepository;
+        private final PostViewService postViewService;
 
         public Post toEntity(PostCreateRequestDTO dto) {
                 if (dto == null) {

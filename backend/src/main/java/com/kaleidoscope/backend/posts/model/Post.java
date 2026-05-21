@@ -93,13 +93,6 @@ public class Post {
     @Builder.Default
     private Set<PostCategory> categories = new HashSet<>();
 
-    // --- ENTIRE USERTAGS RELATIONSHIP REMOVED ---
-    // @OneToMany(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "content_id", referencedColumnName = "post_id", insertable = false, updatable = false)
-    // @Where(clause = "content_type = 'POST'")
-    // @Builder.Default
-    // private Set<UserTag> userTags = new HashSet<>();
-    // --- END OF REMOVAL ---
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -132,10 +125,6 @@ public class Post {
         }
     }
 
-    // --- HELPER METHODS FOR USERTAGS REMOVED ---
-    // public void addUserTag(User taggerUser, User taggedUser) { ... }
-    // public void removeUserTag(User taggedUser) { ... }
-    // --- END OF REMOVAL ---
 
     /**
      * Helper method to get Hashtag entities directly from PostHashtag relationships

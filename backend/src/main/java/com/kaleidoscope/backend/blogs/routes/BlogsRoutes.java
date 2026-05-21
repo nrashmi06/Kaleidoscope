@@ -10,10 +10,8 @@ public class BlogsRoutes {
     // Base route for blogs
     public static final String BLOGS = API_VERSION + "/blogs";
     
-    // --- Endpoint for Phase 1 ---
     public static final String GENERATE_UPLOAD_SIGNATURES = BLOGS + "/generate-upload-signatures";
     
-    // --- Endpoint for Phase 2 ---
     public static final String CREATE_BLOG = BLOGS;
     public static final String UPDATE_BLOG = BLOGS + "/{blogId}";
     public static final String DELETE_BLOG = BLOGS + "/{blogId}";
@@ -23,6 +21,5 @@ public class BlogsRoutes {
     public static final String GET_TAGGED_BY = BLOGS + "/{blogId}/tagged-by";
     public static final String SUGGESTIONS = BLOGS + "/suggestions";
 
-    // --- Admin Endpoints ---
     public static final String UPDATE_BLOG_STATUS = BLOGS + "/{blogId}/status";
 }

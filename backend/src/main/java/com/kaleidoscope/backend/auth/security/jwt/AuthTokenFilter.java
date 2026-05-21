@@ -95,7 +95,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             // Allow the request to proceed to the AuthEntryPointJwt by continuing the filter chain
             filterChain.doFilter(request, response);
         } catch (Exception e) {
-            // --- Improved Generic Error Handling ---
             // Catch other unexpected exceptions that might occur *during* filter processing
             // BUT DO NOT clear the SecurityContextHolder here unless the error is fundamentally
             // related to authentication setup itself. Let downstream errors propagate.

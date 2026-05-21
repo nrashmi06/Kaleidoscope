@@ -27,5 +27,5 @@ public class PostInsightsEnrichedDTO {
     private Integer mediaCount;
     private String inferredEventType;
     private String timestamp;
-    private String correlationId; // Added to receive from the message
+    private String correlationId;
 }

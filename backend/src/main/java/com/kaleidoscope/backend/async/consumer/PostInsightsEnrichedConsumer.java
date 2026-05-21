@@ -56,7 +56,7 @@ public class PostInsightsEnrichedConsumer implements StreamListener<String, MapR
     private final PostSearchReadModelRepository postSearchReadModelRepository;
     private final MediaSearchReadModelRepository mediaSearchReadModelRepository;
     private final ElasticsearchOperations elasticsearchOperations;
-    private final PostRepository postRepository;  // ADDED: To fetch Post entity for author info
+    private final PostRepository postRepository;
     private final PostSearchRepository postSearchRepository;
     private final MediaSearchRepository mediaSearchRepository;
     private final MediaAiInsightsRepository mediaAiInsightsRepository;

@@ -44,7 +44,7 @@ public class AdminServiceImpl implements AdminService {
                 emailService.sendNotificationEmail(
                     email,
                     subject,
-                    "massEmailBroadcast", // Use the template from the previous prompt
+                    "massEmailBroadcast",
                     emailVariables,
                     attachments
                 );

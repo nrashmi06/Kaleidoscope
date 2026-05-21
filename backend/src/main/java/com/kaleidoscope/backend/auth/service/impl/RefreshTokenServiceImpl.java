@@ -15,7 +15,6 @@ import com.kaleidoscope.backend.users.repository.UserRepository;
 import com.kaleidoscope.backend.users.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -36,7 +35,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final JwtUtils jwtUtils;
     private final JwtProperties jwtProperties;
 
-    @Autowired
     public RefreshTokenServiceImpl(
             RefreshTokenRepository refreshTokenRepository,
             UserRepository userRepository,

@@ -42,7 +42,6 @@ public class FaceDetectionConsumer implements StreamListener<String, MapRecord<S
     private final PostMediaRepository postMediaRepository;
     private final TransactionTemplate transactionTemplate;
 
-    // --- ADDED FOR RETRY LOGIC ---
     private static final int MAX_RETRY_ATTEMPTS = 5;
     private static final long INITIAL_RETRY_DELAY_MS = 100;
 
